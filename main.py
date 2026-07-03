@@ -4,6 +4,7 @@ from fastapi.responses import PlainTextResponse
 from config import VERIFY_TOKEN
 from menu import handle_message
 from crud import init_db
+from dashboard import dashboard_page
 
 app = FastAPI()
 
@@ -11,13 +12,19 @@ app = FastAPI()
 @app.on_event("startup")
 def startup():
     init_db()
-    
+
+
 @app.get("/")
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "modular-1"
+        "version": "modular-2"
     }
+
+
+@app.get("/dashboard")
+async def dashboard():
+    return dashboard_page()
 
 
 @app.get("/webhook")
@@ -27,28 +34,9 @@ async def verify_webhook(request: Request):
     challenge = request.query_params.get("hub.challenge")
 
     if mode == "subscribe" and token == VERIFY_TOKEN:
-        return PlainTextResponse(content=challenge)
+        return PlainTextResponse(challenge)
 
-    return PlainTextResponse(content="Verification failed", status_code=403)
-
-
-def get_message_data(body):
-    value = body["entry"][0]["changes"][0]["value"]
-
-    if "messages" not in value:
-        return None, None, None
-
-    msg = value["messages"][0]
-    sender = msg["from"]
-    msg_type = msg["type"]
-
-    if msg_type == "text":
-        return sender, "text", msg["text"]["body"].strip()
-
-    if msg_type == "image":
-        return sender, "image", msg["image"]["id"]
-
-    return sender, msg_type, None
+    return PlainTextResponse("Forbidden", status_code=403)
 
 
 @app.post("/webhook")
@@ -58,13 +46,30 @@ async def webhook(request: Request):
     print("===== Neue WhatsApp Nachricht =====")
     print(body)
 
-    try:
-        sender, msg_type, content = get_message_data(body)
+    if body.get("object") != "whatsapp_business_account":
+        return {"status": "ignored"}
 
-        if sender:
-            handle_message(sender, msg_type, content)
+    for entry in body.get("entry", []):
+        for change in entry.get("changes", []):
+            value = change.get("value", {})
 
-    except Exception as e:
-        print("Allgemeiner Fehler:", repr(e))
+            if "messages" not in value:
+                continue
+
+            for message in value["messages"]:
+
+                sender = message["from"]
+                msg_type = message["type"]
+
+                if msg_type == "text":
+                    content = message["text"]["body"]
+
+                elif msg_type == "image":
+                    content = message["image"]["id"]
+
+                else:
+                    content = ""
+
+                handle_message(sender, msg_type, content)
 
     return {"status": "ok"}
