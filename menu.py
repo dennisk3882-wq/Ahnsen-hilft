@@ -4,7 +4,7 @@ from state import get_state, save_state, reset_state
 from whatsapp import send_whatsapp_message
 from media import download_whatsapp_image
 from email_service import send_email
-
+from crud import save_meldung
 
 MENU = """👋 Willkommen bei Ahnsen hilft
 
@@ -154,8 +154,8 @@ def handle_message(sender, msg_type, content):
             ticket = "AH-" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
             try:
-                send_email(ticket, data, sender)
-                reset_state(sender)
+    save_meldung(ticket, data, sender)
+    send_email(ticket, data, sender)
 
                 send_whatsapp_message(
                     sender,
