@@ -24,8 +24,9 @@ Bitte antworte mit einer Zahl:
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "2026-07-03-1900"
+        "version": "2026-07-03-2009"
     }
+
 @app.get("/webhook")
 async def verify_webhook(request: Request):
     mode = request.query_params.get("hub.mode")
@@ -46,18 +47,14 @@ async def webhook(request: Request):
 
     try:
         message = body["entry"][0]["changes"][0]["value"]["messages"][0]["text"]["body"]
-
         print("Nachricht erhalten:", message)
 
         if message == "1":
             print("Mangel melden ausgewählt")
-
         elif message == "2":
             print("Veranstaltungen ausgewählt")
-
         elif message.lower() == "hallo":
             print("Benutzer hat Hallo geschrieben")
-
         else:
             print("Unbekannte Nachricht:", message)
 
