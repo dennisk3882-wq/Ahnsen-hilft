@@ -6,6 +6,7 @@ from media import download_whatsapp_image
 from email_service import send_email
 from crud import save_meldung
 
+
 MENU = """👋 Willkommen bei Ahnsen hilft
 
 Bitte antworte mit einer Zahl:
@@ -77,31 +78,22 @@ def handle_message(sender, msg_type, content):
         if content == "1":
             save_state(sender, {"step": "mangel_art", "data": {}})
             send_whatsapp_message(sender, MANGEL_MENU)
-
         elif content == "2":
             send_whatsapp_message(sender, "📅 Veranstaltungen werden später angezeigt.")
-
         elif content == "3":
             send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
-
         elif content == "4":
             send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
-
         elif content == "5":
             send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
-
         elif content == "6":
             send_whatsapp_message(sender, "📰 Aktuelles folgt.")
-
         elif content == "7":
             send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
-
         elif content == "0":
             send_whatsapp_message(sender, "👋 Bis bald!")
-
         else:
             send_whatsapp_message(sender, MENU)
-
         return
 
     if step == "mangel_art":
@@ -116,24 +108,18 @@ def handle_message(sender, msg_type, content):
 
         data["art"] = MANGEL_ARTEN[content]
         save_state(sender, {"step": "mangel_ort", "data": data})
-
-        send_whatsapp_message(
-            sender,
-            "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
-        )
+        send_whatsapp_message(sender, "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden.")
         return
 
     if step == "mangel_ort":
         data["ort"] = content
         save_state(sender, {"step": "mangel_beschreibung", "data": data})
-
         send_whatsapp_message(sender, "📝 Bitte beschreibe den Mangel kurz.")
         return
 
     if step == "mangel_beschreibung":
         data["beschreibung"] = content
         save_state(sender, {"step": "mangel_foto", "data": data})
-
         send_whatsapp_message(sender, "📷 Bitte sende jetzt ein Foto oder schreibe „Nein“.")
         return
 
@@ -145,7 +131,6 @@ def handle_message(sender, msg_type, content):
             data["foto_bytes"] = None
 
         save_state(sender, {"step": "mangel_bestaetigung", "data": data})
-
         send_whatsapp_message(sender, build_confirmation_text(data))
         return
 
@@ -154,19 +139,26 @@ def handle_message(sender, msg_type, content):
             ticket = "AH-" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
             try:
-    save_meldung(ticket, data, sender)
-    send_email(ticket, data, sender)
+                print("Speichere Meldung...")
+                save_meldung(ticket, data, sender)
+                print("Meldung erfolgreich gespeichert.")
+
+                print("Sende E-Mail...")
+                send_email(ticket, data, sender)
+                print("E-Mail erfolgreich gesendet.")
+
+                reset_state(sender)
 
                 send_whatsapp_message(
                     sender,
                     f"✅ Vielen Dank!\n\nDeine Meldung wurde aufgenommen und per E-Mail weitergeleitet.\n\nVorgangsnummer:\n{ticket}"
                 )
 
-            except Exception as email_error:
-                print("E-Mail Fehler:", repr(email_error))
+            except Exception as error:
+                print("Fehler beim Speichern oder E-Mail-Versand:", repr(error))
                 send_whatsapp_message(
                     sender,
-                    "⚠️ Die E-Mail konnte aktuell nicht versendet werden. Bitte später erneut versuchen."
+                    "⚠️ Die Meldung konnte aktuell nicht vollständig verarbeitet werden. Bitte später erneut versuchen."
                 )
 
             return
