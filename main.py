@@ -53,7 +53,7 @@ MANGEL_ARTEN = {
 
 @app.get("/")
 async def home():
-    return {"status": "Ahnsen hilft läuft", "version": "email-foto-1"}
+    return {"status": "Ahnsen hilft läuft", "version": "email-fix-2"}
 
 
 @app.get("/webhook")
@@ -80,7 +80,8 @@ def send_whatsapp_message(to, text):
         "type": "text",
         "text": {"body": text}
     }
-    r = requests.post(url, headers=headers, json=data)
+
+    r = requests.post(url, headers=headers, json=data, timeout=20)
     print("WhatsApp Antwort:", r.status_code, r.text)
 
 
@@ -88,7 +89,7 @@ def download_whatsapp_image(media_id):
     headers = {"Authorization": f"Bearer {WHATSAPP_TOKEN}"}
 
     meta_url = f"https://graph.facebook.com/v25.0/{media_id}"
-    meta = requests.get(meta_url, headers=headers)
+    meta = requests.get(meta_url, headers=headers, timeout=20)
     print("Media Meta:", meta.status_code, meta.text)
 
     if meta.status_code != 200:
@@ -98,16 +99,20 @@ def download_whatsapp_image(media_id):
     if not file_url:
         return None
 
-    file_response = requests.get(file_url, headers=headers)
+    file_response = requests.get(file_url, headers=headers, timeout=30)
+    print("Bild Download:", file_response.status_code)
 
     if file_response.status_code != 200:
-        print("Bild Download Fehler:", file_response.status_code, file_response.text)
+        print("Bild Download Fehler:", file_response.text)
         return None
 
     return file_response.content
 
 
 def send_email(ticket, data, sender):
+    if not EMAIL_USER or not EMAIL_PASSWORD or not EMAIL_TO:
+        raise Exception("E-Mail Umgebungsvariablen fehlen")
+
     msg = EmailMessage()
     msg["Subject"] = f"Neue Mängelmeldung {ticket}"
     msg["From"] = EMAIL_USER
@@ -144,8 +149,10 @@ Zeit:
             filename=f"{ticket}.jpg"
         )
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
+        smtp.ehlo()
         smtp.starttls()
+        smtp.ehlo()
         smtp.login(EMAIL_USER, EMAIL_PASSWORD)
         smtp.send_message(msg)
 
@@ -187,6 +194,7 @@ async def webhook(request: Request):
 
         if msg_type == "text":
             text = content.lower()
+
             if text in ["menü", "menu", "zurück", "start", "hallo", "hi"]:
                 user_states[sender] = {"step": "menu", "data": {}}
                 send_whatsapp_message(sender, MENU)
@@ -196,20 +204,28 @@ async def webhook(request: Request):
             if content == "1":
                 user_states[sender] = {"step": "mangel_art", "data": {}}
                 send_whatsapp_message(sender, MANGEL_MENU)
+
             elif content == "2":
-                send_whatsapp_message(sender, "📅 Veranstaltungen werden später angezeigt.")
+                send_whatsapp_message(sender, "📅 Veranstaltungen werden später angezeigt.\n\nSchreibe „zurück“ für das Hauptmenü.")
+
             elif content == "3":
-                send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
+                send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.\n\nSchreibe „zurück“ für das Hauptmenü.")
+
             elif content == "4":
-                send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
+                send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
+
             elif content == "5":
-                send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
+                send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
+
             elif content == "6":
-                send_whatsapp_message(sender, "📰 Aktuelles folgt.")
+                send_whatsapp_message(sender, "📰 Aktuelles folgt.\n\nSchreibe „zurück“ für das Hauptmenü.")
+
             elif content == "7":
-                send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
+                send_whatsapp_message(sender, "🗑 Mülltermine folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
+
             elif content == "0":
                 send_whatsapp_message(sender, "👋 Bis bald!")
+
             else:
                 send_whatsapp_message(sender, MENU)
 
@@ -249,25 +265,40 @@ async def webhook(request: Request):
             return {"status": "ok"}
 
         if state["step"] == "mangel_foto":
+            foto_status = "Kein Foto"
+
             if msg_type == "image":
                 foto_bytes = download_whatsapp_image(content)
                 state["data"]["foto_bytes"] = foto_bytes
+                foto_status = "Foto empfangen" if foto_bytes else "Foto konnte nicht geladen werden"
             else:
                 state["data"]["foto_bytes"] = None
 
             ticket = "AH-" + datetime.now().strftime("%Y%m%d-%H%M%S")
-            send_email(ticket, state["data"], sender)
+
+            email_ok = False
+            try:
+                send_email(ticket, state["data"], sender)
+                email_ok = True
+            except Exception as email_error:
+                print("E-Mail Fehler:", repr(email_error))
 
             user_states[sender] = {"step": "menu", "data": {}}
 
-            send_whatsapp_message(
-                sender,
-                f"✅ Vielen Dank!\n\nDeine Meldung wurde aufgenommen und weitergeleitet.\n\nVorgangsnummer:\n{ticket}"
-            )
+            if email_ok:
+                send_whatsapp_message(
+                    sender,
+                    f"✅ Vielen Dank!\n\nDeine Meldung wurde aufgenommen und per E-Mail weitergeleitet.\n\nVorgangsnummer:\n{ticket}\n\n{foto_status}"
+                )
+            else:
+                send_whatsapp_message(
+                    sender,
+                    f"✅ Deine Meldung wurde aufgenommen.\n\nVorgangsnummer:\n{ticket}\n\n⚠️ Die E-Mail konnte aktuell nicht versendet werden. Bitte im Render-Log prüfen."
+                )
 
             return {"status": "ok"}
 
     except Exception as e:
-        print("Fehler:", e)
+        print("Allgemeiner Fehler:", repr(e))
 
-    return {"status": "ok"}
+    return {"status": "ok"} 
