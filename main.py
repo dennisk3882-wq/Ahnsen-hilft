@@ -1,6 +1,10 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse
+import os
 
 app = FastAPI()
+
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "ahnsen2026")
 
 MENU = """👋 Willkommen bei Ahnsen hilft
 
@@ -17,25 +21,26 @@ Bitte antworte mit einer Zahl:
 """
 
 @app.get("/")
-def home():
+async def home():
     return {"status": "Ahnsen hilft läuft"}
 
 @app.get("/webhook")
-def verify_webhook(hub_mode: str = None,
-                   hub_verify_token: str = None,
-                   hub_challenge: str = None):
+async def verify_webhook(request: Request):
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
 
-    VERIFY_TOKEN = "ahnsen2026"
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        return PlainTextResponse(content=challenge)
 
-    if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
-        return int(hub_challenge)
-
-    return {"error": "Verification failed"}
+    return PlainTextResponse(content="Verification failed", status_code=403)
 
 @app.post("/webhook")
 async def webhook(request: Request):
     body = await request.json()
 
+    print("===== Neue WhatsApp Nachricht =====")
     print(body)
+    print("==================================")
 
     return {"status": "ok"}
