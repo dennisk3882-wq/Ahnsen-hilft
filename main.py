@@ -1,10 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import PlainTextResponse
 import os
+import requests
 
 app = FastAPI()
 
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "ahnsen2026")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 
 MENU = """👋 Willkommen bei Ahnsen hilft
 
@@ -20,12 +23,14 @@ Bitte antworte mit einer Zahl:
 0️⃣ Ende
 """
 
+
 @app.get("/")
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "2026-07-03-2009"
+        "version": "2026-07-03-2000"
     }
+
 
 @app.get("/webhook")
 async def verify_webhook(request: Request):
@@ -38,6 +43,31 @@ async def verify_webhook(request: Request):
 
     return PlainTextResponse(content="Verification failed", status_code=403)
 
+
+def send_whatsapp_message(to, text):
+    url = f"https://graph.facebook.com/v25.0/{PHONE_NUMBER_ID}/messages"
+
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    data = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {
+            "body": text
+        }
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+
+    print("Antwort gesendet:")
+    print(response.status_code)
+    print(response.text)
+
+
 @app.post("/webhook")
 async def webhook(request: Request):
     body = await request.json()
@@ -46,19 +76,46 @@ async def webhook(request: Request):
     print(body)
 
     try:
-        message = body["entry"][0]["changes"][0]["value"]["messages"][0]["text"]["body"]
+        value = body["entry"][0]["changes"][0]["value"]
+
+        if "messages" not in value:
+            return {"status": "ok"}
+
+        message = value["messages"][0]["text"]["body"]
+        sender = value["messages"][0]["from"]
+
         print("Nachricht erhalten:", message)
 
         if message == "1":
-            print("Mangel melden ausgewählt")
+            answer = "🛠 Du hast Mangel melden gewählt."
+
         elif message == "2":
-            print("Veranstaltungen ausgewählt")
-        elif message.lower() == "hallo":
-            print("Benutzer hat Hallo geschrieben")
+            answer = "📅 Du hast Veranstaltungen gewählt."
+
+        elif message == "3":
+            answer = "🏡 Du hast Vereine gewählt."
+
+        elif message == "4":
+            answer = "🚒 Du hast Feuerwehr gewählt."
+
+        elif message == "5":
+            answer = "☎️ Du hast Ansprechpartner gewählt."
+
+        elif message == "6":
+            answer = "📰 Du hast Aktuelles gewählt."
+
+        elif message == "7":
+            answer = "🗑 Du hast Mülltermine gewählt."
+
+        elif message == "0":
+            answer = "👋 Bis bald!"
+
         else:
-            print("Unbekannte Nachricht:", message)
+            answer = MENU
+
+        send_whatsapp_message(sender, answer)
 
     except Exception as e:
-        print("Keine Textnachricht:", e)
+        print("Fehler:", e)
 
     return {"status": "ok"}
