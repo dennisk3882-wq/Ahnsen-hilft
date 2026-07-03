@@ -53,7 +53,7 @@ MANGEL_ARTEN = {
 
 @app.get("/")
 async def home():
-    return {"status": "Ahnsen hilft läuft", "version": "email-debug-1"}
+    return {"status": "Ahnsen hilft läuft", "version": "bestaetigung-1"}
 
 
 @app.get("/webhook")
@@ -110,14 +110,8 @@ def download_whatsapp_image(media_id):
 
 
 def send_email(ticket, data, sender):
-    print("send_email() gestartet")
-
     if not EMAIL_USER or not EMAIL_PASSWORD or not EMAIL_TO:
         raise Exception("E-Mail Umgebungsvariablen fehlen")
-
-    print("E-Mail Variablen vorhanden")
-    print("EMAIL_USER:", EMAIL_USER)
-    print("EMAIL_TO:", EMAIL_TO)
 
     msg = EmailMessage()
     msg["Subject"] = f"Neue Mängelmeldung {ticket}"
@@ -138,6 +132,9 @@ Ort:
 Beschreibung:
 {data.get("beschreibung")}
 
+Foto:
+{"Ja" if data.get("foto_bytes") else "Nein"}
+
 WhatsApp-Absender:
 {sender}
 
@@ -148,26 +145,18 @@ Zeit:
     msg.set_content(body)
 
     if data.get("foto_bytes"):
-        print("Foto wird als Anhang hinzugefügt")
         msg.add_attachment(
             data["foto_bytes"],
             maintype="image",
             subtype="jpeg",
             filename=f"{ticket}.jpg"
         )
-    else:
-        print("Kein Foto-Anhang vorhanden")
-
-    print("SMTP Verbindung wird aufgebaut")
 
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
-        print("SMTP verbunden")
         smtp.ehlo()
         smtp.starttls()
         smtp.ehlo()
-        print("SMTP Login wird versucht")
         smtp.login(EMAIL_USER, EMAIL_PASSWORD)
-        print("SMTP Login erfolgreich")
         smtp.send_message(msg)
 
     print("E-Mail gesendet an:", EMAIL_TO)
@@ -192,6 +181,26 @@ def get_message_data(body):
     return sender, msg_type, None
 
 
+def build_confirmation_text(data):
+    foto_text = "Ja" if data.get("foto_bytes") else "Nein"
+
+    return f"""Bitte prüfe deine Meldung:
+
+Art:
+{data.get("art")}
+
+Ort:
+{data.get("ort")}
+
+Beschreibung:
+{data.get("beschreibung")}
+
+Foto:
+{foto_text}
+
+Mit „Ja“ absenden oder mit „Zurück“ abbrechen."""
+
+
 @app.post("/webhook")
 async def webhook(request: Request):
     body = await request.json()
@@ -207,10 +216,10 @@ async def webhook(request: Request):
         state = user_states.get(sender, {"step": "menu", "data": {}})
         print("Aktueller Schritt:", state["step"])
 
-        if msg_type == "text":
-            text = content.lower()
+        text = content.lower() if msg_type == "text" and content else ""
 
-            if text in ["menü", "menu", "zurück", "start", "hallo", "hi"]:
+        if msg_type == "text":
+            if text in ["menü", "menu", "start", "hallo", "hi"]:
                 user_states[sender] = {"step": "menu", "data": {}}
                 send_whatsapp_message(sender, MENU)
                 return {"status": "ok"}
@@ -220,17 +229,17 @@ async def webhook(request: Request):
                 user_states[sender] = {"step": "mangel_art", "data": {}}
                 send_whatsapp_message(sender, MANGEL_MENU)
             elif content == "2":
-                send_whatsapp_message(sender, "📅 Veranstaltungen werden später angezeigt.\n\nSchreibe „zurück“ für das Hauptmenü.")
+                send_whatsapp_message(sender, "📅 Veranstaltungen werden später angezeigt.")
             elif content == "3":
-                send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.\n\nSchreibe „zurück“ für das Hauptmenü.")
+                send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
             elif content == "4":
-                send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
+                send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
             elif content == "5":
-                send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
+                send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
             elif content == "6":
-                send_whatsapp_message(sender, "📰 Aktuelles folgt.\n\nSchreibe „zurück“ für das Hauptmenü.")
+                send_whatsapp_message(sender, "📰 Aktuelles folgt.")
             elif content == "7":
-                send_whatsapp_message(sender, "🗑 Mülltermine folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
+                send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
             elif content == "0":
                 send_whatsapp_message(sender, "👋 Bis bald!")
             else:
@@ -272,40 +281,46 @@ async def webhook(request: Request):
             return {"status": "ok"}
 
         if state["step"] == "mangel_foto":
-            print("Starte E-Mail-Versand-Ablauf")
-
-            foto_status = "Kein Foto"
-
             if msg_type == "image":
                 foto_bytes = download_whatsapp_image(content)
                 state["data"]["foto_bytes"] = foto_bytes
-                foto_status = "Foto empfangen" if foto_bytes else "Foto konnte nicht geladen werden"
             else:
                 state["data"]["foto_bytes"] = None
 
-            ticket = "AH-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+            state["step"] = "mangel_bestaetigung"
+            user_states[sender] = state
 
-            email_ok = False
-            try:
-                print("Rufe send_email() auf")
-                send_email(ticket, state["data"], sender)
-                email_ok = True
-            except Exception as email_error:
-                print("E-Mail Fehler:", repr(email_error))
+            send_whatsapp_message(sender, build_confirmation_text(state["data"]))
+            return {"status": "ok"}
 
-            user_states[sender] = {"step": "menu", "data": {}}
+        if state["step"] == "mangel_bestaetigung":
+            if text in ["ja", "j", "ok", "absenden"]:
+                ticket = "AH-" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
-            if email_ok:
-                send_whatsapp_message(
-                    sender,
-                    f"✅ Vielen Dank!\n\nDeine Meldung wurde aufgenommen und per E-Mail weitergeleitet.\n\nVorgangsnummer:\n{ticket}\n\n{foto_status}"
-                )
-            else:
-                send_whatsapp_message(
-                    sender,
-                    f"✅ Deine Meldung wurde aufgenommen.\n\nVorgangsnummer:\n{ticket}\n\n⚠️ Die E-Mail konnte aktuell nicht versendet werden. Bitte im Render-Log prüfen."
-                )
+                try:
+                    send_email(ticket, state["data"], sender)
+                    user_states[sender] = {"step": "menu", "data": {}}
 
+                    send_whatsapp_message(
+                        sender,
+                        f"✅ Vielen Dank!\n\nDeine Meldung wurde aufgenommen und per E-Mail weitergeleitet.\n\nVorgangsnummer:\n{ticket}"
+                    )
+
+                except Exception as email_error:
+                    print("E-Mail Fehler:", repr(email_error))
+                    send_whatsapp_message(
+                        sender,
+                        "⚠️ Die E-Mail konnte aktuell nicht versendet werden. Bitte später erneut versuchen."
+                    )
+
+                return {"status": "ok"}
+
+            if text in ["nein", "zurück", "zuruck", "abbrechen"]:
+                user_states[sender] = {"step": "menu", "data": {}}
+                send_whatsapp_message(sender, "❌ Meldung wurde abgebrochen.\n\n" + MENU)
+                return {"status": "ok"}
+
+            send_whatsapp_message(sender, "Bitte antworte mit „Ja“ zum Absenden oder „Zurück“ zum Abbrechen.")
             return {"status": "ok"}
 
     except Exception as e:
