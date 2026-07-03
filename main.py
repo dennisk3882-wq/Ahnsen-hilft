@@ -53,7 +53,7 @@ MANGEL_ARTEN = {
 
 @app.get("/")
 async def home():
-    return {"status": "Ahnsen hilft läuft", "version": "email-fix-2"}
+    return {"status": "Ahnsen hilft läuft", "version": "email-debug-1"}
 
 
 @app.get("/webhook")
@@ -110,8 +110,14 @@ def download_whatsapp_image(media_id):
 
 
 def send_email(ticket, data, sender):
+    print("send_email() gestartet")
+
     if not EMAIL_USER or not EMAIL_PASSWORD or not EMAIL_TO:
         raise Exception("E-Mail Umgebungsvariablen fehlen")
+
+    print("E-Mail Variablen vorhanden")
+    print("EMAIL_USER:", EMAIL_USER)
+    print("EMAIL_TO:", EMAIL_TO)
 
     msg = EmailMessage()
     msg["Subject"] = f"Neue Mängelmeldung {ticket}"
@@ -142,18 +148,26 @@ Zeit:
     msg.set_content(body)
 
     if data.get("foto_bytes"):
+        print("Foto wird als Anhang hinzugefügt")
         msg.add_attachment(
             data["foto_bytes"],
             maintype="image",
             subtype="jpeg",
             filename=f"{ticket}.jpg"
         )
+    else:
+        print("Kein Foto-Anhang vorhanden")
+
+    print("SMTP Verbindung wird aufgebaut")
 
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
+        print("SMTP verbunden")
         smtp.ehlo()
         smtp.starttls()
         smtp.ehlo()
+        print("SMTP Login wird versucht")
         smtp.login(EMAIL_USER, EMAIL_PASSWORD)
+        print("SMTP Login erfolgreich")
         smtp.send_message(msg)
 
     print("E-Mail gesendet an:", EMAIL_TO)
@@ -191,6 +205,7 @@ async def webhook(request: Request):
             return {"status": "ok"}
 
         state = user_states.get(sender, {"step": "menu", "data": {}})
+        print("Aktueller Schritt:", state["step"])
 
         if msg_type == "text":
             text = content.lower()
@@ -204,28 +219,20 @@ async def webhook(request: Request):
             if content == "1":
                 user_states[sender] = {"step": "mangel_art", "data": {}}
                 send_whatsapp_message(sender, MANGEL_MENU)
-
             elif content == "2":
                 send_whatsapp_message(sender, "📅 Veranstaltungen werden später angezeigt.\n\nSchreibe „zurück“ für das Hauptmenü.")
-
             elif content == "3":
                 send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.\n\nSchreibe „zurück“ für das Hauptmenü.")
-
             elif content == "4":
                 send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
-
             elif content == "5":
                 send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
-
             elif content == "6":
                 send_whatsapp_message(sender, "📰 Aktuelles folgt.\n\nSchreibe „zurück“ für das Hauptmenü.")
-
             elif content == "7":
                 send_whatsapp_message(sender, "🗑 Mülltermine folgen.\n\nSchreibe „zurück“ für das Hauptmenü.")
-
             elif content == "0":
                 send_whatsapp_message(sender, "👋 Bis bald!")
-
             else:
                 send_whatsapp_message(sender, MENU)
 
@@ -265,6 +272,8 @@ async def webhook(request: Request):
             return {"status": "ok"}
 
         if state["step"] == "mangel_foto":
+            print("Starte E-Mail-Versand-Ablauf")
+
             foto_status = "Kein Foto"
 
             if msg_type == "image":
@@ -278,6 +287,7 @@ async def webhook(request: Request):
 
             email_ok = False
             try:
+                print("Rufe send_email() auf")
                 send_email(ticket, state["data"], sender)
                 email_ok = True
             except Exception as email_error:
@@ -301,4 +311,4 @@ async def webhook(request: Request):
     except Exception as e:
         print("Allgemeiner Fehler:", repr(e))
 
-    return {"status": "ok"} 
+    return {"status": "ok"}
