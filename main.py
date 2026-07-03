@@ -43,6 +43,25 @@ async def webhook(request: Request):
 
     print("===== Neue WhatsApp Nachricht =====")
     print(body)
-    print("==================================")
+
+    try:
+        message = body["entry"][0]["changes"][0]["value"]["messages"][0]["text"]["body"]
+
+        print("Nachricht erhalten:", message)
+
+        if message == "1":
+            print("Mangel melden ausgewählt")
+
+        elif message == "2":
+            print("Veranstaltungen ausgewählt")
+
+        elif message.lower() == "hallo":
+            print("Benutzer hat Hallo geschrieben")
+
+        else:
+            print("Unbekannte Nachricht:", message)
+
+    except Exception as e:
+        print("Keine Textnachricht:", e)
 
     return {"status": "ok"}
