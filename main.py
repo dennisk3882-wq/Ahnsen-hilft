@@ -3,10 +3,15 @@ from fastapi.responses import PlainTextResponse
 
 from config import VERIFY_TOKEN
 from menu import handle_message
+from crud import init_db
 
 app = FastAPI()
 
 
+@app.on_event("startup")
+def startup():
+    init_db()
+    
 @app.get("/")
 async def home():
     return {
