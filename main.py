@@ -22,8 +22,10 @@ Bitte antworte mit einer Zahl:
 
 @app.get("/")
 async def home():
-    return {"status": "Ahnsen hilft läuft"}
-
+    return {
+        "status": "Ahnsen hilft läuft",
+        "version": "2026-07-03-1900"
+    }
 @app.get("/webhook")
 async def verify_webhook(request: Request):
     mode = request.query_params.get("hub.mode")
