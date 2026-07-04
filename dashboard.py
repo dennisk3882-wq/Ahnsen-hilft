@@ -81,7 +81,7 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     margin-bottom:20px;
 }}
 
-.nav-button {
+.nav-button {{
     background:#2c3e50;
     color:white !important;
     padding:12px 18px;
@@ -91,15 +91,15 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     margin-right:12px;
     font-size:18px;
     font-weight:bold;
-}
+}}
 
-.nav-button:visited {
+.nav-button:visited {{
     color:white !important;
-}
+}}
 
-.nav-button:hover {
+.nav-button:hover {{
     background:#34495e;
-}
+}}
 
 
 
