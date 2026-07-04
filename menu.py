@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from state import get_state, save_state, reset_state
-from whatsapp import send_whatsapp_message
+from whatsapp import send_whatsapp_message, send_whatsapp_image
 from media import download_whatsapp_image
 from email_service import send_email
 from crud import save_meldung
@@ -81,35 +81,45 @@ def handle_message(sender, msg_type, content):
             send_whatsapp_message(sender, MANGEL_MENU)
 
         elif content == "2":
-            veranstaltungen = get_aktive_veranstaltungen()
+    veranstaltungen = get_aktive_veranstaltungen()
 
-            if not veranstaltungen:
-                send_whatsapp_message(
-                    sender,
-                    "📅 Zurzeit sind keine Veranstaltungen eingetragen."
+    if not veranstaltungen:
+        send_whatsapp_message(
+            sender,
+            "📅 Zurzeit sind keine Veranstaltungen eingetragen."
+        )
+        return
+
+    send_whatsapp_message(sender, "📅 *Aktuelle Veranstaltungen*")
+
+    for v in veranstaltungen:
+
+        if v.bild_base64:
+            send_whatsapp_image(
+                sender,
+                v.bild_base64,
+                caption=(
+                    f"🎉 *{v.titel}*\n\n"
+                    f"📅 {v.datum or '-'}\n"
+                    f"🕒 {v.uhrzeit or '-'}\n"
+                    f"📍 {v.ort or '-'}\n"
+                    f"👤 {v.ansprechpartner or '-'}\n\n"
+                    f"{v.beschreibung or ''}"
                 )
-                return
+            )
 
-            antwort = "📅 *Aktuelle Veranstaltungen*\n\n"
+        else:
+            send_whatsapp_message(
+                sender,
+                f"""🎉 *{v.titel}*
 
-            for v in veranstaltungen:
-                antwort += (
-                    f"🎉 *{v.titel}*\n"
-                    f"📅 {v.datum or 'Kein Datum'}\n"
-                    f"🕒 {v.uhrzeit or 'Keine Uhrzeit'}\n"
-                    f"📍 {v.ort or 'Kein Ort'}\n"
-                )
+📅 {v.datum or '-'}
+🕒 {v.uhrzeit or '-'}
+📍 {v.ort or '-'}
+👤 {v.ansprechpartner or '-'}
 
-                if v.ansprechpartner:
-                    antwort += f"👤 {v.ansprechpartner}\n"
-
-                if v.beschreibung:
-                    antwort += f"📝 {v.beschreibung}\n"
-
-                antwort += "\n────────────\n\n"
-
-            send_whatsapp_message(sender, antwort)
-
+{v.beschreibung or ''}"""
+            )
         elif content == "3":
             send_whatsapp_message(
                 sender,
