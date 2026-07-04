@@ -62,6 +62,24 @@ async def dashboard(
     return dashboard_page(suche, status_filter, zeitraum)
 
 
+# HIER EINFÜGEN ↓↓↓
+
+@app.get("/veranstaltungen")
+async def veranstaltungen(
+    _=Depends(check_dashboard_login),
+):
+    return veranstaltungen_dashboard()
+
+
+# DANACH GEHT ES WEITER ↓↓↓
+
+@app.get("/meldung/{ticket}")
+async def meldung_detail(
+    ticket: str,
+    _=Depends(check_dashboard_login),
+):
+    return meldung_detail_page(ticket)
+
 @app.get("/meldung/{ticket}")
 async def meldung_detail(
     ticket: str,
