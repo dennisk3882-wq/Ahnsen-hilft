@@ -11,7 +11,13 @@ from menu import handle_message
 from crud import init_db, update_status, update_notiz
 from dashboard import dashboard_page, meldung_detail_page
 
-from veranstaltungen_crud import init_veranstaltungen_db, save_veranstaltung
+from veranstaltungen_crud import (
+    init_veranstaltungen_db,
+    save_veranstaltung,
+    update_veranstaltung,
+    set_veranstaltung_aktiv,
+    delete_veranstaltung,
+)
 from veranstaltungen_dashboard import veranstaltungen_dashboard
 
 
@@ -62,9 +68,10 @@ async def dashboard(
 
 @app.get("/veranstaltungen")
 async def veranstaltungen(
+    bearbeiten_id: int | None = None,
     _=Depends(check_dashboard_login),
 ):
-    return veranstaltungen_dashboard()
+    return veranstaltungen_dashboard(bearbeiten_id)
 
 
 @app.post("/veranstaltungen/neue")
@@ -91,6 +98,49 @@ async def neue_veranstaltung(
         status_code=303,
     )
 
+@app.post("/veranstaltungen/bearbeiten/{veranstaltung_id}")
+async def veranstaltung_bearbeiten(
+    veranstaltung_id: int,
+    titel: str = Form(...),
+    datum: str = Form(""),
+    uhrzeit: str = Form(""),
+    ort: str = Form(""),
+    ansprechpartner: str = Form(""),
+    beschreibung: str = Form(""),
+    _=Depends(check_dashboard_login),
+):
+    update_veranstaltung(
+        veranstaltung_id=veranstaltung_id,
+        titel=titel,
+        datum=datum,
+        uhrzeit=uhrzeit,
+        ort=ort,
+        beschreibung=beschreibung,
+        ansprechpartner=ansprechpartner,
+    )
+
+    return RedirectResponse(url="/veranstaltungen", status_code=303)
+
+
+@app.get("/veranstaltungen/aktiv/{veranstaltung_id}/{aktiv}")
+async def veranstaltung_aktiv(
+    veranstaltung_id: int,
+    aktiv: str,
+    _=Depends(check_dashboard_login),
+):
+    set_veranstaltung_aktiv(veranstaltung_id, aktiv)
+
+    return RedirectResponse(url="/veranstaltungen", status_code=303)
+
+
+@app.get("/veranstaltungen/loeschen/{veranstaltung_id}")
+async def veranstaltung_loeschen(
+    veranstaltung_id: int,
+    _=Depends(check_dashboard_login),
+):
+    delete_veranstaltung(veranstaltung_id)
+
+    return RedirectResponse(url="/veranstaltungen", status_code=303)
 
 @app.get("/meldung/{ticket}")
 async def meldung_detail(
