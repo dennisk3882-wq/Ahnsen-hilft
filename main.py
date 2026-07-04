@@ -55,8 +55,11 @@ async def home():
 
 
 @app.get("/dashboard")
-async def dashboard(_=Depends(check_dashboard_login)):
-    return dashboard_page()
+async def dashboard(
+    suche: str = "",
+    _=Depends(check_dashboard_login),
+):
+    return dashboard_page(suche)
 
 
 @app.get("/status")
