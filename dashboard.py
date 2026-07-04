@@ -81,19 +81,27 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     margin-bottom:20px;
 }}
 
-.top-nav a {{
+.nav-button {
     background:#2c3e50;
-    color:white;
-    padding:10px 14px;
-    border-radius:8px;
-    text-decoration:none;
+    color:white !important;
+    padding:12px 18px;
+    border-radius:12px;
+    text-decoration:none !important;
     display:inline-block;
-    margin-right:8px;
-}}
+    margin-right:12px;
+    font-size:18px;
+    font-weight:bold;
+}
 
-.top-nav a:hover {{
+.nav-button:visited {
+    color:white !important;
+}
+
+.nav-button:hover {
     background:#34495e;
-}}
+}
+
+
 
 .container {{
     max-width:1300px;
@@ -236,7 +244,6 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     <a class="nav-button" href="/dashboard">📋 Mängel</a>
     <a class="nav-button" href="/veranstaltungen">📅 Veranstaltungen</a>
 </div>
-
         <h1>Ahnsen hilft Dashboard</h1>
 
             <div class="cards">
