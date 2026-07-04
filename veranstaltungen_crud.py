@@ -47,6 +47,34 @@ def save_veranstaltung(
 
 
 def get_aktive_veranstaltungen():
+    from datetime import datetime
+
+    db = SessionLocal()
+
+    try:
+        alle = (
+            db.query(Veranstaltung)
+            .filter(Veranstaltung.aktiv == "Ja")
+            .all()
+        )
+
+        heute = datetime.now().date()
+        kommende = []
+
+        for v in alle:
+            try:
+                datum = datetime.strptime(v.datum, "%d.%m.%Y").date()
+                if datum >= heute:
+                    kommende.append(v)
+            except Exception:
+                kommende.append(v)
+
+        kommende.sort(key=lambda v: datetime.strptime(v.datum, "%d.%m.%Y") if v.datum else datetime.max)
+
+        return kommende
+
+    finally:
+        db.close()
     db = SessionLocal()
 
     try:
