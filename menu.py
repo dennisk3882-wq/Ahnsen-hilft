@@ -75,45 +75,54 @@ def handle_message(sender, msg_type, content):
         return
 
     if step == "menu":
-        if content == "1":
-            save_state(sender, {"step": "mangel_art", "data": {}})
-            send_whatsapp_message(sender, MANGEL_MENU)
-                elif content == "2":
-            veranstaltungen = get_aktive_veranstaltungen()
+    if content == "1":
+        save_state(sender, {"step": "mangel_art", "data": {}})
+        send_whatsapp_message(sender, MANGEL_MENU)
 
-            if not veranstaltungen:
-                send_whatsapp_message(
-                    sender,
-                    "📅 Zurzeit sind keine Veranstaltungen eingetragen."
-                )
-                return
+    elif content == "2":
+        veranstaltungen = get_aktive_veranstaltungen()
 
-            text = "📅 Aktuelle Veranstaltungen\n\n"
+        if not veranstaltungen:
+            send_whatsapp_message(
+                sender,
+                "📅 Zurzeit sind keine Veranstaltungen eingetragen."
+            )
+            return
 
-            for v in veranstaltungen:
-                text += (
-                    f"📍 {v.titel}\n"
-                    f"📅 {v.datum}\n"
-                    f"🕒 {v.uhrzeit}\n"
-                    f"📌 {v.ort}\n\n"
-                )
+        text = "📅 Aktuelle Veranstaltungen\n\n"
 
-            send_whatsapp_message(sender, text)
-        elif content == "3":
-            send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
-        elif content == "4":
-            send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
-        elif content == "5":
-            send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
-        elif content == "6":
-            send_whatsapp_message(sender, "📰 Aktuelles folgt.")
-        elif content == "7":
-            send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
-        elif content == "0":
-            send_whatsapp_message(sender, "👋 Bis bald!")
-        else:
-            send_whatsapp_message(sender, MENU)
-        return
+        for v in veranstaltungen:
+            text += (
+                f"📍 {v.titel}\n"
+                f"📅 {v.datum}\n"
+                f"🕒 {v.uhrzeit}\n"
+                f"📌 {v.ort}\n\n"
+            )
+
+        send_whatsapp_message(sender, text)
+
+    elif content == "3":
+        send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
+
+    elif content == "4":
+        send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
+
+    elif content == "5":
+        send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
+
+    elif content == "6":
+        send_whatsapp_message(sender, "📰 Aktuelles folgt.")
+
+    elif content == "7":
+        send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
+
+    elif content == "0":
+        send_whatsapp_message(sender, "👋 Bis bald!")
+
+    else:
+        send_whatsapp_message(sender, MENU)
+
+    return
 
     if step == "mangel_art":
         if content == "0":
