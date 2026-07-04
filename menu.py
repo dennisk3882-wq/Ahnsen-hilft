@@ -92,13 +92,21 @@ def handle_message(sender, msg_type, content):
 
             antwort = "📅 Aktuelle Veranstaltungen\n\n"
 
-            for v in veranstaltungen:
-                antwort += (
-                    f"📍 {v.titel}\n"
-                    f"📅 {v.datum}\n"
-                    f"🕒 {v.uhrzeit}\n"
-                    f"📌 {v.ort}\n\n"
-                )
+for v in veranstaltungen:
+    antwort += (
+        f"🎉 {v.titel}\n"
+        f"📅 {v.datum or 'Kein Datum'}\n"
+        f"🕒 {v.uhrzeit or 'Keine Uhrzeit'}\n"
+        f"📍 {v.ort or 'Kein Ort'}\n"
+    )
+
+    if v.ansprechpartner:
+        antwort += f"👤 {v.ansprechpartner}\n"
+
+    if v.beschreibung:
+        antwort += f"📝 {v.beschreibung}\n"
+
+    antwort += "\n────────────\n\n"
 
             send_whatsapp_message(sender, antwort)
 
