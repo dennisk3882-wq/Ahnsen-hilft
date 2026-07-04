@@ -80,7 +80,7 @@ def handle_message(sender, msg_type, content):
             save_state(sender, {"step": "mangel_art", "data": {}})
             send_whatsapp_message(sender, MANGEL_MENU)
 
-        elif content == "2":
+                elif content == "2":
             veranstaltungen = get_aktive_veranstaltungen()
 
             if not veranstaltungen:
@@ -90,28 +90,31 @@ def handle_message(sender, msg_type, content):
                 )
                 return
 
-            antwort = "📅 Aktuelle Veranstaltungen\n\n"
+            antwort = "📅 *Aktuelle Veranstaltungen*\n\n"
 
-for v in veranstaltungen:
-    antwort += (
-        f"🎉 {v.titel}\n"
-        f"📅 {v.datum or 'Kein Datum'}\n"
-        f"🕒 {v.uhrzeit or 'Keine Uhrzeit'}\n"
-        f"📍 {v.ort or 'Kein Ort'}\n"
-    )
+            for v in veranstaltungen:
+                antwort += (
+                    f"🎉 *{v.titel}*\n"
+                    f"📅 {v.datum or 'Kein Datum'}\n"
+                    f"🕒 {v.uhrzeit or 'Keine Uhrzeit'}\n"
+                    f"📍 {v.ort or 'Kein Ort'}\n"
+                )
 
-    if v.ansprechpartner:
-        antwort += f"👤 {v.ansprechpartner}\n"
+                if getattr(v, "ansprechpartner", None):
+                    antwort += f"👤 {v.ansprechpartner}\n"
 
-    if v.beschreibung:
-        antwort += f"📝 {v.beschreibung}\n"
+                if getattr(v, "beschreibung", None):
+                    antwort += f"📝 {v.beschreibung}\n"
 
-    antwort += "\n────────────\n\n"
+                antwort += "\n────────────\n\n"
 
-send_whatsapp_message(sender, antwort)
+            send_whatsapp_message(sender, antwort)
 
         elif content == "3":
-            send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
+            send_whatsapp_message(
+                sender,
+                "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart."
+            )
 
         elif content == "4":
             send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
