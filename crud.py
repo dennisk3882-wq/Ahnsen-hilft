@@ -30,3 +30,32 @@ def save_meldung(ticket, data, sender):
 
     finally:
         db.close()
+
+
+def get_all_meldungen():
+    db = SessionLocal()
+
+    try:
+        return db.query(Meldung).order_by(Meldung.erstellt_am.desc()).all()
+
+    finally:
+        db.close()
+
+
+def update_status(ticket, neuer_status):
+    db = SessionLocal()
+
+    try:
+        meldung = db.query(Meldung).filter(
+            Meldung.ticket == ticket
+        ).first()
+
+        if meldung:
+            meldung.status = neuer_status
+            db.commit()
+            print("Status geändert:", ticket, neuer_status)
+
+        return meldung
+
+    finally:
+        db.close()
