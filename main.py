@@ -9,6 +9,7 @@ from config import VERIFY_TOKEN
 from menu import handle_message
 from crud import init_db, update_status, update_notiz
 from dashboard import dashboard_page, meldung_detail_page
+from veranstaltungen_crud import init_veranstaltungen_db
 
 app = FastAPI()
 
@@ -21,6 +22,7 @@ DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin")
 @app.on_event("startup")
 def startup():
     init_db()
+    init_veranstaltungen_db()
 
 
 def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security)):
