@@ -233,9 +233,9 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     <div class="container">
 
         <div class="top-nav">
-            <a href="/dashboard">📋 Mängel</a>
-            <a href="/veranstaltungen">📅 Veranstaltungen</a>
-        </div>
+    <a class="nav-button" href="/dashboard">📋 Mängel</a>
+    <a class="nav-button" href="/veranstaltungen">📅 Veranstaltungen</a>
+</div>
 
         <h1>Ahnsen hilft Dashboard</h1>
 
