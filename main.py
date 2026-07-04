@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, Form
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
@@ -7,8 +7,8 @@ import secrets
 
 from config import VERIFY_TOKEN
 from menu import handle_message
-from crud import init_db, update_status
-from dashboard import dashboard_page
+from crud import init_db, update_status, update_notiz
+from dashboard import dashboard_page, meldung_detail_page
 
 app = FastAPI()
 
@@ -23,18 +23,9 @@ def startup():
     init_db()
 
 
-def check_dashboard_login(
-    credentials: HTTPBasicCredentials = Depends(security),
-):
-    correct_user = secrets.compare_digest(
-        credentials.username,
-        DASHBOARD_USER,
-    )
-
-    correct_password = secrets.compare_digest(
-        credentials.password,
-        DASHBOARD_PASSWORD,
-    )
+def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_user = secrets.compare_digest(credentials.username, DASHBOARD_USER)
+    correct_password = secrets.compare_digest(credentials.password, DASHBOARD_PASSWORD)
 
     if not (correct_user and correct_password):
         raise HTTPException(
@@ -50,16 +41,25 @@ def check_dashboard_login(
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "dashboard-status-1",
+        "version": "dashboard-2"
     }
 
 
 @app.get("/dashboard")
 async def dashboard(
     suche: str = "",
+    status_filter: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return dashboard_page(suche)
+    return dashboard_page(suche, status_filter)
+
+
+@app.get("/meldung/{ticket}")
+async def meldung_detail(
+    ticket: str,
+    _=Depends(check_dashboard_login),
+):
+    return meldung_detail_page(ticket)
 
 
 @app.get("/status")
@@ -69,11 +69,17 @@ async def status_aendern(
     _=Depends(check_dashboard_login),
 ):
     update_status(ticket, neuer_status)
+    return RedirectResponse(url="/dashboard", status_code=303)
 
-    return RedirectResponse(
-        url="/dashboard",
-        status_code=303,
-    )
+
+@app.post("/notiz")
+async def notiz_speichern(
+    ticket: str = Form(...),
+    notiz: str = Form(""),
+    _=Depends(check_dashboard_login),
+):
+    update_notiz(ticket, notiz)
+    return RedirectResponse(url=f"/meldung/{ticket}", status_code=303)
 
 
 @app.get("/webhook")
@@ -85,10 +91,7 @@ async def verify_webhook(request: Request):
     if mode == "subscribe" and token == VERIFY_TOKEN:
         return PlainTextResponse(challenge)
 
-    return PlainTextResponse(
-        "Forbidden",
-        status_code=403,
-    )
+    return PlainTextResponse("Forbidden", status_code=403)
 
 
 @app.post("/webhook")
@@ -103,30 +106,22 @@ async def webhook(request: Request):
 
     for entry in body.get("entry", []):
         for change in entry.get("changes", []):
-
             value = change.get("value", {})
 
             if "messages" not in value:
                 continue
 
             for message in value["messages"]:
-
                 sender = message["from"]
                 msg_type = message["type"]
 
                 if msg_type == "text":
                     content = message["text"]["body"]
-
                 elif msg_type == "image":
                     content = message["image"]["id"]
-
                 else:
                     continue
 
-                handle_message(
-                    sender,
-                    msg_type,
-                    content,
-                )
+                handle_message(sender, msg_type, content)
 
     return {"status": "ok"}
