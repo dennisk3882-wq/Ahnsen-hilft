@@ -61,7 +61,7 @@ def dashboard_page():
         <td>{m.erstellt_am.strftime("%d.%m.%Y %H:%M")}</td>
 
         <td>
-            <a href="/status/{m.ticket}/{neuer_status}">
+            <a href="/status?ticket={m.ticket}&neuer_status={neuer_status}">
                 <button>
                     ➜ {neuer_status}
                 </button>
