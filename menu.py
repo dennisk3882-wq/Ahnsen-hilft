@@ -80,7 +80,7 @@ def handle_message(sender, msg_type, content):
             save_state(sender, {"step": "mangel_art", "data": {}})
             send_whatsapp_message(sender, MANGEL_MENU)
 
-                elif content == "2":
+        elif content == "2":
             veranstaltungen = get_aktive_veranstaltungen()
 
             if not veranstaltungen:
@@ -100,10 +100,10 @@ def handle_message(sender, msg_type, content):
                     f"📍 {v.ort or 'Kein Ort'}\n"
                 )
 
-                if getattr(v, "ansprechpartner", None):
+                if v.ansprechpartner:
                     antwort += f"👤 {v.ansprechpartner}\n"
 
-                if getattr(v, "beschreibung", None):
+                if v.beschreibung:
                     antwort += f"📝 {v.beschreibung}\n"
 
                 antwort += "\n────────────\n\n"
@@ -148,6 +148,7 @@ def handle_message(sender, msg_type, content):
 
         data["art"] = MANGEL_ARTEN[content]
         save_state(sender, {"step": "mangel_ort", "data": data})
+
         send_whatsapp_message(
             sender,
             "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
