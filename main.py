@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Depends, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 import os
@@ -7,7 +7,7 @@ import secrets
 
 from config import VERIFY_TOKEN
 from menu import handle_message
-from crud import init_db
+from crud import init_db, update_status
 from dashboard import dashboard_page
 
 app = FastAPI()
@@ -50,13 +50,27 @@ def check_dashboard_login(
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "dashboard-login-1",
+        "version": "dashboard-status-1",
     }
 
 
 @app.get("/dashboard")
 async def dashboard(_=Depends(check_dashboard_login)):
     return dashboard_page()
+
+
+@app.get("/status/{ticket}/{status}")
+async def status_aendern(
+    ticket: str,
+    status: str,
+    _=Depends(check_dashboard_login),
+):
+    update_status(ticket, status)
+
+    return RedirectResponse(
+        url="/dashboard",
+        status_code=303,
+    )
 
 
 @app.get("/webhook")
@@ -68,7 +82,10 @@ async def verify_webhook(request: Request):
     if mode == "subscribe" and token == VERIFY_TOKEN:
         return PlainTextResponse(challenge)
 
-    return PlainTextResponse("Forbidden", status_code=403)
+    return PlainTextResponse(
+        "Forbidden",
+        status_code=403,
+    )
 
 
 @app.post("/webhook")
@@ -83,6 +100,7 @@ async def webhook(request: Request):
 
     for entry in body.get("entry", []):
         for change in entry.get("changes", []):
+
             value = change.get("value", {})
 
             if "messages" not in value:
@@ -102,6 +120,10 @@ async def webhook(request: Request):
                 else:
                     continue
 
-                handle_message(sender, msg_type, content)
+                handle_message(
+                    sender,
+                    msg_type,
+                    content,
+                )
 
     return {"status": "ok"}
