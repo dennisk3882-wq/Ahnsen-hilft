@@ -1,5 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+
+import os
+import secrets
 
 from config import VERIFY_TOKEN
 from menu import handle_message
@@ -8,22 +12,50 @@ from dashboard import dashboard_page
 
 app = FastAPI()
 
+security = HTTPBasic()
+
+DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin")
+
 
 @app.on_event("startup")
 def startup():
     init_db()
 
 
+def check_dashboard_login(
+    credentials: HTTPBasicCredentials = Depends(security),
+):
+    correct_user = secrets.compare_digest(
+        credentials.username,
+        DASHBOARD_USER,
+    )
+
+    correct_password = secrets.compare_digest(
+        credentials.password,
+        DASHBOARD_PASSWORD,
+    )
+
+    if not (correct_user and correct_password):
+        raise HTTPException(
+            status_code=401,
+            detail="Nicht autorisiert",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+    return True
+
+
 @app.get("/")
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "modular-2"
+        "version": "dashboard-login-1",
     }
 
 
 @app.get("/dashboard")
-async def dashboard():
+async def dashboard(_=Depends(check_dashboard_login)):
     return dashboard_page()
 
 
@@ -68,7 +100,7 @@ async def webhook(request: Request):
                     content = message["image"]["id"]
 
                 else:
-                    content = ""
+                    continue
 
                 handle_message(sender, msg_type, content)
 
