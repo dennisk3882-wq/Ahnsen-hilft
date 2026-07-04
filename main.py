@@ -59,13 +59,13 @@ async def dashboard(_=Depends(check_dashboard_login)):
     return dashboard_page()
 
 
-@app.get("/status/{ticket}/{status}")
+@app.get("/status")
 async def status_aendern(
     ticket: str,
-    status: str,
+    neuer_status: str,
     _=Depends(check_dashboard_login),
 ):
-    update_status(ticket, status)
+    update_status(ticket, neuer_status)
 
     return RedirectResponse(
         url="/dashboard",
