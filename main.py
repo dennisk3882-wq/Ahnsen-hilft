@@ -7,17 +7,15 @@ import secrets
 
 from config import VERIFY_TOKEN
 from menu import handle_message
+
 from crud import init_db, update_status, update_notiz
 from dashboard import dashboard_page, meldung_detail_page
-from veranstaltungen_crud import init_veranstaltungen_db
+
+from veranstaltungen_crud import init_veranstaltungen_db, save_veranstaltung
 from veranstaltungen_dashboard import veranstaltungen_dashboard
-from veranstaltungen_crud import (
-    init_veranstaltungen_db,
-    save_veranstaltung,
-)
+
 
 app = FastAPI()
-
 security = HTTPBasic()
 
 DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
@@ -48,7 +46,7 @@ def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security))
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "dashboard-3"
+        "version": "veranstaltungen-1",
     }
 
 
@@ -62,8 +60,6 @@ async def dashboard(
     return dashboard_page(suche, status_filter, zeitraum)
 
 
-# HIER EINFÜGEN ↓↓↓
-
 @app.get("/veranstaltungen")
 async def veranstaltungen(
     _=Depends(check_dashboard_login),
@@ -71,14 +67,30 @@ async def veranstaltungen(
     return veranstaltungen_dashboard()
 
 
-# DANACH GEHT ES WEITER ↓↓↓
-
-@app.get("/meldung/{ticket}")
-async def meldung_detail(
-    ticket: str,
+@app.post("/veranstaltungen/neue")
+async def neue_veranstaltung(
+    titel: str = Form(...),
+    datum: str = Form(""),
+    uhrzeit: str = Form(""),
+    ort: str = Form(""),
+    ansprechpartner: str = Form(""),
+    beschreibung: str = Form(""),
     _=Depends(check_dashboard_login),
 ):
-    return meldung_detail_page(ticket)
+    save_veranstaltung(
+        titel=titel,
+        datum=datum,
+        uhrzeit=uhrzeit,
+        ort=ort,
+        beschreibung=beschreibung,
+        ansprechpartner=ansprechpartner,
+    )
+
+    return RedirectResponse(
+        url="/veranstaltungen",
+        status_code=303,
+    )
+
 
 @app.get("/meldung/{ticket}")
 async def meldung_detail(
@@ -95,54 +107,26 @@ async def status_aendern(
     _=Depends(check_dashboard_login),
 ):
     update_status(ticket, neuer_status)
-    return RedirectResponse(url="/dashboard", status_code=303)
+
+    return RedirectResponse(
+        url="/dashboard",
+        status_code=303,
+    )
 
 
-@app.get("/dashboard")
-async def dashboard(
-    suche: str = "",
-    status_filter: str = "",
-    zeitraum: str = "",
+@app.post("/notiz")
+async def notiz_speichern(
+    ticket: str = Form(...),
+    notiz: str = Form(""),
     _=Depends(check_dashboard_login),
 ):
-    return dashboard_page(suche, status_filter, zeitraum)
+    update_notiz(ticket, notiz)
 
+    return RedirectResponse(
+        url=f"/meldung/{ticket}",
+        status_code=303,
+    )
 
-# HIER EINFÜGEN ↓↓↓
-
-@app.get("/veranstaltungen")
-async def veranstaltungen(
-    _=Depends(check_dashboard_login),
-):
-    return veranstaltungen_dashboard()
-
-
-# DANACH GEHT ES WEITER ↓↓↓
-
-@app.get("/meldung/{ticket}")
-async def meldung_detail(
-    ticket: str,
-    _=Depends(check_dashboard_login),
-):
-    return meldung_detail_page(ticket)
-
-# HIER EINFÜGEN ↓↓↓
-
-@app.get("/veranstaltungen")
-async def veranstaltungen(
-    _=Depends(check_dashboard_login),
-):
-    return veranstaltungen_dashboard()
-
-
-# DANACH GEHT ES WEITER ↓↓↓
-
-@app.get("/meldung/{ticket}")
-async def meldung_detail(
-    ticket: str,
-    _=Depends(check_dashboard_login),
-):
-    return meldung_detail_page(ticket)
 
 @app.get("/webhook")
 async def verify_webhook(request: Request):
