@@ -74,7 +74,7 @@ def build_veranstaltung_text(v):
 📍 {v.ort or "-"}
 👤 {v.ansprechpartner or "-"}
 
-{v.beschreibung or ""}"""
+📝 {v.beschreibung or ""}"""
 
 
 def handle_message(sender, msg_type, content):
