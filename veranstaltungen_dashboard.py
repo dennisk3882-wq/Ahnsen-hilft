@@ -55,7 +55,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
             <td>{escape(v.ansprechpartner or "")}</td>
 
 <td>
-    {"<img src='data:image/jpeg;base64," + v.bild_base64 + "' width='90'>" if v.bild_base64 else "-"}
+    {"<img src='data:image/jpeg;base64," + v.bild_base64 + "' width='90' style='border-radius:8px'>" if v.bild_base64 else "-"}
 </td>
 
 <td>{aktiv_label}</td>
