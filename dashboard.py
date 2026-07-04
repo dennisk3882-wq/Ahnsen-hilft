@@ -212,8 +212,14 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     </head>
 
     <body>
-        <div class="container">
-            <h1>Ahnsen hilft Dashboard</h1>
+    <div class="container">
+
+        <div class="top-nav">
+            <a href="/dashboard">📋 Mängel</a>
+            <a href="/veranstaltungen">📅 Veranstaltungen</a>
+        </div>
+
+        <h1>Ahnsen hilft Dashboard</h1>
 
             <div class="cards">
                 <div class="card"><b>{stats["gesamt"]}</b>Gesamt</div>
