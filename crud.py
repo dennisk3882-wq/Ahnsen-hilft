@@ -1,4 +1,5 @@
 import base64
+from datetime import datetime, timedelta
 from sqlalchemy import or_
 
 from database import Base, engine, SessionLocal
@@ -10,19 +11,13 @@ def init_db():
 
     with engine.begin() as conn:
         try:
-            conn.exec_driver_sql("""
-                ALTER TABLE meldungen
-                ADD COLUMN foto_base64 TEXT
-            """)
+            conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN foto_base64 TEXT")
             print("Spalte foto_base64 hinzugefügt.")
         except Exception as e:
             print("foto_base64:", repr(e))
 
         try:
-            conn.exec_driver_sql("""
-                ALTER TABLE meldungen
-                ADD COLUMN interne_notiz TEXT DEFAULT ''
-            """)
+            conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN interne_notiz TEXT DEFAULT ''")
             print("Spalte interne_notiz hinzugefügt.")
         except Exception as e:
             print("interne_notiz:", repr(e))
@@ -55,29 +50,31 @@ def save_meldung(ticket, data, sender):
         db.refresh(meldung)
 
         print("Meldung gespeichert:", ticket)
-
         return meldung
 
     finally:
         db.close()
 
 
-def get_all_meldungen(status_filter=""):
-    db = SessionLocal()
+def _zeitraum_filter(query, zeitraum):
+    jetzt = datetime.utcnow()
 
-    try:
-        query = db.query(Meldung)
+    if zeitraum == "heute":
+        start = datetime(jetzt.year, jetzt.month, jetzt.day)
+        return query.filter(Meldung.erstellt_am >= start)
 
-        if status_filter:
-            query = query.filter(Meldung.status == status_filter)
+    if zeitraum == "woche":
+        start = jetzt - timedelta(days=7)
+        return query.filter(Meldung.erstellt_am >= start)
 
-        return query.order_by(Meldung.erstellt_am.desc()).all()
+    if zeitraum == "monat":
+        start = jetzt - timedelta(days=30)
+        return query.filter(Meldung.erstellt_am >= start)
 
-    finally:
-        db.close()
+    return query
 
 
-def suche_meldungen(suche="", status_filter=""):
+def suche_meldungen(suche="", status_filter="", zeitraum=""):
     db = SessionLocal()
 
     try:
@@ -99,6 +96,8 @@ def suche_meldungen(suche="", status_filter=""):
         if status_filter:
             query = query.filter(Meldung.status == status_filter)
 
+        query = _zeitraum_filter(query, zeitraum)
+
         return query.order_by(Meldung.erstellt_am.desc()).all()
 
     finally:
@@ -109,9 +108,7 @@ def get_meldung(ticket):
     db = SessionLocal()
 
     try:
-        return db.query(Meldung).filter(
-            Meldung.ticket == ticket
-        ).first()
+        return db.query(Meldung).filter(Meldung.ticket == ticket).first()
 
     finally:
         db.close()
@@ -121,9 +118,7 @@ def update_status(ticket, neuer_status):
     db = SessionLocal()
 
     try:
-        meldung = db.query(Meldung).filter(
-            Meldung.ticket == ticket
-        ).first()
+        meldung = db.query(Meldung).filter(Meldung.ticket == ticket).first()
 
         if meldung:
             meldung.status = neuer_status
@@ -140,9 +135,7 @@ def update_notiz(ticket, notiz):
     db = SessionLocal()
 
     try:
-        meldung = db.query(Meldung).filter(
-            Meldung.ticket == ticket
-        ).first()
+        meldung = db.query(Meldung).filter(Meldung.ticket == ticket).first()
 
         if meldung:
             meldung.interne_notiz = notiz
@@ -159,25 +152,11 @@ def statistik():
     db = SessionLocal()
 
     try:
-        offen = db.query(Meldung).filter(
-            Meldung.status == "Offen"
-        ).count()
-
-        bearbeitung = db.query(Meldung).filter(
-            Meldung.status == "In Bearbeitung"
-        ).count()
-
-        erledigt = db.query(Meldung).filter(
-            Meldung.status == "Erledigt"
-        ).count()
-
-        gesamt = db.query(Meldung).count()
-
         return {
-            "offen": offen,
-            "bearbeitung": bearbeitung,
-            "erledigt": erledigt,
-            "gesamt": gesamt,
+            "offen": db.query(Meldung).filter(Meldung.status == "Offen").count(),
+            "bearbeitung": db.query(Meldung).filter(Meldung.status == "In Bearbeitung").count(),
+            "erledigt": db.query(Meldung).filter(Meldung.status == "Erledigt").count(),
+            "gesamt": db.query(Meldung).count(),
         }
 
     finally:
