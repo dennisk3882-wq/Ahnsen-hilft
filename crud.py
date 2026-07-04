@@ -1,3 +1,5 @@
+from sqlalchemy import or_
+
 from database import Base, engine, SessionLocal
 from models import Meldung
 
@@ -36,7 +38,33 @@ def get_all_meldungen():
     db = SessionLocal()
 
     try:
-        return db.query(Meldung).order_by(Meldung.erstellt_am.desc()).all()
+        return db.query(Meldung).order_by(
+            Meldung.erstellt_am.desc()
+        ).all()
+
+    finally:
+        db.close()
+
+
+def suche_meldungen(suche):
+    db = SessionLocal()
+
+    try:
+        return (
+            db.query(Meldung)
+            .filter(
+                or_(
+                    Meldung.ticket.ilike(f"%{suche}%"),
+                    Meldung.art.ilike(f"%{suche}%"),
+                    Meldung.ort.ilike(f"%{suche}%"),
+                    Meldung.beschreibung.ilike(f"%{suche}%"),
+                    Meldung.status.ilike(f"%{suche}%"),
+                    Meldung.whatsapp_absender.ilike(f"%{suche}%"),
+                )
+            )
+            .order_by(Meldung.erstellt_am.desc())
+            .all()
+        )
 
     finally:
         db.close()
@@ -53,6 +81,7 @@ def update_status(ticket, neuer_status):
         if meldung:
             meldung.status = neuer_status
             db.commit()
+
             print("Status geändert:", ticket, neuer_status)
 
         return meldung
