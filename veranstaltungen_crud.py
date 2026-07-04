@@ -69,7 +69,10 @@ def get_aktive_veranstaltungen():
             except Exception:
                 kommende.append(v)
 
-        kommende.sort(key=lambda v: datetime.strptime(v.datum, "%d.%m.%Y") if v.datum else datetime.max)
+        kommende.sort(
+            key=lambda v: datetime.strptime(v.datum, "%d.%m.%Y")
+            if v.datum else datetime.max
+        )
 
         return kommende
 
