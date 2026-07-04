@@ -8,16 +8,24 @@ from models import Meldung
 def init_db():
     Base.metadata.create_all(bind=engine)
 
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         try:
-            conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN foto_base64 TEXT")
-        except Exception:
-            pass
+            conn.exec_driver_sql("""
+                ALTER TABLE meldungen
+                ADD COLUMN foto_base64 TEXT
+            """)
+            print("Spalte foto_base64 hinzugefügt.")
+        except Exception as e:
+            print("foto_base64:", repr(e))
 
         try:
-            conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN interne_notiz TEXT DEFAULT ''")
-        except Exception:
-            pass
+            conn.exec_driver_sql("""
+                ALTER TABLE meldungen
+                ADD COLUMN interne_notiz TEXT DEFAULT ''
+            """)
+            print("Spalte interne_notiz hinzugefügt.")
+        except Exception as e:
+            print("interne_notiz:", repr(e))
 
 
 def save_meldung(ticket, data, sender):
@@ -47,6 +55,7 @@ def save_meldung(ticket, data, sender):
         db.refresh(meldung)
 
         print("Meldung gespeichert:", ticket)
+
         return meldung
 
     finally:
@@ -100,7 +109,9 @@ def get_meldung(ticket):
     db = SessionLocal()
 
     try:
-        return db.query(Meldung).filter(Meldung.ticket == ticket).first()
+        return db.query(Meldung).filter(
+            Meldung.ticket == ticket
+        ).first()
 
     finally:
         db.close()
@@ -110,7 +121,9 @@ def update_status(ticket, neuer_status):
     db = SessionLocal()
 
     try:
-        meldung = db.query(Meldung).filter(Meldung.ticket == ticket).first()
+        meldung = db.query(Meldung).filter(
+            Meldung.ticket == ticket
+        ).first()
 
         if meldung:
             meldung.status = neuer_status
@@ -127,7 +140,9 @@ def update_notiz(ticket, notiz):
     db = SessionLocal()
 
     try:
-        meldung = db.query(Meldung).filter(Meldung.ticket == ticket).first()
+        meldung = db.query(Meldung).filter(
+            Meldung.ticket == ticket
+        ).first()
 
         if meldung:
             meldung.interne_notiz = notiz
@@ -144,9 +159,18 @@ def statistik():
     db = SessionLocal()
 
     try:
-        offen = db.query(Meldung).filter(Meldung.status == "Offen").count()
-        bearbeitung = db.query(Meldung).filter(Meldung.status == "In Bearbeitung").count()
-        erledigt = db.query(Meldung).filter(Meldung.status == "Erledigt").count()
+        offen = db.query(Meldung).filter(
+            Meldung.status == "Offen"
+        ).count()
+
+        bearbeitung = db.query(Meldung).filter(
+            Meldung.status == "In Bearbeitung"
+        ).count()
+
+        erledigt = db.query(Meldung).filter(
+            Meldung.status == "Erledigt"
+        ).count()
+
         gesamt = db.query(Meldung).count()
 
         return {
