@@ -70,17 +70,35 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {{
-                font-family: Arial, sans-serif;
-                background:#eef2f5;
-                margin:0;
-                padding:20px;
-                color:#2c3e50;
-            }}
+    font-family: Arial, sans-serif;
+    background:#eef2f5;
+    margin:0;
+    padding:20px;
+    color:#2c3e50;
+}}
 
-            .container {{
-                max-width:1300px;
-                margin:auto;
-            }}
+.top-nav {{
+    margin-bottom:20px;
+}}
+
+.top-nav a {{
+    background:#2c3e50;
+    color:white;
+    padding:10px 14px;
+    border-radius:8px;
+    text-decoration:none;
+    display:inline-block;
+    margin-right:8px;
+}}
+
+.top-nav a:hover {{
+    background:#34495e;
+}}
+
+.container {{
+    max-width:1300px;
+    margin:auto;
+}}
 
             h1 {{
                 margin-bottom:20px;
