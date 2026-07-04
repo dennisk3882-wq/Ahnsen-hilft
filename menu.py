@@ -108,7 +108,7 @@ for v in veranstaltungen:
 
     antwort += "\n────────────\n\n"
 
-            send_whatsapp_message(sender, antwort)
+send_whatsapp_message(sender, antwort)
 
         elif content == "3":
             send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
