@@ -10,6 +10,11 @@ from menu import handle_message
 from crud import init_db, update_status, update_notiz
 from dashboard import dashboard_page, meldung_detail_page
 from veranstaltungen_crud import init_veranstaltungen_db
+from veranstaltungen_dashboard import veranstaltungen_dashboard
+from veranstaltungen_crud import (
+    init_veranstaltungen_db,
+    save_veranstaltung,
+)
 
 app = FastAPI()
 
