@@ -98,15 +98,51 @@ async def status_aendern(
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
-@app.post("/notiz")
-async def notiz_speichern(
-    ticket: str = Form(...),
-    notiz: str = Form(""),
+@app.get("/dashboard")
+async def dashboard(
+    suche: str = "",
+    status_filter: str = "",
+    zeitraum: str = "",
     _=Depends(check_dashboard_login),
 ):
-    update_notiz(ticket, notiz)
-    return RedirectResponse(url=f"/meldung/{ticket}", status_code=303)
+    return dashboard_page(suche, status_filter, zeitraum)
 
+
+# HIER EINFÜGEN ↓↓↓
+
+@app.get("/veranstaltungen")
+async def veranstaltungen(
+    _=Depends(check_dashboard_login),
+):
+    return veranstaltungen_dashboard()
+
+
+# DANACH GEHT ES WEITER ↓↓↓
+
+@app.get("/meldung/{ticket}")
+async def meldung_detail(
+    ticket: str,
+    _=Depends(check_dashboard_login),
+):
+    return meldung_detail_page(ticket)
+
+# HIER EINFÜGEN ↓↓↓
+
+@app.get("/veranstaltungen")
+async def veranstaltungen(
+    _=Depends(check_dashboard_login),
+):
+    return veranstaltungen_dashboard()
+
+
+# DANACH GEHT ES WEITER ↓↓↓
+
+@app.get("/meldung/{ticket}")
+async def meldung_detail(
+    ticket: str,
+    _=Depends(check_dashboard_login),
+):
+    return meldung_detail_page(ticket)
 
 @app.get("/webhook")
 async def verify_webhook(request: Request):
