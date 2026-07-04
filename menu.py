@@ -5,7 +5,7 @@ from whatsapp import send_whatsapp_message
 from media import download_whatsapp_image
 from email_service import send_email
 from crud import save_meldung
-
+from veranstaltungen_crud import get_aktive_veranstaltungen
 
 MENU = """👋 Willkommen bei Ahnsen hilft
 
@@ -79,7 +79,26 @@ def handle_message(sender, msg_type, content):
             save_state(sender, {"step": "mangel_art", "data": {}})
             send_whatsapp_message(sender, MANGEL_MENU)
         elif content == "2":
-            send_whatsapp_message(sender, "📅 Veranstaltungen werden später angezeigt.")
+    veranstaltungen = get_aktive_veranstaltungen()
+
+    if not veranstaltungen:
+        send_whatsapp_message(
+            sender,
+            "📅 Zurzeit sind keine Veranstaltungen eingetragen."
+        )
+        return
+
+    text = "📅 Aktuelle Veranstaltungen\n\n"
+
+    for v in veranstaltungen:
+        text += (
+            f"📍 {v.titel}\n"
+            f"📅 {v.datum}\n"
+            f"🕒 {v.uhrzeit}\n"
+            f"📌 {v.ort}\n\n"
+        )
+
+    send_whatsapp_message(sender, text)
         elif content == "3":
             send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
         elif content == "4":
