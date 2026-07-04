@@ -53,7 +53,12 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
             <td>{escape(v.uhrzeit or "")}</td>
             <td>{escape(v.ort or "")}</td>
             <td>{escape(v.ansprechpartner or "")}</td>
-            <td>{aktiv_label}</td>
+
+<td>
+    {"<img src='data:image/jpeg;base64," + v.bild_base64 + "' width='90'>" if v.bild_base64 else "-"}
+</td>
+
+<td>{aktiv_label}</td>
             <td>
                 <a href="/veranstaltungen?bearbeiten_id={v.id}">
                     <button type="button">✏️ Bearbeiten</button>
@@ -192,13 +197,14 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
         <div class="box">
             <h2>{form_title}</h2>
 
-            <form method="post" action="{form_action}">
+            <form method="post" action="{form_action}" enctype="multipart/form-data">
                 <input name="titel" placeholder="Titel" value="{escape(titel)}" required>
                 <input name="datum" placeholder="Datum, z. B. 12.07.2026" value="{escape(datum)}">
                 <input name="uhrzeit" placeholder="Uhrzeit, z. B. 18:00 Uhr" value="{escape(uhrzeit)}">
                 <input name="ort" placeholder="Ort" value="{escape(ort)}">
                 <input name="ansprechpartner" placeholder="Ansprechpartner" value="{escape(ansprechpartner)}">
-
+<label><b>Bild:</b></label><br>
+<input type="file" name="bild" accept="image/*"><br><br>
                 <textarea name="beschreibung" placeholder="Beschreibung">{escape(beschreibung)}</textarea>
 
                 <button type="submit">{button_text}</button>
@@ -218,6 +224,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
                         <th>Uhrzeit</th>
                         <th>Ort</th>
                         <th>Ansprechpartner</th>
+                        <th>Bild</th>
                         <th>Status</th>
                         <th>Aktionen</th>
                     </tr>
