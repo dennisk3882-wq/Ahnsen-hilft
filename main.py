@@ -77,27 +77,28 @@ async def veranstaltungen(
 @app.post("/veranstaltungen/neue")
 async def neue_veranstaltung(
     titel: str = Form(...),
-datum: str = Form(""),
-uhrzeit: str = Form(""),
-ort: str = Form(""),
-ansprechpartner: str = Form(""),
-beschreibung: str = Form(""),
-bild: UploadFile | None = File(None),
+    datum: str = Form(""),
+    uhrzeit: str = Form(""),
+    ort: str = Form(""),
+    ansprechpartner: str = Form(""),
+    beschreibung: str = Form(""),
+    bild: UploadFile | None = File(None),
     _=Depends(check_dashboard_login),
 ):
     bild_bytes = None
 
-if bild:
-    bild_bytes = await bild.read()
+    if bild:
+        bild_bytes = await bild.read()
+
     save_veranstaltung(
-    titel=titel,
-    datum=datum,
-    uhrzeit=uhrzeit,
-    ort=ort,
-    beschreibung=beschreibung,
-    ansprechpartner=ansprechpartner,
-    bild_bytes=bild_bytes,
-)
+        titel=titel,
+        datum=datum,
+        uhrzeit=uhrzeit,
+        ort=ort,
+        beschreibung=beschreibung,
+        ansprechpartner=ansprechpartner,
+        bild_bytes=bild_bytes,
+    )
 
     return RedirectResponse(
         url="/veranstaltungen",
