@@ -41,7 +41,7 @@ def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security))
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "dashboard-2"
+        "version": "dashboard-3"
     }
 
 
@@ -49,9 +49,10 @@ async def home():
 async def dashboard(
     suche: str = "",
     status_filter: str = "",
+    zeitraum: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return dashboard_page(suche, status_filter)
+    return dashboard_page(suche, status_filter, zeitraum)
 
 
 @app.get("/meldung/{ticket}")
@@ -117,8 +118,10 @@ async def webhook(request: Request):
 
                 if msg_type == "text":
                     content = message["text"]["body"]
+
                 elif msg_type == "image":
                     content = message["image"]["id"]
+
                 else:
                     continue
 
