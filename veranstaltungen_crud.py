@@ -8,7 +8,15 @@ def init_veranstaltungen_db():
     Base.metadata.create_all(bind=engine)
 
 
-def save_veranstaltung(titel, datum, uhrzeit, ort, beschreibung, ansprechpartner, bild_bytes=None):
+def save_veranstaltung(
+    titel,
+    datum,
+    uhrzeit,
+    ort,
+    beschreibung,
+    ansprechpartner,
+    bild_bytes=None,
+):
     db = SessionLocal()
 
     try:
@@ -76,6 +84,62 @@ def get_veranstaltung(veranstaltung_id):
             .filter(Veranstaltung.id == veranstaltung_id)
             .first()
         )
+
+    finally:
+        db.close()
+
+
+def update_veranstaltung(
+    veranstaltung_id,
+    titel,
+    datum,
+    uhrzeit,
+    ort,
+    beschreibung,
+    ansprechpartner,
+):
+    db = SessionLocal()
+
+    try:
+        veranstaltung = (
+            db.query(Veranstaltung)
+            .filter(Veranstaltung.id == veranstaltung_id)
+            .first()
+        )
+
+        if veranstaltung:
+            veranstaltung.titel = titel
+            veranstaltung.datum = datum
+            veranstaltung.uhrzeit = uhrzeit
+            veranstaltung.ort = ort
+            veranstaltung.beschreibung = beschreibung
+            veranstaltung.ansprechpartner = ansprechpartner
+
+            db.commit()
+            db.refresh(veranstaltung)
+
+        return veranstaltung
+
+    finally:
+        db.close()
+
+
+def set_veranstaltung_aktiv(veranstaltung_id, aktiv):
+    db = SessionLocal()
+
+    try:
+        veranstaltung = (
+            db.query(Veranstaltung)
+            .filter(Veranstaltung.id == veranstaltung_id)
+            .first()
+        )
+
+        if veranstaltung:
+            veranstaltung.aktiv = aktiv
+            db.commit()
+            db.refresh(veranstaltung)
+
+        return veranstaltung
 
     finally:
         db.close()
