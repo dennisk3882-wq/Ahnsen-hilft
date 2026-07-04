@@ -7,6 +7,7 @@ from email_service import send_email
 from crud import save_meldung
 from veranstaltungen_crud import get_aktive_veranstaltungen
 
+
 MENU = """👋 Willkommen bei Ahnsen hilft
 
 Bitte antworte mit einer Zahl:
@@ -69,7 +70,7 @@ def handle_message(sender, msg_type, content):
 
     print("Aktueller Schritt:", step)
 
-        if msg_type == "text" and text in ["menü", "menu", "start", "hallo", "hi"]:
+    if msg_type == "text" and text in ["menü", "menu", "start", "hallo", "hi"]:
         reset_state(sender)
         send_whatsapp_message(sender, MENU)
         return
@@ -89,17 +90,17 @@ def handle_message(sender, msg_type, content):
                 )
                 return
 
-            text = "📅 Aktuelle Veranstaltungen\n\n"
+            antwort = "📅 Aktuelle Veranstaltungen\n\n"
 
             for v in veranstaltungen:
-                text += (
+                antwort += (
                     f"📍 {v.titel}\n"
                     f"📅 {v.datum}\n"
                     f"🕒 {v.uhrzeit}\n"
                     f"📌 {v.ort}\n\n"
                 )
 
-            send_whatsapp_message(sender, text)
+            send_whatsapp_message(sender, antwort)
 
         elif content == "3":
             send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
@@ -136,7 +137,10 @@ def handle_message(sender, msg_type, content):
 
         data["art"] = MANGEL_ARTEN[content]
         save_state(sender, {"step": "mangel_ort", "data": data})
-        send_whatsapp_message(sender, "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden.")
+        send_whatsapp_message(
+            sender,
+            "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
+        )
         return
 
     if step == "mangel_ort":
