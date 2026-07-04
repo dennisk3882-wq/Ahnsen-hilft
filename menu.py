@@ -1,11 +1,16 @@
 from datetime import datetime
 
 from state import get_state, save_state, reset_state
-from whatsapp import send_whatsapp_message, send_whatsapp_image
+from whatsapp import send_whatsapp_message
 from media import download_whatsapp_image
 from email_service import send_email
 from crud import save_meldung
 from veranstaltungen_crud import get_aktive_veranstaltungen
+
+try:
+    from whatsapp import send_whatsapp_image
+except ImportError:
+    send_whatsapp_image = None
 
 
 MENU = """👋 Willkommen bei Ahnsen hilft
@@ -61,6 +66,17 @@ Foto:
 Mit „Ja“ absenden oder mit „Zurück“ abbrechen."""
 
 
+def build_veranstaltung_text(v):
+    return f"""🎉 *{v.titel}*
+
+📅 {v.datum or "-"}
+🕒 {v.uhrzeit or "-"}
+📍 {v.ort or "-"}
+👤 {v.ansprechpartner or "-"}
+
+{v.beschreibung or ""}"""
+
+
 def handle_message(sender, msg_type, content):
     state = get_state(sender)
     step = state["step"]
@@ -75,7 +91,7 @@ def handle_message(sender, msg_type, content):
         send_whatsapp_message(sender, MENU)
         return
 
-        if step == "menu":
+    if step == "menu":
         if content == "1":
             save_state(sender, {"step": "mangel_art", "data": {}})
             send_whatsapp_message(sender, MANGEL_MENU)
@@ -93,20 +109,22 @@ def handle_message(sender, msg_type, content):
             send_whatsapp_message(sender, "📅 *Aktuelle Veranstaltungen*")
 
             for v in veranstaltungen:
-                send_whatsapp_message(
-                    sender,
-                    f"""🎉 *{v.titel}*
+                veranstaltung_text = build_veranstaltung_text(v)
 
-📅 {v.datum or "-"}
-🕒 {v.uhrzeit or "-"}
-📍 {v.ort or "-"}
-👤 {v.ansprechpartner or "-"}
-
-{v.beschreibung or ""}"""
-                )
+                if send_whatsapp_image and getattr(v, "bild_base64", None):
+                    send_whatsapp_image(
+                        sender,
+                        v.bild_base64,
+                        caption=veranstaltung_text
+                    )
+                else:
+                    send_whatsapp_message(sender, veranstaltung_text)
 
         elif content == "3":
-            send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
+            send_whatsapp_message(
+                sender,
+                "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart."
+            )
 
         elif content == "4":
             send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
