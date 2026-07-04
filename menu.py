@@ -81,7 +81,7 @@ def handle_message(sender, msg_type, content):
             send_whatsapp_message(sender, MANGEL_MENU)
 
         elif content == "2":
-    veranstaltungen = get_aktive_veranstaltungen()
+            veranstaltungen = get_aktive_veranstaltungen()
 
     if not veranstaltungen:
         send_whatsapp_message(
