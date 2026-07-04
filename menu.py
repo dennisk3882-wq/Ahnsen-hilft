@@ -69,60 +69,60 @@ def handle_message(sender, msg_type, content):
 
     print("Aktueller Schritt:", step)
 
-    if msg_type == "text" and text in ["menü", "menu", "start", "hallo", "hi"]:
+        if msg_type == "text" and text in ["menü", "menu", "start", "hallo", "hi"]:
         reset_state(sender)
         send_whatsapp_message(sender, MENU)
         return
 
-        if step == "menu":
-            if content == "1":
-                save_state(sender, {"step": "mangel_art", "data": {}})
+    if step == "menu":
+        if content == "1":
+            save_state(sender, {"step": "mangel_art", "data": {}})
             send_whatsapp_message(sender, MANGEL_MENU)
 
         elif content == "2":
             veranstaltungen = get_aktive_veranstaltungen()
 
-        if not veranstaltungen:
-            send_whatsapp_message(
-                sender,
-                "📅 Zurzeit sind keine Veranstaltungen eingetragen."
-            )
-            return
+            if not veranstaltungen:
+                send_whatsapp_message(
+                    sender,
+                    "📅 Zurzeit sind keine Veranstaltungen eingetragen."
+                )
+                return
 
-        text = "📅 Aktuelle Veranstaltungen\n\n"
+            text = "📅 Aktuelle Veranstaltungen\n\n"
 
-        for v in veranstaltungen:
-            text += (
-                f"📍 {v.titel}\n"
-                f"📅 {v.datum}\n"
-                f"🕒 {v.uhrzeit}\n"
-                f"📌 {v.ort}\n\n"
-            )
+            for v in veranstaltungen:
+                text += (
+                    f"📍 {v.titel}\n"
+                    f"📅 {v.datum}\n"
+                    f"🕒 {v.uhrzeit}\n"
+                    f"📌 {v.ort}\n\n"
+                )
 
-        send_whatsapp_message(sender, text)
+            send_whatsapp_message(sender, text)
 
-    elif content == "3":
-        send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
+        elif content == "3":
+            send_whatsapp_message(sender, "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart.")
 
-    elif content == "4":
-        send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
+        elif content == "4":
+            send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
 
-    elif content == "5":
-        send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
+        elif content == "5":
+            send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
 
-    elif content == "6":
-        send_whatsapp_message(sender, "📰 Aktuelles folgt.")
+        elif content == "6":
+            send_whatsapp_message(sender, "📰 Aktuelles folgt.")
 
-    elif content == "7":
-        send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
+        elif content == "7":
+            send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
 
-    elif content == "0":
-        send_whatsapp_message(sender, "👋 Bis bald!")
+        elif content == "0":
+            send_whatsapp_message(sender, "👋 Bis bald!")
 
-    else:
-        send_whatsapp_message(sender, MENU)
+        else:
+            send_whatsapp_message(sender, MENU)
 
-    return
+        return
 
     if step == "mangel_art":
         if content == "0":
