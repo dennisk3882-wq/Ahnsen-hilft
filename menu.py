@@ -74,13 +74,13 @@ def handle_message(sender, msg_type, content):
         send_whatsapp_message(sender, MENU)
         return
 
-    if step == "menu":
+        if step == "menu":
         if content == "1":
-        save_state(sender, {"step": "mangel_art", "data": {}})
-        send_whatsapp_message(sender, MANGEL_MENU)
+            save_state(sender, {"step": "mangel_art", "data": {}})
+            send_whatsapp_message(sender, MANGEL_MENU)
 
-    elif content == "2":
-        veranstaltungen = get_aktive_veranstaltungen()
+        elif content == "2":
+            veranstaltungen = get_aktive_veranstaltungen()
 
         if not veranstaltungen:
             send_whatsapp_message(
