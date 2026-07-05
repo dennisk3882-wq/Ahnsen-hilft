@@ -69,24 +69,15 @@ def get_aktive_veranstaltungen():
             except Exception:
                 kommende.append(v)
 
-        kommende.sort(
-            key=lambda v: datetime.strptime(v.datum, "%d.%m.%Y")
-            if v.datum else datetime.max
-        )
+        def sortierschluessel(veranstaltung):
+            try:
+                return datetime.strptime(veranstaltung.datum, "%d.%m.%Y")
+            except (TypeError, ValueError):
+                return datetime.max
+
+        kommende.sort(key=sortierschluessel)
 
         return kommende
-
-    finally:
-        db.close()
-    db = SessionLocal()
-
-    try:
-        return (
-            db.query(Veranstaltung)
-            .filter(Veranstaltung.aktiv == "Ja")
-            .order_by(Veranstaltung.datum.asc())
-            .all()
-        )
 
     finally:
         db.close()
@@ -128,6 +119,7 @@ def update_veranstaltung(
     ort,
     beschreibung,
     ansprechpartner,
+    bild_bytes=None,
 ):
     db = SessionLocal()
 
@@ -145,6 +137,11 @@ def update_veranstaltung(
             veranstaltung.ort = ort
             veranstaltung.beschreibung = beschreibung
             veranstaltung.ansprechpartner = ansprechpartner
+
+            if bild_bytes:
+                veranstaltung.bild_base64 = base64.b64encode(
+                    bild_bytes
+                ).decode("utf-8")
 
             db.commit()
             db.refresh(veranstaltung)
