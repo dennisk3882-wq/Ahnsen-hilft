@@ -140,16 +140,18 @@ def handle_message(sender, msg_type, content):
             send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
 
         elif content == "8":
-            save_state(sender, {"step": "dgh", "data": data})
-            send_whatsapp_message(
-                sender,
-                """🏠 DGH buchen
+    save_state(sender, {"step": "dgh", "data": data})
+    send_whatsapp_message(
+        sender,
+        """🏠 DGH buchen
 
 1️⃣ Kalender anschauen
 2️⃣ Buchungsanfrage stellen
 
 0️⃣ Zurück"""
-            )
+    )
+    return
+    
     set_user_step(sender, "dgh")
         
         elif content == "0":
@@ -158,25 +160,6 @@ def handle_message(sender, msg_type, content):
         else:
             send_whatsapp_message(sender, MENU)
 
-        return
-
-if step == "mangel_art":
-        if content == "0":
-            reset_state(sender)
-            send_whatsapp_message(sender, MENU)
-            return
-
-        if content not in MANGEL_ARTEN:
-            send_whatsapp_message(sender, "Bitte wähle eine gültige Zahl.\n\n" + MANGEL_MENU)
-            return
-
-        data["art"] = MANGEL_ARTEN[content]
-        save_state(sender, {"step": "mangel_ort", "data": data})
-
-        send_whatsapp_message(
-            sender,
-            "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
-        )
         return
 
 if step == "dgh":
@@ -198,6 +181,25 @@ if step == "dgh":
     elif content == "0":
         set_user_step(sender, "menu")
         send_whatsapp_message(sender, MENU)
+        return
+
+if step == "mangel_art":
+        if content == "0":
+            reset_state(sender)
+            send_whatsapp_message(sender, MENU)
+            return
+
+        if content not in MANGEL_ARTEN:
+            send_whatsapp_message(sender, "Bitte wähle eine gültige Zahl.\n\n" + MANGEL_MENU)
+            return
+
+        data["art"] = MANGEL_ARTEN[content]
+        save_state(sender, {"step": "mangel_ort", "data": data})
+
+        send_whatsapp_message(
+            sender,
+            "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
+        )
         return
 
 if step == "mangel_ort":
