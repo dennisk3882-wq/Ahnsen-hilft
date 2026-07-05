@@ -139,16 +139,17 @@ def handle_message(sender, msg_type, content):
         elif content == "7":
             send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
 
-elif content == "8":
-    send_whatsapp_message(
-        sender,
-        """🏠 DGH buchen
+        elif content == "8":
+            save_state(sender, {"step": "dgh", "data": data})
+            send_whatsapp_message(
+                sender,
+                """🏠 DGH buchen
 
 1️⃣ Kalender anschauen
 2️⃣ Buchungsanfrage stellen
 
 0️⃣ Zurück"""
-    )
+            )
     set_user_step(sender, "dgh")
         
         elif content == "0":
@@ -178,7 +179,7 @@ if step == "mangel_art":
         )
         return
 
- if step == "dgh":
+if step == "dgh":
 
     if content == "1":
         send_whatsapp_message(
