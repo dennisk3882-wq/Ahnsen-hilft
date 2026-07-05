@@ -9,7 +9,7 @@ from dgh_crud import (
 )
 
 
-def dgh_dashboard(bearbeiten_id=None):
+def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler=""):
     termine = get_alle_dgh_termine()
 
     edit = None
@@ -60,8 +60,8 @@ def dgh_dashboard(bearbeiten_id=None):
         tag = heute + timedelta(days=i)
 
         if tag in belegte_daten:
-            css = "belegt"
-            label = "Belegt"
+            css = "bestaetigt"
+            label = "Bestätigt"
         elif tag in angefragte_daten:
             css = "angefragt"
             label = "Anfrage"
@@ -92,11 +92,11 @@ def dgh_dashboard(bearbeiten_id=None):
             status = "🟢 Bestätigt"
             status_class = "status-bestaetigt"
         elif t.status == "Abgelehnt":
-            status = "⚪ Abgelehnt"
-            status_class = "status-inaktiv"
+            status = "🔴 Abgelehnt"
+            status_class = "status-abgelehnt"
         else:
-            status = "🔴 Belegt"
-            status_class = "status-belegt"
+            status = "⚪ Unbekannt"
+            status_class = "status-inaktiv"
 
         rows += f"""
         <tr>
@@ -113,7 +113,6 @@ def dgh_dashboard(bearbeiten_id=None):
                         <option value="Anfrage" {"selected" if t.status == "Anfrage" else ""}>Anfrage</option>
                         <option value="Bestätigt" {"selected" if t.status == "Bestätigt" else ""}>Bestätigt</option>
                         <option value="Abgelehnt" {"selected" if t.status == "Abgelehnt" else ""}>Abgelehnt</option>
-                        <option value="Belegt" {"selected" if t.status == "Belegt" else ""}>Belegt</option>
                     </select>
                     <button type="submit">Status speichern</button>
                 </form>
@@ -251,7 +250,7 @@ def dgh_dashboard(bearbeiten_id=None):
                 color:#155724;
             }}
 
-            .status-belegt {{
+            .status-abgelehnt {{
                 background:#f8d7da;
                 color:#721c24;
             }}
@@ -289,15 +288,15 @@ def dgh_dashboard(bearbeiten_id=None):
             }}
 
             .frei {{
-                background:#eafaf1;
-                color:#1e8449;
-                border:1px solid #abebc6;
+                background:#f4f6f7;
+                color:#566573;
+                border:1px solid #d5d8dc;
             }}
 
-            .belegt {{
-                background:#fdecea;
-                color:#c0392b;
-                border:1px solid #f5b7b1;
+            .bestaetigt {{
+                background:#d4edda;
+                color:#155724;
+                border:1px solid #abebc6;
             }}
 
             .angefragt {{
@@ -413,6 +412,9 @@ def dgh_dashboard(bearbeiten_id=None):
         <h1>🏠 DGH buchen</h1>
         <p class="subtitle">Termine verwalten, Belegung ansehen und interne Kommentare speichern.</p>
 
+        {f'<div class="box" style="border-left:6px solid #27ae60;">✅ {escape(hinweis)}</div>' if hinweis else ''}
+        {f'<div class="box" style="border-left:6px solid #e74c3c;">⚠️ {escape(fehler)}</div>' if fehler else ''}
+
         <div class="box">
             <h2>📅 Kalenderübersicht nächste 30 Tage</h2>
             <div class="calendar">
@@ -429,7 +431,7 @@ def dgh_dashboard(bearbeiten_id=None):
                 <input name="anlass" placeholder="Anlass, z. B. Geburtstag" value="{escape(anlass)}">
                 <input name="name" placeholder="Name / Mieter" value="{escape(name)}">
                 <input name="telefon" placeholder="Telefonnummer" value="{escape(telefon)}">
-                <textarea name="kommentar" placeholder="Interner Kommentar">{escape(kommentar)}</textarea>
+                <textarea name="kommentar" placeholder="Interner Kommentar (wird nicht per WhatsApp gesendet)">{escape(kommentar)}</textarea>
 
                 <button type="submit">{button_text}</button>
                 <a class="cancel" href="/dgh">Abbrechen</a>
