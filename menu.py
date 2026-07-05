@@ -32,7 +32,7 @@ Bitte antworte mit einer Zahl:
 5️⃣ Ansprechpartner
 6️⃣ Aktuelles
 7️⃣ Mülltermine
-8️⃣ DGH buchen
+8️⃣ DGH mieten
 0️⃣ Ende
 """
 
@@ -43,7 +43,7 @@ MANGEL_MENU = """⚠️ Welchen Mangel möchtest du melden?
 3️⃣ Straßenschild beschädigt
 4️⃣ Müllablagerung
 5️⃣ Sonstiger Schaden
-0️⃣ Zurück
+0️⃣ Zurück zum Hauptmenü
 """
 
 MANGEL_ARTEN = {
@@ -195,12 +195,12 @@ def handle_message(sender, msg_type, content):
             save_state(sender, {"step": "dgh", "data": data})
             send_whatsapp_message(
                 sender,
-                """🏠 DGH buchen
+                """🏠 DGH mieten
 
 1️⃣ Kalender anschauen
-2️⃣ Buchungsanfrage stellen
+2️⃣ Mietanfrage stellen
 
-0️⃣ Zurück"""
+0️⃣ Zurück zum Hauptmenü"""
             )
 
         elif content == "0":
@@ -220,7 +220,7 @@ def handle_message(sender, msg_type, content):
             save_state(sender, {"step": "dgh_anfrage_datum", "data": {}})
             send_whatsapp_message(
                 sender,
-                "✍️ Buchungsanfrage DGH\n\nFür welches Datum möchtest du das DGH buchen?\n\nBitte im Format TT.MM.JJJJ senden, z. B. 12.08.2026."
+                "✍️ Mietanfrage für das DGH\n\nFür welches Datum möchtest du das DGH mieten?\n\nBitte im Format TT.MM.JJJJ senden, z. B. 12.08.2026."
             )
             return
 
@@ -284,7 +284,7 @@ def handle_message(sender, msg_type, content):
             anlass=data.get("anlass", ""),
             name=data.get("name", ""),
             telefon=data.get("telefon", ""),
-            kommentar=f"Buchungsanfrage über WhatsApp von {sender}\n\n{kommentar}",
+            kommentar=f"Mietanfrage über WhatsApp von {sender}\n\n{kommentar}",
             status="Anfrage",
             whatsapp_absender=sender,
         )
@@ -295,7 +295,7 @@ def handle_message(sender, msg_type, content):
             sender,
             f"""✅ Vielen Dank!
 
-Deine DGH-Buchungsanfrage wurde übermittelt.
+Deine DGH-Mietanfrage wurde übermittelt.
 
 📅 Datum: {data.get("datum", "-")}
 🕒 Uhrzeit: {data.get("uhrzeit", "-")}
