@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from state import get_state, save_state, reset_state
 from whatsapp import send_whatsapp_message
@@ -6,7 +6,12 @@ from media import download_whatsapp_image
 from email_service import send_email
 from crud import save_meldung
 from veranstaltungen_crud import get_aktive_veranstaltungen
-from dgh_crud import get_aktive_dgh_termine, get_freie_tage
+from dgh_crud import (
+    get_aktive_dgh_termine,
+    get_freie_tage,
+    save_dgh_termin,
+    parse_datum,
+)
 
 try:
     from whatsapp import send_whatsapp_image
@@ -81,21 +86,34 @@ def build_veranstaltung_text(v):
 
 def build_dgh_kalender_text():
     termine = get_aktive_dgh_termine()
-    freie_tage = get_freie_tage(14)
+    belegte_daten = set()
 
-    text = "🏠 *DGH-Kalender*\n\n"
+    for t in termine:
+        datum = parse_datum(t.datum)
+        if datum:
+            belegte_daten.add(datum)
 
-    if termine:
-        text += "🔴 *Belegte Termine:*\n"
-        for t in termine[:10]:
-            text += f"🔴 {t.datum} – {t.anlass or 'Belegt'}\n"
-    else:
-        text += "🔴 Keine belegten Termine vorhanden.\n"
+    heute = datetime.today().date()
+    ende = heute + timedelta(days=120)
 
-    text += "\n🟢 *Nächste freie Tage:*\n"
+    text = "🏠 *DGH-Kalender – nächste 4 Monate*\n\n"
 
-    for tag in freie_tage[:10]:
-        text += f"🟢 {tag.strftime('%d.%m.%Y')}\n"
+    aktueller_monat = None
+    tag = heute
+
+    while tag <= ende:
+        monat = tag.strftime("%B %Y")
+
+        if monat != aktueller_monat:
+            aktueller_monat = monat
+            text += f"\n📅 *{monat}*\n"
+
+        symbol = "🔴" if tag in belegte_daten else "🟢"
+        status = "belegt" if tag in belegte_daten else "frei"
+
+        text += f"{symbol} {tag.strftime('%d.%m.')} {status}\n"
+
+        tag += timedelta(days=1)
 
     return text
 
@@ -187,9 +205,10 @@ def handle_message(sender, msg_type, content):
             return
 
         if content == "2":
+            save_state(sender, {"step": "dgh_anfrage_datum", "data": {}})
             send_whatsapp_message(
                 sender,
-                "✍️ Die Buchungsanfrage ist noch im Aufbau."
+                "✍️ Buchungsanfrage DGH\n\nFür welches Datum möchtest du das DGH buchen?\n\nBitte im Format TT.MM.JJJJ senden, z. B. 12.08.2026."
             )
             return
 
@@ -199,6 +218,80 @@ def handle_message(sender, msg_type, content):
             return
 
         send_whatsapp_message(sender, "Bitte wähle 1, 2 oder 0.")
+        return
+
+    if step == "dgh_anfrage_datum":
+        datum = parse_datum(content)
+
+        if not datum:
+            send_whatsapp_message(sender, "Bitte sende das Datum im Format TT.MM.JJJJ, z. B. 12.08.2026.")
+            return
+
+        belegte_termine = get_aktive_dgh_termine()
+
+        for t in belegte_termine:
+            if parse_datum(t.datum) == datum:
+                send_whatsapp_message(
+                    sender,
+                    "❌ Dieser Tag ist leider bereits belegt.\n\nBitte wähle ein anderes Datum."
+                )
+                return
+
+        data["datum"] = content
+        save_state(sender, {"step": "dgh_anfrage_uhrzeit", "data": data})
+        send_whatsapp_message(sender, "🕒 Welche Uhrzeit?\n\nBeispiel: 18:00 Uhr")
+        return
+
+    if step == "dgh_anfrage_uhrzeit":
+        data["uhrzeit"] = content
+        save_state(sender, {"step": "dgh_anfrage_name", "data": data})
+        send_whatsapp_message(sender, "👤 Auf welchen Namen soll die Anfrage laufen?")
+        return
+
+    if step == "dgh_anfrage_name":
+        data["name"] = content
+        save_state(sender, {"step": "dgh_anfrage_telefon", "data": data})
+        send_whatsapp_message(sender, "☎️ Bitte sende deine Telefonnummer.")
+        return
+
+    if step == "dgh_anfrage_telefon":
+        data["telefon"] = content
+        save_state(sender, {"step": "dgh_anfrage_anlass", "data": data})
+        send_whatsapp_message(sender, "🎉 Was ist der Anlass?\n\nBeispiel: Geburtstag, Versammlung, Feier")
+        return
+
+    if step == "dgh_anfrage_anlass":
+        data["anlass"] = content
+        save_state(sender, {"step": "dgh_anfrage_kommentar", "data": data})
+        send_whatsapp_message(sender, "💬 Gibt es noch eine Bemerkung?\n\nWenn nicht, schreibe einfach Nein.")
+        return
+
+    if step == "dgh_anfrage_kommentar":
+        kommentar = "" if text in ["nein", "ne", "n"] else content
+
+        save_dgh_termin(
+            datum=data.get("datum", ""),
+            uhrzeit=data.get("uhrzeit", ""),
+            anlass=data.get("anlass", ""),
+            name=data.get("name", ""),
+            telefon=data.get("telefon", ""),
+            kommentar=f"Buchungsanfrage über WhatsApp von {sender}\n\n{kommentar}",
+        )
+
+        reset_state(sender)
+
+        send_whatsapp_message(
+            sender,
+            f"""✅ Vielen Dank!
+
+Deine DGH-Buchungsanfrage wurde übermittelt.
+
+📅 Datum: {data.get("datum", "-")}
+🕒 Uhrzeit: {data.get("uhrzeit", "-")}
+🎉 Anlass: {data.get("anlass", "-")}
+
+Die Gemeinde meldet sich zur Bestätigung."""
+        )
         return
 
     if step == "mangel_art":
