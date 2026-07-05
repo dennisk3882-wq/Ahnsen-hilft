@@ -7,18 +7,6 @@ from PIL import Image, ImageOps
 from config import WHATSAPP_TOKEN, PHONE_NUMBER_ID
 
 
-MENUE_HINWEIS = "\n\nℹ️ Zum Hauptmenü: Schreibe *Menü*."
-
-
-def mit_menue_hinweis(text):
-    text = str(text or "").rstrip()
-
-    if MENUE_HINWEIS.strip() in text:
-        return text
-
-    return text + MENUE_HINWEIS
-
-
 def send_whatsapp_message(to, text):
     url = f"https://graph.facebook.com/v25.0/{PHONE_NUMBER_ID}/messages"
 
@@ -31,7 +19,7 @@ def send_whatsapp_message(to, text):
         "messaging_product": "whatsapp",
         "to": to,
         "type": "text",
-        "text": {"body": mit_menue_hinweis(text)},
+        "text": {"body": str(text or "").rstrip()},
     }
 
     response = requests.post(url, headers=headers, json=data, timeout=20)
@@ -99,7 +87,7 @@ def send_whatsapp_image(to, bild_base64, caption=""):
         "type": "image",
         "image": {
             "id": media_id,
-            "caption": mit_menue_hinweis(caption) if caption else "",
+            "caption": str(caption or "").rstrip(),
         },
     }
 

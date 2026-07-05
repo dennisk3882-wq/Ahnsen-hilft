@@ -179,5 +179,7 @@ mobile Darstellung geprüft wurden.
   Login über Kacheln zu Mängeln, Veranstaltungen und DGH.
 - Die Verwaltungsstartseite zeigt Kennzahlen, Erinnerungen, letzte Vorgänge
   und eine bereichsübergreifende Suche.
-- WhatsApp bezeichnet den DGH-Ablauf als „DGH mieten“ und ergänzt unter jeder
-  Nachricht den Hinweis, wie das Hauptmenü wieder geöffnet wird.
+- Das WhatsApp-Hauptmenü besitzt passende Symbole für alle Bereiche; das
+  Dorfgemeinschaftshaus wird mit einem Gebäude-Symbol dargestellt.
+- In allen WhatsApp-Untermenüs und laufenden Eingabeabläufen führt die Auswahl
+  `0` zuverlässig zurück ins Hauptmenü.

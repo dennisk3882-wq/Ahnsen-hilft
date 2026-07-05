@@ -25,16 +25,31 @@ MENU = """👋 Willkommen bei Ahnsen hilft
 
 Bitte antworte mit einer Zahl:
 
-1️⃣ Mängelmelder
-2️⃣ Veranstaltungen
-3️⃣ Vereine
-4️⃣ Feuerwehr
-5️⃣ Ansprechpartner
-6️⃣ Aktuelles
-7️⃣ Mülltermine
-8️⃣ DGH mieten
+1️⃣ 🛠️ Mängelmelder
+2️⃣ 🎉 Veranstaltungen
+3️⃣ ⚽ Vereine
+4️⃣ 🚒 Feuerwehr
+5️⃣ ☎️ Ansprechpartner
+6️⃣ 📰 Aktuelles
+7️⃣ 🗑️ Mülltermine
+8️⃣ 🏛️ DGH mieten
 0️⃣ Ende
 """
+
+ZURUECK_ZUM_HAUPTMENUE = "0️⃣ Zurück zum Hauptmenü"
+
+
+def mit_zurueck_option(text):
+    text = str(text or "").rstrip()
+
+    if ZURUECK_ZUM_HAUPTMENUE in text:
+        return text
+
+    return f"{text}\n\n{ZURUECK_ZUM_HAUPTMENUE}"
+
+
+def send_untermenu_message(sender, text):
+    return send_whatsapp_message(sender, mit_zurueck_option(text))
 
 MANGEL_MENU = """⚠️ Welchen Mangel möchtest du melden?
 
@@ -144,16 +159,22 @@ def handle_message(sender, msg_type, content):
         send_whatsapp_message(sender, MENU)
         return
 
+    if msg_type == "text" and content == "0" and step != "menu":
+        reset_state(sender)
+        send_whatsapp_message(sender, MENU)
+        return
+
     if step == "menu":
         if content == "1":
             save_state(sender, {"step": "mangel_art", "data": {}})
-            send_whatsapp_message(sender, MANGEL_MENU)
+            send_untermenu_message(sender, MANGEL_MENU)
 
         elif content == "2":
+            save_state(sender, {"step": "info", "data": {}})
             veranstaltungen = get_aktive_veranstaltungen()
 
             if not veranstaltungen:
-                send_whatsapp_message(
+                send_untermenu_message(
                     sender,
                     "📅 Zurzeit sind keine Veranstaltungen eingetragen."
                 )
@@ -168,39 +189,42 @@ def handle_message(sender, msg_type, content):
                     send_whatsapp_image(
                         sender,
                         v.bild_base64,
-                        caption=veranstaltung_text
+                        caption=mit_zurueck_option(veranstaltung_text)
                     )
                 else:
-                    send_whatsapp_message(sender, veranstaltung_text)
+                    send_untermenu_message(sender, veranstaltung_text)
 
         elif content == "3":
-            send_whatsapp_message(
+            save_state(sender, {"step": "info", "data": {}})
+            send_untermenu_message(
                 sender,
                 "🏡 Vereine: Fußball, Tennis, Tischtennis, Spielmannszug, Dart."
             )
 
         elif content == "4":
-            send_whatsapp_message(sender, "🚒 Feuerwehr-Infos folgen.")
+            save_state(sender, {"step": "info", "data": {}})
+            send_untermenu_message(sender, "🚒 Feuerwehr-Infos folgen.")
 
         elif content == "5":
-            send_whatsapp_message(sender, "☎️ Ansprechpartner folgen.")
+            save_state(sender, {"step": "info", "data": {}})
+            send_untermenu_message(sender, "☎️ Ansprechpartner folgen.")
 
         elif content == "6":
-            send_whatsapp_message(sender, "📰 Aktuelles folgt.")
+            save_state(sender, {"step": "info", "data": {}})
+            send_untermenu_message(sender, "📰 Aktuelles folgt.")
 
         elif content == "7":
-            send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
+            save_state(sender, {"step": "info", "data": {}})
+            send_untermenu_message(sender, "🗑 Mülltermine folgen.")
 
         elif content == "8":
             save_state(sender, {"step": "dgh", "data": data})
-            send_whatsapp_message(
+            send_untermenu_message(
                 sender,
-                """🏠 DGH mieten
+                """🏛️ DGH mieten
 
 1️⃣ Kalender anschauen
-2️⃣ Mietanfrage stellen
-
-0️⃣ Zurück zum Hauptmenü"""
+2️⃣ Mietanfrage stellen"""
             )
 
         elif content == "0":
@@ -211,14 +235,18 @@ def handle_message(sender, msg_type, content):
 
         return
 
+    if step == "info":
+        send_untermenu_message(sender, "Bitte wähle 0, um zum Hauptmenü zurückzukehren.")
+        return
+
     if step == "dgh":
         if content == "1":
-            send_whatsapp_message(sender, build_dgh_kalender_text())
+            send_untermenu_message(sender, build_dgh_kalender_text())
             return
 
         if content == "2":
             save_state(sender, {"step": "dgh_anfrage_datum", "data": {}})
-            send_whatsapp_message(
+            send_untermenu_message(
                 sender,
                 "✍️ Mietanfrage für das DGH\n\nFür welches Datum möchtest du das DGH mieten?\n\nBitte im Format TT.MM.JJJJ senden, z. B. 12.08.2026."
             )
@@ -229,18 +257,18 @@ def handle_message(sender, msg_type, content):
             send_whatsapp_message(sender, MENU)
             return
 
-        send_whatsapp_message(sender, "Bitte wähle 1, 2 oder 0.")
+        send_untermenu_message(sender, "Bitte wähle 1, 2 oder 0.")
         return
 
     if step == "dgh_anfrage_datum":
         datum = parse_datum(content)
 
         if not datum:
-            send_whatsapp_message(sender, "Bitte sende das Datum im Format TT.MM.JJJJ, z. B. 12.08.2026.")
+            send_untermenu_message(sender, "Bitte sende das Datum im Format TT.MM.JJJJ, z. B. 12.08.2026.")
             return
 
         if ist_dgh_belegt(content):
-            send_whatsapp_message(
+            send_untermenu_message(
                 sender,
                 "❌ Für diesen Tag ist bereits ein Termin bestätigt.\n\nBitte wähle ein anderes Datum."
             )
@@ -248,31 +276,31 @@ def handle_message(sender, msg_type, content):
 
         data["datum"] = content
         save_state(sender, {"step": "dgh_anfrage_uhrzeit", "data": data})
-        send_whatsapp_message(sender, "🕒 Welche Uhrzeit?\n\nBeispiel: 18:00 Uhr")
+        send_untermenu_message(sender, "🕒 Welche Uhrzeit?\n\nBeispiel: 18:00 Uhr")
         return
 
     if step == "dgh_anfrage_uhrzeit":
         data["uhrzeit"] = content
         save_state(sender, {"step": "dgh_anfrage_name", "data": data})
-        send_whatsapp_message(sender, "👤 Auf welchen Namen soll die Anfrage laufen?")
+        send_untermenu_message(sender, "👤 Auf welchen Namen soll die Anfrage laufen?")
         return
 
     if step == "dgh_anfrage_name":
         data["name"] = content
         save_state(sender, {"step": "dgh_anfrage_telefon", "data": data})
-        send_whatsapp_message(sender, "☎️ Bitte sende deine Telefonnummer.")
+        send_untermenu_message(sender, "☎️ Bitte sende deine Telefonnummer.")
         return
 
     if step == "dgh_anfrage_telefon":
         data["telefon"] = content
         save_state(sender, {"step": "dgh_anfrage_anlass", "data": data})
-        send_whatsapp_message(sender, "🎉 Was ist der Anlass?\n\nBeispiel: Geburtstag, Versammlung, Feier")
+        send_untermenu_message(sender, "🎉 Was ist der Anlass?\n\nBeispiel: Geburtstag, Versammlung, Feier")
         return
 
     if step == "dgh_anfrage_anlass":
         data["anlass"] = content
         save_state(sender, {"step": "dgh_anfrage_kommentar", "data": data})
-        send_whatsapp_message(sender, "💬 Gibt es noch eine Bemerkung?\n\nWenn nicht, schreibe einfach Nein.")
+        send_untermenu_message(sender, "💬 Gibt es noch eine Bemerkung?\n\nWenn nicht, schreibe einfach Nein.")
         return
 
     if step == "dgh_anfrage_kommentar":
@@ -289,9 +317,9 @@ def handle_message(sender, msg_type, content):
             whatsapp_absender=sender,
         )
 
-        reset_state(sender)
+        save_state(sender, {"step": "info", "data": {}})
 
-        send_whatsapp_message(
+        send_untermenu_message(
             sender,
             f"""✅ Vielen Dank!
 
@@ -312,13 +340,13 @@ Die Gemeinde meldet sich zur Bestätigung."""
             return
 
         if content not in MANGEL_ARTEN:
-            send_whatsapp_message(sender, "Bitte wähle eine gültige Zahl.\n\n" + MANGEL_MENU)
+            send_untermenu_message(sender, "Bitte wähle eine gültige Zahl.\n\n" + MANGEL_MENU)
             return
 
         data["art"] = MANGEL_ARTEN[content]
         save_state(sender, {"step": "mangel_ort", "data": data})
 
-        send_whatsapp_message(
+        send_untermenu_message(
             sender,
             "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
         )
@@ -327,13 +355,13 @@ Die Gemeinde meldet sich zur Bestätigung."""
     if step == "mangel_ort":
         data["ort"] = content
         save_state(sender, {"step": "mangel_beschreibung", "data": data})
-        send_whatsapp_message(sender, "📝 Bitte beschreibe den Mangel kurz.")
+        send_untermenu_message(sender, "📝 Bitte beschreibe den Mangel kurz.")
         return
 
     if step == "mangel_beschreibung":
         data["beschreibung"] = content
         save_state(sender, {"step": "mangel_foto", "data": data})
-        send_whatsapp_message(sender, "📷 Bitte sende jetzt ein Foto oder schreibe „Nein“.")
+        send_untermenu_message(sender, "📷 Bitte sende jetzt ein Foto oder schreibe „Nein“.")
         return
 
     if step == "mangel_foto":
@@ -344,7 +372,7 @@ Die Gemeinde meldet sich zur Bestätigung."""
             data["foto_bytes"] = None
 
         save_state(sender, {"step": "mangel_bestaetigung", "data": data})
-        send_whatsapp_message(sender, build_confirmation_text(data))
+        send_untermenu_message(sender, build_confirmation_text(data))
         return
 
     if step == "mangel_bestaetigung":
@@ -363,20 +391,20 @@ Die Gemeinde meldet sich zur Bestätigung."""
 
             except Exception as error:
                 print("Fehler beim Speichern der Meldung:", repr(error))
-                send_whatsapp_message(
+                send_untermenu_message(
                     sender,
                     "⚠️ Die Meldung konnte aktuell nicht gespeichert werden. Bitte versuche es später erneut."
                 )
                 return
 
-            reset_state(sender)
+            save_state(sender, {"step": "info", "data": {}})
 
             try:
                 print("Sende E-Mail...")
                 send_email(ticket, data, sender)
                 print("E-Mail erfolgreich gesendet.")
 
-                send_whatsapp_message(
+                send_untermenu_message(
                     sender,
                     f"✅ Vielen Dank!\n\nDeine Meldung wurde aufgenommen und per E-Mail weitergeleitet.\n\nVorgangsnummer:\n{ticket}"
                 )
@@ -387,7 +415,7 @@ Die Gemeinde meldet sich zur Bestätigung."""
                     ticket,
                     "Automatischer Hinweis: Die E-Mail-Benachrichtigung ist fehlgeschlagen.",
                 )
-                send_whatsapp_message(
+                send_untermenu_message(
                     sender,
                     f"✅ Vielen Dank!\n\nDeine Meldung wurde sicher aufgenommen. Die automatische E-Mail-Benachrichtigung konnte gerade nicht gesendet werden; die Meldung bleibt im Dashboard erhalten.\n\nVorgangsnummer:\n{ticket}"
                 )
@@ -399,5 +427,5 @@ Die Gemeinde meldet sich zur Bestätigung."""
             send_whatsapp_message(sender, "❌ Meldung wurde abgebrochen.\n\n" + MENU)
             return
 
-        send_whatsapp_message(sender, "Bitte antworte mit „Ja“ zum Absenden oder „Zurück“ zum Abbrechen.")
+        send_untermenu_message(sender, "Bitte antworte mit „Ja“ zum Absenden oder „Zurück“ zum Abbrechen.")
         return
