@@ -17,13 +17,14 @@ MENU = """👋 Willkommen bei Ahnsen hilft
 
 Bitte antworte mit einer Zahl:
 
-1️⃣ Mangel melden
+1️⃣ Mängelmelder
 2️⃣ Veranstaltungen
 3️⃣ Vereine
 4️⃣ Feuerwehr
 5️⃣ Ansprechpartner
 6️⃣ Aktuelles
 7️⃣ Mülltermine
+8️⃣ DGH Buchen
 0️⃣ Ende
 """
 
@@ -138,6 +139,18 @@ def handle_message(sender, msg_type, content):
         elif content == "7":
             send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
 
+elif content == "8":
+    send_whatsapp_message(
+        sender,
+        """🏠 DGH buchen
+
+1️⃣ Kalender anschauen
+2️⃣ Buchungsanfrage stellen
+
+0️⃣ Zurück"""
+    )
+    set_user_step(sender, "dgh")
+        
         elif content == "0":
             send_whatsapp_message(sender, "👋 Bis bald!")
 
@@ -146,7 +159,7 @@ def handle_message(sender, msg_type, content):
 
         return
 
-    if step == "mangel_art":
+if step == "mangel_art":
         if content == "0":
             reset_state(sender)
             send_whatsapp_message(sender, MENU)
@@ -165,7 +178,28 @@ def handle_message(sender, msg_type, content):
         )
         return
 
-    if step == "mangel_ort":
+ if step == "dgh":
+
+    if content == "1":
+        send_whatsapp_message(
+            sender,
+            "📅 Der DGH-Kalender ist noch im Aufbau."
+        )
+        return
+
+    elif content == "2":
+        send_whatsapp_message(
+            sender,
+            "✍️ Die Buchungsanfrage ist noch im Aufbau."
+        )
+        return
+
+    elif content == "0":
+        set_user_step(sender, "menu")
+        send_whatsapp_message(sender, MENU)
+        return
+
+if step == "mangel_ort":
         data["ort"] = content
         save_state(sender, {"step": "mangel_beschreibung", "data": data})
         send_whatsapp_message(sender, "📝 Bitte beschreibe den Mangel kurz.")
