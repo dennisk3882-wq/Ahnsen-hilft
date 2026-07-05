@@ -1,16 +1,18 @@
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 from state import get_state, save_state, reset_state
 from whatsapp import send_whatsapp_message
 from media import download_whatsapp_image
 from email_service import send_email
-from crud import save_meldung
+from crud import save_meldung, update_notiz
 from veranstaltungen_crud import get_aktive_veranstaltungen
 from dgh_crud import (
     get_aktive_dgh_termine,
     get_freie_tage,
     save_dgh_termin,
     parse_datum,
+    ist_dgh_belegt,
 )
 
 try:
@@ -87,11 +89,14 @@ def build_veranstaltung_text(v):
 def build_dgh_kalender_text():
     termine = get_aktive_dgh_termine()
     belegte_daten = set()
+    angefragte_daten = set()
 
     for t in termine:
         datum = parse_datum(t.datum)
-        if datum:
+        if datum and t.status in ["Belegt", "Bestätigt"]:
             belegte_daten.add(datum)
+        elif datum and t.status == "Anfrage":
+            angefragte_daten.add(datum)
 
     heute = datetime.today().date()
     ende = heute + timedelta(days=120)
@@ -108,8 +113,15 @@ def build_dgh_kalender_text():
             aktueller_monat = monat
             text += f"\n📅 *{monat}*\n"
 
-        symbol = "🔴" if tag in belegte_daten else "🟢"
-        status = "belegt" if tag in belegte_daten else "frei"
+        if tag in belegte_daten:
+            symbol = "🔴"
+            status = "belegt"
+        elif tag in angefragte_daten:
+            symbol = "🟡"
+            status = "angefragt"
+        else:
+            symbol = "🟢"
+            status = "frei"
 
         text += f"{symbol} {tag.strftime('%d.%m.')} {status}\n"
 
@@ -227,15 +239,12 @@ def handle_message(sender, msg_type, content):
             send_whatsapp_message(sender, "Bitte sende das Datum im Format TT.MM.JJJJ, z. B. 12.08.2026.")
             return
 
-        belegte_termine = get_aktive_dgh_termine()
-
-        for t in belegte_termine:
-            if parse_datum(t.datum) == datum:
-                send_whatsapp_message(
-                    sender,
-                    "❌ Dieser Tag ist leider bereits belegt.\n\nBitte wähle ein anderes Datum."
-                )
-                return
+        if ist_dgh_belegt(content):
+            send_whatsapp_message(
+                sender,
+                "❌ Dieser Tag ist leider bereits belegt.\n\nBitte wähle ein anderes Datum."
+            )
+            return
 
         data["datum"] = content
         save_state(sender, {"step": "dgh_anfrage_uhrzeit", "data": data})
@@ -276,6 +285,8 @@ def handle_message(sender, msg_type, content):
             name=data.get("name", ""),
             telefon=data.get("telefon", ""),
             kommentar=f"Buchungsanfrage über WhatsApp von {sender}\n\n{kommentar}",
+            status="Anfrage",
+            whatsapp_absender=sender,
         )
 
         reset_state(sender)
@@ -338,18 +349,32 @@ Die Gemeinde meldet sich zur Bestätigung."""
 
     if step == "mangel_bestaetigung":
         if text in ["ja", "j", "ok", "absenden"]:
-            ticket = "AH-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+            ticket = (
+                "AH-"
+                + datetime.now().strftime("%Y%m%d-%H%M%S")
+                + "-"
+                + uuid4().hex[:4].upper()
+            )
 
             try:
                 print("Speichere Meldung...")
                 save_meldung(ticket, data, sender)
                 print("Meldung erfolgreich gespeichert.")
 
+            except Exception as error:
+                print("Fehler beim Speichern der Meldung:", repr(error))
+                send_whatsapp_message(
+                    sender,
+                    "⚠️ Die Meldung konnte aktuell nicht gespeichert werden. Bitte versuche es später erneut."
+                )
+                return
+
+            reset_state(sender)
+
+            try:
                 print("Sende E-Mail...")
                 send_email(ticket, data, sender)
                 print("E-Mail erfolgreich gesendet.")
-
-                reset_state(sender)
 
                 send_whatsapp_message(
                     sender,
@@ -357,10 +382,14 @@ Die Gemeinde meldet sich zur Bestätigung."""
                 )
 
             except Exception as error:
-                print("Fehler beim Speichern oder E-Mail-Versand:", repr(error))
+                print("Fehler beim E-Mail-Versand:", repr(error))
+                update_notiz(
+                    ticket,
+                    "Automatischer Hinweis: Die E-Mail-Benachrichtigung ist fehlgeschlagen.",
+                )
                 send_whatsapp_message(
                     sender,
-                    "⚠️ Die Meldung konnte aktuell nicht vollständig verarbeitet werden. Bitte später erneut versuchen."
+                    f"✅ Vielen Dank!\n\nDeine Meldung wurde sicher aufgenommen. Die automatische E-Mail-Benachrichtigung konnte gerade nicht gesendet werden; die Meldung bleibt im Dashboard erhalten.\n\nVorgangsnummer:\n{ticket}"
                 )
 
             return

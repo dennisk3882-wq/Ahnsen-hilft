@@ -1,6 +1,6 @@
 import base64
 from datetime import datetime, timedelta
-from sqlalchemy import or_
+from sqlalchemy import inspect, or_
 
 from database import Base, engine, SessionLocal
 from models import Meldung
@@ -9,18 +9,20 @@ from models import Meldung
 def init_db():
     Base.metadata.create_all(bind=engine)
 
-    with engine.begin() as conn:
-        try:
+    vorhandene_spalten = {
+        spalte["name"]
+        for spalte in inspect(engine).get_columns("meldungen")
+    }
+
+    if "foto_base64" not in vorhandene_spalten:
+        with engine.begin() as conn:
             conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN foto_base64 TEXT")
             print("Spalte foto_base64 hinzugefügt.")
-        except Exception as e:
-            print("foto_base64:", repr(e))
 
-        try:
+    if "interne_notiz" not in vorhandene_spalten:
+        with engine.begin() as conn:
             conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN interne_notiz TEXT DEFAULT ''")
             print("Spalte interne_notiz hinzugefügt.")
-        except Exception as e:
-            print("interne_notiz:", repr(e))
 
 
 def save_meldung(ticket, data, sender):

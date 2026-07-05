@@ -326,6 +326,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
         <div class="top-nav">
             <a href="/dashboard">📋 Mängel</a>
             <a href="/veranstaltungen">📅 Veranstaltungen</a>
+            <a href="/dgh">🏠 DGH</a>
         </div>
 
         <h1>📅 Veranstaltungen</h1>

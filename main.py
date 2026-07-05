@@ -25,6 +25,7 @@ from dgh_crud import (
     save_dgh_termin,
     update_dgh_termin,
     set_dgh_termin_aktiv,
+    set_dgh_status,
     delete_dgh_termin,
 )
 from dgh_dashboard import dgh_dashboard
@@ -33,8 +34,8 @@ from dgh_dashboard import dgh_dashboard
 app = FastAPI()
 security = HTTPBasic()
 
-DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
-DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin")
+DASHBOARD_USER = os.getenv("DASHBOARD_USER")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD")
 
 
 @app.on_event("startup")
@@ -45,6 +46,12 @@ def startup():
 
 
 def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security)):
+    if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
+        raise HTTPException(
+            status_code=503,
+            detail="Dashboard-Zugang ist noch nicht eingerichtet",
+        )
+
     correct_user = secrets.compare_digest(credentials.username, DASHBOARD_USER)
     correct_password = secrets.compare_digest(credentials.password, DASHBOARD_PASSWORD)
 
@@ -122,8 +129,14 @@ async def veranstaltung_bearbeiten(
     ort: str = Form(""),
     ansprechpartner: str = Form(""),
     beschreibung: str = Form(""),
+    bild: UploadFile | None = File(None),
     _=Depends(check_dashboard_login),
 ):
+    bild_bytes = None
+
+    if bild and bild.filename:
+        bild_bytes = await bild.read()
+
     update_veranstaltung(
         veranstaltung_id=veranstaltung_id,
         titel=titel,
@@ -132,6 +145,7 @@ async def veranstaltung_bearbeiten(
         ort=ort,
         beschreibung=beschreibung,
         ansprechpartner=ansprechpartner,
+        bild_bytes=bild_bytes,
     )
 
     return RedirectResponse(url="/veranstaltungen", status_code=303)
@@ -208,6 +222,22 @@ async def dgh_aktiv(
     return RedirectResponse(url="/dgh", status_code=303)
 
 
+@app.post("/dgh/status/{termin_id}")
+async def dgh_status_aendern(
+    termin_id: int,
+    status: str = Form(...),
+    _=Depends(check_dashboard_login),
+):
+    erlaubte_status = {"Anfrage", "Bestätigt", "Abgelehnt", "Belegt"}
+
+    if status not in erlaubte_status:
+        raise HTTPException(status_code=400, detail="Ungültiger DGH-Status")
+
+    set_dgh_status(termin_id, status)
+
+    return RedirectResponse(url="/dgh", status_code=303)
+
+
 @app.get("/dgh/loeschen/{termin_id}")
 async def dgh_loeschen(
     termin_id: int,
@@ -264,9 +294,6 @@ async def verify_webhook(request: Request):
 async def webhook(request: Request):
     body = await request.json()
 
-    print("===== Neue WhatsApp Nachricht =====")
-    print(body)
-
     if body.get("object") != "whatsapp_business_account":
         return {"status": "ignored"}
 
@@ -280,6 +307,7 @@ async def webhook(request: Request):
             for message in value["messages"]:
                 sender = message["from"]
                 msg_type = message["type"]
+                print(f"WhatsApp-Nachricht empfangen: Typ={msg_type}")
 
                 if msg_type == "text":
                     content = message["text"]["body"]
