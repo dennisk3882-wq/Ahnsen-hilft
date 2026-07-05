@@ -15,7 +15,16 @@ def parse_datum(datum_text):
         return None
 
 
-def save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar):
+def save_dgh_termin(
+    datum,
+    uhrzeit,
+    anlass,
+    name,
+    telefon,
+    kommentar,
+    status="Belegt",
+    whatsapp_absender=None,
+):
     db = SessionLocal()
 
     try:
@@ -26,8 +35,11 @@ def save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar):
             name=name,
             telefon=telefon,
             kommentar=kommentar,
-            status="Belegt",
+            status=status,
             aktiv="Ja",
+            whatsapp_absender=whatsapp_absender,
+            erstellt_am=datetime.utcnow(),
+            aktualisiert_am=datetime.utcnow(),
         )
 
         db.add(termin)
@@ -86,6 +98,27 @@ def get_aktive_dgh_termine():
         db.close()
 
 
+def get_dgh_anfragen():
+    db = SessionLocal()
+
+    try:
+        termine = (
+            db.query(DGHTermin)
+            .filter(DGHTermin.status == "Anfrage")
+            .filter(DGHTermin.aktiv == "Ja")
+            .all()
+        )
+
+        termine.sort(
+            key=lambda t: parse_datum(t.datum) or datetime.max.date()
+        )
+
+        return termine
+
+    finally:
+        db.close()
+
+
 def get_dgh_termin(termin_id):
     db = SessionLocal()
 
@@ -100,7 +133,15 @@ def get_dgh_termin(termin_id):
         db.close()
 
 
-def update_dgh_termin(termin_id, datum, uhrzeit, anlass, name, telefon, kommentar):
+def update_dgh_termin(
+    termin_id,
+    datum,
+    uhrzeit,
+    anlass,
+    name,
+    telefon,
+    kommentar,
+):
     db = SessionLocal()
 
     try:
@@ -117,6 +158,7 @@ def update_dgh_termin(termin_id, datum, uhrzeit, anlass, name, telefon, kommenta
             termin.name = name
             termin.telefon = telefon
             termin.kommentar = kommentar
+            termin.aktualisiert_am = datetime.utcnow()
 
             db.commit()
             db.refresh(termin)
@@ -139,6 +181,29 @@ def set_dgh_termin_aktiv(termin_id, aktiv):
 
         if termin:
             termin.aktiv = aktiv
+            termin.aktualisiert_am = datetime.utcnow()
+            db.commit()
+            db.refresh(termin)
+
+        return termin
+
+    finally:
+        db.close()
+
+
+def set_dgh_status(termin_id, status):
+    db = SessionLocal()
+
+    try:
+        termin = (
+            db.query(DGHTermin)
+            .filter(DGHTermin.id == termin_id)
+            .first()
+        )
+
+        if termin:
+            termin.status = status
+            termin.aktualisiert_am = datetime.utcnow()
             db.commit()
             db.refresh(termin)
 
@@ -168,6 +233,23 @@ def delete_dgh_termin(termin_id):
         db.close()
 
 
+def ist_dgh_belegt(datum_text):
+    datum = parse_datum(datum_text)
+
+    if not datum:
+        return False
+
+    termine = get_aktive_dgh_termine()
+
+    for termin in termine:
+        termin_datum = parse_datum(termin.datum)
+
+        if termin_datum == datum and termin.status in ["Belegt", "Bestätigt"]:
+            return True
+
+    return False
+
+
 def get_freie_tage(anzahl_tage=30):
     belegte = get_aktive_dgh_termine()
 
@@ -175,7 +257,8 @@ def get_freie_tage(anzahl_tage=30):
 
     for termin in belegte:
         datum = parse_datum(termin.datum)
-        if datum:
+
+        if datum and termin.status in ["Belegt", "Bestätigt"]:
             belegte_daten.add(datum)
 
     heute = datetime.today().date()
