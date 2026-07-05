@@ -14,8 +14,12 @@ class DGHTermin(Base):
     anlass = Column(String)
     name = Column(String)
     telefon = Column(String)
-    status = Column(String, default="Belegt")
-    kommentar = Column(Text)
 
+    status = Column(String, default="Anfrage")
     aktiv = Column(String, default="Ja")
+
+    kommentar = Column(Text)
+    whatsapp_absender = Column(String)
+
     erstellt_am = Column(DateTime, default=datetime.utcnow)
+    aktualisiert_am = Column(DateTime, default=datetime.utcnow)
