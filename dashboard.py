@@ -70,43 +70,41 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {{
-    font-family: Arial, sans-serif;
-    background:#eef2f5;
-    margin:0;
-    padding:20px;
-    color:#2c3e50;
-}}
+                font-family: Arial, sans-serif;
+                background:#eef2f5;
+                margin:0;
+                padding:20px;
+                color:#2c3e50;
+            }}
 
-.top-nav {{
-    margin-bottom:20px;
-}}
+            .top-nav {{
+                margin-bottom:20px;
+            }}
 
-.nav-button {{
-    background:#2c3e50;
-    color:white !important;
-    padding:12px 18px;
-    border-radius:12px;
-    text-decoration:none !important;
-    display:inline-block;
-    margin-right:12px;
-    font-size:18px;
-    font-weight:bold;
-}}
+            .nav-button {{
+                background:#2c3e50;
+                color:white !important;
+                padding:12px 18px;
+                border-radius:12px;
+                text-decoration:none !important;
+                display:inline-block;
+                margin-right:12px;
+                font-size:18px;
+                font-weight:bold;
+            }}
 
-.nav-button:visited {{
-    color:white !important;
-}}
+            .nav-button:visited {{
+                color:white !important;
+            }}
 
-.nav-button:hover {{
-    background:#34495e;
-}}
+            .nav-button:hover {{
+                background:#34495e;
+            }}
 
-
-
-.container {{
-    max-width:1300px;
-    margin:auto;
-}}
+            .container {{
+                max-width:1300px;
+                margin:auto;
+            }}
 
             h1 {{
                 margin-bottom:20px;
@@ -167,6 +165,13 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
 
             .filter a {{
                 margin:4px 6px 4px 0;
+            }}
+
+            .active-filter {{
+                background:#27ae60 !important;
+                color:white !important;
+                font-weight:bold;
+                box-shadow:0 2px 8px rgba(0,0,0,.18);
             }}
 
             .table-wrap {{
@@ -241,61 +246,62 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     <div class="container">
 
         <div class="top-nav">
-    <a class="nav-button" href="/dashboard">📋 Mängel</a>
-    <a class="nav-button" href="/veranstaltungen">📅 Veranstaltungen</a>
-</div>
+            <a class="nav-button" href="/dashboard">📋 Mängel</a>
+            <a class="nav-button" href="/veranstaltungen">📅 Veranstaltungen</a>
+        </div>
+
         <h1>Ahnsen hilft Dashboard</h1>
 
-            <div class="cards">
-                <div class="card"><b>{stats["gesamt"]}</b>Gesamt</div>
-                <div class="card"><b>{stats["offen"]}</b>Offen</div>
-                <div class="card"><b>{stats["bearbeitung"]}</b>In Bearbeitung</div>
-                <div class="card"><b>{stats["erledigt"]}</b>Erledigt</div>
-            </div>
-
-            <div class="box">
-                <form method="get" action="/dashboard">
-                    <input type="text" name="suche" placeholder="Suche nach Ticket, Ort, Art, Status..."
-                           value="{escape(suche)}">
-                    <input type="hidden" name="status_filter" value="{escape(status_filter)}">
-                    <input type="hidden" name="zeitraum" value="{escape(zeitraum)}">
-                    <button type="submit">Suchen</button>
-                    <a href="/dashboard" class="link-button">Zurücksetzen</a>
-                </form>
-            </div>
-
-            <div class="box filter">
-                <b>Statusfilter:</b><br><br>
-                <a class="link-button" href="/dashboard">Alle</a>
-                <a class="link-button" href="/dashboard?status_filter=Offen">Offen</a>
-                <a class="link-button" href="/dashboard?status_filter=In Bearbeitung">In Bearbeitung</a>
-                <a class="link-button" href="/dashboard?status_filter=Erledigt">Erledigt</a>
-            </div>
-
-            <div class="box filter">
-                <b>Zeitraum:</b><br><br>
-                <a class="link-button" href="/dashboard">Alle</a>
-                <a class="link-button" href="/dashboard?zeitraum=heute">Heute</a>
-                <a class="link-button" href="/dashboard?zeitraum=woche">Letzte 7 Tage</a>
-                <a class="link-button" href="/dashboard?zeitraum=monat">Letzte 30 Tage</a>
-            </div>
-
-            <div class="table-wrap">
-                <table>
-                    <tr>
-                        <th>Ticket</th>
-                        <th>Status</th>
-                        <th>Art</th>
-                        <th>Ort</th>
-                        <th>Beschreibung</th>
-                        <th>Foto</th>
-                        <th>Erstellt</th>
-                        <th>Aktion</th>
-                    </tr>
-                    {rows}
-                </table>
-            </div>
+        <div class="cards">
+            <div class="card"><b>{stats["gesamt"]}</b>Gesamt</div>
+            <div class="card"><b>{stats["offen"]}</b>Offen</div>
+            <div class="card"><b>{stats["bearbeitung"]}</b>In Bearbeitung</div>
+            <div class="card"><b>{stats["erledigt"]}</b>Erledigt</div>
         </div>
+
+        <div class="box">
+            <form method="get" action="/dashboard">
+                <input type="text" name="suche" placeholder="Suche nach Ticket, Ort, Art, Status..."
+                       value="{escape(suche)}">
+                <input type="hidden" name="status_filter" value="{escape(status_filter)}">
+                <input type="hidden" name="zeitraum" value="{escape(zeitraum)}">
+                <button type="submit">Suchen</button>
+                <a href="/dashboard" class="link-button">Zurücksetzen</a>
+            </form>
+        </div>
+
+        <div class="box filter">
+            <b>Statusfilter:</b><br><br>
+            <a class="link-button {'active-filter' if status_filter == '' else ''}" href="/dashboard">Alle</a>
+            <a class="link-button {'active-filter' if status_filter == 'Offen' else ''}" href="/dashboard?status_filter=Offen">Offen</a>
+            <a class="link-button {'active-filter' if status_filter == 'In Bearbeitung' else ''}" href="/dashboard?status_filter=In Bearbeitung">In Bearbeitung</a>
+            <a class="link-button {'active-filter' if status_filter == 'Erledigt' else ''}" href="/dashboard?status_filter=Erledigt">Erledigt</a>
+        </div>
+
+        <div class="box filter">
+            <b>Zeitraum:</b><br><br>
+            <a class="link-button {'active-filter' if zeitraum == '' else ''}" href="/dashboard">Alle</a>
+            <a class="link-button {'active-filter' if zeitraum == 'heute' else ''}" href="/dashboard?zeitraum=heute">Heute</a>
+            <a class="link-button {'active-filter' if zeitraum == 'woche' else ''}" href="/dashboard?zeitraum=woche">Letzte 7 Tage</a>
+            <a class="link-button {'active-filter' if zeitraum == 'monat' else ''}" href="/dashboard?zeitraum=monat">Letzte 30 Tage</a>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Status</th>
+                    <th>Art</th>
+                    <th>Ort</th>
+                    <th>Beschreibung</th>
+                    <th>Foto</th>
+                    <th>Erstellt</th>
+                    <th>Aktion</th>
+                </tr>
+                {rows}
+            </table>
+        </div>
+    </div>
     </body>
     </html>
     """
