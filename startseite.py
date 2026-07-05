@@ -252,7 +252,155 @@ def login_page(fehler=""):
     return HTMLResponse(html)
 
 
-def start_page():
+def start_page(uebersicht=None, suche=""):
+    uebersicht = uebersicht or {}
+    meldungs_statistik = uebersicht.get("meldungs_statistik", {})
+    offene_meldungen = meldungs_statistik.get("offen", 0)
+    meldungen_in_bearbeitung = meldungs_statistik.get("bearbeitung", 0)
+    offene_dgh_anfragen = uebersicht.get("offene_dgh_anfragen", 0)
+    kommende_veranstaltungen = uebersicht.get(
+        "kommende_veranstaltungen",
+        0,
+    )
+    ueberfaellige_meldungen = uebersicht.get(
+        "ueberfaellige_meldungen",
+        [],
+    )
+
+    warnung_html = ""
+    if ueberfaellige_meldungen:
+        anzahl = len(ueberfaellige_meldungen)
+        meldung_wort = "Meldung" if anzahl == 1 else "Meldungen"
+        warnung_html = f"""
+        <a class="attention" href="/dashboard?status_filter=Offen">
+            <span class="attention-icon">!</span>
+            <span>
+                <strong>{anzahl} länger offene {meldung_wort}</strong>
+                <small>
+                    Seit mehr als sieben Tagen nicht erledigt · jetzt prüfen
+                </small>
+            </span>
+            <b>→</b>
+        </a>
+        """
+
+    letzte_meldungen_html = ""
+    for meldung in uebersicht.get("letzte_meldungen", []):
+        erstellt = (
+            meldung.erstellt_am.strftime("%d.%m.%Y")
+            if meldung.erstellt_am
+            else "-"
+        )
+        letzte_meldungen_html += f"""
+        <a class="overview-row" href="/meldung/{escape(meldung.ticket)}">
+            <span>
+                <strong>{escape(meldung.art or "Meldung")}</strong>
+                <small>{escape(meldung.ort or "-")} · {erstellt}</small>
+            </span>
+            <b>→</b>
+        </a>
+        """
+
+    dgh_anfragen_html = ""
+    for termin in uebersicht.get("naechste_dgh_anfragen", []):
+        dgh_anfragen_html += f"""
+        <a class="overview-row" href="/dgh?bearbeiten_id={termin.id}#formular">
+            <span>
+                <strong>{escape(termin.anlass or "DGH-Anfrage")}</strong>
+                <small>
+                    {escape(termin.datum or "-")} ·
+                    {escape(termin.name or "Ohne Namen")}
+                </small>
+            </span>
+            <b>→</b>
+        </a>
+        """
+
+    veranstaltungen_html = ""
+    for veranstaltung in uebersicht.get(
+        "naechste_veranstaltungen",
+        [],
+    ):
+        veranstaltungen_html += f"""
+        <a class="overview-row"
+           href="/veranstaltungen?bearbeiten_id={veranstaltung.id}">
+            <span>
+                <strong>{escape(veranstaltung.titel or "Veranstaltung")}</strong>
+                <small>
+                    {escape(veranstaltung.datum or "-")} ·
+                    {escape(veranstaltung.ort or "-")}
+                </small>
+            </span>
+            <b>→</b>
+        </a>
+        """
+
+    suchergebnisse_html = ""
+    if suche.strip():
+        ergebnisse = uebersicht.get("suchergebnisse", {})
+        treffer_html = ""
+
+        for meldung in ergebnisse.get("meldungen", []):
+            treffer_html += f"""
+            <a class="search-result" href="/meldung/{escape(meldung.ticket)}">
+                <span class="result-type">Mangel</span>
+                <strong>{escape(meldung.art or "Meldung")}</strong>
+                <small>{escape(meldung.ort or "-")}</small>
+            </a>
+            """
+
+        for veranstaltung in ergebnisse.get("veranstaltungen", []):
+            treffer_html += f"""
+            <a class="search-result"
+               href="/veranstaltungen?bearbeiten_id={veranstaltung.id}">
+                <span class="result-type">Veranstaltung</span>
+                <strong>{escape(veranstaltung.titel or "-")}</strong>
+                <small>
+                    {escape(veranstaltung.datum or "-")} ·
+                    {escape(veranstaltung.ort or "-")}
+                </small>
+            </a>
+            """
+
+        for termin in ergebnisse.get("dgh", []):
+            treffer_html += f"""
+            <a class="search-result" href="/dgh?bearbeiten_id={termin.id}#formular">
+                <span class="result-type">DGH</span>
+                <strong>{escape(termin.anlass or "DGH-Termin")}</strong>
+                <small>
+                    {escape(termin.datum or "-")} ·
+                    {escape(termin.name or "-")}
+                </small>
+            </a>
+            """
+
+        if not treffer_html:
+            treffer_html = (
+                '<p class="empty-state">Keine passenden Einträge gefunden.</p>'
+            )
+
+        suchergebnisse_html = f"""
+        <section class="search-results">
+            <div class="section-title">
+                <div>
+                    <span class="eyebrow">Suchergebnisse</span>
+                    <h2>Treffer für „{escape(suche)}“</h2>
+                </div>
+                <a href="/">Suche schließen</a>
+            </div>
+            <div class="result-grid">{treffer_html}</div>
+        </section>
+        """
+
+    if not letzte_meldungen_html:
+        letzte_meldungen_html = '<p class="empty-state">Noch keine Meldungen.</p>'
+    if not dgh_anfragen_html:
+        dgh_anfragen_html = '<p class="empty-state">Keine offenen Anfragen.</p>'
+    if not veranstaltungen_html:
+        veranstaltungen_html = (
+            '<p class="empty-state">Keine kommenden Veranstaltungen.</p>'
+        )
+
     html = f"""
     <!doctype html>
     <html lang="de">
@@ -329,6 +477,111 @@ def start_page():
                 line-height:1.6;
             }}
 
+            .global-search {{
+                display:flex;
+                gap:10px;
+                max-width:720px;
+                margin:0 0 22px;
+                padding:9px;
+                border:1px solid rgba(255,255,255,.75);
+                border-radius:16px;
+                background:rgba(255,255,255,.86);
+                box-shadow:0 14px 38px rgba(34,58,78,.12);
+                backdrop-filter:blur(16px);
+            }}
+
+            .global-search input {{
+                flex:1;
+                min-width:0;
+                padding:11px 13px;
+                border:0;
+                outline:0;
+                background:transparent;
+                color:var(--ink);
+                font-size:15px;
+            }}
+
+            .global-search button {{
+                padding:10px 17px;
+                border:0;
+                border-radius:10px;
+                color:white;
+                background:var(--navy);
+                font-weight:800;
+                cursor:pointer;
+            }}
+
+            .stats {{
+                display:grid;
+                grid-template-columns:repeat(4, 1fr);
+                gap:12px;
+                margin-bottom:18px;
+            }}
+
+            .stat {{
+                padding:17px;
+                border:1px solid rgba(255,255,255,.72);
+                border-radius:16px;
+                background:rgba(255,255,255,.84);
+                box-shadow:0 12px 32px rgba(34,58,78,.11);
+                backdrop-filter:blur(14px);
+            }}
+
+            .stat b {{
+                display:block;
+                color:var(--navy);
+                font-size:29px;
+                line-height:1;
+            }}
+
+            .stat span {{
+                display:block;
+                margin-top:7px;
+                color:#667888;
+                font-size:13px;
+                font-weight:700;
+            }}
+
+            .attention {{
+                display:flex;
+                align-items:center;
+                gap:13px;
+                margin-bottom:18px;
+                padding:14px 16px;
+                border:1px solid #f0c9a7;
+                border-radius:15px;
+                color:#6f3c15;
+                text-decoration:none;
+                background:rgba(255,241,224,.92);
+            }}
+
+            .attention > b {{
+                margin-left:auto;
+                font-size:22px;
+            }}
+
+            .attention-icon {{
+                width:35px;
+                height:35px;
+                display:grid;
+                place-items:center;
+                flex:0 0 auto;
+                border-radius:12px;
+                color:white;
+                background:#d67a2d;
+                font-weight:900;
+            }}
+
+            .attention strong,
+            .attention small {{
+                display:block;
+            }}
+
+            .attention small {{
+                margin-top:3px;
+                color:#94613a;
+            }}
+
             .modules {{
                 display:grid;
                 grid-template-columns:repeat(3, 1fr);
@@ -395,12 +648,143 @@ def start_page():
                 font-weight:800;
             }}
 
+            .search-results,
+            .overview {{
+                margin-top:28px;
+                padding:22px;
+                border:1px solid rgba(255,255,255,.75);
+                border-radius:22px;
+                background:rgba(255,255,255,.90);
+                box-shadow:0 18px 48px rgba(34,58,78,.14);
+                backdrop-filter:blur(16px);
+            }}
+
+            .section-title {{
+                display:flex;
+                align-items:flex-end;
+                justify-content:space-between;
+                gap:20px;
+                margin-bottom:16px;
+            }}
+
+            .section-title h2 {{
+                margin:7px 0 0;
+                color:var(--navy);
+            }}
+
+            .section-title a {{
+                color:var(--blue);
+                font-weight:800;
+                text-decoration:none;
+            }}
+
+            .result-grid {{
+                display:grid;
+                grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+                gap:10px;
+            }}
+
+            .search-result {{
+                padding:14px;
+                border:1px solid #dce4ea;
+                border-radius:12px;
+                color:inherit;
+                text-decoration:none;
+                background:#f9fbfc;
+            }}
+
+            .search-result:hover {{
+                border-color:#9db8cb;
+                background:white;
+            }}
+
+            .search-result strong,
+            .search-result small {{
+                display:block;
+            }}
+
+            .search-result small {{
+                margin-top:5px;
+                color:#6e7d89;
+            }}
+
+            .result-type {{
+                display:inline-block;
+                margin-bottom:8px;
+                padding:4px 7px;
+                border-radius:999px;
+                color:#315b75;
+                background:#e5f0f7;
+                font-size:10px;
+                font-weight:900;
+                text-transform:uppercase;
+            }}
+
+            .overview-grid {{
+                display:grid;
+                grid-template-columns:repeat(3, 1fr);
+                gap:18px;
+            }}
+
+            .overview-column h3 {{
+                margin:0 0 11px;
+                color:var(--navy);
+                font-size:17px;
+            }}
+
+            .overview-row {{
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                gap:10px;
+                padding:11px 0;
+                border-bottom:1px solid #e6eaed;
+                color:inherit;
+                text-decoration:none;
+            }}
+
+            .overview-row:last-child {{
+                border-bottom:0;
+            }}
+
+            .overview-row strong,
+            .overview-row small {{
+                display:block;
+            }}
+
+            .overview-row small {{
+                margin-top:4px;
+                color:#74818c;
+                font-size:12px;
+            }}
+
+            .overview-row > b {{
+                color:var(--blue);
+            }}
+
+            .empty-state {{
+                margin:0;
+                padding:12px;
+                border-radius:10px;
+                color:#74818c;
+                background:#f4f6f7;
+                font-size:13px;
+            }}
+
             @media (max-width:800px) {{
                 .hero {{
                     margin-top:45px;
                 }}
 
                 .modules {{
+                    grid-template-columns:1fr;
+                }}
+
+                .stats {{
+                    grid-template-columns:repeat(2, 1fr);
+                }}
+
+                .overview-grid {{
                     grid-template-columns:1fr;
                 }}
 
@@ -420,6 +804,23 @@ def start_page():
 
                 .hero {{
                     margin-top:38px;
+                }}
+
+                .global-search {{
+                    display:block;
+                }}
+
+                .global-search button {{
+                    width:100%;
+                }}
+
+                .section-title {{
+                    display:block;
+                }}
+
+                .section-title a {{
+                    display:inline-block;
+                    margin-top:10px;
                 }}
             }}
         </style>
@@ -450,6 +851,34 @@ def start_page():
                     </p>
                 </section>
 
+                <form class="global-search" method="get" action="/">
+                    <input name="suche" value="{escape(suche)}"
+                           placeholder="Überall suchen: Ort, Name, Termin …">
+                    <button type="submit">Suchen</button>
+                </form>
+
+                <section class="stats">
+                    <div class="stat">
+                        <b>{offene_meldungen}</b>
+                        <span>Offene Mängel</span>
+                    </div>
+                    <div class="stat">
+                        <b>{meldungen_in_bearbeitung}</b>
+                        <span>In Bearbeitung</span>
+                    </div>
+                    <div class="stat">
+                        <b>{offene_dgh_anfragen}</b>
+                        <span>DGH-Anfragen</span>
+                    </div>
+                    <div class="stat">
+                        <b>{kommende_veranstaltungen}</b>
+                        <span>Kommende Veranstaltungen</span>
+                    </div>
+                </section>
+
+                {warnung_html}
+                {suchergebnisse_html}
+
                 <section class="modules">
                     <a class="module reports" href="/dashboard">
                         <span class="module-icon">⚠</span>
@@ -471,6 +900,30 @@ def start_page():
                         <p>Anfragen, Belegungen und den Kalender verwalten.</p>
                         <span class="open">DGH öffnen →</span>
                     </a>
+                </section>
+
+                <section class="overview">
+                    <div class="section-title">
+                        <div>
+                            <span class="eyebrow">Aktueller Stand</span>
+                            <h2>Zuletzt eingegangen und als Nächstes fällig</h2>
+                        </div>
+                    </div>
+
+                    <div class="overview-grid">
+                        <div class="overview-column">
+                            <h3>⚠ Neue Mängel</h3>
+                            {letzte_meldungen_html}
+                        </div>
+                        <div class="overview-column">
+                            <h3>⌂ Offene DGH-Anfragen</h3>
+                            {dgh_anfragen_html}
+                        </div>
+                        <div class="overview-column">
+                            <h3>▣ Kommende Veranstaltungen</h3>
+                            {veranstaltungen_html}
+                        </div>
+                    </div>
                 </section>
             </div>
         </main>

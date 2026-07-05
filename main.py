@@ -6,16 +6,24 @@ import hmac
 import os
 import secrets
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
 from config import VERIFY_TOKEN
 from menu import handle_message
 
-from crud import init_db, update_status, update_notiz
+from crud import (
+    init_db,
+    statistik,
+    suche_meldungen,
+    update_status,
+    update_notiz,
+)
 from dashboard import dashboard_page, meldung_detail_page
 
 from veranstaltungen_crud import (
+    get_aktive_veranstaltungen,
     init_veranstaltungen_db,
     save_veranstaltung,
     update_veranstaltung,
@@ -25,6 +33,8 @@ from veranstaltungen_crud import (
 from veranstaltungen_dashboard import veranstaltungen_dashboard
 
 from dgh_crud import (
+    get_alle_dgh_termine,
+    get_dgh_anfragen,
     init_dgh_db,
     save_dgh_termin,
     update_dgh_termin,
@@ -107,10 +117,87 @@ def check_dashboard_login(request: Request):
     return True
 
 
+def _enthaelt_suchtext(werte, suchtext):
+    suchtext = suchtext.casefold()
+    return any(
+        suchtext in str(wert or "").casefold()
+        for wert in werte
+    )
+
+
+def _startseiten_daten(suche=""):
+    meldungs_statistik = statistik()
+    alle_meldungen = suche_meldungen()
+    veranstaltungen = get_aktive_veranstaltungen()
+    dgh_anfragen = get_dgh_anfragen()
+    dgh_termine = get_alle_dgh_termine()
+
+    erinnerungsgrenze = datetime.utcnow() - timedelta(days=7)
+    ueberfaellige_meldungen = [
+        meldung
+        for meldung in alle_meldungen
+        if (
+            meldung.status != "Erledigt"
+            and meldung.erstellt_am
+            and meldung.erstellt_am < erinnerungsgrenze
+        )
+    ]
+
+    suchergebnisse = {
+        "meldungen": [],
+        "veranstaltungen": [],
+        "dgh": [],
+    }
+
+    if suche.strip():
+        suchergebnisse["meldungen"] = suche_meldungen(suche)[:8]
+        suchergebnisse["veranstaltungen"] = [
+            veranstaltung
+            for veranstaltung in veranstaltungen
+            if _enthaelt_suchtext(
+                [
+                    veranstaltung.titel,
+                    veranstaltung.datum,
+                    veranstaltung.ort,
+                    veranstaltung.beschreibung,
+                    veranstaltung.ansprechpartner,
+                ],
+                suche,
+            )
+        ][:8]
+        suchergebnisse["dgh"] = [
+            termin
+            for termin in dgh_termine
+            if _enthaelt_suchtext(
+                [
+                    termin.datum,
+                    termin.uhrzeit,
+                    termin.anlass,
+                    termin.name,
+                    termin.telefon,
+                    termin.status,
+                    termin.kommentar,
+                ],
+                suche,
+            )
+        ][:8]
+
+    return {
+        "meldungs_statistik": meldungs_statistik,
+        "offene_dgh_anfragen": len(dgh_anfragen),
+        "kommende_veranstaltungen": len(veranstaltungen),
+        "ueberfaellige_meldungen": ueberfaellige_meldungen,
+        "letzte_meldungen": alle_meldungen[:5],
+        "naechste_dgh_anfragen": dgh_anfragen[:5],
+        "naechste_veranstaltungen": veranstaltungen[:5],
+        "suchergebnisse": suchergebnisse,
+    }
+
+
 @app.get("/")
-async def home(request: Request):
+async def home(request: Request, suche: str = ""):
     if _session_ist_gueltig(request):
-        return start_page()
+        return start_page(_startseiten_daten(suche), suche=suche)
 
     return login_page()
 
@@ -388,7 +475,7 @@ async def dgh_status_aendern(
         and status in {"Bestätigt", "Abgelehnt"}
     ):
         if status == "Bestätigt":
-            nachricht = f"""✅ Deine DGH-Anfrage wurde bestätigt.
+            nachricht = f"""✅ Deine DGH-Mietanfrage wurde bestätigt.
 
 📅 Datum: {termin.datum or "-"}
 🕒 Uhrzeit: {termin.uhrzeit or "-"}
@@ -396,7 +483,7 @@ async def dgh_status_aendern(
 
 Der Termin ist damit fest für dich eingetragen."""
         else:
-            nachricht = f"""❌ Deine DGH-Anfrage konnte leider nicht bestätigt werden.
+            nachricht = f"""❌ Deine DGH-Mietanfrage konnte leider nicht bestätigt werden.
 
 📅 Datum: {termin.datum or "-"}
 🕒 Uhrzeit: {termin.uhrzeit or "-"}
