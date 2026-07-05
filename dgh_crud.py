@@ -14,7 +14,7 @@ def init_dgh_db():
     }
 
     migrationen = {
-        "status": "VARCHAR DEFAULT 'Belegt'",
+        "status": "VARCHAR DEFAULT 'Bestätigt'",
         "aktiv": "VARCHAR DEFAULT 'Ja'",
         "kommentar": "TEXT",
         "whatsapp_absender": "VARCHAR",
@@ -34,12 +34,41 @@ def init_dgh_db():
 
         print(f"Spalte dgh_termine.{spaltenname} hinzugefügt.")
 
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "UPDATE dgh_termine "
+            "SET status = 'Bestätigt' "
+            "WHERE status = 'Belegt' OR status IS NULL"
+        )
+
 
 def parse_datum(datum_text):
     try:
         return datetime.strptime(datum_text, "%d.%m.%Y").date()
     except Exception:
         return None
+
+
+def _hat_bestaetigten_konflikt(db, datum_text, ausgenommen_id=None):
+    datum = parse_datum(datum_text)
+
+    if not datum:
+        return False
+
+    query = (
+        db.query(DGHTermin)
+        .filter(DGHTermin.status == "Bestätigt")
+        .filter(DGHTermin.aktiv == "Ja")
+    )
+
+    if ausgenommen_id is not None:
+        query = query.filter(DGHTermin.id != ausgenommen_id)
+
+    for termin in query.all():
+        if parse_datum(termin.datum) == datum:
+            return True
+
+    return False
 
 
 def save_dgh_termin(
@@ -49,12 +78,18 @@ def save_dgh_termin(
     name,
     telefon,
     kommentar,
-    status="Belegt",
+    status="Bestätigt",
     whatsapp_absender=None,
 ):
     db = SessionLocal()
 
     try:
+        if (
+            status == "Bestätigt"
+            and _hat_bestaetigten_konflikt(db, datum)
+        ):
+            raise ValueError("Für diesen Tag ist bereits ein Termin bestätigt.")
+
         termin = DGHTermin(
             datum=datum,
             uhrzeit=uhrzeit,
@@ -179,6 +214,18 @@ def update_dgh_termin(
         )
 
         if termin:
+            if (
+                termin.status == "Bestätigt"
+                and _hat_bestaetigten_konflikt(
+                    db,
+                    datum,
+                    ausgenommen_id=termin_id,
+                )
+            ):
+                raise ValueError(
+                    "Für diesen Tag ist bereits ein Termin bestätigt."
+                )
+
             termin.datum = datum
             termin.uhrzeit = uhrzeit
             termin.anlass = anlass
@@ -228,13 +275,27 @@ def set_dgh_status(termin_id, status):
             .first()
         )
 
+        alter_status = termin.status if termin else None
+
         if termin:
+            if (
+                status == "Bestätigt"
+                and _hat_bestaetigten_konflikt(
+                    db,
+                    termin.datum,
+                    ausgenommen_id=termin_id,
+                )
+            ):
+                raise ValueError(
+                    "Für diesen Tag ist bereits ein Termin bestätigt."
+                )
+
             termin.status = status
             termin.aktualisiert_am = datetime.utcnow()
             db.commit()
             db.refresh(termin)
 
-        return termin
+        return termin, alter_status
 
     finally:
         db.close()
@@ -266,15 +327,12 @@ def ist_dgh_belegt(datum_text):
     if not datum:
         return False
 
-    termine = get_aktive_dgh_termine()
+    db = SessionLocal()
 
-    for termin in termine:
-        termin_datum = parse_datum(termin.datum)
-
-        if termin_datum == datum and termin.status in ["Belegt", "Bestätigt"]:
-            return True
-
-    return False
+    try:
+        return _hat_bestaetigten_konflikt(db, datum_text)
+    finally:
+        db.close()
 
 
 def get_freie_tage(anzahl_tage=30):
@@ -285,7 +343,7 @@ def get_freie_tage(anzahl_tage=30):
     for termin in belegte:
         datum = parse_datum(termin.datum)
 
-        if datum and termin.status in ["Belegt", "Bestätigt"]:
+        if datum and termin.status == "Bestätigt":
             belegte_daten.add(datum)
 
     heute = datetime.today().date()

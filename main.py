@@ -4,6 +4,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 import os
 import secrets
+from urllib.parse import quote
 
 from config import VERIFY_TOKEN
 from menu import handle_message
@@ -29,6 +30,7 @@ from dgh_crud import (
     delete_dgh_termin,
 )
 from dgh_dashboard import dgh_dashboard
+from whatsapp import send_whatsapp_message
 
 
 app = FastAPI()
@@ -175,9 +177,11 @@ async def veranstaltung_loeschen(
 @app.get("/dgh")
 async def dgh(
     bearbeiten_id: int | None = None,
+    hinweis: str = "",
+    fehler: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return dgh_dashboard(bearbeiten_id)
+    return dgh_dashboard(bearbeiten_id, hinweis=hinweis, fehler=fehler)
 
 
 @app.post("/dgh/neuer-termin")
@@ -190,9 +194,18 @@ async def dgh_neuer_termin(
     kommentar: str = Form(""),
     _=Depends(check_dashboard_login),
 ):
-    save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar)
+    try:
+        save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar)
+    except ValueError as error:
+        return RedirectResponse(
+            url=f"/dgh?fehler={quote(str(error))}",
+            status_code=303,
+        )
 
-    return RedirectResponse(url="/dgh", status_code=303)
+    return RedirectResponse(
+        url="/dgh?hinweis=Termin%20wurde%20gespeichert.",
+        status_code=303,
+    )
 
 
 @app.post("/dgh/bearbeiten/{termin_id}")
@@ -206,9 +219,29 @@ async def dgh_bearbeiten(
     kommentar: str = Form(""),
     _=Depends(check_dashboard_login),
 ):
-    update_dgh_termin(termin_id, datum, uhrzeit, anlass, name, telefon, kommentar)
+    try:
+        update_dgh_termin(
+            termin_id,
+            datum,
+            uhrzeit,
+            anlass,
+            name,
+            telefon,
+            kommentar,
+        )
+    except ValueError as error:
+        return RedirectResponse(
+            url=(
+                f"/dgh?bearbeiten_id={termin_id}"
+                f"&fehler={quote(str(error))}"
+            ),
+            status_code=303,
+        )
 
-    return RedirectResponse(url="/dgh", status_code=303)
+    return RedirectResponse(
+        url="/dgh?hinweis=Termin%20wurde%20aktualisiert.",
+        status_code=303,
+    )
 
 
 @app.get("/dgh/aktiv/{termin_id}/{aktiv}")
@@ -228,14 +261,51 @@ async def dgh_status_aendern(
     status: str = Form(...),
     _=Depends(check_dashboard_login),
 ):
-    erlaubte_status = {"Anfrage", "Bestätigt", "Abgelehnt", "Belegt"}
+    erlaubte_status = {"Anfrage", "Bestätigt", "Abgelehnt"}
 
     if status not in erlaubte_status:
         raise HTTPException(status_code=400, detail="Ungültiger DGH-Status")
 
-    set_dgh_status(termin_id, status)
+    try:
+        termin, alter_status = set_dgh_status(termin_id, status)
+    except ValueError as error:
+        return RedirectResponse(
+            url=f"/dgh?fehler={quote(str(error))}",
+            status_code=303,
+        )
 
-    return RedirectResponse(url="/dgh", status_code=303)
+    if (
+        termin
+        and alter_status != status
+        and termin.whatsapp_absender
+        and status in {"Bestätigt", "Abgelehnt"}
+    ):
+        if status == "Bestätigt":
+            nachricht = f"""✅ Deine DGH-Anfrage wurde bestätigt.
+
+📅 Datum: {termin.datum or "-"}
+🕒 Uhrzeit: {termin.uhrzeit or "-"}
+🎉 Anlass: {termin.anlass or "-"}
+
+Der Termin ist damit fest für dich eingetragen."""
+        else:
+            nachricht = f"""❌ Deine DGH-Anfrage konnte leider nicht bestätigt werden.
+
+📅 Datum: {termin.datum or "-"}
+🕒 Uhrzeit: {termin.uhrzeit or "-"}
+🎉 Anlass: {termin.anlass or "-"}
+
+Du kannst gern eine Anfrage für einen anderen Termin senden."""
+
+        try:
+            send_whatsapp_message(termin.whatsapp_absender, nachricht)
+        except Exception as error:
+            print("DGH-Statusnachricht konnte nicht gesendet werden:", repr(error))
+
+    return RedirectResponse(
+        url=f"/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}",
+        status_code=303,
+    )
 
 
 @app.get("/dgh/loeschen/{termin_id}")

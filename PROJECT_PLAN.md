@@ -57,10 +57,12 @@ nutzbare Oberfläche.
 
 1. Eine WhatsApp-Buchung ist zunächst eine **Anfrage**, keine bestätigte
    Belegung.
-2. Nur Termine mit dem Status **Bestätigt** oder **Belegt** sperren einen Tag.
+2. Nur Termine mit dem Status **Bestätigt** sperren einen Tag.
 3. Eine Anfrage muss im Dashboard bestätigt oder abgelehnt werden können.
 4. Deaktivierte oder abgelehnte Termine sperren keinen Tag.
 5. Die endgültige Zusage erfolgt durch die zuständige Person.
+6. Bei Bestätigung oder Ablehnung erhält der WhatsApp-Absender automatisch
+   eine passende Statusnachricht.
 
 ## 4. Technik
 

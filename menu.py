@@ -93,7 +93,7 @@ def build_dgh_kalender_text():
 
     for t in termine:
         datum = parse_datum(t.datum)
-        if datum and t.status in ["Belegt", "Bestätigt"]:
+        if datum and t.status == "Bestätigt":
             belegte_daten.add(datum)
         elif datum and t.status == "Anfrage":
             angefragte_daten.add(datum)
@@ -114,13 +114,13 @@ def build_dgh_kalender_text():
             text += f"\n📅 *{monat}*\n"
 
         if tag in belegte_daten:
-            symbol = "🔴"
-            status = "belegt"
+            symbol = "🟢"
+            status = "bestätigt / vergeben"
         elif tag in angefragte_daten:
             symbol = "🟡"
             status = "angefragt"
         else:
-            symbol = "🟢"
+            symbol = "⚪"
             status = "frei"
 
         text += f"{symbol} {tag.strftime('%d.%m.')} {status}\n"
@@ -242,7 +242,7 @@ def handle_message(sender, msg_type, content):
         if ist_dgh_belegt(content):
             send_whatsapp_message(
                 sender,
-                "❌ Dieser Tag ist leider bereits belegt.\n\nBitte wähle ein anderes Datum."
+                "❌ Für diesen Tag ist bereits ein Termin bestätigt.\n\nBitte wähle ein anderes Datum."
             )
             return
 
