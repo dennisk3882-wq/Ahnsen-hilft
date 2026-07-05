@@ -40,20 +40,34 @@ def dgh_dashboard(bearbeiten_id=None):
         kommentar = ""
 
     belegte_daten = set()
+    angefragte_daten = set()
+
     for t in termine:
         d = parse_datum(t.datum)
-        if d and t.aktiv == "Ja":
+        if (
+            d
+            and t.aktiv == "Ja"
+            and t.status in ["Belegt", "Bestätigt"]
+        ):
             belegte_daten.add(d)
+        elif d and t.aktiv == "Ja" and t.status == "Anfrage":
+            angefragte_daten.add(d)
 
     heute = datetime.today().date()
     kalender_html = ""
 
     for i in range(30):
         tag = heute + timedelta(days=i)
-        belegt = tag in belegte_daten
 
-        css = "belegt" if belegt else "frei"
-        label = "Belegt" if belegt else "Frei"
+        if tag in belegte_daten:
+            css = "belegt"
+            label = "Belegt"
+        elif tag in angefragte_daten:
+            css = "angefragt"
+            label = "Anfrage"
+        else:
+            css = "frei"
+            label = "Frei"
 
         kalender_html += f"""
         <div class="day {css}">
@@ -67,7 +81,22 @@ def dgh_dashboard(bearbeiten_id=None):
     for t in termine:
         aktiv_neu = "Nein" if t.aktiv == "Ja" else "Ja"
         aktiv_button = "Deaktivieren" if t.aktiv == "Ja" else "Aktivieren"
-        status = "🔴 Belegt" if t.aktiv == "Ja" else "⚪ Inaktiv"
+
+        if t.aktiv != "Ja":
+            status = "⚪ Inaktiv"
+            status_class = "status-inaktiv"
+        elif t.status == "Anfrage":
+            status = "🟡 Anfrage"
+            status_class = "status-anfrage"
+        elif t.status == "Bestätigt":
+            status = "🟢 Bestätigt"
+            status_class = "status-bestaetigt"
+        elif t.status == "Abgelehnt":
+            status = "⚪ Abgelehnt"
+            status_class = "status-inaktiv"
+        else:
+            status = "🔴 Belegt"
+            status_class = "status-belegt"
 
         rows += f"""
         <tr>
@@ -76,9 +105,19 @@ def dgh_dashboard(bearbeiten_id=None):
             <td data-label="Anlass">{escape(t.anlass or "")}</td>
             <td data-label="Name">{escape(t.name or "")}</td>
             <td data-label="Telefon">{escape(t.telefon or "")}</td>
-            <td data-label="Status">{status}</td>
+            <td data-label="Status"><span class="status-badge {status_class}">{status}</span></td>
             <td data-label="Kommentar">{escape(t.kommentar or "")}</td>
             <td data-label="Aktionen">
+                <form class="inline-form" method="post" action="/dgh/status/{t.id}">
+                    <select name="status" aria-label="Status für Termin {t.id}">
+                        <option value="Anfrage" {"selected" if t.status == "Anfrage" else ""}>Anfrage</option>
+                        <option value="Bestätigt" {"selected" if t.status == "Bestätigt" else ""}>Bestätigt</option>
+                        <option value="Abgelehnt" {"selected" if t.status == "Abgelehnt" else ""}>Abgelehnt</option>
+                        <option value="Belegt" {"selected" if t.status == "Belegt" else ""}>Belegt</option>
+                    </select>
+                    <button type="submit">Status speichern</button>
+                </form>
+
                 <a href="/dgh?bearbeiten_id={t.id}">
                     <button type="button">✏️ Bearbeiten</button>
                 </a>
@@ -143,7 +182,8 @@ def dgh_dashboard(bearbeiten_id=None):
             }}
 
             input,
-            textarea {{
+            textarea,
+            select {{
                 width:100%;
                 padding:12px;
                 margin-bottom:12px;
@@ -177,6 +217,48 @@ def dgh_dashboard(bearbeiten_id=None):
 
             .danger:hover {{
                 background:#c0392b;
+            }}
+
+            .inline-form {{
+                display:flex;
+                gap:6px;
+                align-items:center;
+                margin-bottom:5px;
+            }}
+
+            .inline-form select {{
+                width:auto;
+                min-width:130px;
+                margin:0;
+                padding:9px;
+            }}
+
+            .status-badge {{
+                display:inline-block;
+                border-radius:20px;
+                padding:6px 10px;
+                font-weight:bold;
+                white-space:nowrap;
+            }}
+
+            .status-anfrage {{
+                background:#fff3cd;
+                color:#856404;
+            }}
+
+            .status-bestaetigt {{
+                background:#d4edda;
+                color:#155724;
+            }}
+
+            .status-belegt {{
+                background:#f8d7da;
+                color:#721c24;
+            }}
+
+            .status-inaktiv {{
+                background:#e9ecef;
+                color:#495057;
             }}
 
             .cancel {{
@@ -216,6 +298,12 @@ def dgh_dashboard(bearbeiten_id=None):
                 background:#fdecea;
                 color:#c0392b;
                 border:1px solid #f5b7b1;
+            }}
+
+            .angefragt {{
+                background:#fff3cd;
+                color:#856404;
+                border:1px solid #ffe69c;
             }}
 
             .table-wrap {{
@@ -301,6 +389,15 @@ def dgh_dashboard(bearbeiten_id=None):
                     box-sizing:border-box;
                     margin:5px 0;
                     text-align:center;
+                }}
+
+                .inline-form {{
+                    display:block;
+                }}
+
+                .inline-form select {{
+                    width:100%;
+                    margin-bottom:5px;
                 }}
             }}
         </style>
