@@ -166,6 +166,9 @@ mobile Darstellung geprüft wurden.
 - DGH-Anfragen können im Dashboard bestätigt, abgelehnt oder als belegt
   markiert werden.
 - DGH-Kalender unterscheiden freie, angefragte und belegte Tage.
+- Der DGH-Kalender zeigt das laufende und das vollständige kommende Jahr.
+- Tage mit Anfrage oder bestätigtem Termin öffnen eine Detailansicht mit
+  Buchungsdaten und Bearbeitungslink.
 - Veranstaltungsbilder können beim Bearbeiten ersetzt werden.
 - Fehlerhafte Veranstaltungsdaten bringen das WhatsApp-Menü nicht mehr zum
   Absturz.

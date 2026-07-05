@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+import calendar
+from datetime import date, datetime
 from fastapi.responses import HTMLResponse
 from html import escape
 
@@ -9,7 +10,24 @@ from dgh_crud import (
 )
 
 
-def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler=""):
+MONATSNAMEN = [
+    "",
+    "Januar",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
+]
+
+
+def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
     termine = get_alle_dgh_termine()
 
     edit = None
@@ -39,42 +57,129 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler=""):
         telefon = ""
         kommentar = ""
 
-    belegte_daten = set()
-    angefragte_daten = set()
+    termine_nach_datum = {}
 
     for t in termine:
         d = parse_datum(t.datum)
         if (
             d
             and t.aktiv == "Ja"
-            and t.status in ["Belegt", "Bestätigt"]
+            and t.status in ["Anfrage", "Bestätigt"]
         ):
-            belegte_daten.add(d)
-        elif d and t.aktiv == "Ja" and t.status == "Anfrage":
-            angefragte_daten.add(d)
+            termine_nach_datum.setdefault(d, []).append(t)
 
     heute = datetime.today().date()
     kalender_html = ""
+    kalender = calendar.Calendar(firstweekday=0)
 
-    for i in range(30):
-        tag = heute + timedelta(days=i)
+    for jahr in [heute.year, heute.year + 1]:
+        monate_html = ""
 
-        if tag in belegte_daten:
-            css = "bestaetigt"
-            label = "Bestätigt"
-        elif tag in angefragte_daten:
-            css = "angefragt"
-            label = "Anfrage"
-        else:
-            css = "frei"
-            label = "Frei"
+        for monat in range(1, 13):
+            tage_html = ""
+
+            for woche in kalender.monthdayscalendar(jahr, monat):
+                for tag_nummer in woche:
+                    if tag_nummer == 0:
+                        tage_html += '<span class="calendar-day empty"></span>'
+                        continue
+
+                    datum_tag = date(jahr, monat, tag_nummer)
+                    tag_termine = termine_nach_datum.get(datum_tag, [])
+                    hat_bestaetigt = any(
+                        t.status == "Bestätigt" for t in tag_termine
+                    )
+                    hat_anfrage = any(
+                        t.status == "Anfrage" for t in tag_termine
+                    )
+
+                    klassen = ["calendar-day"]
+                    if datum_tag == heute:
+                        klassen.append("today")
+                    if hat_bestaetigt:
+                        klassen.append("bestaetigt")
+                    elif hat_anfrage:
+                        klassen.append("angefragt")
+                    else:
+                        klassen.append("frei")
+
+                    inhalt = str(tag_nummer)
+                    if tag_termine:
+                        inhalt = (
+                            f'<a href="/dgh?tag={datum_tag.isoformat()}'
+                            f'#tag-details" title="Buchungsdetails anzeigen">'
+                            f'{tag_nummer}</a>'
+                        )
+
+                    tage_html += (
+                        f'<span class="{" ".join(klassen)}">{inhalt}</span>'
+                    )
+
+            monate_html += f"""
+            <div class="month">
+                <h4>{MONATSNAMEN[monat]}</h4>
+                <div class="weekdays">
+                    <span>Mo</span><span>Di</span><span>Mi</span>
+                    <span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+                </div>
+                <div class="month-days">{tage_html}</div>
+            </div>
+            """
 
         kalender_html += f"""
-        <div class="day {css}">
-            <b>{tag.strftime("%d.%m.")}</b>
-            <span>{label}</span>
-        </div>
+        <section class="calendar-year">
+            <h3>{jahr}</h3>
+            <div class="months-grid">{monate_html}</div>
+        </section>
         """
+
+    detail_html = ""
+    ausgewaehltes_datum = None
+
+    try:
+        if tag:
+            ausgewaehltes_datum = date.fromisoformat(tag)
+    except ValueError:
+        ausgewaehltes_datum = None
+
+    if ausgewaehltes_datum:
+        detail_karten = ""
+
+        for termin in termine_nach_datum.get(ausgewaehltes_datum, []):
+            status_class = (
+                "status-bestaetigt"
+                if termin.status == "Bestätigt"
+                else "status-anfrage"
+            )
+            detail_karten += f"""
+            <article class="booking-detail">
+                <div>
+                    <span class="status-badge {status_class}">
+                        {escape(termin.status)}
+                    </span>
+                    <h3>{escape(termin.anlass or "Ohne Anlass")}</h3>
+                </div>
+                <dl>
+                    <dt>Name</dt><dd>{escape(termin.name or "-")}</dd>
+                    <dt>Uhrzeit</dt><dd>{escape(termin.uhrzeit or "-")}</dd>
+                    <dt>Telefon</dt><dd>{escape(termin.telefon or "-")}</dd>
+                    <dt>Kommentar</dt>
+                    <dd class="preserve-lines">{escape(termin.kommentar or "-")}</dd>
+                </dl>
+                <a class="edit-link"
+                   href="/dgh?bearbeiten_id={termin.id}&tag={tag}#formular">
+                    ✏️ Anfrage bearbeiten
+                </a>
+            </article>
+            """
+
+        if detail_karten:
+            detail_html = f"""
+            <div class="box" id="tag-details">
+                <h2>📋 Buchungen am {ausgewaehltes_datum.strftime("%d.%m.%Y")}</h2>
+                <div class="booking-details">{detail_karten}</div>
+            </div>
+            """
 
     rows = ""
 
@@ -269,40 +374,166 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler=""):
                 display:inline-block;
             }}
 
-            .calendar {{
+            .calendar-legend {{
+                display:flex;
+                flex-wrap:wrap;
+                gap:12px;
+                margin-bottom:18px;
+            }}
+
+            .legend-item {{
+                display:flex;
+                align-items:center;
+                gap:6px;
+                font-size:13px;
+            }}
+
+            .legend-color {{
+                width:16px;
+                height:16px;
+                border-radius:5px;
+                border:1px solid rgba(0,0,0,.12);
+            }}
+
+            .calendar-year {{
+                margin-bottom:28px;
+            }}
+
+            .calendar-year > h3 {{
+                font-size:24px;
+                margin:0 0 12px;
+            }}
+
+            .months-grid {{
                 display:grid;
-                grid-template-columns:repeat(auto-fit, minmax(90px, 1fr));
-                gap:10px;
+                grid-template-columns:repeat(auto-fit, minmax(215px, 1fr));
+                gap:12px;
             }}
 
-            .day {{
-                border-radius:12px;
-                padding:12px;
+            .month {{
+                border:1px solid #e1e5e8;
+                border-radius:10px;
+                padding:10px;
+                background:#fff;
+            }}
+
+            .month h4 {{
                 text-align:center;
-                font-size:14px;
+                margin:0 0 8px;
+                font-size:15px;
             }}
 
-            .day b {{
-                display:block;
-                margin-bottom:5px;
+            .weekdays,
+            .month-days {{
+                display:grid;
+                grid-template-columns:repeat(7, 1fr);
+                gap:3px;
+                text-align:center;
             }}
 
-            .frei {{
+            .weekdays {{
+                color:#7f8c8d;
+                font-size:10px;
+                font-weight:bold;
+                margin-bottom:3px;
+            }}
+
+            .calendar-day {{
+                min-height:27px;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                border-radius:6px;
+                font-size:11px;
+                border:1px solid transparent;
+            }}
+
+            .calendar-day a {{
+                color:inherit;
+                font-weight:bold;
+                text-decoration:none;
+                width:100%;
+                line-height:25px;
+            }}
+
+            .calendar-day a:hover {{
+                outline:2px solid #3498db;
+                border-radius:5px;
+            }}
+
+            .calendar-day.empty {{
+                background:transparent;
+            }}
+
+            .calendar-day.today {{
+                outline:2px solid #3498db;
+            }}
+
+            .calendar-day.frei,
+            .legend-color.frei {{
                 background:#f4f6f7;
                 color:#566573;
                 border:1px solid #d5d8dc;
             }}
 
-            .bestaetigt {{
+            .calendar-day.bestaetigt,
+            .legend-color.bestaetigt {{
                 background:#d4edda;
                 color:#155724;
                 border:1px solid #abebc6;
             }}
 
-            .angefragt {{
+            .calendar-day.angefragt,
+            .legend-color.angefragt {{
                 background:#fff3cd;
                 color:#856404;
                 border:1px solid #ffe69c;
+            }}
+
+            .booking-details {{
+                display:grid;
+                grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+                gap:12px;
+            }}
+
+            .booking-detail {{
+                border:1px solid #dfe4e8;
+                border-radius:12px;
+                padding:15px;
+                background:#f9fbfc;
+            }}
+
+            .booking-detail h3 {{
+                margin:10px 0;
+            }}
+
+            .booking-detail dl {{
+                display:grid;
+                grid-template-columns:90px 1fr;
+                gap:7px;
+                margin:0 0 14px;
+            }}
+
+            .booking-detail dt {{
+                font-weight:bold;
+                color:#667;
+            }}
+
+            .booking-detail dd {{
+                margin:0;
+            }}
+
+            .preserve-lines {{
+                white-space:pre-line;
+            }}
+
+            .edit-link {{
+                display:inline-block;
+                background:#3498db;
+                color:white;
+                padding:9px 12px;
+                border-radius:8px;
+                text-decoration:none;
             }}
 
             .table-wrap {{
@@ -416,13 +647,24 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler=""):
         {f'<div class="box" style="border-left:6px solid #e74c3c;">⚠️ {escape(fehler)}</div>' if fehler else ''}
 
         <div class="box">
-            <h2>📅 Kalenderübersicht nächste 30 Tage</h2>
-            <div class="calendar">
-                {kalender_html}
+            <h2>📅 Kalender {heute.year}–{heute.year + 1}</h2>
+            <div class="calendar-legend">
+                <span class="legend-item">
+                    <span class="legend-color frei"></span> Frei
+                </span>
+                <span class="legend-item">
+                    <span class="legend-color angefragt"></span> Anfrage
+                </span>
+                <span class="legend-item">
+                    <span class="legend-color bestaetigt"></span> Bestätigt
+                </span>
             </div>
+            {kalender_html}
         </div>
 
-        <div class="box">
+        {detail_html}
+
+        <div class="box" id="formular">
             <h2>{form_title}</h2>
 
             <form method="post" action="{form_action}">
