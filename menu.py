@@ -6,6 +6,7 @@ from media import download_whatsapp_image
 from email_service import send_email
 from crud import save_meldung
 from veranstaltungen_crud import get_aktive_veranstaltungen
+from dgh_crud import get_aktive_dgh_termine, get_freie_tage
 
 try:
     from whatsapp import send_whatsapp_image
@@ -76,6 +77,27 @@ def build_veranstaltung_text(v):
 👤 {v.ansprechpartner or "-"}
 
 📝 {v.beschreibung or ""}"""
+
+
+def build_dgh_kalender_text():
+    termine = get_aktive_dgh_termine()
+    freie_tage = get_freie_tage(14)
+
+    text = "🏠 *DGH-Kalender*\n\n"
+
+    if termine:
+        text += "🔴 *Belegte Termine:*\n"
+        for t in termine[:10]:
+            text += f"🔴 {t.datum} – {t.anlass or 'Belegt'}\n"
+    else:
+        text += "🔴 Keine belegten Termine vorhanden.\n"
+
+    text += "\n🟢 *Nächste freie Tage:*\n"
+
+    for tag in freie_tage[:10]:
+        text += f"🟢 {tag.strftime('%d.%m.%Y')}\n"
+
+    return text
 
 
 def handle_message(sender, msg_type, content):
@@ -161,10 +183,7 @@ def handle_message(sender, msg_type, content):
 
     if step == "dgh":
         if content == "1":
-            send_whatsapp_message(
-                sender,
-                "📅 Der DGH-Kalender ist noch im Aufbau."
-            )
+            send_whatsapp_message(sender, build_dgh_kalender_text())
             return
 
         if content == "2":
