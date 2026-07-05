@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from sqlalchemy import inspect
 
 from database import Base, engine, SessionLocal
 from dgh_models import DGHTermin
@@ -6,6 +7,32 @@ from dgh_models import DGHTermin
 
 def init_dgh_db():
     Base.metadata.create_all(bind=engine)
+
+    vorhandene_spalten = {
+        spalte["name"]
+        for spalte in inspect(engine).get_columns("dgh_termine")
+    }
+
+    migrationen = {
+        "status": "VARCHAR DEFAULT 'Belegt'",
+        "aktiv": "VARCHAR DEFAULT 'Ja'",
+        "kommentar": "TEXT",
+        "whatsapp_absender": "VARCHAR",
+        "erstellt_am": "TIMESTAMP",
+        "aktualisiert_am": "TIMESTAMP",
+    }
+
+    for spaltenname, spaltentyp in migrationen.items():
+        if spaltenname in vorhandene_spalten:
+            continue
+
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                f"ALTER TABLE dgh_termine "
+                f"ADD COLUMN {spaltenname} {spaltentyp}"
+            )
+
+        print(f"Spalte dgh_termine.{spaltenname} hinzugefügt.")
 
 
 def parse_datum(datum_text):
