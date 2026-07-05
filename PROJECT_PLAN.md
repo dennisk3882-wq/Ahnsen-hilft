@@ -84,6 +84,7 @@ Benötigte Umgebungsvariablen:
 - `EMAIL_TO`
 - `DASHBOARD_USER`
 - `DASHBOARD_PASSWORD`
+- `DASHBOARD_SESSION_SECRET` (optional; fällt sonst auf das Dashboard-Passwort zurück)
 
 `EMAIL_PASSWORD` muss bei Gmail ein App-Passwort sein. Zugangsdaten dürfen
 weder im Quellcode noch im Git-Repository gespeichert werden.
@@ -174,3 +175,5 @@ mobile Darstellung geprüft wurden.
   Absturz.
 - Unsichere Standardzugangsdaten für das Dashboard wurden entfernt.
 - Die Navigation enthält in allen drei Verwaltungsbereichen das DGH-Modul.
+- Die Startseite besitzt eine eigene Anmeldung und führt nach erfolgreichem
+  Login über Kacheln zu Mängeln, Veranstaltungen und DGH.
