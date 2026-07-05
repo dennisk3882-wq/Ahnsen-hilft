@@ -24,7 +24,7 @@ Bitte antworte mit einer Zahl:
 5️⃣ Ansprechpartner
 6️⃣ Aktuelles
 7️⃣ Mülltermine
-8️⃣ DGH Buchen
+8️⃣ DGH buchen
 0️⃣ Ende
 """
 
@@ -140,20 +140,17 @@ def handle_message(sender, msg_type, content):
             send_whatsapp_message(sender, "🗑 Mülltermine folgen.")
 
         elif content == "8":
-    save_state(sender, {"step": "dgh", "data": data})
-    send_whatsapp_message(
-        sender,
-        """🏠 DGH buchen
+            save_state(sender, {"step": "dgh", "data": data})
+            send_whatsapp_message(
+                sender,
+                """🏠 DGH buchen
 
 1️⃣ Kalender anschauen
 2️⃣ Buchungsanfrage stellen
 
 0️⃣ Zurück"""
-    )
-    return
-    
-    set_user_step(sender, "dgh")
-        
+            )
+
         elif content == "0":
             send_whatsapp_message(sender, "👋 Bis bald!")
 
@@ -162,28 +159,30 @@ def handle_message(sender, msg_type, content):
 
         return
 
-if step == "dgh":
+    if step == "dgh":
+        if content == "1":
+            send_whatsapp_message(
+                sender,
+                "📅 Der DGH-Kalender ist noch im Aufbau."
+            )
+            return
 
-    if content == "1":
-        send_whatsapp_message(
-            sender,
-            "📅 Der DGH-Kalender ist noch im Aufbau."
-        )
+        if content == "2":
+            send_whatsapp_message(
+                sender,
+                "✍️ Die Buchungsanfrage ist noch im Aufbau."
+            )
+            return
+
+        if content == "0":
+            reset_state(sender)
+            send_whatsapp_message(sender, MENU)
+            return
+
+        send_whatsapp_message(sender, "Bitte wähle 1, 2 oder 0.")
         return
 
-    elif content == "2":
-        send_whatsapp_message(
-            sender,
-            "✍️ Die Buchungsanfrage ist noch im Aufbau."
-        )
-        return
-
-    elif content == "0":
-        set_user_step(sender, "menu")
-        send_whatsapp_message(sender, MENU)
-        return
-
-if step == "mangel_art":
+    if step == "mangel_art":
         if content == "0":
             reset_state(sender)
             send_whatsapp_message(sender, MENU)
@@ -202,7 +201,7 @@ if step == "mangel_art":
         )
         return
 
-if step == "mangel_ort":
+    if step == "mangel_ort":
         data["ort"] = content
         save_state(sender, {"step": "mangel_beschreibung", "data": data})
         send_whatsapp_message(sender, "📝 Bitte beschreibe den Mangel kurz.")
