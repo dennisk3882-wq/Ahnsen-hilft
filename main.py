@@ -20,6 +20,15 @@ from veranstaltungen_crud import (
 )
 from veranstaltungen_dashboard import veranstaltungen_dashboard
 
+from dgh_crud import (
+    init_dgh_db,
+    save_dgh_termin,
+    update_dgh_termin,
+    set_dgh_termin_aktiv,
+    delete_dgh_termin,
+)
+from dgh_dashboard import dgh_dashboard
+
 
 app = FastAPI()
 security = HTTPBasic()
@@ -32,6 +41,7 @@ DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin")
 def startup():
     init_db()
     init_veranstaltungen_db()
+    init_dgh_db()
 
 
 def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security)):
@@ -52,7 +62,7 @@ def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security))
 async def home():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "veranstaltungen-1",
+        "version": "dgh-1",
     }
 
 
@@ -100,10 +110,8 @@ async def neue_veranstaltung(
         bild_bytes=bild_bytes,
     )
 
-    return RedirectResponse(
-        url="/veranstaltungen",
-        status_code=303,
-    )
+    return RedirectResponse(url="/veranstaltungen", status_code=303)
+
 
 @app.post("/veranstaltungen/bearbeiten/{veranstaltung_id}")
 async def veranstaltung_bearbeiten(
@@ -149,6 +157,67 @@ async def veranstaltung_loeschen(
 
     return RedirectResponse(url="/veranstaltungen", status_code=303)
 
+
+@app.get("/dgh")
+async def dgh(
+    bearbeiten_id: int | None = None,
+    _=Depends(check_dashboard_login),
+):
+    return dgh_dashboard(bearbeiten_id)
+
+
+@app.post("/dgh/neuer-termin")
+async def dgh_neuer_termin(
+    datum: str = Form(...),
+    uhrzeit: str = Form(""),
+    anlass: str = Form(""),
+    name: str = Form(""),
+    telefon: str = Form(""),
+    kommentar: str = Form(""),
+    _=Depends(check_dashboard_login),
+):
+    save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar)
+
+    return RedirectResponse(url="/dgh", status_code=303)
+
+
+@app.post("/dgh/bearbeiten/{termin_id}")
+async def dgh_bearbeiten(
+    termin_id: int,
+    datum: str = Form(...),
+    uhrzeit: str = Form(""),
+    anlass: str = Form(""),
+    name: str = Form(""),
+    telefon: str = Form(""),
+    kommentar: str = Form(""),
+    _=Depends(check_dashboard_login),
+):
+    update_dgh_termin(termin_id, datum, uhrzeit, anlass, name, telefon, kommentar)
+
+    return RedirectResponse(url="/dgh", status_code=303)
+
+
+@app.get("/dgh/aktiv/{termin_id}/{aktiv}")
+async def dgh_aktiv(
+    termin_id: int,
+    aktiv: str,
+    _=Depends(check_dashboard_login),
+):
+    set_dgh_termin_aktiv(termin_id, aktiv)
+
+    return RedirectResponse(url="/dgh", status_code=303)
+
+
+@app.get("/dgh/loeschen/{termin_id}")
+async def dgh_loeschen(
+    termin_id: int,
+    _=Depends(check_dashboard_login),
+):
+    delete_dgh_termin(termin_id)
+
+    return RedirectResponse(url="/dgh", status_code=303)
+
+
 @app.get("/meldung/{ticket}")
 async def meldung_detail(
     ticket: str,
@@ -165,10 +234,7 @@ async def status_aendern(
 ):
     update_status(ticket, neuer_status)
 
-    return RedirectResponse(
-        url="/dashboard",
-        status_code=303,
-    )
+    return RedirectResponse(url="/dashboard", status_code=303)
 
 
 @app.post("/notiz")
@@ -179,10 +245,7 @@ async def notiz_speichern(
 ):
     update_notiz(ticket, notiz)
 
-    return RedirectResponse(
-        url=f"/meldung/{ticket}",
-        status_code=303,
-    )
+    return RedirectResponse(url=f"/meldung/{ticket}", status_code=303)
 
 
 @app.get("/webhook")
