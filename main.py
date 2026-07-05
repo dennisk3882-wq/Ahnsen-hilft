@@ -179,9 +179,15 @@ async def dgh(
     bearbeiten_id: int | None = None,
     hinweis: str = "",
     fehler: str = "",
+    tag: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return dgh_dashboard(bearbeiten_id, hinweis=hinweis, fehler=fehler)
+    return dgh_dashboard(
+        bearbeiten_id,
+        hinweis=hinweis,
+        fehler=fehler,
+        tag=tag,
+    )
 
 
 @app.post("/dgh/neuer-termin")
