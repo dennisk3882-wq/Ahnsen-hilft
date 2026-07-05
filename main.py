@@ -1,9 +1,12 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File
-from fastapi.responses import PlainTextResponse, RedirectResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 
+import hashlib
+import hmac
 import os
 import secrets
+import time
+from pathlib import Path
 from urllib.parse import quote
 
 from config import VERIFY_TOKEN
@@ -30,14 +33,24 @@ from dgh_crud import (
     delete_dgh_termin,
 )
 from dgh_dashboard import dgh_dashboard
+from startseite import login_page, start_page
 from whatsapp import send_whatsapp_message
 
 
 app = FastAPI()
-security = HTTPBasic()
 
 DASHBOARD_USER = os.getenv("DASHBOARD_USER")
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD")
+DASHBOARD_SESSION_SECRET = (
+    os.getenv("DASHBOARD_SESSION_SECRET") or DASHBOARD_PASSWORD
+)
+SESSION_COOKIE = "ahnsen_dashboard_session"
+SESSION_MAX_AGE = 12 * 60 * 60
+STARTSEITEN_BILD = (
+    Path(__file__).resolve().parent
+    / "static"
+    / "ahnsen-startseite.png"
+)
 
 
 @app.on_event("startup")
@@ -47,31 +60,119 @@ def startup():
     init_dgh_db()
 
 
-def check_dashboard_login(credentials: HTTPBasicCredentials = Depends(security)):
+def _session_signatur(zeitstempel):
+    inhalt = f"{DASHBOARD_USER}:{zeitstempel}".encode("utf-8")
+    geheimnis = DASHBOARD_SESSION_SECRET.encode("utf-8")
+    return hmac.new(geheimnis, inhalt, hashlib.sha256).hexdigest()
+
+
+def _neue_session():
+    zeitstempel = str(int(time.time()))
+    return f"{zeitstempel}.{_session_signatur(zeitstempel)}"
+
+
+def _session_ist_gueltig(request):
+    if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
+        return False
+
+    token = request.cookies.get(SESSION_COOKIE, "")
+
+    try:
+        zeitstempel, signatur = token.split(".", 1)
+        erstellt_am = int(zeitstempel)
+    except (TypeError, ValueError):
+        return False
+
+    jetzt = int(time.time())
+    if erstellt_am > jetzt + 60 or jetzt - erstellt_am > SESSION_MAX_AGE:
+        return False
+
+    erwartet = _session_signatur(zeitstempel)
+    return secrets.compare_digest(signatur, erwartet)
+
+
+def check_dashboard_login(request: Request):
     if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
         raise HTTPException(
             status_code=503,
             detail="Dashboard-Zugang ist noch nicht eingerichtet",
         )
 
-    correct_user = secrets.compare_digest(credentials.username, DASHBOARD_USER)
-    correct_password = secrets.compare_digest(credentials.password, DASHBOARD_PASSWORD)
-
-    if not (correct_user and correct_password):
+    if not _session_ist_gueltig(request):
         raise HTTPException(
-            status_code=401,
-            detail="Nicht autorisiert",
-            headers={"WWW-Authenticate": "Basic"},
+            status_code=303,
+            headers={"Location": "/"},
         )
 
     return True
 
 
 @app.get("/")
-async def home():
+async def home(request: Request):
+    if _session_ist_gueltig(request):
+        return start_page()
+
+    return login_page()
+
+
+@app.post("/login")
+async def login(
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
+        response = login_page(
+            "Der Dashboard-Zugang ist auf dem Server noch nicht eingerichtet."
+        )
+        response.status_code = 503
+        return response
+
+    benutzer_ok = secrets.compare_digest(username, DASHBOARD_USER)
+    passwort_ok = secrets.compare_digest(password, DASHBOARD_PASSWORD)
+
+    if not (benutzer_ok and passwort_ok):
+        response = login_page("Benutzername oder Passwort ist nicht korrekt.")
+        response.status_code = 401
+        return response
+
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=_neue_session(),
+        max_age=SESSION_MAX_AGE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+    return response
+
+
+@app.post("/logout")
+async def logout():
+    response = RedirectResponse(url="/", status_code=303)
+    response.delete_cookie(
+        key=SESSION_COOKIE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+    return response
+
+
+@app.get("/assets/ahnsen-startseite.png")
+async def startseiten_bild():
+    return FileResponse(
+        STARTSEITEN_BILD,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/health")
+async def health():
     return {
         "status": "Ahnsen hilft läuft",
-        "version": "dgh-1",
+        "version": "startseite-1",
     }
 
 
