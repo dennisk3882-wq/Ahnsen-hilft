@@ -1,7 +1,7 @@
 # Ahnsen hilft
 
 WhatsApp-Dorfassistent und Verwaltungs-Dashboard für Mängelmeldungen,
-Veranstaltungen und DGH-Buchungsanfragen.
+Veranstaltungen, DGH-Buchungsanfragen und Müllabfuhrtermine.
 
 Der aktuelle Funktionsstand, die Fachregeln und die nächsten Ausbauschritte
 stehen in [PROJECT_PLAN.md](PROJECT_PLAN.md).
@@ -16,3 +16,7 @@ stehen in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
 Das Dashboard ist anschließend unter `/dashboard` erreichbar. Zugangsdaten,
 Tokens und Passwörter dürfen nicht in Git gespeichert werden.
+
+Im Bereich „Müllabfuhr Termine“ kann jährlich der persönliche
+AWS-Abfuhrkalender für Ahnsen als PDF importiert werden. Das System erkennt
+Datum, Wochentag, Abfuhrarten und Feiertagsverschiebungen automatisch.
