@@ -222,8 +222,8 @@ def login_page(fehler=""):
 
                 <h1>Willkommen zurück</h1>
                 <p class="intro">
-                    Melde dich an, um Meldungen, Veranstaltungen und
-                    DGH-Buchungen zu verwalten.
+                    Melde dich an, um Meldungen, Veranstaltungen,
+                    DGH-Buchungen und Müllabfuhrtermine zu verwalten.
                 </p>
 
                 {fehler_html}
@@ -584,7 +584,7 @@ def start_page(uebersicht=None, suche=""):
 
             .modules {{
                 display:grid;
-                grid-template-columns:repeat(3, 1fr);
+                grid-template-columns:repeat(4, 1fr);
                 gap:18px;
             }}
 
@@ -627,6 +627,10 @@ def start_page(uebersicht=None, suche=""):
 
             .dgh .module-icon {{
                 background:linear-gradient(135deg, #52743e, #86a85c);
+            }}
+
+            .waste .module-icon {{
+                background:linear-gradient(135deg, #6a4c32, #a77a49);
             }}
 
             .module h2 {{
@@ -771,6 +775,12 @@ def start_page(uebersicht=None, suche=""):
                 font-size:13px;
             }}
 
+            @media (max-width:1100px) {{
+                .modules {{
+                    grid-template-columns:repeat(2, 1fr);
+                }}
+            }}
+
             @media (max-width:800px) {{
                 .hero {{
                     margin-top:45px;
@@ -899,6 +909,13 @@ def start_page(uebersicht=None, suche=""):
                         <h2>DGH</h2>
                         <p>Anfragen, Belegungen und den Kalender verwalten.</p>
                         <span class="open">DGH öffnen →</span>
+                    </a>
+
+                    <a class="module waste" href="/muelltermine">
+                        <span class="module-icon">🗑</span>
+                        <h2>Müllabfuhr Termine</h2>
+                        <p>Jahreskalender importieren und Abholungen prüfen.</p>
+                        <span class="open">Mülltermine öffnen →</span>
                     </a>
                 </section>
 

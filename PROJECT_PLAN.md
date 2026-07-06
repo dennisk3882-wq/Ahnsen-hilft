@@ -128,7 +128,7 @@ weder im Quellcode noch im Git-Repository gespeichert werden.
 - Vereine
 - Feuerwehr
 - Aktuelles
-- Mülltermine
+- [x] Müllabfuhr Termine mit PDF-Jahresimport und WhatsApp-Anzeige
 
 ### Phase 4 – Erweiterungen
 
@@ -183,3 +183,8 @@ mobile Darstellung geprüft wurden.
   Dorfgemeinschaftshaus wird mit einem Gebäude-Symbol dargestellt.
 - In allen WhatsApp-Untermenüs und laufenden Eingabeabläufen führt die Auswahl
   `0` zuverlässig zurück ins Hauptmenü.
+- Der AWS-Jahreskalender für Ahnsen kann im Dashboard als PDF hochgeladen
+  werden. Datum, Wochentag, Abfuhrarten und Feiertagsverschiebungen werden
+  automatisch erkannt.
+- WhatsApp zeigt die nächsten Müllabfuhrtermine mit Tonnenart und verbleibenden
+  Tagen bis zur Abholung an.

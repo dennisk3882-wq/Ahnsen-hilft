@@ -14,6 +14,7 @@ from dgh_crud import (
     parse_datum,
     ist_dgh_belegt,
 )
+from muelltermine_crud import get_naechste_muelltermine
 
 try:
     from whatsapp import send_whatsapp_image
@@ -31,7 +32,7 @@ Bitte antworte mit einer Zahl:
 4️⃣ 🚒 Feuerwehr
 5️⃣ ☎️ Ansprechpartner
 6️⃣ 📰 Aktuelles
-7️⃣ 🗑️ Mülltermine
+7️⃣ 🗑️ Müllabfuhr Termine
 8️⃣ 🏛️ DGH mieten
 0️⃣ Ende
 """
@@ -145,6 +146,65 @@ def build_dgh_kalender_text():
     return text
 
 
+def _verbinde_aufzaehlung(werte):
+    if not werte:
+        return ""
+    if len(werte) == 1:
+        return werte[0]
+    return ", ".join(werte[:-1]) + " und " + werte[-1]
+
+
+def _muell_resttage_text(datum):
+    tage = (datum - datetime.today().date()).days
+
+    if tage == 0:
+        return "heute"
+    if tage == 1:
+        return "morgen"
+    return f"in {tage} Tagen"
+
+
+def build_muelltermine_text():
+    termine = get_naechste_muelltermine(limit=8)
+
+    if not termine:
+        return (
+            "🗑️ *Müllabfuhr Termine*\n\n"
+            "Zurzeit sind keine kommenden Abfuhrtermine eingetragen."
+        )
+
+    anzeigenamen = {
+        "Bioabfall": "🟤 Biotonne",
+        "Leichtverpackungen": "🟡 Gelbe Tonne / Plastik",
+        "Restabfall": "⚫ Restmülltonne",
+        "Altpapier": "🔵 Papiertonne",
+        "Sommerbiotonne": "🟢 Sommerbiotonne",
+    }
+
+    abschnitte = ["🗑️ *Müllabfuhr Termine*"]
+
+    for termin in termine:
+        arten = [
+            anzeigenamen.get(wert.strip(), wert.strip())
+            for wert in (termin.abfuhrarten or "").split(",")
+            if wert.strip()
+        ]
+        feiertag = (
+            "\n⭐ Verschobener Termin wegen eines Feiertags"
+            if termin.feiertagsabweichung == "Ja"
+            else ""
+        )
+
+        abschnitte.append(
+            f"📅 *{termin.datum.strftime('%d.%m.%Y')}*\n"
+            f"🚛 Abholung: {_verbinde_aufzaehlung(arten)}\n"
+            f"⏳ {_muell_resttage_text(termin.datum)}"
+            f"{feiertag}"
+        )
+
+    return "\n\n".join(abschnitte)
+
+
 def handle_message(sender, msg_type, content):
     state = get_state(sender)
     step = state["step"]
@@ -215,7 +275,7 @@ def handle_message(sender, msg_type, content):
 
         elif content == "7":
             save_state(sender, {"step": "info", "data": {}})
-            send_untermenu_message(sender, "🗑 Mülltermine folgen.")
+            send_untermenu_message(sender, build_muelltermine_text())
 
         elif content == "8":
             save_state(sender, {"step": "dgh", "data": data})

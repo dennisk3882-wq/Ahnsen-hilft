@@ -328,6 +328,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
             <a href="/dashboard">📋 Mängel</a>
             <a href="/veranstaltungen">📅 Veranstaltungen</a>
             <a href="/dgh">🏠 DGH</a>
+            <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
         </div>
 
         <h1>📅 Veranstaltungen</h1>

@@ -43,6 +43,12 @@ from dgh_crud import (
     delete_dgh_termin,
 )
 from dgh_dashboard import dgh_dashboard
+from muelltermine_crud import (
+    importiere_muelltermine,
+    init_muelltermine_db,
+)
+from muelltermine_dashboard import muelltermine_dashboard
+from muelltermine_parser import lese_muelltermine_aus_pdf
 from startseite import login_page, start_page
 from whatsapp import send_whatsapp_message
 
@@ -68,6 +74,7 @@ def startup():
     init_db()
     init_veranstaltungen_db()
     init_dgh_db()
+    init_muelltermine_db()
 
 
 def _session_signatur(zeitstempel):
@@ -510,6 +517,78 @@ async def dgh_loeschen(
     delete_dgh_termin(termin_id)
 
     return RedirectResponse(url="/dgh", status_code=303)
+
+
+@app.get("/muelltermine")
+async def muelltermine(
+    hinweis: str = "",
+    fehler: str = "",
+    _=Depends(check_dashboard_login),
+):
+    return muelltermine_dashboard(hinweis=hinweis, fehler=fehler)
+
+
+@app.post("/muelltermine/import")
+async def muelltermine_import(
+    pdf: UploadFile = File(...),
+    _=Depends(check_dashboard_login),
+):
+    dateiname = (pdf.filename or "").strip()
+
+    if not dateiname.casefold().endswith(".pdf"):
+        return RedirectResponse(
+            url=(
+                "/muelltermine?fehler="
+                + quote("Bitte wähle eine PDF-Datei aus.")
+            ),
+            status_code=303,
+        )
+
+    pdf_bytes = await pdf.read()
+
+    if len(pdf_bytes) > 10 * 1024 * 1024:
+        return RedirectResponse(
+            url=(
+                "/muelltermine?fehler="
+                + quote("Die PDF darf höchstens 10 MB groß sein.")
+            ),
+            status_code=303,
+        )
+
+    try:
+        ergebnis = lese_muelltermine_aus_pdf(pdf_bytes)
+        anzahl = importiere_muelltermine(
+            jahr=ergebnis["jahr"],
+            adresse=ergebnis["adresse"],
+            dateiname=dateiname,
+            termine=ergebnis["termine"],
+        )
+    except ValueError as error:
+        return RedirectResponse(
+            url=f"/muelltermine?fehler={quote(str(error))}",
+            status_code=303,
+        )
+    except Exception as error:
+        print("Fehler beim Import der Mülltermine:", repr(error))
+        return RedirectResponse(
+            url=(
+                "/muelltermine?fehler="
+                + quote(
+                    "Die Termine konnten nicht gespeichert werden. "
+                    "Bitte versuche es erneut."
+                )
+            ),
+            status_code=303,
+        )
+
+    hinweis = (
+        f"{anzahl} Abfuhrtermine für {ergebnis['jahr']} "
+        "wurden erfolgreich erkannt und übernommen."
+    )
+    return RedirectResponse(
+        url=f"/muelltermine?hinweis={quote(hinweis)}",
+        status_code=303,
+    )
 
 
 @app.get("/meldung/{ticket}")
