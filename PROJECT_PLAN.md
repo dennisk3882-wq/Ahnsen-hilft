@@ -188,3 +188,7 @@ mobile Darstellung geprüft wurden.
   automatisch erkannt.
 - WhatsApp zeigt die nächsten Müllabfuhrtermine mit Tonnenart und verbleibenden
   Tagen bis zur Abholung an.
+- WhatsApp zeigt kompakt die nächsten zwei Müllabfuhrtermine. Bewohner können
+  eine Erinnerung abonnieren und wieder kündigen.
+- Ein eigener Render-Zeitauftrag versendet am Vortag um 18:00 Uhr eine
+  WhatsApp-Vorlagennachricht mit den Abfuhrarten für den nächsten Tag.

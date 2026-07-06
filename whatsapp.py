@@ -27,6 +27,45 @@ def send_whatsapp_message(to, text):
     return response
 
 
+def send_whatsapp_template(
+    to,
+    template_name,
+    language_code,
+    body_parameters,
+):
+    url = f"https://graph.facebook.com/v25.0/{PHONE_NUMBER_ID}/messages"
+
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    parameter_liste = [
+        {"type": "text", "text": str(parameter)}
+        for parameter in body_parameters
+    ]
+
+    data = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "template",
+        "template": {
+            "name": template_name,
+            "language": {"code": language_code},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": parameter_liste,
+                }
+            ],
+        },
+    }
+
+    response = requests.post(url, headers=headers, json=data, timeout=20)
+    print("WhatsApp Template-Antwort:", response.status_code, response.text)
+    return response
+
+
 def upload_whatsapp_media(bild_base64):
     upload_url = f"https://graph.facebook.com/v25.0/{PHONE_NUMBER_ID}/media"
 

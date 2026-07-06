@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from database import Base, SessionLocal, engine
-from muelltermine_models import Muelltermin
+from muelltermine_models import MuellAbo, Muelltermin
 
 
 def init_muelltermine_db():
@@ -72,6 +72,106 @@ def get_naechste_muelltermine(limit=8, ab_datum=None):
             .limit(limit)
             .all()
         )
+
+    finally:
+        db.close()
+
+
+def get_muelltermin_am(datum):
+    db = SessionLocal()
+
+    try:
+        return (
+            db.query(Muelltermin)
+            .filter(Muelltermin.datum == datum)
+            .first()
+        )
+
+    finally:
+        db.close()
+
+
+def aktiviere_muell_abo(whatsapp_absender):
+    db = SessionLocal()
+
+    try:
+        abo = (
+            db.query(MuellAbo)
+            .filter(MuellAbo.whatsapp_absender == whatsapp_absender)
+            .first()
+        )
+
+        if not abo:
+            abo = MuellAbo(
+                whatsapp_absender=whatsapp_absender,
+                aktiv="Ja",
+            )
+            db.add(abo)
+        else:
+            abo.aktiv = "Ja"
+            abo.aktualisiert_am = datetime.utcnow()
+
+        db.commit()
+        db.refresh(abo)
+        return abo
+
+    finally:
+        db.close()
+
+
+def deaktiviere_muell_abo(whatsapp_absender):
+    db = SessionLocal()
+
+    try:
+        abo = (
+            db.query(MuellAbo)
+            .filter(MuellAbo.whatsapp_absender == whatsapp_absender)
+            .first()
+        )
+        war_aktiv = bool(abo and abo.aktiv == "Ja")
+
+        if abo:
+            abo.aktiv = "Nein"
+            abo.aktualisiert_am = datetime.utcnow()
+            db.commit()
+
+        return war_aktiv
+
+    finally:
+        db.close()
+
+
+def get_aktive_muell_abos():
+    db = SessionLocal()
+
+    try:
+        return (
+            db.query(MuellAbo)
+            .filter(MuellAbo.aktiv == "Ja")
+            .order_by(MuellAbo.id.asc())
+            .all()
+        )
+
+    finally:
+        db.close()
+
+
+def markiere_muell_erinnerung_versendet(abo_id, termin_datum):
+    db = SessionLocal()
+
+    try:
+        abo = (
+            db.query(MuellAbo)
+            .filter(MuellAbo.id == abo_id)
+            .first()
+        )
+
+        if abo:
+            abo.letzte_erinnerung_fuer = termin_datum
+            abo.aktualisiert_am = datetime.utcnow()
+            db.commit()
+
+        return abo
 
     finally:
         db.close()

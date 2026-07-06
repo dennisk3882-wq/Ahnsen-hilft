@@ -15,6 +15,14 @@ from dgh_crud import (
     ist_dgh_belegt,
 )
 from muelltermine_crud import get_naechste_muelltermine
+from muelltermine_crud import (
+    aktiviere_muell_abo,
+    deaktiviere_muell_abo,
+)
+from muelltermine_texte import (
+    formatiere_abfuhrarten,
+    verbinde_aufzaehlung,
+)
 
 try:
     from whatsapp import send_whatsapp_image
@@ -146,14 +154,6 @@ def build_dgh_kalender_text():
     return text
 
 
-def _verbinde_aufzaehlung(werte):
-    if not werte:
-        return ""
-    if len(werte) == 1:
-        return werte[0]
-    return ", ".join(werte[:-1]) + " und " + werte[-1]
-
-
 def _muell_resttage_text(datum):
     tage = (datum - datetime.today().date()).days
 
@@ -165,30 +165,22 @@ def _muell_resttage_text(datum):
 
 
 def build_muelltermine_text():
-    termine = get_naechste_muelltermine(limit=8)
+    termine = get_naechste_muelltermine(limit=2)
 
-    if not termine:
-        return (
+    if termine:
+        abschnitte = [
             "🗑️ *Müllabfuhr Termine*\n\n"
-            "Zurzeit sind keine kommenden Abfuhrtermine eingetragen."
-        )
-
-    anzeigenamen = {
-        "Bioabfall": "🟤 Biotonne",
-        "Leichtverpackungen": "🟡 Gelbe Tonne / Plastik",
-        "Restabfall": "⚫ Restmülltonne",
-        "Altpapier": "🔵 Papiertonne",
-        "Sommerbiotonne": "🟢 Sommerbiotonne",
-    }
-
-    abschnitte = ["🗑️ *Müllabfuhr Termine*"]
+            "Hier siehst du die nächsten beiden Abholungen für Ahnsen."
+        ]
+    else:
+        abschnitte = [
+            "🗑️ *Müllabfuhr Termine*\n\n"
+            "Zurzeit sind keine kommenden Abfuhrtermine eingetragen. "
+            "Ein Abonnement kann trotzdem bereits eingerichtet werden."
+        ]
 
     for termin in termine:
-        arten = [
-            anzeigenamen.get(wert.strip(), wert.strip())
-            for wert in (termin.abfuhrarten or "").split(",")
-            if wert.strip()
-        ]
+        arten = formatiere_abfuhrarten(termin.abfuhrarten)
         feiertag = (
             "\n⭐ Verschobener Termin wegen eines Feiertags"
             if termin.feiertagsabweichung == "Ja"
@@ -197,10 +189,17 @@ def build_muelltermine_text():
 
         abschnitte.append(
             f"📅 *{termin.datum.strftime('%d.%m.%Y')}*\n"
-            f"🚛 Abholung: {_verbinde_aufzaehlung(arten)}\n"
+            f"🚛 Abholung: {verbinde_aufzaehlung(arten)}\n"
             f"⏳ {_muell_resttage_text(termin.datum)}"
             f"{feiertag}"
         )
+
+    abschnitte.append(
+        "🔔 *Erinnerungsservice*\n"
+        "Auf Wunsch erhältst du am Vortag um 18:00 Uhr eine Nachricht.\n\n"
+        "1️⃣ Kalender abonnieren\n"
+        "2️⃣ Abonnement kündigen"
+    )
 
     return "\n\n".join(abschnitte)
 
@@ -274,7 +273,7 @@ def handle_message(sender, msg_type, content):
             send_untermenu_message(sender, "📰 Aktuelles folgt.")
 
         elif content == "7":
-            save_state(sender, {"step": "info", "data": {}})
+            save_state(sender, {"step": "muell_menu", "data": {}})
             send_untermenu_message(sender, build_muelltermine_text())
 
         elif content == "8":
@@ -293,6 +292,82 @@ def handle_message(sender, msg_type, content):
         else:
             send_whatsapp_message(sender, MENU)
 
+        return
+
+    if step == "muell_menu":
+        if content == "1":
+            save_state(
+                sender,
+                {"step": "muell_abo_bestaetigung", "data": {}},
+            )
+            send_untermenu_message(
+                sender,
+                """🔔 *Müllabfuhr-Kalender abonnieren*
+
+Du erhältst am Vortag jeder eingetragenen Abholung um 18:00 Uhr eine WhatsApp-Nachricht. Darin steht, welche Tonnen am nächsten Tag abgeholt werden.
+
+Das Abonnement ist kostenlos und kann jederzeit über dieses Menü gekündigt werden.
+
+Möchtest du den Erinnerungsservice abonnieren?
+
+Bitte antworte mit *Ja* oder *Nein*.""",
+            )
+            return
+
+        if content == "2":
+            war_aktiv = deaktiviere_muell_abo(sender)
+            save_state(sender, {"step": "muell_menu", "data": {}})
+
+            if war_aktiv:
+                nachricht = (
+                    "✅ *Abonnement beendet*\n\n"
+                    "Du erhältst ab jetzt keine Müllabfuhr-Erinnerung "
+                    "mehr am Vortag."
+                )
+            else:
+                nachricht = (
+                    "ℹ️ *Kein aktives Abonnement*\n\n"
+                    "Für diese WhatsApp-Nummer war keine "
+                    "Müllabfuhr-Erinnerung aktiviert."
+                )
+
+            send_untermenu_message(sender, nachricht)
+            return
+
+        send_untermenu_message(
+            sender,
+            "Bitte wähle 1 zum Abonnieren, 2 zum Kündigen oder 0 für das Hauptmenü.",
+        )
+        return
+
+    if step == "muell_abo_bestaetigung":
+        if text in ["ja", "j", "yes"]:
+            aktiviere_muell_abo(sender)
+            save_state(sender, {"step": "muell_menu", "data": {}})
+            send_untermenu_message(
+                sender,
+                """✅ *Kalender abonniert*
+
+Du erhältst künftig am Vortag einer Müllabfuhr um 18:00 Uhr eine Erinnerung mit den Tonnen, die am nächsten Tag abgeholt werden.
+
+Über „2 Abonnement kündigen“ kannst du den Service jederzeit wieder beenden.""",
+            )
+            return
+
+        if text in ["nein", "ne", "n", "no"]:
+            save_state(sender, {"step": "muell_menu", "data": {}})
+            send_untermenu_message(
+                sender,
+                """ℹ️ *Nicht abonniert*
+
+Es wurde keine Erinnerung aktiviert. Du kannst den Kalender später jederzeit über Punkt 1 abonnieren.""",
+            )
+            return
+
+        send_untermenu_message(
+            sender,
+            "Bitte antworte mit *Ja* zum Abonnieren oder mit *Nein* zum Abbrechen.",
+        )
         return
 
     if step == "info":
