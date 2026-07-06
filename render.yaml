@@ -4,3 +4,27 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+  - type: cron
+    name: ahnsen-muell-erinnerungen
+    runtime: python
+    plan: starter
+    schedule: "0 16,17 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python muelltermine_job.py
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          name: ahnsen-hilft
+          type: web
+          envVarKey: DATABASE_URL
+      - key: WHATSAPP_TOKEN
+        fromService:
+          name: ahnsen-hilft
+          type: web
+          envVarKey: WHATSAPP_TOKEN
+      - key: PHONE_NUMBER_ID
+        fromService:
+          name: ahnsen-hilft
+          type: web
+          envVarKey: PHONE_NUMBER_ID

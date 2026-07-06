@@ -3,6 +3,12 @@ import os
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
+WHATSAPP_MUELL_TEMPLATE = (
+    os.getenv("WHATSAPP_MUELL_TEMPLATE") or "muellabfuhr_erinnerung"
+)
+WHATSAPP_TEMPLATE_LANGUAGE = (
+    os.getenv("WHATSAPP_TEMPLATE_LANGUAGE") or "de"
+)
 
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")

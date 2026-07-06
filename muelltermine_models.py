@@ -18,3 +18,14 @@ class Muelltermin(Base):
     quelle = Column(String)
     adresse = Column(String)
     importiert_am = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class MuellAbo(Base):
+    __tablename__ = "muell_abos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    whatsapp_absender = Column(String, nullable=False, unique=True, index=True)
+    aktiv = Column(String, default="Ja", nullable=False, index=True)
+    erstellt_am = Column(DateTime, default=datetime.utcnow)
+    aktualisiert_am = Column(DateTime, default=datetime.utcnow)
+    letzte_erinnerung_fuer = Column(Date, nullable=True)

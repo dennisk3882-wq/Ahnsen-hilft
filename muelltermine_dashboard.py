@@ -8,31 +8,7 @@ from muelltermine_crud import (
     get_muell_import_info,
     get_naechste_muelltermine,
 )
-
-
-ANZEIGENAMEN = {
-    "Bioabfall": "🟤 Biotonne",
-    "Leichtverpackungen": "🟡 Gelbe Tonne / Plastik",
-    "Restabfall": "⚫ Restmülltonne",
-    "Altpapier": "🔵 Papiertonne",
-    "Sommerbiotonne": "🟢 Sommerbiotonne",
-}
-
-
-def formatiere_abfuhrarten(abfuhrarten, mit_symbol=True):
-    namen = []
-
-    for wert in (abfuhrarten or "").split(","):
-        wert = wert.strip()
-        if not wert:
-            continue
-
-        name = ANZEIGENAMEN.get(wert, wert)
-        if not mit_symbol:
-            name = name.split(" ", 1)[-1]
-        namen.append(name)
-
-    return namen
+from muelltermine_texte import formatiere_abfuhrarten
 
 
 def resttage_text(datum):
