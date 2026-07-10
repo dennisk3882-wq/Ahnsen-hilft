@@ -7,6 +7,23 @@ from PIL import Image, ImageOps
 from config import WHATSAPP_TOKEN, PHONE_NUMBER_ID
 
 
+def _speichere_ausgehende_nachricht(to, inhalt, nachricht_typ="text"):
+    try:
+        from chat_crud import speichere_chatnachricht
+
+        speichere_chatnachricht(
+            to,
+            "ausgehend",
+            inhalt,
+            nachricht_typ=nachricht_typ,
+        )
+    except Exception as error:
+        print(
+            "Ausgehende Nachricht konnte nicht im Chatverlauf gespeichert werden:",
+            repr(error),
+        )
+
+
 def send_whatsapp_message(to, text):
     url = f"https://graph.facebook.com/v25.0/{PHONE_NUMBER_ID}/messages"
 
@@ -24,6 +41,10 @@ def send_whatsapp_message(to, text):
 
     response = requests.post(url, headers=headers, json=data, timeout=20)
     print("WhatsApp Antwort:", response.status_code, response.text)
+
+    if response.status_code < 400:
+        _speichere_ausgehende_nachricht(to, data["text"]["body"], "text")
+
     return response
 
 
@@ -63,6 +84,15 @@ def send_whatsapp_template(
 
     response = requests.post(url, headers=headers, json=data, timeout=20)
     print("WhatsApp Template-Antwort:", response.status_code, response.text)
+
+    if response.status_code < 400:
+        parameter_text = "\n".join(str(parameter) for parameter in body_parameters)
+        _speichere_ausgehende_nachricht(
+            to,
+            f"WhatsApp-Vorlage: {template_name}\n{parameter_text}",
+            "template",
+        )
+
     return response
 
 
@@ -133,5 +163,11 @@ def send_whatsapp_image(to, bild_base64, caption=""):
     response = requests.post(url, headers=headers, json=data, timeout=30)
 
     print("WhatsApp Bild:", response.status_code, response.text)
+
+    if response.status_code < 400:
+        inhalt = "📷 Bild gesendet"
+        if caption:
+            inhalt += f"\n\n{caption}"
+        _speichere_ausgehende_nachricht(to, inhalt, "image")
 
     return response

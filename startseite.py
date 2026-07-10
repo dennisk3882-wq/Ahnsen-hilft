@@ -1,4 +1,5 @@
 from html import escape
+from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse
 
@@ -252,6 +253,139 @@ def login_page(fehler=""):
     return HTMLResponse(html)
 
 
+def _datum_zeit(wert):
+    if not wert:
+        return "-"
+    return wert.strftime("%d.%m.%Y %H:%M")
+
+
+def _render_abonnenten(abonnements):
+    rows = ""
+
+    for abo in abonnements:
+        name = abo.get("name") or "Unbekannt"
+        aktiv = bool(abo.get("aktiv"))
+        neue_aktivitaet = "Nein" if aktiv else "Ja"
+        status_text = "Aktiv" if aktiv else "Inaktiv"
+        button_text = "Deaktivieren" if aktiv else "Aktivieren"
+        status_class = "active" if aktiv else "inactive"
+
+        rows += f"""
+        <tr>
+            <td data-label="Name">{escape(name)}</td>
+            <td data-label="WhatsApp-Nummer">
+                {escape(abo.get("whatsapp_nummer") or "")}
+            </td>
+            <td data-label="Abonnement">
+                {escape(abo.get("abonnement") or "")}
+            </td>
+            <td data-label="Status">
+                <form class="toggle-form"
+                      method="post"
+                      action="/abonnements/{escape(abo.get("typ") or "")}/{abo.get("id")}/status">
+                    <span class="status-pill {status_class}">{status_text}</span>
+                    <input type="hidden" name="aktiv" value="{neue_aktivitaet}">
+                    <button class="{status_class}" type="submit">
+                        {button_text}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        """
+
+    if not rows:
+        rows = """
+        <tr>
+            <td colspan="4" class="table-empty">
+                Noch keine Abonnenten vorhanden.
+            </td>
+        </tr>
+        """
+
+    return f"""
+    <section class="data-section" id="abonnenten">
+        <div class="section-title">
+            <div>
+                <span class="eyebrow">Benachrichtigungen</span>
+                <h2>Abonnenten</h2>
+            </div>
+        </div>
+        <p class="section-note">
+            Hier siehst du, wer Erinnerungen abonniert hat. Änderungen werden
+            sofort gespeichert und gelten direkt für die WhatsApp-Erinnerungen.
+        </p>
+        <div class="responsive-table">
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>WhatsApp-Nummer</th>
+                    <th>Abonnement</th>
+                    <th>Status</th>
+                </tr>
+                {rows}
+            </table>
+        </div>
+    </section>
+    """
+
+
+def _render_chatbot_verlauf(chats):
+    rows = ""
+
+    for chat in chats:
+        name = chat.get("name") or "Unbekannt"
+        nummer = chat.get("whatsapp_nummer") or ""
+        link = f"/chatbot/{quote(str(nummer), safe='')}"
+
+        rows += f"""
+        <tr>
+            <td data-label="Name">
+                <a class="table-link" href="{link}">{escape(name)}</a>
+            </td>
+            <td data-label="WhatsApp-Nummer">
+                <a class="table-link" href="{link}">{escape(nummer)}</a>
+            </td>
+            <td data-label="Zuletzt aktiv">
+                {_datum_zeit(chat.get("zuletzt_aktiv"))}
+            </td>
+        </tr>
+        """
+
+    if not rows:
+        rows = """
+        <tr>
+            <td colspan="3" class="table-empty">
+                Noch kein gespeicherter Chatbot-Verlauf vorhanden.
+            </td>
+        </tr>
+        """
+
+    return f"""
+    <section class="data-section" id="chatbot-verlauf">
+        <div class="section-title">
+            <div>
+                <span class="eyebrow">WhatsApp</span>
+                <h2>Chatbot-Verlauf</h2>
+            </div>
+        </div>
+        <p class="section-note">
+            Die neuesten Unterhaltungen stehen oben. Klicke auf Name oder
+            Nummer, um den vollständigen Chatverlauf zu öffnen.
+        </p>
+        <div class="responsive-table">
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>WhatsApp-Nummer</th>
+                    <th>Zuletzt aktiv</th>
+                </tr>
+                {rows}
+            </table>
+        </div>
+    </section>
+    """
+
+
 def start_page(uebersicht=None, suche=""):
     uebersicht = uebersicht or {}
     meldungs_statistik = uebersicht.get("meldungs_statistik", {})
@@ -265,6 +399,12 @@ def start_page(uebersicht=None, suche=""):
     ueberfaellige_meldungen = uebersicht.get(
         "ueberfaellige_meldungen",
         [],
+    )
+    abonnenten_html = _render_abonnenten(
+        uebersicht.get("abonnements", []),
+    )
+    chatbot_verlauf_html = _render_chatbot_verlauf(
+        uebersicht.get("chatbot_verlauf", []),
     )
 
     warnung_html = ""
@@ -766,6 +906,116 @@ def start_page(uebersicht=None, suche=""):
                 color:var(--blue);
             }}
 
+            .data-section {{
+                margin-top:28px;
+                padding:22px;
+                border:1px solid rgba(255,255,255,.75);
+                border-radius:22px;
+                background:rgba(255,255,255,.92);
+                box-shadow:0 18px 48px rgba(34,58,78,.14);
+                backdrop-filter:blur(16px);
+            }}
+
+            .section-note {{
+                margin:-4px 0 16px;
+                color:#647482;
+                line-height:1.5;
+            }}
+
+            .responsive-table {{
+                overflow-x:auto;
+                border-radius:15px;
+                border:1px solid #e1e6ea;
+                background:white;
+            }}
+
+            .responsive-table table {{
+                width:100%;
+                min-width:720px;
+                border-collapse:collapse;
+            }}
+
+            .responsive-table th {{
+                padding:13px 14px;
+                text-align:left;
+                color:white;
+                background:var(--navy);
+                font-size:13px;
+            }}
+
+            .responsive-table td {{
+                padding:13px 14px;
+                border-bottom:1px solid #e7ecef;
+                vertical-align:middle;
+            }}
+
+            .responsive-table tr:last-child td {{
+                border-bottom:0;
+            }}
+
+            .responsive-table tr:hover td {{
+                background:#f8fbfd;
+            }}
+
+            .table-link {{
+                color:var(--blue);
+                font-weight:800;
+                text-decoration:none;
+            }}
+
+            .table-link:hover {{
+                text-decoration:underline;
+            }}
+
+            .table-empty {{
+                color:#74818c;
+                text-align:center;
+                background:#f7f9fa;
+            }}
+
+            .toggle-form {{
+                display:flex;
+                align-items:center;
+                flex-wrap:wrap;
+                gap:8px;
+                margin:0;
+            }}
+
+            .toggle-form button {{
+                border:0;
+                border-radius:999px;
+                padding:8px 12px;
+                color:white;
+                font-weight:800;
+                cursor:pointer;
+            }}
+
+            .toggle-form button.active {{
+                background:#c85749;
+            }}
+
+            .toggle-form button.inactive {{
+                background:#52743e;
+            }}
+
+            .status-pill {{
+                display:inline-block;
+                border-radius:999px;
+                padding:6px 10px;
+                font-size:12px;
+                font-weight:900;
+            }}
+
+            .status-pill.active {{
+                color:#155724;
+                background:#d4edda;
+            }}
+
+            .status-pill.inactive {{
+                color:#721c24;
+                background:#f8d7da;
+            }}
+
             .empty-state {{
                 margin:0;
                 padding:12px;
@@ -831,6 +1081,52 @@ def start_page(uebersicht=None, suche=""):
                 .section-title a {{
                     display:inline-block;
                     margin-top:10px;
+                }}
+
+                .responsive-table {{
+                    border:0;
+                    background:transparent;
+                    overflow:visible;
+                }}
+
+                .responsive-table table,
+                .responsive-table tbody,
+                .responsive-table th,
+                .responsive-table td,
+                .responsive-table tr {{
+                    display:block;
+                    min-width:0;
+                }}
+
+                .responsive-table tr:first-child {{
+                    display:none;
+                }}
+
+                .responsive-table tr {{
+                    margin-bottom:12px;
+                    padding:12px;
+                    border:1px solid #e1e6ea;
+                    border-radius:14px;
+                    background:white;
+                    box-shadow:0 8px 22px rgba(34,58,78,.08);
+                }}
+
+                .responsive-table td {{
+                    padding:8px 0;
+                    border:0;
+                }}
+
+                .responsive-table td::before {{
+                    content:attr(data-label);
+                    display:block;
+                    margin-bottom:3px;
+                    color:#7a8792;
+                    font-size:12px;
+                    font-weight:900;
+                }}
+
+                .table-empty {{
+                    text-align:left;
                 }}
             }}
         </style>
@@ -942,6 +1238,9 @@ def start_page(uebersicht=None, suche=""):
                         </div>
                     </div>
                 </section>
+
+                {abonnenten_html}
+                {chatbot_verlauf_html}
             </div>
         </main>
     </body>

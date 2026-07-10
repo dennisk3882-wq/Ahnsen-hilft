@@ -46,6 +46,7 @@ Bitte antworte mit einer Zahl:
 """
 
 ZURUECK_ZUM_HAUPTMENUE = "0️⃣ Zurück zum Hauptmenü"
+ZURUECK_ZUR_VORHERIGEN_FRAGE = "9️⃣ Zurück"
 
 
 def mit_zurueck_option(text):
@@ -57,8 +58,28 @@ def mit_zurueck_option(text):
     return f"{text}\n\n{ZURUECK_ZUM_HAUPTMENUE}"
 
 
+def mit_formular_navigation(text):
+    text = str(text or "").rstrip()
+    optionen = []
+
+    if ZURUECK_ZUR_VORHERIGEN_FRAGE not in text:
+        optionen.append(ZURUECK_ZUR_VORHERIGEN_FRAGE)
+
+    if ZURUECK_ZUM_HAUPTMENUE not in text:
+        optionen.append(ZURUECK_ZUM_HAUPTMENUE)
+
+    if not optionen:
+        return text
+
+    return f"{text}\n\n" + "\n".join(optionen)
+
+
 def send_untermenu_message(sender, text):
     return send_whatsapp_message(sender, mit_zurueck_option(text))
+
+
+def send_formular_message(sender, text):
+    return send_whatsapp_message(sender, mit_formular_navigation(text))
 
 MANGEL_MENU = """⚠️ Welchen Mangel möchtest du melden?
 
@@ -96,7 +117,132 @@ Beschreibung:
 Foto:
 {foto_text}
 
-Mit „Ja“ absenden oder mit „Zurück“ abbrechen."""
+Mit „Ja“ absenden, mit 9 zurück zum Foto oder mit 0 zurück ins Hauptmenü."""
+
+
+def _frage_mangel_ort():
+    return (
+        "📍 Wo befindet sich der Mangel?\n\n"
+        "Bitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
+    )
+
+
+def _frage_mangel_beschreibung():
+    return "📝 Bitte beschreibe den Mangel kurz."
+
+
+def _frage_mangel_foto():
+    return "📷 Bitte sende jetzt ein Foto oder schreibe „Nein“."
+
+
+def _dgh_menu_text():
+    return """🏛️ DGH mieten
+
+1️⃣ Kalender anschauen
+2️⃣ Mietanfrage stellen"""
+
+
+def _frage_dgh_datum():
+    return (
+        "✍️ Mietanfrage für das DGH\n\n"
+        "Für welches Datum möchtest du das DGH mieten?\n\n"
+        "Bitte im Format TT.MM.JJJJ senden, z. B. 12.08.2026."
+    )
+
+
+def _frage_dgh_uhrzeit():
+    return "🕒 Welche Uhrzeit?\n\nBeispiel: 18:00 Uhr"
+
+
+def _frage_dgh_name():
+    return "👤 Auf welchen Namen soll die Anfrage laufen?"
+
+
+def _frage_dgh_telefon():
+    return "☎️ Bitte sende deine Telefonnummer."
+
+
+def _frage_dgh_anlass():
+    return "🎉 Was ist der Anlass?\n\nBeispiel: Geburtstag, Versammlung, Feier"
+
+
+def _frage_dgh_kommentar():
+    return "💬 Gibt es noch eine Bemerkung?\n\nWenn nicht, schreibe einfach Nein."
+
+
+def _zurueck_daten(data, *felder):
+    data = dict(data or {})
+    for feld in felder:
+        data.pop(feld, None)
+    return data
+
+
+def _handle_zurueck(sender, step, data):
+    if step == "muell_abo_bestaetigung":
+        save_state(sender, {"step": "muell_menu", "data": {}})
+        send_untermenu_message(sender, build_muelltermine_text())
+        return True
+
+    if step == "dgh_anfrage_datum":
+        save_state(sender, {"step": "dgh", "data": data})
+        send_untermenu_message(sender, _dgh_menu_text())
+        return True
+
+    if step == "dgh_anfrage_uhrzeit":
+        data = _zurueck_daten(data, "datum")
+        save_state(sender, {"step": "dgh_anfrage_datum", "data": data})
+        send_formular_message(sender, _frage_dgh_datum())
+        return True
+
+    if step == "dgh_anfrage_name":
+        data = _zurueck_daten(data, "uhrzeit")
+        save_state(sender, {"step": "dgh_anfrage_uhrzeit", "data": data})
+        send_formular_message(sender, _frage_dgh_uhrzeit())
+        return True
+
+    if step == "dgh_anfrage_telefon":
+        data = _zurueck_daten(data, "name")
+        save_state(sender, {"step": "dgh_anfrage_name", "data": data})
+        send_formular_message(sender, _frage_dgh_name())
+        return True
+
+    if step == "dgh_anfrage_anlass":
+        data = _zurueck_daten(data, "telefon")
+        save_state(sender, {"step": "dgh_anfrage_telefon", "data": data})
+        send_formular_message(sender, _frage_dgh_telefon())
+        return True
+
+    if step == "dgh_anfrage_kommentar":
+        data = _zurueck_daten(data, "anlass")
+        save_state(sender, {"step": "dgh_anfrage_anlass", "data": data})
+        send_formular_message(sender, _frage_dgh_anlass())
+        return True
+
+    if step == "mangel_ort":
+        data = _zurueck_daten(data, "art")
+        save_state(sender, {"step": "mangel_art", "data": data})
+        send_untermenu_message(sender, MANGEL_MENU)
+        return True
+
+    if step == "mangel_beschreibung":
+        data = _zurueck_daten(data, "ort")
+        save_state(sender, {"step": "mangel_ort", "data": data})
+        send_formular_message(sender, _frage_mangel_ort())
+        return True
+
+    if step == "mangel_foto":
+        data = _zurueck_daten(data, "beschreibung")
+        save_state(sender, {"step": "mangel_beschreibung", "data": data})
+        send_formular_message(sender, _frage_mangel_beschreibung())
+        return True
+
+    if step == "mangel_bestaetigung":
+        data = _zurueck_daten(data, "foto_bytes")
+        save_state(sender, {"step": "mangel_foto", "data": data})
+        send_formular_message(sender, _frage_mangel_foto())
+        return True
+
+    return False
 
 
 def build_veranstaltung_text(v):
@@ -223,6 +369,10 @@ def handle_message(sender, msg_type, content):
         send_whatsapp_message(sender, MENU)
         return
 
+    if msg_type == "text" and content == "9" and step != "menu":
+        if _handle_zurueck(sender, step, data):
+            return
+
     if step == "menu":
         if content == "1":
             save_state(sender, {"step": "mangel_art", "data": {}})
@@ -278,13 +428,7 @@ def handle_message(sender, msg_type, content):
 
         elif content == "8":
             save_state(sender, {"step": "dgh", "data": data})
-            send_untermenu_message(
-                sender,
-                """🏛️ DGH mieten
-
-1️⃣ Kalender anschauen
-2️⃣ Mietanfrage stellen"""
-            )
+            send_untermenu_message(sender, _dgh_menu_text())
 
         elif content == "0":
             send_whatsapp_message(sender, "👋 Bis bald!")
@@ -300,7 +444,7 @@ def handle_message(sender, msg_type, content):
                 sender,
                 {"step": "muell_abo_bestaetigung", "data": {}},
             )
-            send_untermenu_message(
+            send_formular_message(
                 sender,
                 """🔔 *Müllabfuhr-Kalender abonnieren*
 
@@ -364,7 +508,7 @@ Es wurde keine Erinnerung aktiviert. Du kannst den Kalender später jederzeit ü
             )
             return
 
-        send_untermenu_message(
+        send_formular_message(
             sender,
             "Bitte antworte mit *Ja* zum Abonnieren oder mit *Nein* zum Abbrechen.",
         )
@@ -381,10 +525,7 @@ Es wurde keine Erinnerung aktiviert. Du kannst den Kalender später jederzeit ü
 
         if content == "2":
             save_state(sender, {"step": "dgh_anfrage_datum", "data": {}})
-            send_untermenu_message(
-                sender,
-                "✍️ Mietanfrage für das DGH\n\nFür welches Datum möchtest du das DGH mieten?\n\nBitte im Format TT.MM.JJJJ senden, z. B. 12.08.2026."
-            )
+            send_formular_message(sender, _frage_dgh_datum())
             return
 
         if content == "0":
@@ -399,11 +540,14 @@ Es wurde keine Erinnerung aktiviert. Du kannst den Kalender später jederzeit ü
         datum = parse_datum(content)
 
         if not datum:
-            send_untermenu_message(sender, "Bitte sende das Datum im Format TT.MM.JJJJ, z. B. 12.08.2026.")
+            send_formular_message(
+                sender,
+                "Bitte sende das Datum im Format TT.MM.JJJJ, z. B. 12.08.2026.",
+            )
             return
 
         if ist_dgh_belegt(content):
-            send_untermenu_message(
+            send_formular_message(
                 sender,
                 "❌ Für diesen Tag ist bereits ein Termin bestätigt.\n\nBitte wähle ein anderes Datum."
             )
@@ -411,31 +555,31 @@ Es wurde keine Erinnerung aktiviert. Du kannst den Kalender später jederzeit ü
 
         data["datum"] = content
         save_state(sender, {"step": "dgh_anfrage_uhrzeit", "data": data})
-        send_untermenu_message(sender, "🕒 Welche Uhrzeit?\n\nBeispiel: 18:00 Uhr")
+        send_formular_message(sender, _frage_dgh_uhrzeit())
         return
 
     if step == "dgh_anfrage_uhrzeit":
         data["uhrzeit"] = content
         save_state(sender, {"step": "dgh_anfrage_name", "data": data})
-        send_untermenu_message(sender, "👤 Auf welchen Namen soll die Anfrage laufen?")
+        send_formular_message(sender, _frage_dgh_name())
         return
 
     if step == "dgh_anfrage_name":
         data["name"] = content
         save_state(sender, {"step": "dgh_anfrage_telefon", "data": data})
-        send_untermenu_message(sender, "☎️ Bitte sende deine Telefonnummer.")
+        send_formular_message(sender, _frage_dgh_telefon())
         return
 
     if step == "dgh_anfrage_telefon":
         data["telefon"] = content
         save_state(sender, {"step": "dgh_anfrage_anlass", "data": data})
-        send_untermenu_message(sender, "🎉 Was ist der Anlass?\n\nBeispiel: Geburtstag, Versammlung, Feier")
+        send_formular_message(sender, _frage_dgh_anlass())
         return
 
     if step == "dgh_anfrage_anlass":
         data["anlass"] = content
         save_state(sender, {"step": "dgh_anfrage_kommentar", "data": data})
-        send_untermenu_message(sender, "💬 Gibt es noch eine Bemerkung?\n\nWenn nicht, schreibe einfach Nein.")
+        send_formular_message(sender, _frage_dgh_kommentar())
         return
 
     if step == "dgh_anfrage_kommentar":
@@ -481,22 +625,19 @@ Die Gemeinde meldet sich zur Bestätigung."""
         data["art"] = MANGEL_ARTEN[content]
         save_state(sender, {"step": "mangel_ort", "data": data})
 
-        send_untermenu_message(
-            sender,
-            "📍 Wo befindet sich der Mangel?\n\nBitte Straße, Hausnummer oder kurze Ortsbeschreibung senden."
-        )
+        send_formular_message(sender, _frage_mangel_ort())
         return
 
     if step == "mangel_ort":
         data["ort"] = content
         save_state(sender, {"step": "mangel_beschreibung", "data": data})
-        send_untermenu_message(sender, "📝 Bitte beschreibe den Mangel kurz.")
+        send_formular_message(sender, _frage_mangel_beschreibung())
         return
 
     if step == "mangel_beschreibung":
         data["beschreibung"] = content
         save_state(sender, {"step": "mangel_foto", "data": data})
-        send_untermenu_message(sender, "📷 Bitte sende jetzt ein Foto oder schreibe „Nein“.")
+        send_formular_message(sender, _frage_mangel_foto())
         return
 
     if step == "mangel_foto":
@@ -507,7 +648,7 @@ Die Gemeinde meldet sich zur Bestätigung."""
             data["foto_bytes"] = None
 
         save_state(sender, {"step": "mangel_bestaetigung", "data": data})
-        send_untermenu_message(sender, build_confirmation_text(data))
+        send_formular_message(sender, build_confirmation_text(data))
         return
 
     if step == "mangel_bestaetigung":
@@ -557,10 +698,17 @@ Die Gemeinde meldet sich zur Bestätigung."""
 
             return
 
-        if text in ["nein", "zurück", "zuruck", "abbrechen"]:
+        if text in ["zurück", "zuruck"]:
+            _handle_zurueck(sender, step, data)
+            return
+
+        if text in ["nein", "abbrechen"]:
             reset_state(sender)
             send_whatsapp_message(sender, "❌ Meldung wurde abgebrochen.\n\n" + MENU)
             return
 
-        send_untermenu_message(sender, "Bitte antworte mit „Ja“ zum Absenden oder „Zurück“ zum Abbrechen.")
+        send_formular_message(
+            sender,
+            "Bitte antworte mit „Ja“ zum Absenden, mit 9 zurück oder mit 0 zum Hauptmenü.",
+        )
         return
