@@ -51,6 +51,16 @@ from muelltermine_dashboard import muelltermine_dashboard
 from muelltermine_parser import lese_muelltermine_aus_pdf
 from startseite import login_page, start_page
 from whatsapp import send_whatsapp_message
+from abonnements_crud import (
+    get_abonnement_uebersicht,
+    set_abonnement_status,
+)
+from chat_crud import (
+    get_chat_uebersicht,
+    init_chat_db,
+    speichere_chatnachricht,
+)
+from chatbot_dashboard import chatbot_detail_page
 
 
 app = FastAPI()
@@ -75,6 +85,7 @@ def startup():
     init_veranstaltungen_db()
     init_dgh_db()
     init_muelltermine_db()
+    init_chat_db()
 
 
 def _session_signatur(zeitstempel):
@@ -138,6 +149,8 @@ def _startseiten_daten(suche=""):
     veranstaltungen = get_aktive_veranstaltungen()
     dgh_anfragen = get_dgh_anfragen()
     dgh_termine = get_alle_dgh_termine()
+    abonnements = get_abonnement_uebersicht()
+    chatbot_verlauf = get_chat_uebersicht()
 
     erinnerungsgrenze = datetime.utcnow() - timedelta(days=7)
     ueberfaellige_meldungen = [
@@ -197,6 +210,8 @@ def _startseiten_daten(suche=""):
         "letzte_meldungen": alle_meldungen[:5],
         "naechste_dgh_anfragen": dgh_anfragen[:5],
         "naechste_veranstaltungen": veranstaltungen[:5],
+        "abonnements": abonnements,
+        "chatbot_verlauf": chatbot_verlauf,
         "suchergebnisse": suchergebnisse,
     }
 
@@ -591,6 +606,29 @@ async def muelltermine_import(
     )
 
 
+@app.post("/abonnements/{abo_typ}/{abo_id}/status")
+async def abonnement_status_aendern(
+    abo_typ: str,
+    abo_id: int,
+    aktiv: str = Form(...),
+    _=Depends(check_dashboard_login),
+):
+    try:
+        set_abonnement_status(abo_typ, abo_id, aktiv == "Ja")
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Abonnement nicht gefunden")
+
+    return RedirectResponse(url="/#abonnenten", status_code=303)
+
+
+@app.get("/chatbot/{whatsapp_nummer}")
+async def chatbot_detail(
+    whatsapp_nummer: str,
+    _=Depends(check_dashboard_login),
+):
+    return chatbot_detail_page(whatsapp_nummer)
+
+
 @app.get("/meldung/{ticket}")
 async def meldung_detail(
     ticket: str,
@@ -643,6 +681,12 @@ async def webhook(request: Request):
     for entry in body.get("entry", []):
         for change in entry.get("changes", []):
             value = change.get("value", {})
+            kontakte = {
+                kontakt.get("wa_id"): (
+                    kontakt.get("profile", {}).get("name") or ""
+                )
+                for kontakt in value.get("contacts", [])
+            }
 
             if "messages" not in value:
                 continue
@@ -650,6 +694,17 @@ async def webhook(request: Request):
             for message in value["messages"]:
                 sender = message["from"]
                 msg_type = message["type"]
+                name = kontakte.get(sender, "")
+                erstellt_am = None
+
+                try:
+                    if message.get("timestamp"):
+                        erstellt_am = datetime.utcfromtimestamp(
+                            int(message["timestamp"])
+                        )
+                except (TypeError, ValueError):
+                    erstellt_am = None
+
                 print(f"WhatsApp-Nachricht empfangen: Typ={msg_type}")
 
                 if msg_type == "text":
@@ -660,6 +715,22 @@ async def webhook(request: Request):
 
                 else:
                     continue
+
+                try:
+                    gespeicherter_inhalt = content
+                    if msg_type == "image":
+                        gespeicherter_inhalt = "📷 Bild empfangen"
+
+                    speichere_chatnachricht(
+                        sender,
+                        "eingehend",
+                        gespeicherter_inhalt,
+                        nachricht_typ=msg_type,
+                        name=name,
+                        erstellt_am=erstellt_am,
+                    )
+                except Exception as error:
+                    print("Chatverlauf konnte nicht gespeichert werden:", repr(error))
 
                 handle_message(sender, msg_type, content)
 

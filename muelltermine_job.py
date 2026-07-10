@@ -1,6 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from chat_crud import init_chat_db
 from muelltermine_crud import init_muelltermine_db
 from muelltermine_erinnerungen import versende_muell_erinnerungen
 
@@ -17,6 +18,7 @@ def main():
         return
 
     init_muelltermine_db()
+    init_chat_db()
     ergebnis = versende_muell_erinnerungen(zeitpunkt=jetzt)
 
     print(
