@@ -1,3 +1,4 @@
+from datetime import date
 from html import escape
 from urllib.parse import quote
 
@@ -335,7 +336,7 @@ def _render_chatbot_verlauf(chats):
     for chat in chats:
         name = chat.get("name") or "Unbekannt"
         nummer = chat.get("whatsapp_nummer") or ""
-        link = f"/chatbot/{quote(str(nummer), safe='')}"
+        link = f"/intern/chatbot/{quote(str(nummer), safe='')}"
 
         rows += f"""
         <tr>
@@ -504,6 +505,160 @@ def _render_freie_dgh_tage(freie_tage):
         tage += f"<span>{tag.strftime('%d.%m.%Y')}</span>"
 
     return f'<div class="free-days">{tage}</div>'
+
+
+def _text_abschnitte(text):
+    abschnitte = []
+    for block in str(text or "").split("\n"):
+        block = block.strip()
+        if block:
+            abschnitte.append(f"<p>{escape(block)}</p>")
+    return "".join(abschnitte) or "<p>Dieser Bereich wird gerade gepflegt.</p>"
+
+
+def _tage_bis_text(datum):
+    if not datum:
+        return ""
+
+    heute = date.today()
+    differenz = (datum - heute).days
+
+    if differenz == 0:
+        return "heute"
+    if differenz == 1:
+        return "morgen"
+    if differenz > 1:
+        return f"in {differenz} Tagen"
+    return "bereits vergangen"
+
+
+def _public_event_cards(veranstaltungen, limit=None):
+    auswahl = veranstaltungen if limit is None else veranstaltungen[:limit]
+    cards = ""
+
+    for v in auswahl:
+        bild = ""
+        if getattr(v, "bild_base64", None):
+            bild = (
+                '<img class="event-img" alt="" '
+                f'src="data:image/jpeg;base64,{v.bild_base64}">'
+            )
+
+        cards += f"""
+        <article class="card">
+            {bild}
+            <span class="chip">📅 {escape(v.datum or "Termin")}</span>
+            <h3>{escape(v.titel or "Veranstaltung")}</h3>
+            <p>{escape(v.beschreibung or "Weitere Informationen folgen.")}</p>
+            <div class="meta">
+                {f'<span>🕒 {escape(v.uhrzeit)}</span>' if v.uhrzeit else ''}
+                {f'<span>📍 {escape(v.ort)}</span>' if v.ort else ''}
+                {f'<span>👤 {escape(v.ansprechpartner)}</span>' if v.ansprechpartner else ''}
+            </div>
+        </article>
+        """
+
+    return cards or """
+    <article class="card wide-card">
+        <span class="icon">📅</span>
+        <h3>Keine kommenden Veranstaltungen eingetragen</h3>
+        <p>Sobald neue Termine gepflegt werden, erscheinen sie automatisch hier.</p>
+    </article>
+    """
+
+
+def _public_muell_rows(muelltermine, limit=8):
+    rows = ""
+
+    for termin in muelltermine[:limit]:
+        datum = getattr(termin, "datum", None)
+        datum_text = datum.strftime("%d.%m.%Y") if datum else "-"
+        rows += f"""
+        <div class="row">
+            <strong>{datum_text}<br><small>{escape(_tage_bis_text(datum))}</small></strong>
+            <span>{escape(getattr(termin, "abfuhrarten", "") or "")}</span>
+        </div>
+        """
+
+    return rows or "<p>Zurzeit sind keine Mülltermine eingetragen.</p>"
+
+
+def _public_list_cards(text, fallback_icon, leertext):
+    cards = _render_public_list(text, fallback_icon)
+    if cards:
+        return cards
+    return f"""
+    <article class="card wide-card">
+        <span class="icon">{fallback_icon}</span>
+        <h3>Noch keine Einträge gepflegt</h3>
+        <p>{escape(leertext)}</p>
+    </article>
+    """
+
+
+def _qr_box(einstellungen):
+    qr_url = einstellungen.get("whatsapp_qr_url", "").strip()
+    whatsapp_nummer = einstellungen.get("whatsapp_nummer", "").strip()
+
+    if qr_url:
+        return f"""
+        <div class="qr-box">
+            <img src="{escape(qr_url)}" alt="WhatsApp QR-Code">
+        </div>
+        """
+
+    return f"""
+    <div class="qr-box">
+        <div>
+            <span class="icon">💬</span>
+            <h3>WhatsApp starten</h3>
+            <p>{escape(whatsapp_nummer or "QR-Code oder Nummer kann in den Gemeindeeinstellungen ergänzt werden.")}</p>
+        </div>
+    </div>
+    """
+
+
+def _public_search_results(daten, suchtext):
+    einstellungen = daten.get("einstellungen", {})
+    veranstaltungen = daten.get("veranstaltungen", [])
+    muelltermine = daten.get("muelltermine", [])
+    suchtext_norm = suchtext.strip().casefold()
+    results = []
+
+    def passt(*werte):
+        if not suchtext_norm:
+            return True
+        return any(suchtext_norm in str(wert or "").casefold() for wert in werte)
+
+    seiten = [
+        ("Mangel melden", "/mangel-melden", "mangel_seite_text", "⚠️"),
+        ("Veranstaltungen", "/veranstaltungen", "veranstaltungen_seite_text", "📅"),
+        ("DGH mieten", "/dgh-mieten", "dgh_seite_text", "🏛️"),
+        ("Mülltermine", "/muelltermine-info", "muell_seite_text", "🗑️"),
+        ("Bürgerinfos", "/buergerinformationen", "buergerinfo_text", "ℹ️"),
+        ("Ansprechpartner", "/ansprechpartner", "ansprechpartner", "☎️"),
+        ("Vereine", "/vereine", "vereine", "🤝"),
+        ("Feuerwehr", "/feuerwehr", "feuerwehr_text", "🚒"),
+        ("WhatsApp-Bot", "/whatsapp-bot", "whatsapp_text", "💬"),
+        ("Über Ahnsen", "/ueber-ahnsen", "ueber_ahnsen_text", "🌳"),
+        ("Aktuelles", "/aktuelles", "aktuelles", "📰"),
+    ]
+
+    for titel, link, feld, icon in seiten:
+        text = einstellungen.get(feld, "")
+        if passt(titel, text):
+            results.append((icon, titel, text, link))
+
+    for v in veranstaltungen:
+        if passt(v.titel, v.datum, v.ort, v.beschreibung, v.ansprechpartner):
+            results.append(("📅", v.titel or "Veranstaltung", f"{v.datum or ''} {v.ort or ''}", "/veranstaltungen"))
+
+    for termin in muelltermine[:12]:
+        datum = termin.datum.strftime("%d.%m.%Y") if termin.datum else ""
+        if passt(datum, termin.abfuhrarten):
+            results.append(("🗑️", datum, termin.abfuhrarten or "", "/muelltermine-info"))
+
+    return results[:30]
 
 
 def public_home_page(daten, fehler=""):
@@ -1649,6 +1804,115 @@ def _public_design(einstellungen):
             background:white;
         }}
 
+        .row strong,
+        .row span {{
+            line-height:1.45;
+        }}
+
+        .meta {{
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            margin:12px 0 0;
+        }}
+
+        .meta span,
+        .badge {{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding:7px 10px;
+            border-radius:999px;
+            color:#2f526b;
+            background:#edf5f8;
+            font-size:13px;
+            font-weight:900;
+        }}
+
+        .split {{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:18px;
+            align-items:start;
+        }}
+
+        .wide-card {{
+            grid-column:1 / -1;
+        }}
+
+        .steps {{
+            counter-reset:steps;
+            display:grid;
+            gap:12px;
+            margin:18px 0 0;
+        }}
+
+        .step {{
+            position:relative;
+            padding:18px 18px 18px 62px;
+            border:1px solid #dce7eb;
+            border-radius:20px;
+            background:white;
+        }}
+
+        .step::before {{
+            counter-increment:steps;
+            content:counter(steps);
+            position:absolute;
+            left:18px;
+            top:18px;
+            width:30px;
+            height:30px;
+            display:grid;
+            place-items:center;
+            border-radius:999px;
+            color:white;
+            background:linear-gradient(135deg, var(--green), #8db45d);
+            font-weight:950;
+        }}
+
+        .qr-box {{
+            min-height:220px;
+            display:grid;
+            place-items:center;
+            padding:22px;
+            border:1px dashed #b7c9d3;
+            border-radius:24px;
+            background:#f7fbfc;
+            text-align:center;
+        }}
+
+        .qr-box img {{
+            max-width:220px;
+            width:100%;
+            height:auto;
+            border-radius:18px;
+        }}
+
+        .search-box {{
+            display:flex;
+            gap:10px;
+            padding:10px;
+            border:1px solid #dce7eb;
+            border-radius:999px;
+            background:white;
+            box-shadow:0 16px 45px rgba(34,58,78,.08);
+        }}
+
+        .search-box input {{
+            min-width:0;
+            flex:1;
+            border:0;
+            padding:0 12px;
+            font:inherit;
+            outline:none;
+            background:transparent;
+        }}
+
+        .text-block p {{
+            margin:0 0 12px;
+        }}
+
         .free-days {{
             display:flex;
             flex-wrap:wrap;
@@ -1704,6 +1968,10 @@ def _public_design(einstellungen):
                 grid-template-columns:repeat(2, minmax(0, 1fr));
             }}
 
+            .split {{
+                grid-template-columns:1fr;
+            }}
+
             .hero-image {{
                 min-height:300px;
             }}
@@ -1737,22 +2005,35 @@ def _public_design(einstellungen):
             .row {{
                 display:block;
             }}
+
+            .search-box {{
+                display:grid;
+                border-radius:22px;
+            }}
         }}
     """
 
 
 def _public_nav(einstellungen):
+    logo_bild = einstellungen.get("logo_bild_url", "").strip()
+    logo_style = (
+        f' style="background:url({escape(logo_bild)}) center/cover;"'
+        if logo_bild
+        else ""
+    )
     return f"""
     <nav class="site-nav">
         <a class="brand" href="/">
-            <span class="brand-mark">⌂</span>
+            <span class="brand-mark"{logo_style}>⌂</span>
             <span>{escape(einstellungen.get("logo_text", "Ahnsen hilft"))}</span>
         </a>
         <div class="nav-links">
             <a href="/veranstaltungen">Veranstaltungen</a>
             <a href="/dgh-mieten">DGH</a>
             <a href="/muelltermine-info">Mülltermine</a>
+            <a href="/buergerinformationen">Bürgerinfos</a>
             <a href="/whatsapp-bot">WhatsApp</a>
+            <a href="/suche">Suche</a>
             <a class="login-pill" href="/#login">Login</a>
         </div>
     </nav>
@@ -1760,6 +2041,16 @@ def _public_nav(einstellungen):
 
 
 def _public_footer(einstellungen):
+    social = ""
+    for titel, feld in [
+        ("Facebook", "facebook_url"),
+        ("Instagram", "instagram_url"),
+        ("Website", "externe_website_url"),
+    ]:
+        ziel = einstellungen.get(feld, "").strip()
+        if ziel:
+            social += f'<a href="{escape(ziel)}">{titel}</a><br>'
+
     return f"""
     <footer class="footer">
         <div class="footer-grid">
@@ -1786,6 +2077,7 @@ def _public_footer(einstellungen):
                     <a href="{escape(einstellungen.get("footer_impressum_url", "#"))}">Impressum</a><br>
                     <a href="{escape(einstellungen.get("footer_datenschutz_url", "#"))}">Datenschutz</a>
                 </p>
+                <p>{social}</p>
             </div>
         </div>
     </footer>
@@ -1824,8 +2116,10 @@ def _portal_cards():
         ("🏛️", "DGH mieten", "Freie Termine prüfen und Anfrage starten.", "/dgh-mieten"),
         ("🗑️", "Mülltermine", "Abholungen und Erinnerungen ansehen.", "/muelltermine-info"),
         ("💬", "WhatsApp-Bot", "Der digitale Dorfassistent für Ahnsen.", "/whatsapp-bot"),
+        ("ℹ️", "Bürgerinfos", "Wichtige Hinweise, Links und kommunale Informationen.", "/buergerinformationen"),
         ("☎️", "Ansprechpartner", "Kontakte nach Anliegen sortiert.", "/ansprechpartner"),
         ("🤝", "Vereine", "Vereinsleben und Ehrenamt in Ahnsen.", "/vereine"),
+        ("🚒", "Feuerwehr", "Sicherheit, Ehrenamt und Hilfe vor Ort.", "/feuerwehr"),
         ("🌳", "Über Ahnsen", "Ort, Gemeinschaft und Bürgerinfos.", "/ueber-ahnsen"),
         ("📰", "Aktuelles", "Neuigkeiten und wichtige Hinweise.", "/aktuelles"),
     ]
@@ -1962,74 +2256,179 @@ def public_content_page(daten, seite):
         "mangel": ("Mangel melden", "mangel_seite_text", "⚠️"),
         "veranstaltungen": ("Veranstaltungen", "veranstaltungen_seite_text", "📅"),
         "dgh": ("DGH mieten", "dgh_seite_text", "🏛️"),
-        "muell": ("Mülltermine", "muell_seite_text", "🗑️"),
+        "muell": ("Müllabfuhr Termine", "muell_seite_text", "🗑️"),
         "ansprechpartner": ("Ansprechpartner", "ansprechpartner_seite_text", "☎️"),
         "vereine": ("Vereine", "vereine_seite_text", "🤝"),
         "aktuelles": ("Aktuelles", "aktuelles_seite_text", "📰"),
         "whatsapp": ("WhatsApp-Bot", "whatsapp_seite_text", "💬"),
         "ueber": ("Über Ahnsen", "ueber_ahnsen_seite_text", "🌳"),
+        "feuerwehr": ("Feuerwehr", "feuerwehr_seite_text", "🚒"),
+        "buergerinfo": ("Bürgerinformationen", "buergerinfo_seite_text", "ℹ️"),
+        "impressum": ("Impressum", "impressum_seite_text", "⚖️"),
+        "datenschutz": ("Datenschutz", "datenschutz_seite_text", "🔒"),
     }
     titel, text_key, icon = titel_map.get(seite, titel_map["ueber"])
 
     detail = ""
+    actions = f"""
+    <div class="actions">
+        <a class="btn secondary" href="/">Zur Startseite</a>
+        <a class="btn primary" href="{escape(whatsapp_link)}">WhatsApp öffnen</a>
+    </div>
+    """
+
     if seite == "veranstaltungen":
-        rows = ""
-        for v in veranstaltungen:
-            rows += f"""
-            <article class="card">
-                <span class="chip">{escape(v.datum or "Termin")}</span>
-                <h3>{escape(v.titel or "Veranstaltung")}</h3>
-                <p>{escape(v.beschreibung or "Weitere Informationen folgen.")}</p>
-                <p><b>{escape(v.uhrzeit or "")}</b> {escape(v.ort or "")}</p>
-            </article>
-            """
-        detail = f'<div class="grid">{rows or "<p>Zurzeit sind keine Veranstaltungen eingetragen.</p>"}</div>'
+        detail = f"""
+        <div class="section-head">
+            <span class="eyebrow">Kalender</span>
+            <h2>Kommende Termine in Ahnsen</h2>
+            <p>{escape(einstellungen.get("veranstaltungen_hinweis", ""))}</p>
+        </div>
+        <div class="grid">{_public_event_cards(veranstaltungen)}</div>
+        """
     elif seite == "dgh":
         detail = f"""
-        {_render_freie_dgh_tage(freie_tage)}
-        <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Jetzt per WhatsApp buchen</a></div>
+        <div class="split">
+            <article class="card">
+                <span class="icon">🏛️</span>
+                <h3>Nächste freie Termine</h3>
+                <p>Diese Übersicht hilft bei der ersten Planung. Die finale Bestätigung erfolgt über das Gemeindeteam.</p>
+                {_render_freie_dgh_tage(freie_tage)}
+                <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Jetzt per WhatsApp anfragen</a></div>
+            </article>
+            <article class="card">
+                <span class="icon">✅</span>
+                <h3>So läuft die Anfrage</h3>
+                <div class="steps">
+                    <div class="step"><h3>Termin wählen</h3><p>Freien Tag prüfen und Anfrage starten.</p></div>
+                    <div class="step"><h3>Daten senden</h3><p>Name, Uhrzeit, Anlass und Kontakt angeben.</p></div>
+                    <div class="step"><h3>Bestätigung erhalten</h3><p>Das Gemeindeteam bestätigt oder lehnt die Anfrage direkt ab.</p></div>
+                </div>
+            </article>
+            <article class="card wide-card">
+                <h3>Hinweise zur Nutzung</h3>
+                <div class="text-block">{_text_abschnitte(einstellungen.get("dgh_regeln", ""))}</div>
+            </article>
+        </div>
         """
     elif seite == "muell":
-        rows = ""
-        for termin in muelltermine[:8]:
-            rows += f"""
-            <div class="row">
-                <strong>{termin.datum.strftime('%d.%m.%Y')}</strong>
-                <span>{escape(termin.abfuhrarten or "")}</span>
-            </div>
-            """
-        detail = f'<div class="list">{rows or "<p>Zurzeit sind keine Mülltermine eingetragen.</p>"}</div>'
+        detail = f"""
+        <div class="split">
+            <article class="card">
+                <span class="icon">🗑️</span>
+                <h3>Nächste Abholungen</h3>
+                <div class="list">{_public_muell_rows(muelltermine, limit=10)}</div>
+            </article>
+            <article class="card">
+                <span class="icon">🔔</span>
+                <h3>Erinnerung abonnieren</h3>
+                <p>{escape(einstellungen.get("muell_abo_text", ""))}</p>
+                <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Per WhatsApp abonnieren</a></div>
+            </article>
+        </div>
+        """
     elif seite == "vereine":
-        detail = f'<div class="grid">{_render_public_list(einstellungen.get("vereine", ""), "🤝")}</div>'
+        detail = f'<div class="grid">{_public_list_cards(einstellungen.get("vereine", ""), "🤝", "Vereine können in den Gemeindeeinstellungen ergänzt werden.")}</div>'
     elif seite == "ansprechpartner":
-        detail = f'<div class="grid">{_render_public_list(einstellungen.get("ansprechpartner", ""), "👤")}</div>'
+        detail = f'<div class="grid">{_public_list_cards(einstellungen.get("ansprechpartner", ""), "👤", "Ansprechpartner können in den Gemeindeeinstellungen ergänzt werden.")}</div>'
     elif seite == "aktuelles":
-        detail = f'<div class="grid">{_render_public_news(einstellungen.get("aktuelles", ""))}</div>'
+        detail = f'<div class="grid">{_render_public_news(einstellungen.get("aktuelles", "")) or _public_list_cards("", "📰", "Aktuelle Meldungen können in den Gemeindeeinstellungen ergänzt werden.")}</div>'
     elif seite == "whatsapp":
         detail = f"""
-        <div class="grid">
-            <article class="card"><span class="icon">⚠️</span><h3>Mängel melden</h3><p>Schäden und Hinweise in wenigen Schritten senden.</p></article>
-            <article class="card"><span class="icon">📅</span><h3>Veranstaltungen</h3><p>Kommende Termine direkt abrufen.</p></article>
-            <article class="card"><span class="icon">🗑️</span><h3>Mülltermine</h3><p>Abholtermine und Erinnerungen erhalten.</p></article>
-            <article class="card"><span class="icon">🏛️</span><h3>DGH buchen</h3><p>Mietanfrage einfach per WhatsApp starten.</p></article>
-            <article class="card"><span class="icon">☎️</span><h3>Ansprechpartner</h3><p>Kontakte schnell finden.</p></article>
-            <article class="card"><span class="icon">🔔</span><h3>Benachrichtigungen</h3><p>Später auch Hinweise wie Unwetterwarnungen erhalten.</p></article>
+        <div class="split">
+            <article class="hero-card">
+                <span class="eyebrow">Digitaler Dorfassistent</span>
+                <h2 style="color:white;">Viele Anliegen direkt per WhatsApp</h2>
+                <p>{escape(einstellungen.get("whatsapp_text", ""))}</p>
+                <div class="actions"><a class="btn secondary" href="{escape(whatsapp_link)}">WhatsApp öffnen</a></div>
+            </article>
+            {_qr_box(einstellungen)}
         </div>
-        <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">WhatsApp öffnen</a></div>
+        <div class="grid" style="margin-top:18px;">
+            <article class="card"><span class="icon">⚠️</span><h3>Mängel melden</h3><p>Schäden und Hinweise mit Ort und Foto senden.</p></article>
+            <article class="card"><span class="icon">📅</span><h3>Veranstaltungen</h3><p>Kommende Termine direkt abrufen.</p></article>
+            <article class="card"><span class="icon">🗑️</span><h3>Mülltermine</h3><p>Abholtermine ansehen und Erinnerungen abonnieren.</p></article>
+            <article class="card"><span class="icon">🏛️</span><h3>DGH mieten</h3><p>Mietanfragen strukturiert absenden.</p></article>
+            <article class="card"><span class="icon">☎️</span><h3>Ansprechpartner</h3><p>Kontakte schnell finden.</p></article>
+            <article class="card"><span class="icon">⛈️</span><h3>Warnungen</h3><p>Vorbereitet für spätere Hinweise wie Unwetterwarnungen.</p></article>
+        </div>
         """
     elif seite == "mangel":
         detail = f"""
-        <div class="grid">
-            <article class="card"><span class="icon">💡</span><h3>Straßenlaterne defekt</h3><p>Ort nennen und optional Foto senden.</p></article>
-            <article class="card"><span class="icon">🕳️</span><h3>Schlagloch</h3><p>Kurze Beschreibung und genaue Stelle angeben.</p></article>
-            <article class="card"><span class="icon">🗑️</span><h3>Müllablagerung</h3><p>Hinweis schnell an die Verwaltung übermitteln.</p></article>
+        <div class="split">
+            <article class="card">
+                <span class="icon">⚠️</span>
+                <h3>Mangel schnell melden</h3>
+                <p>Der WhatsApp-Bot fragt Schritt für Schritt ab, was passiert ist, wo der Mangel liegt und ob ein Foto vorhanden ist.</p>
+                <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Mangel per WhatsApp melden</a></div>
+            </article>
+            <article class="card">
+                <span class="icon">📋</span>
+                <h3>Beispiele</h3>
+                <div class="steps">
+                    <div class="step"><h3>Straßenlaterne defekt</h3><p>Standort und Nummer oder Beschreibung senden.</p></div>
+                    <div class="step"><h3>Schlagloch</h3><p>Genaue Stelle und kurze Beschreibung angeben.</p></div>
+                    <div class="step"><h3>Müllablagerung</h3><p>Ort, Foto und kurze Info übermitteln.</p></div>
+                </div>
+            </article>
         </div>
-        <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Mangel per WhatsApp melden</a></div>
+        """
+    elif seite == "feuerwehr":
+        detail = f"""
+        <div class="split">
+            <article class="card">
+                <span class="icon">🚒</span>
+                <h3>Feuerwehr Ahnsen</h3>
+                <div class="text-block">{_text_abschnitte(einstellungen.get("feuerwehr_text", ""))}</div>
+            </article>
+            <article class="card">
+                <span class="icon">☎️</span>
+                <h3>Im Notfall</h3>
+                <p><b>112</b> für Feuerwehr und Rettungsdienst.</p>
+                <p>Diese Plattform ersetzt keinen Notruf.</p>
+            </article>
+        </div>
+        """
+    elif seite == "buergerinfo":
+        detail = f"""
+        <div class="split">
+            <article class="card">
+                <span class="icon">ℹ️</span>
+                <h3>Wichtige Bürgerinformationen</h3>
+                <div class="text-block">{_text_abschnitte(einstellungen.get("buergerinfo_text", ""))}</div>
+            </article>
+            <article class="card">
+                <span class="icon">🔗</span>
+                <h3>Wichtige Links</h3>
+                <div class="list">{_render_public_links(einstellungen.get("wichtige_links", ""))}</div>
+            </article>
+        </div>
+        """
+    elif seite in {"impressum", "datenschutz"}:
+        actions = '<div class="actions"><a class="btn secondary" href="/">Zur Startseite</a></div>'
+        feld = (
+            "impressum_seite_text"
+            if seite == "impressum"
+            else "datenschutz_seite_text"
+        )
+        detail = f"""
+        <article class="card text-block">
+            {_text_abschnitte(einstellungen.get(feld, ""))}
+        </article>
         """
     else:
         detail = f"""
-        <div class="card">
-            <p>{escape(einstellungen.get("ueber_ahnsen_text", ""))}</p>
+        <div class="split">
+            <article class="card">
+                <span class="icon">🌳</span>
+                <h3>Ahnsen im Überblick</h3>
+                <div class="text-block">{_text_abschnitte(einstellungen.get("ueber_ahnsen_text", ""))}</div>
+            </article>
+            <article class="card">
+                <span class="icon">📍</span>
+                <h3>Gemeinschaft vor Ort</h3>
+                <p>{escape(einstellungen.get("willkommen_text", ""))}</p>
+            </article>
         </div>
         """
 
@@ -2039,10 +2438,7 @@ def public_content_page(daten, seite):
             <span class="eyebrow">{icon} {escape(titel)}</span>
             <h1>{escape(titel)}</h1>
             <p>{escape(einstellungen.get(text_key, ""))}</p>
-            <div class="actions">
-                <a class="btn secondary" href="/">Zur Startseite</a>
-                <a class="btn primary" href="{escape(whatsapp_link)}">WhatsApp öffnen</a>
-            </div>
+            {actions}
         </section>
         <div class="hero-image"></div>
     </header>
@@ -2054,6 +2450,56 @@ def public_content_page(daten, seite):
     """
 
     return _public_shell(einstellungen, titel, body)
+
+
+def public_search_page(daten, q=""):
+    einstellungen = daten.get("einstellungen", {})
+    suchtext = (q or "").strip()
+    ergebnisse = _public_search_results(daten, suchtext)
+
+    rows = ""
+    for icon, titel, text, link in ergebnisse:
+        kurztext = str(text or "").replace("\n", " ")
+        if len(kurztext) > 180:
+            kurztext = kurztext[:177] + "..."
+        rows += f"""
+        <a class="card" href="{escape(link)}">
+            <span class="icon">{icon}</span>
+            <h3>{escape(titel)}</h3>
+            <p>{escape(kurztext)}</p>
+        </a>
+        """
+
+    if not rows and suchtext:
+        rows = """
+        <article class="card wide-card">
+            <span class="icon">🔎</span>
+            <h3>Nichts gefunden</h3>
+            <p>Versuche es mit einem anderen Suchbegriff oder nutze die Übersicht auf der Startseite.</p>
+        </article>
+        """
+
+    body = f"""
+    <header class="hero">
+        <section class="hero-card">
+            <span class="eyebrow">🔎 Suche</span>
+            <h1>Gemeindeseite durchsuchen</h1>
+            <p>{escape(einstellungen.get("suchseite_text", ""))}</p>
+            <form class="search-box" method="get" action="/suche">
+                <input name="q" value="{escape(suchtext)}" placeholder="Wonach suchst du?">
+                <button class="btn primary" type="submit">Suchen</button>
+            </form>
+        </section>
+        <div class="hero-image"></div>
+    </header>
+    <main>
+        <section class="section">
+            <div class="grid">{rows}</div>
+        </section>
+    </main>
+    """
+
+    return _public_shell(einstellungen, "Suche", body)
 
 
 def start_page(uebersicht=None, suche=""):
@@ -2082,7 +2528,7 @@ def start_page(uebersicht=None, suche=""):
         anzahl = len(ueberfaellige_meldungen)
         meldung_wort = "Meldung" if anzahl == 1 else "Meldungen"
         warnung_html = f"""
-        <a class="attention" href="/dashboard?status_filter=Offen">
+        <a class="attention" href="/intern/maengel?status_filter=Offen">
             <span class="attention-icon">!</span>
             <span>
                 <strong>{anzahl} länger offene {meldung_wort}</strong>
@@ -2102,7 +2548,7 @@ def start_page(uebersicht=None, suche=""):
             else "-"
         )
         letzte_meldungen_html += f"""
-        <a class="overview-row" href="/meldung/{escape(meldung.ticket)}">
+        <a class="overview-row" href="/intern/meldung/{escape(meldung.ticket)}">
             <span>
                 <strong>{escape(meldung.art or "Meldung")}</strong>
                 <small>{escape(meldung.ort or "-")} · {erstellt}</small>
@@ -2114,7 +2560,7 @@ def start_page(uebersicht=None, suche=""):
     dgh_anfragen_html = ""
     for termin in uebersicht.get("naechste_dgh_anfragen", []):
         dgh_anfragen_html += f"""
-        <a class="overview-row" href="/dgh?bearbeiten_id={termin.id}#formular">
+        <a class="overview-row" href="/intern/dgh?bearbeiten_id={termin.id}#formular">
             <span>
                 <strong>{escape(termin.anlass or "DGH-Anfrage")}</strong>
                 <small>
@@ -2152,7 +2598,7 @@ def start_page(uebersicht=None, suche=""):
 
         for meldung in ergebnisse.get("meldungen", []):
             treffer_html += f"""
-            <a class="search-result" href="/meldung/{escape(meldung.ticket)}">
+            <a class="search-result" href="/intern/meldung/{escape(meldung.ticket)}">
                 <span class="result-type">Mangel</span>
                 <strong>{escape(meldung.art or "Meldung")}</strong>
                 <small>{escape(meldung.ort or "-")}</small>
@@ -2174,7 +2620,7 @@ def start_page(uebersicht=None, suche=""):
 
         for termin in ergebnisse.get("dgh", []):
             treffer_html += f"""
-            <a class="search-result" href="/dgh?bearbeiten_id={termin.id}#formular">
+            <a class="search-result" href="/intern/dgh?bearbeiten_id={termin.id}#formular">
                 <span class="result-type">DGH</span>
                 <strong>{escape(termin.anlass or "DGH-Termin")}</strong>
                 <small>
@@ -2860,7 +3306,7 @@ def start_page(uebersicht=None, suche=""):
                 {suchergebnisse_html}
 
                 <section class="modules">
-                    <a class="module reports" href="/dashboard">
+                    <a class="module reports" href="/intern/maengel">
                         <span class="module-icon">⚠</span>
                         <h2>Mängel</h2>
                         <p>Meldungen prüfen, bearbeiten und abschließen.</p>
@@ -2874,21 +3320,21 @@ def start_page(uebersicht=None, suche=""):
                         <span class="open">Veranstaltungen öffnen →</span>
                     </a>
 
-                    <a class="module dgh" href="/dgh">
+                    <a class="module dgh" href="/intern/dgh">
                         <span class="module-icon">⌂</span>
                         <h2>DGH</h2>
                         <p>Anfragen, Belegungen und den Kalender verwalten.</p>
                         <span class="open">DGH öffnen →</span>
                     </a>
 
-                    <a class="module waste" href="/muelltermine">
+                    <a class="module waste" href="/intern/muelltermine">
                         <span class="module-icon">🗑</span>
                         <h2>Müllabfuhr Termine</h2>
                         <p>Jahreskalender importieren und Abholungen prüfen.</p>
                         <span class="open">Mülltermine öffnen →</span>
                     </a>
 
-                    <a class="module settings" href="/gemeindeseite">
+                    <a class="module settings" href="/intern/gemeindeseite">
                         <span class="module-icon">🎨</span>
                         <h2>Gemeindeseite bearbeiten</h2>
                         <p>Texte, Farben, Kontakt, Links und Homepage-Inhalte pflegen.</p>

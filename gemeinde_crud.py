@@ -17,6 +17,8 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
         "einem Ort – modern, direkt und bürgernah."
     ),
     "hero_bild_url": "/assets/ahnsen-startseite.png",
+    "logo_bild_url": "",
+    "hero_bild_alt": "Landschaft und Dorfansicht Ahnsen",
     "willkommen_text": (
         "Ahnsen liegt im Herzen des Schaumburger Landes, eingebettet zwischen "
         "Harrl und Bückebergen. Die Plattform bündelt wichtige Informationen "
@@ -28,11 +30,15 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     ),
     "whatsapp_nummer": "",
     "whatsapp_link": "https://wa.me/",
+    "whatsapp_qr_url": "",
     "whatsapp_text": (
         "Mit dem WhatsApp-Bot können Bürger Mängel melden, Veranstaltungen "
         "abrufen, Ansprechpartner finden, Mülltermine ansehen, das DGH buchen "
         "und automatische Erinnerungen erhalten."
     ),
+    "facebook_url": "",
+    "instagram_url": "",
+    "externe_website_url": "https://www.ahnsen-schaumburg.de/",
     "kontakt_name": "Gemeinde Ahnsen",
     "kontakt_adresse": "Schulstraße 5, 31708 Ahnsen",
     "kontakt_email": "",
@@ -44,6 +50,14 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
         "Kalender Dorfgemeinschaftshaus|#dgh\n"
         "Impressum|#footer\n"
         "Datenschutz|#footer"
+    ),
+    "buergerinfo_text": (
+        "Hier werden zentrale Bürgerinformationen, Hinweise der Gemeinde, "
+        "wichtige externe Links und wiederkehrende Informationen gebündelt."
+    ),
+    "feuerwehr_text": (
+        "Die Feuerwehr Ahnsen steht für Sicherheit, Ehrenamt und Gemeinschaft. "
+        "Im Notfall gilt immer: 112 wählen."
     ),
     "aktuelles": (
         "Digitale Bürgerplattform gestartet|Mängel, Veranstaltungen, DGH und "
@@ -69,6 +83,10 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
         "Wähle den passenden Bereich und gelange direkt zu Informationen, "
         "Services und digitalen Angeboten der Gemeinde."
     ),
+    "suchseite_text": (
+        "Suche über Veranstaltungen, Kontakte, Bürgerinformationen und die "
+        "wichtigsten Bereiche der Plattform."
+    ),
     "mangel_seite_text": (
         "Melde defekte Straßenlaternen, Schlaglöcher, wilde Müllablagerungen "
         "oder andere Hinweise direkt über den WhatsApp-Bot."
@@ -77,13 +95,35 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
         "Hier findest du kommende Termine, Aktionen und Veranstaltungen in "
         "Ahnsen."
     ),
+    "veranstaltungen_hinweis": (
+        "Termine werden aus dem internen Veranstaltungsbereich geladen und "
+        "erscheinen hier automatisch, sobald sie aktiv geschaltet sind."
+    ),
     "dgh_seite_text": (
         "Das Dorfgemeinschaftshaus ist ein zentraler Treffpunkt in Ahnsen. "
         "Prüfe freie Termine und starte deine Mietanfrage digital."
     ),
+    "dgh_regeln": (
+        "Bitte stelle deine Anfrage möglichst frühzeitig.\n"
+        "Eine Buchung ist erst nach Bestätigung durch das Gemeindeteam verbindlich.\n"
+        "Für Rückfragen bitte Kontaktdaten vollständig angeben."
+    ),
     "muell_seite_text": (
         "Sieh die nächsten Abholtermine und abonniere Erinnerungen für die "
         "Müllabfuhr direkt per WhatsApp."
+    ),
+    "muell_abo_text": (
+        "Wer die Erinnerung abonniert, bekommt am Vortag um 18 Uhr automatisch "
+        "eine WhatsApp-Nachricht mit den Tonnen, die am nächsten Tag abgeholt "
+        "werden."
+    ),
+    "buergerinfo_seite_text": (
+        "Wichtige Informationen, Links und Hinweise für Bürgerinnen und Bürger "
+        "in Ahnsen."
+    ),
+    "feuerwehr_seite_text": (
+        "Informationen zur Feuerwehr Ahnsen, zum Ehrenamt und zu wichtigen "
+        "Hinweisen im Notfall."
     ),
     "ansprechpartner_seite_text": (
         "Hier findest du wichtige Ansprechpartner und Kontaktmöglichkeiten "
@@ -104,6 +144,16 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     "ueber_ahnsen_seite_text": (
         "Ahnsen verbindet ländliche Lebensqualität, starke Nachbarschaft und "
         "moderne digitale Angebote."
+    ),
+    "impressum_seite_text": (
+        "Angaben gemäß den gesetzlichen Vorgaben können hier gepflegt werden.\n"
+        "Bitte ergänze verantwortliche Stelle, Anschrift, Kontakt und weitere "
+        "Pflichtangaben."
+    ),
+    "datenschutz_seite_text": (
+        "Informationen zum Datenschutz können hier gepflegt werden.\n"
+        "Bitte ergänze Verantwortliche, Verarbeitungszwecke, Rechtsgrundlagen "
+        "und Kontaktmöglichkeiten."
     ),
 }
 

@@ -305,10 +305,10 @@ def muelltermine_dashboard(hinweis="", fehler=""):
         <main class="container">
             <nav class="top-nav">
                 <a href="/">⌂ Start</a>
-                <a href="/dashboard">📋 Mängel</a>
+                <a href="/intern/maengel">📋 Mängel</a>
                 <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-                <a href="/dgh">🏠 DGH</a>
-                <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
+                <a href="/intern/dgh">🏠 DGH</a>
+                <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
             </nav>
 
             <h1>🗑️ Müllabfuhr Termine</h1>

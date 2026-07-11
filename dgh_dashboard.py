@@ -106,7 +106,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                     inhalt = str(tag_nummer)
                     if tag_termine:
                         inhalt = (
-                            f'<a href="/dgh?tag={datum_tag.isoformat()}'
+                            f'<a href="/intern/dgh?tag={datum_tag.isoformat()}'
                             f'#tag-details" title="Buchungsdetails anzeigen">'
                             f'{tag_nummer}</a>'
                         )
@@ -167,7 +167,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                     <dd class="preserve-lines">{escape(termin.kommentar or "-")}</dd>
                 </dl>
                 <a class="edit-link"
-                   href="/dgh?bearbeiten_id={termin.id}&tag={tag}#formular">
+                   href="/intern/dgh?bearbeiten_id={termin.id}&tag={tag}#formular">
                     ✏️ Anfrage bearbeiten
                 </a>
             </article>
@@ -222,7 +222,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                     <button type="submit">Status speichern</button>
                 </form>
 
-                <a href="/dgh?bearbeiten_id={t.id}">
+                <a href="/intern/dgh?bearbeiten_id={t.id}">
                     <button type="button">✏️ Bearbeiten</button>
                 </a>
 
@@ -636,10 +636,10 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
     <body>
         <div class="top-nav">
             <a href="/">⌂ Start</a>
-            <a href="/dashboard">📋 Mängel</a>
+            <a href="/intern/maengel">📋 Mängel</a>
             <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-            <a href="/dgh">🏠 DGH</a>
-            <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
+            <a href="/intern/dgh">🏠 DGH</a>
+            <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
         </div>
 
         <h1>🏠 DGH buchen</h1>
@@ -678,7 +678,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                 <textarea name="kommentar" placeholder="Interner Kommentar (wird nicht per WhatsApp gesendet)">{escape(kommentar)}</textarea>
 
                 <button type="submit">{button_text}</button>
-                <a class="cancel" href="/dgh">Abbrechen</a>
+                <a class="cancel" href="/intern/dgh">Abbrechen</a>
             </form>
         </div>
 
