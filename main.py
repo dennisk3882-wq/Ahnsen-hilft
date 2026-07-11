@@ -35,6 +35,7 @@ from veranstaltungen_dashboard import veranstaltungen_dashboard
 from dgh_crud import (
     get_alle_dgh_termine,
     get_dgh_anfragen,
+    get_freie_tage,
     init_dgh_db,
     save_dgh_termin,
     update_dgh_termin,
@@ -49,7 +50,7 @@ from muelltermine_crud import (
 )
 from muelltermine_dashboard import muelltermine_dashboard
 from muelltermine_parser import lese_muelltermine_aus_pdf
-from startseite import login_page, start_page
+from startseite import login_page, public_home_page, start_page
 from whatsapp import send_whatsapp_message
 from abonnements_crud import (
     get_abonnement_uebersicht,
@@ -61,6 +62,12 @@ from chat_crud import (
     speichere_chatnachricht,
 )
 from chatbot_dashboard import chatbot_detail_page
+from gemeinde_crud import (
+    get_gemeinde_einstellungen,
+    init_gemeinde_db,
+    update_gemeinde_einstellungen,
+)
+from gemeinde_dashboard import gemeinde_dashboard
 
 
 app = FastAPI()
@@ -86,6 +93,7 @@ def startup():
     init_dgh_db()
     init_muelltermine_db()
     init_chat_db()
+    init_gemeinde_db()
 
 
 def _session_signatur(zeitstempel):
@@ -169,6 +177,14 @@ def _startseiten_daten(suche=""):
         "dgh": [],
     }
 
+
+def _public_home_daten():
+    return {
+        "einstellungen": get_gemeinde_einstellungen(),
+        "veranstaltungen": get_aktive_veranstaltungen(),
+        "freie_dgh_tage": get_freie_tage(anzahl_tage=60),
+    }
+
     if suche.strip():
         suchergebnisse["meldungen"] = suche_meldungen(suche)[:8]
         suchergebnisse["veranstaltungen"] = [
@@ -221,7 +237,7 @@ async def home(request: Request, suche: str = ""):
     if _session_ist_gueltig(request):
         return start_page(_startseiten_daten(suche), suche=suche)
 
-    return login_page()
+    return public_home_page(_public_home_daten())
 
 
 @app.post("/login")
@@ -230,7 +246,8 @@ async def login(
     password: str = Form(...),
 ):
     if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
-        response = login_page(
+        response = public_home_page(
+            _public_home_daten(),
             "Der Dashboard-Zugang ist auf dem Server noch nicht eingerichtet."
         )
         response.status_code = 503
@@ -240,7 +257,10 @@ async def login(
     passwort_ok = secrets.compare_digest(password, DASHBOARD_PASSWORD)
 
     if not (benutzer_ok and passwort_ok):
-        response = login_page("Benutzername oder Passwort ist nicht korrekt.")
+        response = public_home_page(
+            _public_home_daten(),
+            "Benutzername oder Passwort ist nicht korrekt.",
+        )
         response.status_code = 401
         return response
 
@@ -602,6 +622,31 @@ async def muelltermine_import(
     )
     return RedirectResponse(
         url=f"/muelltermine?hinweis={quote(hinweis)}",
+        status_code=303,
+    )
+
+
+@app.get("/gemeindeseite")
+async def gemeindeseite(
+    hinweis: str = "",
+    _=Depends(check_dashboard_login),
+):
+    return gemeinde_dashboard(
+        get_gemeinde_einstellungen(),
+        hinweis=hinweis,
+    )
+
+
+@app.post("/gemeindeseite")
+async def gemeindeseite_speichern(
+    request: Request,
+    _=Depends(check_dashboard_login),
+):
+    form = await request.form()
+    update_gemeinde_einstellungen(dict(form))
+
+    return RedirectResponse(
+        url="/gemeindeseite?hinweis=Gemeindeseite%20wurde%20gespeichert.",
         status_code=303,
     )
 
