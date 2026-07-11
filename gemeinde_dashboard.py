@@ -64,6 +64,16 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
         "ansprechpartner",
         "footer_impressum_url",
         "footer_datenschutz_url",
+        "portal_intro",
+        "mangel_seite_text",
+        "veranstaltungen_seite_text",
+        "dgh_seite_text",
+        "muell_seite_text",
+        "ansprechpartner_seite_text",
+        "vereine_seite_text",
+        "aktuelles_seite_text",
+        "whatsapp_seite_text",
+        "ueber_ahnsen_seite_text",
     }
 
     for schluessel in DEFAULT_GEMEINDE_EINSTELLUNGEN:
@@ -258,7 +268,7 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
             <nav class="top-nav">
                 <a href="/">⌂ Start</a>
                 <a href="/dashboard">📋 Mängel</a>
-                <a href="/veranstaltungen">📅 Veranstaltungen</a>
+                <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
                 <a href="/dgh">🏠 DGH</a>
                 <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
             </nav>
@@ -297,6 +307,20 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                     {textfeld("hero_text", "Hero-Kurztext", rows=3)}
                     {textfeld("willkommen_text", "Begrüßung / Willkommen", rows=4)}
                     {textfeld("ueber_ahnsen_text", "Über Ahnsen", rows=4)}
+                </section>
+
+                <section class="section">
+                    <h2>Öffentliche Unterseiten</h2>
+                    {textfeld("portal_intro", "Startseiten-Übersicht", rows=3)}
+                    {textfeld("mangel_seite_text", "Seite: Mangel melden", rows=3)}
+                    {textfeld("veranstaltungen_seite_text", "Seite: Veranstaltungen", rows=3)}
+                    {textfeld("dgh_seite_text", "Seite: DGH mieten", rows=3)}
+                    {textfeld("muell_seite_text", "Seite: Mülltermine", rows=3)}
+                    {textfeld("whatsapp_seite_text", "Seite: WhatsApp-Bot", rows=3)}
+                    {textfeld("ansprechpartner_seite_text", "Seite: Ansprechpartner", rows=3)}
+                    {textfeld("vereine_seite_text", "Seite: Vereine", rows=3)}
+                    {textfeld("aktuelles_seite_text", "Seite: Aktuelles", rows=3)}
+                    {textfeld("ueber_ahnsen_seite_text", "Seite: Über Ahnsen", rows=3)}
                 </section>
 
                 <section class="section">

@@ -248,7 +248,7 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
         <div class="top-nav">
             <a class="nav-button" href="/">⌂ Start</a>
             <a class="nav-button" href="/dashboard">📋 Mängel</a>
-            <a class="nav-button" href="/veranstaltungen">📅 Veranstaltungen</a>
+            <a class="nav-button" href="/intern/veranstaltungen">📅 Veranstaltungen</a>
             <a class="nav-button" href="/dgh">🏠 DGH</a>
             <a class="nav-button" href="/muelltermine">🗑️ Müllabfuhr Termine</a>
         </div>

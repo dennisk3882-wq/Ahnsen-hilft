@@ -637,7 +637,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
         <div class="top-nav">
             <a href="/">⌂ Start</a>
             <a href="/dashboard">📋 Mängel</a>
-            <a href="/veranstaltungen">📅 Veranstaltungen</a>
+            <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
             <a href="/dgh">🏠 DGH</a>
             <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
         </div>
