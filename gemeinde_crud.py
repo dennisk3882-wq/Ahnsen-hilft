@@ -65,6 +65,46 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     ),
     "footer_impressum_url": "/impressum",
     "footer_datenschutz_url": "/datenschutz",
+    "portal_intro": (
+        "Wähle den passenden Bereich und gelange direkt zu Informationen, "
+        "Services und digitalen Angeboten der Gemeinde."
+    ),
+    "mangel_seite_text": (
+        "Melde defekte Straßenlaternen, Schlaglöcher, wilde Müllablagerungen "
+        "oder andere Hinweise direkt über den WhatsApp-Bot."
+    ),
+    "veranstaltungen_seite_text": (
+        "Hier findest du kommende Termine, Aktionen und Veranstaltungen in "
+        "Ahnsen."
+    ),
+    "dgh_seite_text": (
+        "Das Dorfgemeinschaftshaus ist ein zentraler Treffpunkt in Ahnsen. "
+        "Prüfe freie Termine und starte deine Mietanfrage digital."
+    ),
+    "muell_seite_text": (
+        "Sieh die nächsten Abholtermine und abonniere Erinnerungen für die "
+        "Müllabfuhr direkt per WhatsApp."
+    ),
+    "ansprechpartner_seite_text": (
+        "Hier findest du wichtige Ansprechpartner und Kontaktmöglichkeiten "
+        "für deine Anliegen."
+    ),
+    "vereine_seite_text": (
+        "Ahnsen lebt von Ehrenamt, Vereinen und Gemeinschaft. Hier findest du "
+        "einen Überblick."
+    ),
+    "aktuelles_seite_text": (
+        "Aktuelle Hinweise, Neuigkeiten und wichtige Informationen der "
+        "Gemeinde."
+    ),
+    "whatsapp_seite_text": (
+        "Der WhatsApp-Bot führt dich Schritt für Schritt durch die wichtigsten "
+        "digitalen Dienste der Gemeinde."
+    ),
+    "ueber_ahnsen_seite_text": (
+        "Ahnsen verbindet ländliche Lebensqualität, starke Nachbarschaft und "
+        "moderne digitale Angebote."
+    ),
 }
 
 

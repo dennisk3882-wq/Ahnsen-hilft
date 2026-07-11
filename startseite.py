@@ -1368,6 +1368,694 @@ def public_home_page(daten, fehler=""):
     return HTMLResponse(html)
 
 
+def _public_design(einstellungen):
+    hauptfarbe = einstellungen.get("hauptfarbe", "#17324d")
+    akzentfarbe = einstellungen.get("akzentfarbe", "#2f6f9f")
+    gruen = einstellungen.get("gruen", "#6d8f49")
+
+    return f"""
+        :root {{
+            --navy:{hauptfarbe};
+            --blue:{akzentfarbe};
+            --green:{gruen};
+            --ink:#172533;
+            --muted:#647482;
+            --soft:#f3f8f7;
+        }}
+
+        * {{ box-sizing:border-box; }}
+
+        body {{
+            margin:0;
+            font-family:Inter, "Segoe UI", Arial, sans-serif;
+            color:var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(47,111,159,.14), transparent 30rem),
+                linear-gradient(180deg, #f7fbfb 0%, #edf5f4 100%);
+        }}
+
+        a {{ color:inherit; }}
+
+        .site-nav {{
+            position:sticky;
+            top:0;
+            z-index:20;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            padding:15px clamp(16px, 5vw, 60px);
+            border-bottom:1px solid rgba(210,222,228,.78);
+            background:rgba(255,255,255,.86);
+            backdrop-filter:blur(18px);
+        }}
+
+        .brand {{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            color:var(--navy);
+            text-decoration:none;
+            font-weight:950;
+        }}
+
+        .brand-mark {{
+            width:42px;
+            height:42px;
+            display:grid;
+            place-items:center;
+            border-radius:15px;
+            color:white;
+            background:linear-gradient(135deg, var(--navy), var(--blue));
+            box-shadow:0 10px 25px rgba(23,50,77,.18);
+        }}
+
+        .nav-links {{
+            display:flex;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:14px;
+            color:#42586a;
+            font-size:14px;
+            font-weight:850;
+        }}
+
+        .nav-links a {{
+            text-decoration:none;
+        }}
+
+        .login-pill {{
+            padding:9px 13px;
+            border:1px solid #d7e2e7;
+            border-radius:999px;
+            background:white;
+            color:var(--navy);
+        }}
+
+        .hero,
+        .section {{
+            width:min(1160px, calc(100% - 34px));
+            margin:0 auto;
+        }}
+
+        .hero {{
+            display:grid;
+            grid-template-columns:1.1fr .9fr;
+            gap:24px;
+            align-items:center;
+            padding:70px 0 36px;
+        }}
+
+        .hero-card {{
+            padding:clamp(26px, 5vw, 52px);
+            border-radius:34px;
+            color:white;
+            background:
+                radial-gradient(circle at top right, rgba(255,255,255,.20), transparent 18rem),
+                linear-gradient(135deg, var(--navy), var(--blue));
+            box-shadow:0 28px 72px rgba(23,50,77,.22);
+        }}
+
+        .hero-image {{
+            min-height:430px;
+            border-radius:34px;
+            background:var(--hero-image) center center / cover;
+            box-shadow:0 28px 72px rgba(23,50,77,.20);
+        }}
+
+        .eyebrow,
+        .chip {{
+            display:inline-flex;
+            width:max-content;
+            align-items:center;
+            gap:6px;
+            padding:7px 11px;
+            border-radius:999px;
+            color:#173d2b;
+            background:rgba(234,246,238,.94);
+            font-size:12px;
+            font-weight:950;
+            letter-spacing:.04em;
+            text-transform:uppercase;
+        }}
+
+        h1 {{
+            margin:18px 0 12px;
+            font-size:clamp(42px, 7vw, 82px);
+            line-height:.98;
+            letter-spacing:-.06em;
+        }}
+
+        h2 {{
+            margin:0 0 12px;
+            color:var(--navy);
+            font-size:clamp(30px, 5vw, 54px);
+            line-height:1.02;
+            letter-spacing:-.045em;
+        }}
+
+        h3 {{
+            margin:0 0 8px;
+            color:var(--navy);
+        }}
+
+        p {{
+            color:var(--muted);
+            line-height:1.65;
+        }}
+
+        .hero-card p {{
+            max-width:680px;
+            color:rgba(255,255,255,.83);
+            font-size:18px;
+        }}
+
+        .actions {{
+            display:flex;
+            flex-wrap:wrap;
+            gap:11px;
+            margin-top:28px;
+        }}
+
+        .btn {{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:8px;
+            min-height:48px;
+            padding:13px 18px;
+            border:0;
+            border-radius:999px;
+            text-decoration:none;
+            font-weight:950;
+            transition:.2s ease;
+        }}
+
+        .btn:hover {{
+            transform:translateY(-2px);
+        }}
+
+        .btn.primary {{
+            color:white;
+            background:linear-gradient(135deg, var(--green), #8db45d);
+            box-shadow:0 14px 28px rgba(109,143,73,.25);
+        }}
+
+        .btn.secondary {{
+            color:var(--navy);
+            background:white;
+        }}
+
+        .btn.blue {{
+            color:white;
+            background:var(--blue);
+        }}
+
+        .section {{
+            padding:54px 0;
+        }}
+
+        .section-head {{
+            max-width:760px;
+            margin-bottom:24px;
+        }}
+
+        .grid {{
+            display:grid;
+            grid-template-columns:repeat(3, minmax(0, 1fr));
+            gap:18px;
+        }}
+
+        .portal-grid {{
+            display:grid;
+            grid-template-columns:repeat(4, minmax(0, 1fr));
+            gap:16px;
+        }}
+
+        .card,
+        .mini-card,
+        .news-card {{
+            padding:22px;
+            border:1px solid rgba(212,224,229,.8);
+            border-radius:24px;
+            background:rgba(255,255,255,.9);
+            box-shadow:0 16px 45px rgba(34,58,78,.09);
+            text-decoration:none;
+            transition:.2s ease;
+        }}
+
+        .card:hover,
+        .mini-card:hover,
+        .news-card:hover {{
+            transform:translateY(-5px);
+            box-shadow:0 24px 58px rgba(34,58,78,.14);
+        }}
+
+        .icon,
+        .mini-icon {{
+            width:52px;
+            height:52px;
+            display:grid;
+            place-items:center;
+            margin-bottom:15px;
+            border-radius:18px;
+            color:white;
+            background:linear-gradient(135deg, var(--navy), var(--blue));
+            font-size:25px;
+        }}
+
+        .highlight {{
+            display:grid;
+            grid-template-columns:repeat(3, 1fr);
+            gap:16px;
+        }}
+
+        .highlight .card {{
+            min-height:150px;
+        }}
+
+        .list {{
+            display:grid;
+            gap:12px;
+        }}
+
+        .row {{
+            display:flex;
+            justify-content:space-between;
+            gap:14px;
+            padding:17px 18px;
+            border:1px solid #dce7eb;
+            border-radius:18px;
+            background:white;
+        }}
+
+        .free-days {{
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            margin:16px 0;
+        }}
+
+        .free-days span {{
+            padding:9px 11px;
+            border-radius:999px;
+            color:#315b2d;
+            background:#e9f4e2;
+            font-weight:900;
+        }}
+
+        .footer {{
+            margin-top:44px;
+            padding:42px clamp(16px, 5vw, 60px);
+            color:white;
+            background:#10283d;
+        }}
+
+        .footer-grid {{
+            width:min(1160px, 100%);
+            margin:auto;
+            display:grid;
+            grid-template-columns:1.3fr repeat(3, 1fr);
+            gap:22px;
+        }}
+
+        .footer p,
+        .footer a {{
+            color:rgba(255,255,255,.82);
+        }}
+
+        .footer a {{
+            text-decoration:none;
+        }}
+
+        @media (max-width:980px) {{
+            .nav-links a:not(.login-pill) {{
+                display:none;
+            }}
+
+            .hero,
+            .highlight,
+            .footer-grid {{
+                grid-template-columns:1fr;
+            }}
+
+            .portal-grid,
+            .grid {{
+                grid-template-columns:repeat(2, minmax(0, 1fr));
+            }}
+
+            .hero-image {{
+                min-height:300px;
+            }}
+        }}
+
+        @media (max-width:620px) {{
+            .brand span:last-child {{
+                display:none;
+            }}
+
+            .hero {{
+                width:calc(100% - 22px);
+                padding-top:34px;
+            }}
+
+            .section {{
+                width:calc(100% - 22px);
+                padding:38px 0;
+            }}
+
+            .portal-grid,
+            .grid {{
+                grid-template-columns:1fr;
+            }}
+
+            .actions,
+            .btn {{
+                width:100%;
+            }}
+
+            .row {{
+                display:block;
+            }}
+        }}
+    """
+
+
+def _public_nav(einstellungen):
+    return f"""
+    <nav class="site-nav">
+        <a class="brand" href="/">
+            <span class="brand-mark">⌂</span>
+            <span>{escape(einstellungen.get("logo_text", "Ahnsen hilft"))}</span>
+        </a>
+        <div class="nav-links">
+            <a href="/veranstaltungen">Veranstaltungen</a>
+            <a href="/dgh-mieten">DGH</a>
+            <a href="/muelltermine-info">Mülltermine</a>
+            <a href="/whatsapp-bot">WhatsApp</a>
+            <a class="login-pill" href="/#login">Login</a>
+        </div>
+    </nav>
+    """
+
+
+def _public_footer(einstellungen):
+    return f"""
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <h2>{escape(einstellungen.get("logo_text", "Ahnsen hilft"))}</h2>
+                <p>{escape(einstellungen.get("hero_untertitel", ""))}</p>
+            </div>
+            <div>
+                <h3>Kontakt</h3>
+                <p>
+                    {escape(einstellungen.get("kontakt_name", ""))}<br>
+                    {escape(einstellungen.get("kontakt_adresse", ""))}<br>
+                    {escape(einstellungen.get("kontakt_email", ""))}<br>
+                    {escape(einstellungen.get("kontakt_telefon", ""))}
+                </p>
+            </div>
+            <div>
+                <h3>Öffnungszeiten</h3>
+                <p>{escape(einstellungen.get("oeffnungszeiten", ""))}</p>
+            </div>
+            <div>
+                <h3>Rechtliches</h3>
+                <p>
+                    <a href="{escape(einstellungen.get("footer_impressum_url", "#"))}">Impressum</a><br>
+                    <a href="{escape(einstellungen.get("footer_datenschutz_url", "#"))}">Datenschutz</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+    """
+
+
+def _public_shell(einstellungen, title, body):
+    hero_bild = einstellungen.get("hero_bild_url") or "/assets/ahnsen-startseite.png"
+    html = f"""
+    <!doctype html>
+    <html lang="de">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{escape(title)} · {escape(einstellungen.get("seiten_titel", "Ahnsen hilft"))}</title>
+        <style>
+            {_public_design(einstellungen)}
+            :root {{ --hero-image:url("{escape(hero_bild)}"); }}
+        </style>
+    </head>
+    <body>
+        {_public_nav(einstellungen)}
+        {body}
+        {_public_footer(einstellungen)}
+    </body>
+    </html>
+    """
+
+    return HTMLResponse(html)
+
+
+def _portal_cards():
+    cards = [
+        ("⚠️", "Mängel melden", "Schäden und Hinweise direkt per WhatsApp senden.", "/mangel-melden"),
+        ("📅", "Veranstaltungen", "Termine und Aktionen im Dorf entdecken.", "/veranstaltungen"),
+        ("🏛️", "DGH mieten", "Freie Termine prüfen und Anfrage starten.", "/dgh-mieten"),
+        ("🗑️", "Mülltermine", "Abholungen und Erinnerungen ansehen.", "/muelltermine-info"),
+        ("💬", "WhatsApp-Bot", "Der digitale Dorfassistent für Ahnsen.", "/whatsapp-bot"),
+        ("☎️", "Ansprechpartner", "Kontakte nach Anliegen sortiert.", "/ansprechpartner"),
+        ("🤝", "Vereine", "Vereinsleben und Ehrenamt in Ahnsen.", "/vereine"),
+        ("🌳", "Über Ahnsen", "Ort, Gemeinschaft und Bürgerinfos.", "/ueber-ahnsen"),
+        ("📰", "Aktuelles", "Neuigkeiten und wichtige Hinweise.", "/aktuelles"),
+    ]
+
+    html = ""
+    for icon, titel, text, link in cards:
+        html += f"""
+        <a class="card" href="{link}">
+            <span class="icon">{icon}</span>
+            <h3>{titel}</h3>
+            <p>{text}</p>
+        </a>
+        """
+    return html
+
+
+def portal_home_page(daten, fehler=""):
+    einstellungen = daten.get("einstellungen", {})
+    veranstaltungen = daten.get("veranstaltungen", [])
+    freie_tage = daten.get("freie_dgh_tage", [])
+    muelltermine = daten.get("muelltermine", [])
+    whatsapp_link = einstellungen.get("whatsapp_link") or "/whatsapp-bot"
+
+    naechste_veranstaltung = (
+        veranstaltungen[0] if veranstaltungen else None
+    )
+    naechster_muell = muelltermine[0] if muelltermine else None
+
+    fehler_html = (
+        f'<div class="login-error">⚠️ {escape(fehler)}</div>' if fehler else ""
+    )
+
+    event_text = "Noch keine kommende Veranstaltung eingetragen."
+    if naechste_veranstaltung:
+        event_text = (
+            f"{naechste_veranstaltung.datum or '-'} · "
+            f"{naechste_veranstaltung.titel or 'Veranstaltung'}"
+        )
+
+    muell_text = "Die nächsten Abholtermine erscheinen hier."
+    if naechster_muell:
+        muell_text = (
+            f"{naechster_muell.datum.strftime('%d.%m.%Y')} · "
+            f"{escape(naechster_muell.abfuhrarten or '')}"
+        )
+
+    dgh_text = "Freie Termine werden im Kalender angezeigt."
+    if freie_tage:
+        dgh_text = f"Nächster freier Termin: {freie_tage[0].strftime('%d.%m.%Y')}"
+
+    body = f"""
+    <header class="hero">
+        <section class="hero-card">
+            <span class="eyebrow">Zentrale Bürgerplattform</span>
+            <h1>{escape(einstellungen.get("hero_titel", "Willkommen in Ahnsen"))}</h1>
+            <p>{escape(einstellungen.get("portal_intro", ""))}</p>
+            <div class="actions">
+                <a class="btn primary" href="/mangel-melden">Mangel melden</a>
+                <a class="btn secondary" href="/veranstaltungen">Veranstaltungen</a>
+                <a class="btn secondary" href="/dgh-mieten">DGH buchen</a>
+            </div>
+        </section>
+        <aside class="card" id="login">
+            <h3>Interner Bereich</h3>
+            <p>Für Verwaltung, Redaktion und Gemeindeteam.</p>
+            {fehler_html}
+            <form method="post" action="/login">
+                <p><input name="username" placeholder="Benutzername" autocomplete="username" required></p>
+                <p><input name="password" placeholder="Passwort" type="password" autocomplete="current-password" required></p>
+                <button class="btn blue" type="submit">Sicher anmelden</button>
+            </form>
+        </aside>
+    </header>
+
+    <main>
+        <section class="section">
+            <div class="section-head">
+                <span class="eyebrow">Übersicht</span>
+                <h2>Was möchtest du erledigen?</h2>
+                <p>{escape(einstellungen.get("hero_text", ""))}</p>
+            </div>
+            <div class="portal-grid">{_portal_cards()}</div>
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <span class="eyebrow">Heute wichtig</span>
+                <h2>Aktuelle Schnellinfos</h2>
+            </div>
+            <div class="highlight">
+                <a class="card" href="/veranstaltungen">
+                    <span class="icon">📅</span>
+                    <h3>Nächste Veranstaltung</h3>
+                    <p>{escape(event_text)}</p>
+                </a>
+                <a class="card" href="/dgh-mieten">
+                    <span class="icon">🏛️</span>
+                    <h3>DGH</h3>
+                    <p>{escape(dgh_text)}</p>
+                </a>
+                <a class="card" href="/muelltermine-info">
+                    <span class="icon">🗑️</span>
+                    <h3>Müllabfuhr</h3>
+                    <p>{muell_text}</p>
+                </a>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="hero-card">
+                <span class="eyebrow">WhatsApp-Bot</span>
+                <h2 style="color:white;">Der digitale Dorfassistent</h2>
+                <p>{escape(einstellungen.get("whatsapp_text", ""))}</p>
+                <div class="actions">
+                    <a class="btn secondary" href="{escape(whatsapp_link)}">WhatsApp öffnen</a>
+                    <a class="btn secondary" href="/whatsapp-bot">Mehr erfahren</a>
+                </div>
+            </div>
+        </section>
+    </main>
+    """
+
+    return _public_shell(einstellungen, "Startseite", body)
+
+
+def public_content_page(daten, seite):
+    einstellungen = daten.get("einstellungen", {})
+    veranstaltungen = daten.get("veranstaltungen", [])
+    freie_tage = daten.get("freie_dgh_tage", [])
+    muelltermine = daten.get("muelltermine", [])
+    whatsapp_link = einstellungen.get("whatsapp_link") or "#"
+
+    titel_map = {
+        "mangel": ("Mangel melden", "mangel_seite_text", "⚠️"),
+        "veranstaltungen": ("Veranstaltungen", "veranstaltungen_seite_text", "📅"),
+        "dgh": ("DGH mieten", "dgh_seite_text", "🏛️"),
+        "muell": ("Mülltermine", "muell_seite_text", "🗑️"),
+        "ansprechpartner": ("Ansprechpartner", "ansprechpartner_seite_text", "☎️"),
+        "vereine": ("Vereine", "vereine_seite_text", "🤝"),
+        "aktuelles": ("Aktuelles", "aktuelles_seite_text", "📰"),
+        "whatsapp": ("WhatsApp-Bot", "whatsapp_seite_text", "💬"),
+        "ueber": ("Über Ahnsen", "ueber_ahnsen_seite_text", "🌳"),
+    }
+    titel, text_key, icon = titel_map.get(seite, titel_map["ueber"])
+
+    detail = ""
+    if seite == "veranstaltungen":
+        rows = ""
+        for v in veranstaltungen:
+            rows += f"""
+            <article class="card">
+                <span class="chip">{escape(v.datum or "Termin")}</span>
+                <h3>{escape(v.titel or "Veranstaltung")}</h3>
+                <p>{escape(v.beschreibung or "Weitere Informationen folgen.")}</p>
+                <p><b>{escape(v.uhrzeit or "")}</b> {escape(v.ort or "")}</p>
+            </article>
+            """
+        detail = f'<div class="grid">{rows or "<p>Zurzeit sind keine Veranstaltungen eingetragen.</p>"}</div>'
+    elif seite == "dgh":
+        detail = f"""
+        {_render_freie_dgh_tage(freie_tage)}
+        <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Jetzt per WhatsApp buchen</a></div>
+        """
+    elif seite == "muell":
+        rows = ""
+        for termin in muelltermine[:8]:
+            rows += f"""
+            <div class="row">
+                <strong>{termin.datum.strftime('%d.%m.%Y')}</strong>
+                <span>{escape(termin.abfuhrarten or "")}</span>
+            </div>
+            """
+        detail = f'<div class="list">{rows or "<p>Zurzeit sind keine Mülltermine eingetragen.</p>"}</div>'
+    elif seite == "vereine":
+        detail = f'<div class="grid">{_render_public_list(einstellungen.get("vereine", ""), "🤝")}</div>'
+    elif seite == "ansprechpartner":
+        detail = f'<div class="grid">{_render_public_list(einstellungen.get("ansprechpartner", ""), "👤")}</div>'
+    elif seite == "aktuelles":
+        detail = f'<div class="grid">{_render_public_news(einstellungen.get("aktuelles", ""))}</div>'
+    elif seite == "whatsapp":
+        detail = f"""
+        <div class="grid">
+            <article class="card"><span class="icon">⚠️</span><h3>Mängel melden</h3><p>Schäden und Hinweise in wenigen Schritten senden.</p></article>
+            <article class="card"><span class="icon">📅</span><h3>Veranstaltungen</h3><p>Kommende Termine direkt abrufen.</p></article>
+            <article class="card"><span class="icon">🗑️</span><h3>Mülltermine</h3><p>Abholtermine und Erinnerungen erhalten.</p></article>
+            <article class="card"><span class="icon">🏛️</span><h3>DGH buchen</h3><p>Mietanfrage einfach per WhatsApp starten.</p></article>
+            <article class="card"><span class="icon">☎️</span><h3>Ansprechpartner</h3><p>Kontakte schnell finden.</p></article>
+            <article class="card"><span class="icon">🔔</span><h3>Benachrichtigungen</h3><p>Später auch Hinweise wie Unwetterwarnungen erhalten.</p></article>
+        </div>
+        <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">WhatsApp öffnen</a></div>
+        """
+    elif seite == "mangel":
+        detail = f"""
+        <div class="grid">
+            <article class="card"><span class="icon">💡</span><h3>Straßenlaterne defekt</h3><p>Ort nennen und optional Foto senden.</p></article>
+            <article class="card"><span class="icon">🕳️</span><h3>Schlagloch</h3><p>Kurze Beschreibung und genaue Stelle angeben.</p></article>
+            <article class="card"><span class="icon">🗑️</span><h3>Müllablagerung</h3><p>Hinweis schnell an die Verwaltung übermitteln.</p></article>
+        </div>
+        <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Mangel per WhatsApp melden</a></div>
+        """
+    else:
+        detail = f"""
+        <div class="card">
+            <p>{escape(einstellungen.get("ueber_ahnsen_text", ""))}</p>
+        </div>
+        """
+
+    body = f"""
+    <header class="hero">
+        <section class="hero-card">
+            <span class="eyebrow">{icon} {escape(titel)}</span>
+            <h1>{escape(titel)}</h1>
+            <p>{escape(einstellungen.get(text_key, ""))}</p>
+            <div class="actions">
+                <a class="btn secondary" href="/">Zur Startseite</a>
+                <a class="btn primary" href="{escape(whatsapp_link)}">WhatsApp öffnen</a>
+            </div>
+        </section>
+        <div class="hero-image"></div>
+    </header>
+    <main>
+        <section class="section">
+            {detail}
+        </section>
+    </main>
+    """
+
+    return _public_shell(einstellungen, titel, body)
+
+
 def start_page(uebersicht=None, suche=""):
     uebersicht = uebersicht or {}
     meldungs_statistik = uebersicht.get("meldungs_statistik", {})
@@ -1445,7 +2133,7 @@ def start_page(uebersicht=None, suche=""):
     ):
         veranstaltungen_html += f"""
         <a class="overview-row"
-           href="/veranstaltungen?bearbeiten_id={veranstaltung.id}">
+           href="/intern/veranstaltungen?bearbeiten_id={veranstaltung.id}">
             <span>
                 <strong>{escape(veranstaltung.titel or "Veranstaltung")}</strong>
                 <small>
@@ -1474,7 +2162,7 @@ def start_page(uebersicht=None, suche=""):
         for veranstaltung in ergebnisse.get("veranstaltungen", []):
             treffer_html += f"""
             <a class="search-result"
-               href="/veranstaltungen?bearbeiten_id={veranstaltung.id}">
+               href="/intern/veranstaltungen?bearbeiten_id={veranstaltung.id}">
                 <span class="result-type">Veranstaltung</span>
                 <strong>{escape(veranstaltung.titel or "-")}</strong>
                 <small>
@@ -2179,7 +2867,7 @@ def start_page(uebersicht=None, suche=""):
                         <span class="open">Mängel öffnen →</span>
                     </a>
 
-                    <a class="module events" href="/veranstaltungen">
+                    <a class="module events" href="/intern/veranstaltungen">
                         <span class="module-icon">▣</span>
                         <h2>Veranstaltungen</h2>
                         <p>Termine, Bilder und Dorfveranstaltungen verwalten.</p>

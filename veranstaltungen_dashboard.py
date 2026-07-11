@@ -90,7 +90,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
             <td data-label="Bild">{bild_html}</td>
             <td data-label="Status"><span class="status-badge">{status_html}</span></td>
             <td data-label="Aktionen">
-                <a href="/veranstaltungen?bearbeiten_id={v.id}">
+                <a href="/intern/veranstaltungen?bearbeiten_id={v.id}">
                     <button type="button">✏️ Bearbeiten</button>
                 </a>
 
@@ -326,7 +326,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
         <div class="top-nav">
             <a href="/">⌂ Start</a>
             <a href="/dashboard">📋 Mängel</a>
-            <a href="/veranstaltungen">📅 Veranstaltungen</a>
+            <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
             <a href="/dgh">🏠 DGH</a>
             <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
         </div>
@@ -353,7 +353,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
                 <textarea name="beschreibung" placeholder="Beschreibung">{escape(beschreibung)}</textarea>
 
                 <button type="submit">{button_text}</button>
-                <a class="cancel" href="/veranstaltungen">Abbrechen</a>
+                <a class="cancel" href="/intern/veranstaltungen">Abbrechen</a>
             </form>
         </div>
 

@@ -45,12 +45,19 @@ from dgh_crud import (
 )
 from dgh_dashboard import dgh_dashboard
 from muelltermine_crud import (
+    get_naechste_muelltermine,
     importiere_muelltermine,
     init_muelltermine_db,
 )
 from muelltermine_dashboard import muelltermine_dashboard
 from muelltermine_parser import lese_muelltermine_aus_pdf
-from startseite import login_page, public_home_page, start_page
+from startseite import (
+    login_page,
+    portal_home_page,
+    public_content_page,
+    public_home_page,
+    start_page,
+)
 from whatsapp import send_whatsapp_message
 from abonnements_crud import (
     get_abonnement_uebersicht,
@@ -177,14 +184,6 @@ def _startseiten_daten(suche=""):
         "dgh": [],
     }
 
-
-def _public_home_daten():
-    return {
-        "einstellungen": get_gemeinde_einstellungen(),
-        "veranstaltungen": get_aktive_veranstaltungen(),
-        "freie_dgh_tage": get_freie_tage(anzahl_tage=60),
-    }
-
     if suche.strip():
         suchergebnisse["meldungen"] = suche_meldungen(suche)[:8]
         suchergebnisse["veranstaltungen"] = [
@@ -232,12 +231,66 @@ def _public_home_daten():
     }
 
 
+def _public_home_daten():
+    return {
+        "einstellungen": get_gemeinde_einstellungen(),
+        "veranstaltungen": get_aktive_veranstaltungen(),
+        "freie_dgh_tage": get_freie_tage(anzahl_tage=60),
+        "muelltermine": get_naechste_muelltermine(limit=8),
+    }
+
+
 @app.get("/")
 async def home(request: Request, suche: str = ""):
     if _session_ist_gueltig(request):
         return start_page(_startseiten_daten(suche), suche=suche)
 
-    return public_home_page(_public_home_daten())
+    return portal_home_page(_public_home_daten())
+
+
+@app.get("/mangel-melden")
+async def public_mangel():
+    return public_content_page(_public_home_daten(), "mangel")
+
+
+@app.get("/veranstaltungen")
+async def public_veranstaltungen():
+    return public_content_page(_public_home_daten(), "veranstaltungen")
+
+
+@app.get("/dgh-mieten")
+async def public_dgh():
+    return public_content_page(_public_home_daten(), "dgh")
+
+
+@app.get("/muelltermine-info")
+async def public_muelltermine():
+    return public_content_page(_public_home_daten(), "muell")
+
+
+@app.get("/ansprechpartner")
+async def public_ansprechpartner():
+    return public_content_page(_public_home_daten(), "ansprechpartner")
+
+
+@app.get("/vereine")
+async def public_vereine():
+    return public_content_page(_public_home_daten(), "vereine")
+
+
+@app.get("/ueber-ahnsen")
+async def public_ueber_ahnsen():
+    return public_content_page(_public_home_daten(), "ueber")
+
+
+@app.get("/aktuelles")
+async def public_aktuelles():
+    return public_content_page(_public_home_daten(), "aktuelles")
+
+
+@app.get("/whatsapp-bot")
+async def public_whatsapp_bot():
+    return public_content_page(_public_home_daten(), "whatsapp")
 
 
 @app.post("/login")
@@ -246,7 +299,7 @@ async def login(
     password: str = Form(...),
 ):
     if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
-        response = public_home_page(
+        response = portal_home_page(
             _public_home_daten(),
             "Der Dashboard-Zugang ist auf dem Server noch nicht eingerichtet."
         )
@@ -257,7 +310,7 @@ async def login(
     passwort_ok = secrets.compare_digest(password, DASHBOARD_PASSWORD)
 
     if not (benutzer_ok and passwort_ok):
-        response = public_home_page(
+        response = portal_home_page(
             _public_home_daten(),
             "Benutzername oder Passwort ist nicht korrekt.",
         )
@@ -315,8 +368,38 @@ async def dashboard(
     return dashboard_page(suche, status_filter, zeitraum)
 
 
-@app.get("/veranstaltungen")
-async def veranstaltungen(
+@app.get("/intern")
+async def intern_start(_=Depends(check_dashboard_login)):
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/intern/dashboard")
+async def intern_dashboard(
+    suche: str = "",
+    status_filter: str = "",
+    zeitraum: str = "",
+    _=Depends(check_dashboard_login),
+):
+    return dashboard_page(suche, status_filter, zeitraum)
+
+
+@app.get("/intern/dgh")
+async def intern_dgh():
+    return RedirectResponse(url="/dgh", status_code=303)
+
+
+@app.get("/intern/muelltermine")
+async def intern_muelltermine():
+    return RedirectResponse(url="/muelltermine", status_code=303)
+
+
+@app.get("/intern/gemeindeseite")
+async def intern_gemeindeseite():
+    return RedirectResponse(url="/gemeindeseite", status_code=303)
+
+
+@app.get("/intern/veranstaltungen")
+async def veranstaltungen_intern(
     bearbeiten_id: int | None = None,
     _=Depends(check_dashboard_login),
 ):
@@ -349,7 +432,7 @@ async def neue_veranstaltung(
         bild_bytes=bild_bytes,
     )
 
-    return RedirectResponse(url="/veranstaltungen", status_code=303)
+    return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
 
 @app.post("/veranstaltungen/bearbeiten/{veranstaltung_id}")
@@ -380,7 +463,7 @@ async def veranstaltung_bearbeiten(
         bild_bytes=bild_bytes,
     )
 
-    return RedirectResponse(url="/veranstaltungen", status_code=303)
+    return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
 
 @app.get("/veranstaltungen/aktiv/{veranstaltung_id}/{aktiv}")
@@ -391,7 +474,7 @@ async def veranstaltung_aktiv(
 ):
     set_veranstaltung_aktiv(veranstaltung_id, aktiv)
 
-    return RedirectResponse(url="/veranstaltungen", status_code=303)
+    return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
 
 @app.get("/veranstaltungen/loeschen/{veranstaltung_id}")
@@ -401,7 +484,7 @@ async def veranstaltung_loeschen(
 ):
     delete_veranstaltung(veranstaltung_id)
 
-    return RedirectResponse(url="/veranstaltungen", status_code=303)
+    return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
 
 @app.get("/dgh")
