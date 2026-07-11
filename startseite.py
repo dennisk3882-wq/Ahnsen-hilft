@@ -386,6 +386,988 @@ def _render_chatbot_verlauf(chats):
     """
 
 
+def _split_liste(text):
+    eintraege = []
+
+    for zeile in str(text or "").splitlines():
+        zeile = zeile.strip()
+        if not zeile:
+            continue
+
+        if "|" in zeile:
+            titel, beschreibung = zeile.split("|", 1)
+        else:
+            titel, beschreibung = zeile, ""
+
+        eintraege.append(
+            {
+                "titel": titel.strip(),
+                "beschreibung": beschreibung.strip(),
+            }
+        )
+
+    return eintraege
+
+
+def _render_public_events(veranstaltungen):
+    cards = ""
+
+    for veranstaltung in veranstaltungen[:3]:
+        bild = ""
+        if getattr(veranstaltung, "bild_base64", None):
+            bild = (
+                '<img class="event-img" alt="" '
+                f'src="data:image/jpeg;base64,{veranstaltung.bild_base64}">'
+            )
+
+        cards += f"""
+        <article class="event-card reveal">
+            {bild}
+            <div>
+                <span class="chip">📅 {escape(veranstaltung.datum or "Termin")}</span>
+                <h3>{escape(veranstaltung.titel or "Veranstaltung")}</h3>
+                <p>
+                    {escape(veranstaltung.beschreibung or "Weitere Informationen folgen.")}
+                </p>
+                <small>
+                    {escape(veranstaltung.uhrzeit or "")}
+                    {" · " if veranstaltung.uhrzeit and veranstaltung.ort else ""}
+                    {escape(veranstaltung.ort or "")}
+                </small>
+            </div>
+        </article>
+        """
+
+    if not cards:
+        cards = """
+        <article class="event-card reveal">
+            <span class="chip">📅 Veranstaltungen</span>
+            <h3>Der Veranstaltungskalender wird vorbereitet</h3>
+            <p>Neue Termine erscheinen künftig automatisch an dieser Stelle.</p>
+        </article>
+        """
+
+    return cards
+
+
+def _render_public_news(aktuelles_text):
+    cards = ""
+
+    for eintrag in _split_liste(aktuelles_text)[:3]:
+        cards += f"""
+        <article class="news-card reveal">
+            <span>Aktuell</span>
+            <h3>{escape(eintrag["titel"])}</h3>
+            <p>{escape(eintrag["beschreibung"])}</p>
+        </article>
+        """
+
+    return cards
+
+
+def _render_public_links(links_text):
+    links = ""
+
+    for eintrag in _split_liste(links_text):
+        ziel = eintrag["beschreibung"] or "#"
+        links += f"""
+        <a href="{escape(ziel)}">
+            <span>{escape(eintrag["titel"])}</span>
+            <b>→</b>
+        </a>
+        """
+
+    return links
+
+
+def _render_public_list(text, fallback_icon):
+    cards = ""
+
+    for eintrag in _split_liste(text):
+        cards += f"""
+        <article class="mini-card reveal">
+            <span class="mini-icon">{fallback_icon}</span>
+            <h3>{escape(eintrag["titel"])}</h3>
+            <p>{escape(eintrag["beschreibung"])}</p>
+        </article>
+        """
+
+    return cards
+
+
+def _render_freie_dgh_tage(freie_tage):
+    if not freie_tage:
+        return '<p class="muted">Freie Termine werden im Kalender angezeigt.</p>'
+
+    tage = ""
+    for tag in freie_tage[:5]:
+        tage += f"<span>{tag.strftime('%d.%m.%Y')}</span>"
+
+    return f'<div class="free-days">{tage}</div>'
+
+
+def public_home_page(daten, fehler=""):
+    einstellungen = daten.get("einstellungen", {})
+    veranstaltungen = daten.get("veranstaltungen", [])
+    freie_tage = daten.get("freie_dgh_tage", [])
+
+    hauptfarbe = einstellungen.get("hauptfarbe", "#17324d")
+    akzentfarbe = einstellungen.get("akzentfarbe", "#2f6f9f")
+    gruen = einstellungen.get("gruen", "#6d8f49")
+    hero_bild = einstellungen.get("hero_bild_url") or "/assets/ahnsen-startseite.png"
+    whatsapp_link = einstellungen.get("whatsapp_link") or "#whatsapp"
+
+    fehler_html = (
+        f'<div class="login-error">⚠️ {escape(fehler)}</div>' if fehler else ""
+    )
+
+    events_html = _render_public_events(veranstaltungen)
+    news_html = _render_public_news(einstellungen.get("aktuelles", ""))
+    vereine_html = _render_public_list(einstellungen.get("vereine", ""), "🤝")
+    ansprechpartner_html = _render_public_list(
+        einstellungen.get("ansprechpartner", ""),
+        "👤",
+    )
+    links_html = _render_public_links(einstellungen.get("wichtige_links", ""))
+    freie_tage_html = _render_freie_dgh_tage(freie_tage)
+
+    html = f"""
+    <!doctype html>
+    <html lang="de">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{escape(einstellungen.get("seiten_titel", "Ahnsen hilft"))}</title>
+        <style>
+            :root {{
+                --navy:{hauptfarbe};
+                --blue:{akzentfarbe};
+                --green:{gruen};
+                --ink:#172533;
+                --muted:#647482;
+                --soft:#f3f8f7;
+                --card:#ffffff;
+            }}
+
+            * {{
+                box-sizing:border-box;
+            }}
+
+            html {{
+                scroll-behavior:smooth;
+            }}
+
+            body {{
+                margin:0;
+                font-family:Inter, "Segoe UI", Arial, sans-serif;
+                color:var(--ink);
+                background:
+                    radial-gradient(circle at top left, rgba(47,111,159,.13), transparent 28rem),
+                    linear-gradient(180deg, #f7fbfb 0%, #eef5f4 100%);
+            }}
+
+            a {{
+                color:inherit;
+            }}
+
+            .site-nav {{
+                position:sticky;
+                top:0;
+                z-index:20;
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                gap:18px;
+                padding:16px clamp(18px, 5vw, 64px);
+                background:rgba(255,255,255,.82);
+                border-bottom:1px solid rgba(210,222,228,.75);
+                backdrop-filter:blur(18px);
+            }}
+
+            .brand {{
+                display:flex;
+                align-items:center;
+                gap:11px;
+                text-decoration:none;
+                font-weight:950;
+                color:var(--navy);
+            }}
+
+            .brand-mark {{
+                width:42px;
+                height:42px;
+                display:grid;
+                place-items:center;
+                border-radius:15px;
+                color:white;
+                background:linear-gradient(135deg, var(--navy), var(--blue));
+                box-shadow:0 10px 25px rgba(23,50,77,.18);
+            }}
+
+            .nav-links {{
+                display:flex;
+                align-items:center;
+                gap:18px;
+                color:#42586a;
+                font-size:14px;
+                font-weight:800;
+            }}
+
+            .nav-links a {{
+                text-decoration:none;
+            }}
+
+            .login-pill {{
+                padding:10px 14px;
+                border:1px solid #d7e2e7;
+                border-radius:999px;
+                color:var(--navy);
+                background:white;
+            }}
+
+            .section {{
+                width:min(1160px, calc(100% - 36px));
+                margin:0 auto;
+                padding:76px 0;
+            }}
+
+            .hero {{
+                width:min(1260px, calc(100% - 28px));
+                min-height:720px;
+                margin:20px auto 0;
+                padding:clamp(18px, 4vw, 42px);
+                border-radius:34px;
+                background:
+                    linear-gradient(115deg, rgba(10,31,49,.86) 0%, rgba(23,50,77,.62) 42%, rgba(255,255,255,.05) 100%),
+                    url("{escape(hero_bild)}") center center / cover;
+                box-shadow:0 30px 80px rgba(23,50,77,.24);
+                overflow:hidden;
+            }}
+
+            .hero-grid {{
+                min-height:630px;
+                display:grid;
+                grid-template-columns:minmax(0, 1.25fr) minmax(320px, .75fr);
+                gap:28px;
+                align-items:center;
+            }}
+
+            .hero-content {{
+                color:white;
+            }}
+
+            .eyebrow,
+            .chip {{
+                display:inline-flex;
+                align-items:center;
+                gap:6px;
+                width:max-content;
+                padding:7px 11px;
+                border-radius:999px;
+                color:#163725;
+                background:rgba(234,246,238,.92);
+                font-size:12px;
+                font-weight:950;
+                letter-spacing:.04em;
+                text-transform:uppercase;
+            }}
+
+            .hero h1 {{
+                max-width:820px;
+                margin:18px 0 12px;
+                font-size:clamp(44px, 8vw, 88px);
+                line-height:.96;
+                letter-spacing:-.06em;
+            }}
+
+            .hero h2 {{
+                max-width:760px;
+                margin:0 0 18px;
+                font-size:clamp(23px, 3vw, 38px);
+                line-height:1.13;
+                color:rgba(255,255,255,.88);
+            }}
+
+            .hero p {{
+                max-width:650px;
+                margin:0;
+                color:rgba(255,255,255,.80);
+                font-size:18px;
+                line-height:1.65;
+            }}
+
+            .hero-actions {{
+                display:flex;
+                flex-wrap:wrap;
+                gap:12px;
+                margin-top:30px;
+            }}
+
+            .btn {{
+                display:inline-flex;
+                align-items:center;
+                justify-content:center;
+                gap:8px;
+                min-height:48px;
+                padding:13px 18px;
+                border:0;
+                border-radius:999px;
+                text-decoration:none;
+                font-weight:950;
+                transition:.2s ease;
+            }}
+
+            .btn:hover {{
+                transform:translateY(-2px);
+            }}
+
+            .btn.primary {{
+                color:white;
+                background:linear-gradient(135deg, var(--green), #8db45d);
+                box-shadow:0 15px 28px rgba(109,143,73,.28);
+            }}
+
+            .btn.secondary {{
+                color:var(--navy);
+                background:white;
+            }}
+
+            .btn.ghost {{
+                color:white;
+                background:rgba(255,255,255,.14);
+                border:1px solid rgba(255,255,255,.34);
+            }}
+
+            .login-card {{
+                align-self:center;
+                padding:22px;
+                border:1px solid rgba(255,255,255,.54);
+                border-radius:24px;
+                background:rgba(255,255,255,.90);
+                box-shadow:0 22px 60px rgba(0,0,0,.20);
+                backdrop-filter:blur(18px);
+            }}
+
+            .login-card h3 {{
+                margin:0 0 7px;
+                color:var(--navy);
+                font-size:22px;
+            }}
+
+            .login-card p {{
+                margin:0 0 16px;
+                color:#667888;
+                font-size:14px;
+                line-height:1.45;
+            }}
+
+            .login-card label {{
+                display:block;
+                margin-bottom:10px;
+                color:#314659;
+                font-size:13px;
+                font-weight:900;
+            }}
+
+            .login-card input {{
+                width:100%;
+                margin-top:5px;
+                padding:12px 13px;
+                border:1px solid #cfd9df;
+                border-radius:12px;
+                font:inherit;
+            }}
+
+            .login-card button {{
+                width:100%;
+                cursor:pointer;
+            }}
+
+            .login-error {{
+                margin-bottom:12px;
+                padding:10px 12px;
+                border-radius:12px;
+                color:#7d261d;
+                background:#fdecea;
+                font-size:13px;
+                font-weight:800;
+            }}
+
+            .section-head {{
+                max-width:760px;
+                margin-bottom:26px;
+            }}
+
+            .section-head h2 {{
+                margin:11px 0 10px;
+                color:var(--navy);
+                font-size:clamp(31px, 5vw, 54px);
+                line-height:1.02;
+                letter-spacing:-.045em;
+            }}
+
+            .section-head p {{
+                margin:0;
+                color:var(--muted);
+                font-size:17px;
+                line-height:1.65;
+            }}
+
+            .quick-grid {{
+                display:grid;
+                grid-template-columns:repeat(4, minmax(0, 1fr));
+                gap:15px;
+            }}
+
+            .quick-card,
+            .mini-card,
+            .news-card,
+            .event-card,
+            .dgh-card,
+            .whatsapp-card {{
+                border:1px solid rgba(212,224,229,.8);
+                border-radius:24px;
+                background:rgba(255,255,255,.88);
+                box-shadow:0 16px 45px rgba(34,58,78,.09);
+            }}
+
+            .quick-card {{
+                min-height:155px;
+                padding:20px;
+                text-decoration:none;
+                transition:.2s ease;
+            }}
+
+            .quick-card:hover,
+            .event-card:hover {{
+                transform:translateY(-5px);
+                box-shadow:0 22px 55px rgba(34,58,78,.14);
+            }}
+
+            .quick-icon,
+            .mini-icon {{
+                width:48px;
+                height:48px;
+                display:grid;
+                place-items:center;
+                margin-bottom:15px;
+                border-radius:17px;
+                color:white;
+                background:linear-gradient(135deg, var(--navy), var(--blue));
+                font-size:24px;
+            }}
+
+            .quick-card h3,
+            .mini-card h3,
+            .news-card h3,
+            .event-card h3 {{
+                margin:0 0 8px;
+                color:var(--navy);
+            }}
+
+            .quick-card p,
+            .mini-card p,
+            .news-card p,
+            .event-card p {{
+                margin:0;
+                color:var(--muted);
+                line-height:1.5;
+            }}
+
+            .feature-grid {{
+                display:grid;
+                grid-template-columns:1.05fr .95fr;
+                gap:20px;
+                align-items:stretch;
+            }}
+
+            .whatsapp-card {{
+                padding:28px;
+                color:white;
+                background:
+                    radial-gradient(circle at top right, rgba(255,255,255,.20), transparent 16rem),
+                    linear-gradient(135deg, #0f7a47, #22b36c);
+            }}
+
+            .whatsapp-card h2,
+            .whatsapp-card p {{
+                color:white;
+            }}
+
+            .whatsapp-list {{
+                display:grid;
+                grid-template-columns:repeat(2, minmax(0, 1fr));
+                gap:9px;
+                margin:22px 0;
+                padding:0;
+                list-style:none;
+            }}
+
+            .whatsapp-list li {{
+                padding:10px 11px;
+                border-radius:14px;
+                background:rgba(255,255,255,.16);
+                font-weight:800;
+            }}
+
+            .qr-box {{
+                display:flex;
+                align-items:center;
+                gap:14px;
+                padding:14px;
+                border-radius:18px;
+                background:rgba(255,255,255,.16);
+            }}
+
+            .qr {{
+                width:86px;
+                height:86px;
+                display:grid;
+                place-items:center;
+                flex:0 0 auto;
+                border-radius:18px;
+                color:#0f7a47;
+                background:white;
+                font-size:34px;
+                font-weight:950;
+            }}
+
+            .dgh-card {{
+                padding:28px;
+                background:linear-gradient(180deg, white, #f7fbfa);
+            }}
+
+            .free-days {{
+                display:flex;
+                flex-wrap:wrap;
+                gap:8px;
+                margin:18px 0;
+            }}
+
+            .free-days span {{
+                padding:9px 11px;
+                border-radius:999px;
+                color:#315b2d;
+                background:#e9f4e2;
+                font-weight:900;
+            }}
+
+            .event-grid,
+            .news-grid,
+            .mini-grid {{
+                display:grid;
+                grid-template-columns:repeat(3, minmax(0, 1fr));
+                gap:18px;
+            }}
+
+            .event-card {{
+                overflow:hidden;
+            }}
+
+            .event-card > div,
+            .news-card,
+            .mini-card {{
+                padding:20px;
+            }}
+
+            .event-img {{
+                width:100%;
+                height:180px;
+                display:block;
+                object-fit:cover;
+            }}
+
+            .event-card small {{
+                display:block;
+                margin-top:14px;
+                color:#7b8a96;
+                font-weight:800;
+            }}
+
+            .news-card span {{
+                color:var(--green);
+                font-size:12px;
+                font-weight:950;
+                text-transform:uppercase;
+            }}
+
+            .about {{
+                display:grid;
+                grid-template-columns:.9fr 1.1fr;
+                gap:24px;
+                align-items:center;
+                padding:24px;
+                border-radius:32px;
+                background:white;
+                box-shadow:0 18px 48px rgba(34,58,78,.09);
+            }}
+
+            .about-image {{
+                min-height:340px;
+                border-radius:26px;
+                background:url("{escape(hero_bild)}") center center / cover;
+            }}
+
+            .link-list {{
+                display:grid;
+                grid-template-columns:repeat(2, minmax(0, 1fr));
+                gap:10px;
+            }}
+
+            .link-list a {{
+                display:flex;
+                justify-content:space-between;
+                gap:10px;
+                padding:15px 16px;
+                border:1px solid #dce7eb;
+                border-radius:17px;
+                background:white;
+                text-decoration:none;
+                font-weight:900;
+            }}
+
+            .footer {{
+                margin-top:60px;
+                padding:44px clamp(18px, 5vw, 64px);
+                color:white;
+                background:#10283d;
+            }}
+
+            .footer-grid {{
+                width:min(1160px, 100%);
+                margin:auto;
+                display:grid;
+                grid-template-columns:1.3fr repeat(3, 1fr);
+                gap:24px;
+            }}
+
+            .footer a {{
+                color:white;
+                text-decoration:none;
+            }}
+
+            .muted {{
+                color:var(--muted);
+            }}
+
+            .reveal {{
+                animation:rise .7s ease both;
+                animation-timeline:view();
+                animation-range:entry 0% cover 28%;
+            }}
+
+            @keyframes rise {{
+                from {{
+                    opacity:.15;
+                    transform:translateY(26px);
+                }}
+                to {{
+                    opacity:1;
+                    transform:translateY(0);
+                }}
+            }}
+
+            @media (max-width:980px) {{
+                .nav-links a:not(.login-pill) {{
+                    display:none;
+                }}
+
+                .hero {{
+                    min-height:0;
+                }}
+
+                .hero-grid,
+                .feature-grid,
+                .about,
+                .footer-grid {{
+                    grid-template-columns:1fr;
+                }}
+
+                .quick-grid,
+                .event-grid,
+                .news-grid,
+                .mini-grid {{
+                    grid-template-columns:repeat(2, minmax(0, 1fr));
+                }}
+            }}
+
+            @media (max-width:640px) {{
+                .site-nav {{
+                    padding:12px 14px;
+                }}
+
+                .brand span:last-child {{
+                    display:none;
+                }}
+
+                .section {{
+                    width:calc(100% - 24px);
+                    padding:52px 0;
+                }}
+
+                .hero {{
+                    width:calc(100% - 18px);
+                    margin-top:9px;
+                    padding:18px;
+                    border-radius:24px;
+                }}
+
+                .hero-grid {{
+                    min-height:0;
+                }}
+
+                .hero h1 {{
+                    font-size:44px;
+                }}
+
+                .hero-actions,
+                .whatsapp-list,
+                .quick-grid,
+                .event-grid,
+                .news-grid,
+                .mini-grid,
+                .link-list {{
+                    grid-template-columns:1fr;
+                }}
+
+                .btn {{
+                    width:100%;
+                }}
+
+                .qr-box {{
+                    align-items:flex-start;
+                }}
+            }}
+        </style>
+    </head>
+    <body>
+        <nav class="site-nav">
+            <a class="brand" href="/">
+                <span class="brand-mark">⌂</span>
+                <span>{escape(einstellungen.get("logo_text", "Ahnsen hilft"))}</span>
+            </a>
+            <div class="nav-links">
+                <a href="#whatsapp">WhatsApp</a>
+                <a href="#dgh">DGH</a>
+                <a href="#veranstaltungen">Veranstaltungen</a>
+                <a href="#buergerinfo">Bürgerinfo</a>
+                <a class="login-pill" href="#login">Login</a>
+            </div>
+        </nav>
+
+        <header class="hero">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <span class="eyebrow">Gemeinsam digital für Ahnsen</span>
+                    <h1>{escape(einstellungen.get("hero_titel", "Willkommen in Ahnsen"))}</h1>
+                    <h2>{escape(einstellungen.get("hero_untertitel", ""))}</h2>
+                    <p>{escape(einstellungen.get("hero_text", ""))}</p>
+                    <div class="hero-actions">
+                        <a class="btn primary" href="{escape(whatsapp_link)}">⚠️ Mangel melden</a>
+                        <a class="btn secondary" href="#veranstaltungen">📅 Veranstaltungen ansehen</a>
+                        <a class="btn ghost" href="#dgh">🏛️ DGH buchen</a>
+                    </div>
+                </div>
+
+                <aside class="login-card" id="login">
+                    <h3>Interner Bereich</h3>
+                    <p>Für Verwaltung, Redaktion und Gemeindeteam.</p>
+                    {fehler_html}
+                    <form method="post" action="/login">
+                        <label>Benutzername
+                            <input name="username" autocomplete="username" required>
+                        </label>
+                        <label>Passwort
+                            <input name="password" type="password"
+                                   autocomplete="current-password" required>
+                        </label>
+                        <button class="btn primary" type="submit">
+                            Sicher anmelden
+                        </button>
+                    </form>
+                </aside>
+            </div>
+        </header>
+
+        <main>
+            <section class="section" id="schnellzugriff">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Schnelleinstieg</span>
+                    <h2>Alles Wichtige direkt erreichbar.</h2>
+                    <p>{escape(einstellungen.get("willkommen_text", ""))}</p>
+                </div>
+
+                <div class="quick-grid">
+                    <a class="quick-card reveal" href="{escape(whatsapp_link)}">
+                        <span class="quick-icon">⚠️</span>
+                        <h3>Mängel melden</h3>
+                        <p>Schäden und Hinweise unkompliziert per WhatsApp senden.</p>
+                    </a>
+                    <a class="quick-card reveal" href="#veranstaltungen">
+                        <span class="quick-icon">📅</span>
+                        <h3>Veranstaltungen</h3>
+                        <p>Die nächsten Termine und Aktionen im Dorf.</p>
+                    </a>
+                    <a class="quick-card reveal" href="#dgh">
+                        <span class="quick-icon">🏛️</span>
+                        <h3>DGH</h3>
+                        <p>Dorfgemeinschaftshaus prüfen und Anfrage starten.</p>
+                    </a>
+                    <a class="quick-card reveal" href="#whatsapp">
+                        <span class="quick-icon">💬</span>
+                        <h3>WhatsApp</h3>
+                        <p>Der direkte digitale Dorfassistent für Ahnsen.</p>
+                    </a>
+                    <a class="quick-card reveal" href="#buergerinfo">
+                        <span class="quick-icon">🗑️</span>
+                        <h3>Mülltermine</h3>
+                        <p>Abholungen und Erinnerungen rechtzeitig erhalten.</p>
+                    </a>
+                    <a class="quick-card reveal" href="#ansprechpartner">
+                        <span class="quick-icon">☎️</span>
+                        <h3>Ansprechpartner</h3>
+                        <p>Die richtigen Kontakte schnell finden.</p>
+                    </a>
+                    <a class="quick-card reveal" href="#vereine">
+                        <span class="quick-icon">🤝</span>
+                        <h3>Vereine</h3>
+                        <p>Gemeinschaft, Ehrenamt und Angebote vor Ort.</p>
+                    </a>
+                    <a class="quick-card reveal" href="#ueber-ahnsen">
+                        <span class="quick-icon">🌳</span>
+                        <h3>Über Ahnsen</h3>
+                        <p>Ein kurzer Blick auf Dorf, Lage und Gemeinschaft.</p>
+                    </a>
+                </div>
+            </section>
+
+            <section class="section" id="whatsapp">
+                <div class="feature-grid">
+                    <article class="whatsapp-card reveal">
+                        <span class="eyebrow">WhatsApp-Bot</span>
+                        <h2>Der Dorfassistent direkt in der Hosentasche.</h2>
+                        <p>{escape(einstellungen.get("whatsapp_text", ""))}</p>
+                        <ul class="whatsapp-list">
+                            <li>⚠️ Mängel melden</li>
+                            <li>📅 Veranstaltungen abrufen</li>
+                            <li>☎️ Ansprechpartner finden</li>
+                            <li>🗑️ Mülltermine ansehen</li>
+                            <li>🏛️ DGH buchen</li>
+                            <li>🔔 Benachrichtigungen erhalten</li>
+                        </ul>
+                        <a class="btn secondary" href="{escape(whatsapp_link)}">
+                            WhatsApp öffnen
+                        </a>
+                    </article>
+
+                    <article class="dgh-card reveal" id="dgh">
+                        <span class="chip">🏛️ Dorfgemeinschaftshaus</span>
+                        <h2>DGH buchen</h2>
+                        <p>
+                            Prüfe den Kalender und starte eine Anfrage für deinen
+                            Termin im Dorfgemeinschaftshaus.
+                        </p>
+                        <h3>Nächste freie Termine</h3>
+                        {freie_tage_html}
+                        <a class="btn primary" href="{escape(whatsapp_link)}">
+                            Jetzt buchen
+                        </a>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section" id="veranstaltungen">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Dorfleben</span>
+                    <h2>Nächste Veranstaltungen</h2>
+                    <p>Aktuelle Termine aus Ahnsen erscheinen automatisch hier.</p>
+                </div>
+                <div class="event-grid">{events_html}</div>
+            </section>
+
+            <section class="section" id="aktuelles">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Neuigkeiten</span>
+                    <h2>Aktuelles aus der Gemeinde</h2>
+                    <p>Kurze Hinweise, wichtige Informationen und Neuigkeiten.</p>
+                </div>
+                <div class="news-grid">{news_html}</div>
+            </section>
+
+            <section class="section" id="ueber-ahnsen">
+                <article class="about reveal">
+                    <div class="about-image"></div>
+                    <div>
+                        <span class="eyebrow">Über Ahnsen</span>
+                        <h2>Modern verbunden, dörflich verwurzelt.</h2>
+                        <p>{escape(einstellungen.get("ueber_ahnsen_text", ""))}</p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="section" id="buergerinfo">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Bürgerinformation</span>
+                    <h2>Wichtige Links</h2>
+                    <p>Die wichtigsten Informationen und Anlaufstellen kompakt gesammelt.</p>
+                </div>
+                <div class="link-list reveal">{links_html}</div>
+            </section>
+
+            <section class="section" id="vereine">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Gemeinschaft</span>
+                    <h2>Vereine in Ahnsen</h2>
+                    <p>Vereine und ehrenamtliche Gruppen prägen das Leben vor Ort.</p>
+                </div>
+                <div class="mini-grid">{vereine_html}</div>
+            </section>
+
+            <section class="section" id="ansprechpartner">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Kontakt</span>
+                    <h2>Ansprechpartner</h2>
+                    <p>Die wichtigsten Kontakte für Bürgerinnen und Bürger.</p>
+                </div>
+                <div class="mini-grid">{ansprechpartner_html}</div>
+            </section>
+        </main>
+
+        <footer class="footer" id="footer">
+            <div class="footer-grid">
+                <div>
+                    <h2>{escape(einstellungen.get("logo_text", "Ahnsen hilft"))}</h2>
+                    <p>{escape(einstellungen.get("hero_untertitel", ""))}</p>
+                </div>
+                <div>
+                    <h3>Kontakt</h3>
+                    <p>
+                        {escape(einstellungen.get("kontakt_name", ""))}<br>
+                        {escape(einstellungen.get("kontakt_adresse", ""))}<br>
+                        {escape(einstellungen.get("kontakt_email", ""))}<br>
+                        {escape(einstellungen.get("kontakt_telefon", ""))}
+                    </p>
+                </div>
+                <div>
+                    <h3>Öffnungszeiten</h3>
+                    <p>{escape(einstellungen.get("oeffnungszeiten", ""))}</p>
+                </div>
+                <div>
+                    <h3>Rechtliches</h3>
+                    <p>
+                        <a href="{escape(einstellungen.get("footer_impressum_url", "#"))}">Impressum</a><br>
+                        <a href="{escape(einstellungen.get("footer_datenschutz_url", "#"))}">Datenschutz</a>
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </body>
+    </html>
+    """
+
+    return HTMLResponse(html)
+
+
 def start_page(uebersicht=None, suche=""):
     uebersicht = uebersicht or {}
     meldungs_statistik = uebersicht.get("meldungs_statistik", {})
@@ -771,6 +1753,10 @@ def start_page(uebersicht=None, suche=""):
 
             .waste .module-icon {{
                 background:linear-gradient(135deg, #6a4c32, #a77a49);
+            }}
+
+            .settings .module-icon {{
+                background:linear-gradient(135deg, #17324d, #2f6f9f);
             }}
 
             .module h2 {{
@@ -1212,6 +2198,13 @@ def start_page(uebersicht=None, suche=""):
                         <h2>Müllabfuhr Termine</h2>
                         <p>Jahreskalender importieren und Abholungen prüfen.</p>
                         <span class="open">Mülltermine öffnen →</span>
+                    </a>
+
+                    <a class="module settings" href="/gemeindeseite">
+                        <span class="module-icon">🎨</span>
+                        <h2>Gemeindeseite bearbeiten</h2>
+                        <p>Texte, Farben, Kontakt, Links und Homepage-Inhalte pflegen.</p>
+                        <span class="open">Homepage bearbeiten →</span>
                     </a>
                 </section>
 
