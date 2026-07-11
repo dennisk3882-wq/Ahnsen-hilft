@@ -48,11 +48,17 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
         "hero_untertitel",
         "hero_text",
         "hero_bild_url",
+        "logo_bild_url",
+        "hero_bild_alt",
         "willkommen_text",
         "ueber_ahnsen_text",
         "whatsapp_nummer",
         "whatsapp_link",
+        "whatsapp_qr_url",
         "whatsapp_text",
+        "facebook_url",
+        "instagram_url",
+        "externe_website_url",
         "kontakt_name",
         "kontakt_adresse",
         "kontakt_email",
@@ -65,15 +71,25 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
         "footer_impressum_url",
         "footer_datenschutz_url",
         "portal_intro",
+        "suchseite_text",
         "mangel_seite_text",
         "veranstaltungen_seite_text",
+        "veranstaltungen_hinweis",
         "dgh_seite_text",
+        "dgh_regeln",
         "muell_seite_text",
+        "muell_abo_text",
+        "buergerinfo_seite_text",
+        "buergerinfo_text",
         "ansprechpartner_seite_text",
         "vereine_seite_text",
+        "feuerwehr_seite_text",
+        "feuerwehr_text",
         "aktuelles_seite_text",
         "whatsapp_seite_text",
         "ueber_ahnsen_seite_text",
+        "impressum_seite_text",
+        "datenschutz_seite_text",
     }
 
     for schluessel in DEFAULT_GEMEINDE_EINSTELLUNGEN:
@@ -267,10 +283,10 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
         <main class="wrap">
             <nav class="top-nav">
                 <a href="/">⌂ Start</a>
-                <a href="/dashboard">📋 Mängel</a>
+                <a href="/intern/maengel">📋 Mängel</a>
                 <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-                <a href="/dgh">🏠 DGH</a>
-                <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
+                <a href="/intern/dgh">🏠 DGH</a>
+                <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
             </nav>
 
             <section class="hero">
@@ -295,6 +311,8 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                         {feld("akzentfarbe", "Akzentfarbe", "z. B. #2f6f9f")}
                         {feld("gruen", "Grün-Akzent", "z. B. #6d8f49")}
                         {feld("hero_bild_url", "Hero-Bild URL", "Standard: /assets/ahnsen-startseite.png")}
+                        {feld("hero_bild_alt", "Hero-Bild Beschreibung", "Kurzer Alternativtext für Barrierefreiheit")}
+                        {feld("logo_bild_url", "Logo-Bild URL", "Optional: Bildadresse für ein Logo")}
                     </div>
                 </section>
 
@@ -312,15 +330,25 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                 <section class="section">
                     <h2>Öffentliche Unterseiten</h2>
                     {textfeld("portal_intro", "Startseiten-Übersicht", rows=3)}
+                    {textfeld("suchseite_text", "Seite: Suche", rows=3)}
                     {textfeld("mangel_seite_text", "Seite: Mangel melden", rows=3)}
                     {textfeld("veranstaltungen_seite_text", "Seite: Veranstaltungen", rows=3)}
+                    {textfeld("veranstaltungen_hinweis", "Veranstaltungen: Hinweistext", rows=3)}
                     {textfeld("dgh_seite_text", "Seite: DGH mieten", rows=3)}
+                    {textfeld("dgh_regeln", "DGH: Hinweise / Regeln", "Ein Hinweis pro Zeile", rows=5)}
                     {textfeld("muell_seite_text", "Seite: Mülltermine", rows=3)}
+                    {textfeld("muell_abo_text", "Mülltermine: Erinnerungstext", rows=3)}
                     {textfeld("whatsapp_seite_text", "Seite: WhatsApp-Bot", rows=3)}
+                    {textfeld("buergerinfo_seite_text", "Seite: Bürgerinformationen", rows=3)}
+                    {textfeld("buergerinfo_text", "Bürgerinformationen Inhalt", rows=6)}
                     {textfeld("ansprechpartner_seite_text", "Seite: Ansprechpartner", rows=3)}
                     {textfeld("vereine_seite_text", "Seite: Vereine", rows=3)}
+                    {textfeld("feuerwehr_seite_text", "Seite: Feuerwehr", rows=3)}
+                    {textfeld("feuerwehr_text", "Feuerwehr Inhalt", rows=5)}
                     {textfeld("aktuelles_seite_text", "Seite: Aktuelles", rows=3)}
                     {textfeld("ueber_ahnsen_seite_text", "Seite: Über Ahnsen", rows=3)}
+                    {textfeld("impressum_seite_text", "Seite: Impressum", rows=6)}
+                    {textfeld("datenschutz_seite_text", "Seite: Datenschutz", rows=6)}
                 </section>
 
                 <section class="section">
@@ -328,6 +356,7 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                     <div class="grid">
                         {feld("whatsapp_nummer", "WhatsApp-Nummer")}
                         {feld("whatsapp_link", "WhatsApp-Link", "z. B. https://wa.me/49...")}
+                        {feld("whatsapp_qr_url", "WhatsApp QR-Code Bild URL", "Optional: Bildadresse eines QR-Codes")}
                     </div>
                     {textfeld("whatsapp_text", "Beschreibung des WhatsApp-Bots", rows=4)}
                 </section>
@@ -350,6 +379,9 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                         {feld("oeffnungszeiten", "Öffnungszeiten")}
                         {feld("footer_impressum_url", "Impressum-Link")}
                         {feld("footer_datenschutz_url", "Datenschutz-Link")}
+                        {feld("facebook_url", "Facebook-Link")}
+                        {feld("instagram_url", "Instagram-Link")}
+                        {feld("externe_website_url", "Externe Website")}
                     </div>
                 </section>
 

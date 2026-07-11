@@ -54,6 +54,7 @@ from muelltermine_parser import lese_muelltermine_aus_pdf
 from startseite import (
     login_page,
     portal_home_page,
+    public_search_page,
     public_content_page,
     public_home_page,
     start_page,
@@ -236,7 +237,7 @@ def _public_home_daten():
         "einstellungen": get_gemeinde_einstellungen(),
         "veranstaltungen": get_aktive_veranstaltungen(),
         "freie_dgh_tage": get_freie_tage(anzahl_tage=60),
-        "muelltermine": get_naechste_muelltermine(limit=8),
+        "muelltermine": get_naechste_muelltermine(limit=12),
     }
 
 
@@ -273,9 +274,19 @@ async def public_ansprechpartner():
     return public_content_page(_public_home_daten(), "ansprechpartner")
 
 
+@app.get("/buergerinformationen")
+async def public_buergerinformationen():
+    return public_content_page(_public_home_daten(), "buergerinfo")
+
+
 @app.get("/vereine")
 async def public_vereine():
     return public_content_page(_public_home_daten(), "vereine")
+
+
+@app.get("/feuerwehr")
+async def public_feuerwehr():
+    return public_content_page(_public_home_daten(), "feuerwehr")
 
 
 @app.get("/ueber-ahnsen")
@@ -291,6 +302,21 @@ async def public_aktuelles():
 @app.get("/whatsapp-bot")
 async def public_whatsapp_bot():
     return public_content_page(_public_home_daten(), "whatsapp")
+
+
+@app.get("/impressum")
+async def public_impressum():
+    return public_content_page(_public_home_daten(), "impressum")
+
+
+@app.get("/datenschutz")
+async def public_datenschutz():
+    return public_content_page(_public_home_daten(), "datenschutz")
+
+
+@app.get("/suche")
+async def public_suche(q: str = ""):
+    return public_search_page(_public_home_daten(), q)
 
 
 @app.post("/login")
@@ -365,6 +391,26 @@ async def dashboard(
     zeitraum: str = "",
     _=Depends(check_dashboard_login),
 ):
+    ziel = "/intern/maengel"
+    parameter = []
+    if suche:
+        parameter.append(f"suche={quote(suche)}")
+    if status_filter:
+        parameter.append(f"status_filter={quote(status_filter)}")
+    if zeitraum:
+        parameter.append(f"zeitraum={quote(zeitraum)}")
+    if parameter:
+        ziel += "?" + "&".join(parameter)
+    return RedirectResponse(url=ziel, status_code=303)
+
+
+@app.get("/intern/maengel")
+async def intern_maengel(
+    suche: str = "",
+    status_filter: str = "",
+    zeitraum: str = "",
+    _=Depends(check_dashboard_login),
+):
     return dashboard_page(suche, status_filter, zeitraum)
 
 
@@ -380,22 +426,53 @@ async def intern_dashboard(
     zeitraum: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return dashboard_page(suche, status_filter, zeitraum)
+    ziel = "/intern/maengel"
+    parameter = []
+    if suche:
+        parameter.append(f"suche={quote(suche)}")
+    if status_filter:
+        parameter.append(f"status_filter={quote(status_filter)}")
+    if zeitraum:
+        parameter.append(f"zeitraum={quote(zeitraum)}")
+    if parameter:
+        ziel += "?" + "&".join(parameter)
+    return RedirectResponse(url=ziel, status_code=303)
 
 
 @app.get("/intern/dgh")
-async def intern_dgh():
-    return RedirectResponse(url="/dgh", status_code=303)
+async def intern_dgh(
+    bearbeiten_id: int | None = None,
+    hinweis: str = "",
+    fehler: str = "",
+    tag: str = "",
+    _=Depends(check_dashboard_login),
+):
+    return dgh_dashboard(
+        bearbeiten_id,
+        hinweis=hinweis,
+        fehler=fehler,
+        tag=tag,
+    )
 
 
 @app.get("/intern/muelltermine")
-async def intern_muelltermine():
-    return RedirectResponse(url="/muelltermine", status_code=303)
+async def intern_muelltermine(
+    hinweis: str = "",
+    fehler: str = "",
+    _=Depends(check_dashboard_login),
+):
+    return muelltermine_dashboard(hinweis=hinweis, fehler=fehler)
 
 
 @app.get("/intern/gemeindeseite")
-async def intern_gemeindeseite():
-    return RedirectResponse(url="/gemeindeseite", status_code=303)
+async def intern_gemeindeseite(
+    hinweis: str = "",
+    _=Depends(check_dashboard_login),
+):
+    return gemeinde_dashboard(
+        get_gemeinde_einstellungen(),
+        hinweis=hinweis,
+    )
 
 
 @app.get("/intern/veranstaltungen")
@@ -495,12 +572,19 @@ async def dgh(
     tag: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return dgh_dashboard(
-        bearbeiten_id,
-        hinweis=hinweis,
-        fehler=fehler,
-        tag=tag,
-    )
+    ziel = "/intern/dgh"
+    parameter = []
+    if bearbeiten_id:
+        parameter.append(f"bearbeiten_id={bearbeiten_id}")
+    if hinweis:
+        parameter.append(f"hinweis={quote(hinweis)}")
+    if fehler:
+        parameter.append(f"fehler={quote(fehler)}")
+    if tag:
+        parameter.append(f"tag={quote(tag)}")
+    if parameter:
+        ziel += "?" + "&".join(parameter)
+    return RedirectResponse(url=ziel, status_code=303)
 
 
 @app.post("/dgh/neuer-termin")
@@ -517,12 +601,12 @@ async def dgh_neuer_termin(
         save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar)
     except ValueError as error:
         return RedirectResponse(
-            url=f"/dgh?fehler={quote(str(error))}",
+            url=f"/intern/dgh?fehler={quote(str(error))}",
             status_code=303,
         )
 
     return RedirectResponse(
-        url="/dgh?hinweis=Termin%20wurde%20gespeichert.",
+        url="/intern/dgh?hinweis=Termin%20wurde%20gespeichert.",
         status_code=303,
     )
 
@@ -551,14 +635,14 @@ async def dgh_bearbeiten(
     except ValueError as error:
         return RedirectResponse(
             url=(
-                f"/dgh?bearbeiten_id={termin_id}"
+                f"/intern/dgh?bearbeiten_id={termin_id}"
                 f"&fehler={quote(str(error))}"
             ),
             status_code=303,
         )
 
     return RedirectResponse(
-        url="/dgh?hinweis=Termin%20wurde%20aktualisiert.",
+        url="/intern/dgh?hinweis=Termin%20wurde%20aktualisiert.",
         status_code=303,
     )
 
@@ -571,7 +655,7 @@ async def dgh_aktiv(
 ):
     set_dgh_termin_aktiv(termin_id, aktiv)
 
-    return RedirectResponse(url="/dgh", status_code=303)
+    return RedirectResponse(url="/intern/dgh", status_code=303)
 
 
 @app.post("/dgh/status/{termin_id}")
@@ -589,7 +673,7 @@ async def dgh_status_aendern(
         termin, alter_status = set_dgh_status(termin_id, status)
     except ValueError as error:
         return RedirectResponse(
-            url=f"/dgh?fehler={quote(str(error))}",
+            url=f"/intern/dgh?fehler={quote(str(error))}",
             status_code=303,
         )
 
@@ -622,7 +706,7 @@ Du kannst gern eine Anfrage für einen anderen Termin senden."""
             print("DGH-Statusnachricht konnte nicht gesendet werden:", repr(error))
 
     return RedirectResponse(
-        url=f"/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}",
+        url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}",
         status_code=303,
     )
 
@@ -634,7 +718,7 @@ async def dgh_loeschen(
 ):
     delete_dgh_termin(termin_id)
 
-    return RedirectResponse(url="/dgh", status_code=303)
+    return RedirectResponse(url="/intern/dgh", status_code=303)
 
 
 @app.get("/muelltermine")
@@ -643,7 +727,15 @@ async def muelltermine(
     fehler: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return muelltermine_dashboard(hinweis=hinweis, fehler=fehler)
+    ziel = "/intern/muelltermine"
+    parameter = []
+    if hinweis:
+        parameter.append(f"hinweis={quote(hinweis)}")
+    if fehler:
+        parameter.append(f"fehler={quote(fehler)}")
+    if parameter:
+        ziel += "?" + "&".join(parameter)
+    return RedirectResponse(url=ziel, status_code=303)
 
 
 @app.post("/muelltermine/import")
@@ -656,7 +748,7 @@ async def muelltermine_import(
     if not dateiname.casefold().endswith(".pdf"):
         return RedirectResponse(
             url=(
-                "/muelltermine?fehler="
+                "/intern/muelltermine?fehler="
                 + quote("Bitte wähle eine PDF-Datei aus.")
             ),
             status_code=303,
@@ -667,7 +759,7 @@ async def muelltermine_import(
     if len(pdf_bytes) > 10 * 1024 * 1024:
         return RedirectResponse(
             url=(
-                "/muelltermine?fehler="
+                "/intern/muelltermine?fehler="
                 + quote("Die PDF darf höchstens 10 MB groß sein.")
             ),
             status_code=303,
@@ -683,14 +775,14 @@ async def muelltermine_import(
         )
     except ValueError as error:
         return RedirectResponse(
-            url=f"/muelltermine?fehler={quote(str(error))}",
+            url=f"/intern/muelltermine?fehler={quote(str(error))}",
             status_code=303,
         )
     except Exception as error:
         print("Fehler beim Import der Mülltermine:", repr(error))
         return RedirectResponse(
             url=(
-                "/muelltermine?fehler="
+                "/intern/muelltermine?fehler="
                 + quote(
                     "Die Termine konnten nicht gespeichert werden. "
                     "Bitte versuche es erneut."
@@ -704,7 +796,7 @@ async def muelltermine_import(
         "wurden erfolgreich erkannt und übernommen."
     )
     return RedirectResponse(
-        url=f"/muelltermine?hinweis={quote(hinweis)}",
+        url=f"/intern/muelltermine?hinweis={quote(hinweis)}",
         status_code=303,
     )
 
@@ -714,10 +806,10 @@ async def gemeindeseite(
     hinweis: str = "",
     _=Depends(check_dashboard_login),
 ):
-    return gemeinde_dashboard(
-        get_gemeinde_einstellungen(),
-        hinweis=hinweis,
-    )
+    ziel = "/intern/gemeindeseite"
+    if hinweis:
+        ziel += f"?hinweis={quote(hinweis)}"
+    return RedirectResponse(url=ziel, status_code=303)
 
 
 @app.post("/gemeindeseite")
@@ -729,7 +821,7 @@ async def gemeindeseite_speichern(
     update_gemeinde_einstellungen(dict(form))
 
     return RedirectResponse(
-        url="/gemeindeseite?hinweis=Gemeindeseite%20wurde%20gespeichert.",
+        url="/intern/gemeindeseite?hinweis=Gemeindeseite%20wurde%20gespeichert.",
         status_code=303,
     )
 
@@ -749,12 +841,31 @@ async def abonnement_status_aendern(
     return RedirectResponse(url="/#abonnenten", status_code=303)
 
 
+@app.get("/intern/chatbot/{whatsapp_nummer}")
+async def intern_chatbot_detail(
+    whatsapp_nummer: str,
+    _=Depends(check_dashboard_login),
+):
+    return chatbot_detail_page(whatsapp_nummer)
+
+
 @app.get("/chatbot/{whatsapp_nummer}")
 async def chatbot_detail(
     whatsapp_nummer: str,
     _=Depends(check_dashboard_login),
 ):
-    return chatbot_detail_page(whatsapp_nummer)
+    return RedirectResponse(
+        url=f"/intern/chatbot/{quote(whatsapp_nummer)}",
+        status_code=303,
+    )
+
+
+@app.get("/intern/meldung/{ticket}")
+async def intern_meldung_detail(
+    ticket: str,
+    _=Depends(check_dashboard_login),
+):
+    return meldung_detail_page(ticket)
 
 
 @app.get("/meldung/{ticket}")
@@ -762,7 +873,7 @@ async def meldung_detail(
     ticket: str,
     _=Depends(check_dashboard_login),
 ):
-    return meldung_detail_page(ticket)
+    return RedirectResponse(url=f"/intern/meldung/{quote(ticket)}", status_code=303)
 
 
 @app.get("/status")
@@ -773,7 +884,7 @@ async def status_aendern(
 ):
     update_status(ticket, neuer_status)
 
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url="/intern/maengel", status_code=303)
 
 
 @app.post("/notiz")
@@ -784,7 +895,7 @@ async def notiz_speichern(
 ):
     update_notiz(ticket, notiz)
 
-    return RedirectResponse(url=f"/meldung/{ticket}", status_code=303)
+    return RedirectResponse(url=f"/intern/meldung/{quote(ticket)}", status_code=303)
 
 
 @app.get("/webhook")

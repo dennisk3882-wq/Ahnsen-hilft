@@ -175,10 +175,10 @@ def chatbot_detail_page(whatsapp_nummer):
         <div class="container">
             <div class="top-nav">
                 <a href="/">⌂ Start</a>
-                <a href="/dashboard">📋 Mängel</a>
-                <a href="/veranstaltungen">📅 Veranstaltungen</a>
-                <a href="/dgh">🏠 DGH</a>
-                <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
+                <a href="/intern/maengel">📋 Mängel</a>
+                <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
+                <a href="/intern/dgh">🏠 DGH</a>
+                <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
             </div>
 
             <section class="header">
@@ -203,4 +203,4 @@ def chatbot_detail_page(whatsapp_nummer):
 
 
 def chatbot_link(whatsapp_nummer):
-    return f"/chatbot/{quote(str(whatsapp_nummer or ''), safe='')}"
+    return f"/intern/chatbot/{quote(str(whatsapp_nummer or ''), safe='')}"

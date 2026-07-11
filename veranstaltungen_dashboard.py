@@ -325,10 +325,10 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
     <body>
         <div class="top-nav">
             <a href="/">⌂ Start</a>
-            <a href="/dashboard">📋 Mängel</a>
+            <a href="/intern/maengel">📋 Mängel</a>
             <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-            <a href="/dgh">🏠 DGH</a>
-            <a href="/muelltermine">🗑️ Müllabfuhr Termine</a>
+            <a href="/intern/dgh">🏠 DGH</a>
+            <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
         </div>
 
         <h1>📅 Veranstaltungen</h1>

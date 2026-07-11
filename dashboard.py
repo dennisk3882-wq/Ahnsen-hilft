@@ -48,7 +48,7 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
 
         rows += f"""
         <tr>
-            <td><a href="/meldung/{escape(m.ticket)}"><b>{escape(m.ticket)}</b></a></td>
+            <td><a href="/intern/meldung/{escape(m.ticket)}"><b>{escape(m.ticket)}</b></a></td>
             <td><span class="status" style="background:{status_farbe(m.status)};">{escape(m.status)}</span></td>
             <td>{escape(m.art or "")}</td>
             <td>{escape(m.ort or "")}</td>
@@ -247,10 +247,10 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
 
         <div class="top-nav">
             <a class="nav-button" href="/">⌂ Start</a>
-            <a class="nav-button" href="/dashboard">📋 Mängel</a>
+            <a class="nav-button" href="/intern/maengel">📋 Mängel</a>
             <a class="nav-button" href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-            <a class="nav-button" href="/dgh">🏠 DGH</a>
-            <a class="nav-button" href="/muelltermine">🗑️ Müllabfuhr Termine</a>
+            <a class="nav-button" href="/intern/dgh">🏠 DGH</a>
+            <a class="nav-button" href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
         </div>
 
         <h1>Ahnsen hilft Dashboard</h1>
@@ -263,30 +263,30 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
         </div>
 
         <div class="box">
-            <form method="get" action="/dashboard">
+            <form method="get" action="/intern/maengel">
                 <input type="text" name="suche" placeholder="Suche nach Ticket, Ort, Art, Status..."
                        value="{escape(suche)}">
                 <input type="hidden" name="status_filter" value="{escape(status_filter)}">
                 <input type="hidden" name="zeitraum" value="{escape(zeitraum)}">
                 <button type="submit">Suchen</button>
-                <a href="/dashboard" class="link-button">Zurücksetzen</a>
+                <a href="/intern/maengel" class="link-button">Zurücksetzen</a>
             </form>
         </div>
 
         <div class="box filter">
             <b>Statusfilter:</b><br><br>
-            <a class="link-button {'active-filter' if status_filter == '' else ''}" href="/dashboard">Alle</a>
-            <a class="link-button {'active-filter' if status_filter == 'Offen' else ''}" href="/dashboard?status_filter=Offen">Offen</a>
-            <a class="link-button {'active-filter' if status_filter == 'In Bearbeitung' else ''}" href="/dashboard?status_filter=In Bearbeitung">In Bearbeitung</a>
-            <a class="link-button {'active-filter' if status_filter == 'Erledigt' else ''}" href="/dashboard?status_filter=Erledigt">Erledigt</a>
+            <a class="link-button {'active-filter' if status_filter == '' else ''}" href="/intern/maengel">Alle</a>
+            <a class="link-button {'active-filter' if status_filter == 'Offen' else ''}" href="/intern/maengel?status_filter=Offen">Offen</a>
+            <a class="link-button {'active-filter' if status_filter == 'In Bearbeitung' else ''}" href="/intern/maengel?status_filter=In Bearbeitung">In Bearbeitung</a>
+            <a class="link-button {'active-filter' if status_filter == 'Erledigt' else ''}" href="/intern/maengel?status_filter=Erledigt">Erledigt</a>
         </div>
 
         <div class="box filter">
             <b>Zeitraum:</b><br><br>
-            <a class="link-button {'active-filter' if zeitraum == '' else ''}" href="/dashboard">Alle</a>
-            <a class="link-button {'active-filter' if zeitraum == 'heute' else ''}" href="/dashboard?zeitraum=heute">Heute</a>
-            <a class="link-button {'active-filter' if zeitraum == 'woche' else ''}" href="/dashboard?zeitraum=woche">Letzte 7 Tage</a>
-            <a class="link-button {'active-filter' if zeitraum == 'monat' else ''}" href="/dashboard?zeitraum=monat">Letzte 30 Tage</a>
+            <a class="link-button {'active-filter' if zeitraum == '' else ''}" href="/intern/maengel">Alle</a>
+            <a class="link-button {'active-filter' if zeitraum == 'heute' else ''}" href="/intern/maengel?zeitraum=heute">Heute</a>
+            <a class="link-button {'active-filter' if zeitraum == 'woche' else ''}" href="/intern/maengel?zeitraum=woche">Letzte 7 Tage</a>
+            <a class="link-button {'active-filter' if zeitraum == 'monat' else ''}" href="/intern/maengel?zeitraum=monat">Letzte 30 Tage</a>
         </div>
 
         <div class="table-wrap">
@@ -391,7 +391,7 @@ def meldung_detail_page(ticket):
 
     <body>
         <div class="box">
-            <a class="link-button" href="/dashboard">← Zurück zum Dashboard</a>
+            <a class="link-button" href="/intern/maengel">← Zurück zum Dashboard</a>
 
             <h1>{escape(m.ticket)}</h1>
 
