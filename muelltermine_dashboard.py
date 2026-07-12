@@ -9,6 +9,7 @@ from muelltermine_crud import (
     get_naechste_muelltermine,
 )
 from muelltermine_texte import formatiere_abfuhrarten
+from intern_ui import intern_nav, intern_nav_css
 
 
 def resttage_text(datum):
@@ -126,6 +127,7 @@ def muelltermine_dashboard(hinweis="", fehler=""):
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Müllabfuhr Termine</title>
         <style>
+            {intern_nav_css()}
             * {{ box-sizing:border-box; }}
             body {{
                 margin:0;
@@ -303,13 +305,7 @@ def muelltermine_dashboard(hinweis="", fehler=""):
     </head>
     <body>
         <main class="container">
-            <nav class="top-nav">
-                <a href="/">⌂ Start</a>
-                <a href="/intern/maengel">📋 Mängel</a>
-                <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-                <a href="/intern/dgh">🏠 DGH</a>
-                <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
-            </nav>
+            {intern_nav("muell")}
 
             <h1>🗑️ Müllabfuhr Termine</h1>
             <p class="subtitle">
