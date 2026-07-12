@@ -2,10 +2,24 @@ import base64
 
 from database import Base, engine, SessionLocal
 from veranstaltungen_models import Veranstaltung
+from sqlalchemy import inspect
 
 
 def init_veranstaltungen_db():
     Base.metadata.create_all(bind=engine)
+
+    vorhandene_spalten = {
+        spalte["name"]
+        for spalte in inspect(engine).get_columns("veranstaltungen")
+    }
+
+    if "kategorie" not in vorhandene_spalten:
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                "ALTER TABLE veranstaltungen ADD COLUMN kategorie VARCHAR"
+            )
+
+        print("Spalte veranstaltungen.kategorie hinzugefügt.")
 
 
 def save_veranstaltung(
@@ -13,6 +27,7 @@ def save_veranstaltung(
     datum,
     uhrzeit,
     ort,
+    kategorie,
     beschreibung,
     ansprechpartner,
     bild_bytes=None,
@@ -30,6 +45,7 @@ def save_veranstaltung(
             datum=datum,
             uhrzeit=uhrzeit,
             ort=ort,
+            kategorie=kategorie,
             beschreibung=beschreibung,
             ansprechpartner=ansprechpartner,
             bild_base64=bild_base64,
@@ -117,6 +133,7 @@ def update_veranstaltung(
     datum,
     uhrzeit,
     ort,
+    kategorie,
     beschreibung,
     ansprechpartner,
     bild_bytes=None,
@@ -135,6 +152,7 @@ def update_veranstaltung(
             veranstaltung.datum = datum
             veranstaltung.uhrzeit = uhrzeit
             veranstaltung.ort = ort
+            veranstaltung.kategorie = kategorie
             veranstaltung.beschreibung = beschreibung
             veranstaltung.ansprechpartner = ansprechpartner
 

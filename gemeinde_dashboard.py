@@ -226,6 +226,33 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                 box-shadow:0 0 0 4px rgba(47,111,159,.12);
             }}
 
+            .upload-grid {{
+                display:grid;
+                grid-template-columns:repeat(3, minmax(0, 1fr));
+                gap:14px;
+                margin-top:14px;
+            }}
+
+            .upload-card,
+            .import-card {{
+                padding:16px;
+                border:1px solid #dce7eb;
+                border-radius:18px;
+                background:#f7fbfc;
+            }}
+
+            .upload-card form,
+            .import-card form {{
+                display:grid;
+                gap:10px;
+            }}
+
+            .upload-card small,
+            .import-card small {{
+                color:#74818c;
+                line-height:1.4;
+            }}
+
             textarea {{
                 resize:vertical;
             }}
@@ -273,6 +300,10 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                     grid-template-columns:1fr;
                 }}
 
+                .upload-grid {{
+                    grid-template-columns:1fr;
+                }}
+
                 .actions {{
                     display:grid;
                 }}
@@ -314,6 +345,35 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                         {feld("hero_bild_alt", "Hero-Bild Beschreibung", "Kurzer Alternativtext für Barrierefreiheit")}
                         {feld("logo_bild_url", "Logo-Bild URL", "Optional: Bildadresse für ein Logo")}
                     </div>
+                    <div class="upload-grid">
+                        <div class="upload-card">
+                            <strong>Hero-Bild hochladen</strong>
+                            <small>Wird auf der öffentlichen Startseite und Unterseiten genutzt.</small>
+                            <div>
+                                <input form="upload-hero" type="hidden" name="feld" value="hero_bild_url">
+                                <input form="upload-hero" type="file" name="datei" accept="image/png,image/jpeg,image/webp" required>
+                                <button form="upload-hero" type="submit">Hero-Bild übernehmen</button>
+                            </div>
+                        </div>
+                        <div class="upload-card">
+                            <strong>Logo hochladen</strong>
+                            <small>Optionales Logo für die Navigation.</small>
+                            <div>
+                                <input form="upload-logo" type="hidden" name="feld" value="logo_bild_url">
+                                <input form="upload-logo" type="file" name="datei" accept="image/png,image/jpeg,image/webp" required>
+                                <button form="upload-logo" type="submit">Logo übernehmen</button>
+                            </div>
+                        </div>
+                        <div class="upload-card">
+                            <strong>WhatsApp-QR hochladen</strong>
+                            <small>QR-Code wird auf der WhatsApp-Bot-Seite angezeigt.</small>
+                            <div>
+                                <input form="upload-qr" type="hidden" name="feld" value="whatsapp_qr_url">
+                                <input form="upload-qr" type="file" name="datei" accept="image/png,image/jpeg,image/webp" required>
+                                <button form="upload-qr" type="submit">QR-Code übernehmen</button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <section class="section">
@@ -325,6 +385,26 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                     {textfeld("hero_text", "Hero-Kurztext", rows=3)}
                     {textfeld("willkommen_text", "Begrüßung / Willkommen", rows=4)}
                     {textfeld("ueber_ahnsen_text", "Über Ahnsen", rows=4)}
+                </section>
+
+                <section class="section">
+                    <h2>Alte Homepage automatisch übernehmen</h2>
+                    <div class="import-card">
+                        <p>
+                            Importiert Begrüßung, Bürgerinformationen,
+                            Vereine, wichtige Links, Geschichte und aktuelle
+                            Hinweise aus der bisherigen Ahnsen-Homepage.
+                            Danach kannst du die übernommenen Texte hier
+                            weiter bearbeiten.
+                        </p>
+                        <div>
+                            <label>
+                                <span>Quelle</span>
+                                <input form="import-alt" name="url" value="https://www.ahnsen-schaumburg.de/">
+                            </label>
+                            <button form="import-alt" type="submit">Inhalte jetzt übernehmen</button>
+                        </div>
+                    </div>
                 </section>
 
                 <section class="section">
@@ -390,6 +470,11 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
                     <button type="submit">Änderungen speichern</button>
                 </div>
             </form>
+
+            <form id="upload-hero" method="post" action="/gemeindeseite/upload" enctype="multipart/form-data"></form>
+            <form id="upload-logo" method="post" action="/gemeindeseite/upload" enctype="multipart/form-data"></form>
+            <form id="upload-qr" method="post" action="/gemeindeseite/upload" enctype="multipart/form-data"></form>
+            <form id="import-alt" method="post" action="/gemeindeseite/import-alt"></form>
         </main>
     </body>
     </html>

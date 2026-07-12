@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File
-from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
 
+import mimetypes
 import hashlib
 import hmac
 import os
 import secrets
+import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -45,6 +47,7 @@ from dgh_crud import (
 )
 from dgh_dashboard import dgh_dashboard
 from muelltermine_crud import (
+    get_alle_muelltermine,
     get_naechste_muelltermine,
     importiere_muelltermine,
     init_muelltermine_db,
@@ -73,9 +76,12 @@ from chatbot_dashboard import chatbot_detail_page
 from gemeinde_crud import (
     get_gemeinde_einstellungen,
     init_gemeinde_db,
+    set_gemeinde_einstellung,
     update_gemeinde_einstellungen,
 )
 from gemeinde_dashboard import gemeinde_dashboard
+from homepage_import import lade_alte_homepage_inhalte
+from veranstaltungen_crud import get_veranstaltung
 
 
 app = FastAPI()
@@ -92,6 +98,13 @@ STARTSEITEN_BILD = (
     / "static"
     / "ahnsen-startseite.png"
 )
+UPLOAD_DIR = Path(__file__).resolve().parent / "static" / "uploads"
+ERLAUBTE_UPLOAD_FELDER = {
+    "hero_bild_url",
+    "logo_bild_url",
+    "whatsapp_qr_url",
+}
+ERLAUBTE_UPLOAD_ENDUNGEN = {".png", ".jpg", ".jpeg", ".webp"}
 
 
 @app.on_event("startup")
@@ -149,6 +162,22 @@ def check_dashboard_login(request: Request):
         )
 
     return True
+
+
+def _sicherer_dateiname(name):
+    basis = Path(name or "bild").stem.lower()
+    basis = re.sub(r"[^a-z0-9_-]+", "-", basis).strip("-") or "bild"
+    return basis[:50]
+
+
+def _upload_datei_pfad(dateiname):
+    ziel = (UPLOAD_DIR / dateiname).resolve()
+    basis = UPLOAD_DIR.resolve()
+
+    if not str(ziel).startswith(str(basis)):
+        raise HTTPException(status_code=400, detail="Ungültiger Dateiname")
+
+    return ziel
 
 
 def _enthaelt_suchtext(werte, suchtext):
@@ -233,11 +262,20 @@ def _startseiten_daten(suche=""):
 
 
 def _public_home_daten():
+    heute = datetime.today().date()
+    jahre = {heute.year, heute.year + 1}
+    alle_muelltermine = []
+
+    for jahr in sorted(jahre):
+        alle_muelltermine.extend(get_alle_muelltermine(jahr=jahr))
+
     return {
         "einstellungen": get_gemeinde_einstellungen(),
         "veranstaltungen": get_aktive_veranstaltungen(),
+        "dgh_termine": get_alle_dgh_termine(),
         "freie_dgh_tage": get_freie_tage(anzahl_tage=60),
         "muelltermine": get_naechste_muelltermine(limit=12),
+        "alle_muelltermine": alle_muelltermine,
     }
 
 
@@ -255,8 +293,24 @@ async def public_mangel():
 
 
 @app.get("/veranstaltungen")
-async def public_veranstaltungen():
-    return public_content_page(_public_home_daten(), "veranstaltungen")
+async def public_veranstaltungen(
+    q: str = "",
+    monat: str = "",
+    kategorie: str = "",
+):
+    daten = _public_home_daten()
+    daten["filter"] = {"q": q, "monat": monat, "kategorie": kategorie}
+    return public_content_page(daten, "veranstaltungen")
+
+
+@app.get("/veranstaltungen/{veranstaltung_id}")
+async def public_veranstaltung_detail(veranstaltung_id: int):
+    from startseite import public_event_detail_page
+
+    return public_event_detail_page(
+        _public_home_daten(),
+        get_veranstaltung(veranstaltung_id),
+    )
 
 
 @app.get("/dgh-mieten")
@@ -319,6 +373,45 @@ async def public_suche(q: str = ""):
     return public_search_page(_public_home_daten(), q)
 
 
+@app.get("/muelltermine.ics")
+async def public_muelltermine_ics():
+    termine = _public_home_daten().get("alle_muelltermine", [])
+    zeilen = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Ahnsen hilft//Muelltermine//DE",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:Ahnsen Müllabfuhr Termine",
+    ]
+
+    for termin in termine:
+        datum = termin.datum.strftime("%Y%m%d")
+        titel = (termin.abfuhrarten or "Müllabfuhr").replace("\n", " ")
+        uid = f"muell-{datum}-{termin.id}@ahnsen-hilft"
+        zeilen.extend(
+            [
+                "BEGIN:VEVENT",
+                f"UID:{uid}",
+                f"DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}",
+                f"DTSTART;VALUE=DATE:{datum}",
+                f"SUMMARY:{titel}",
+                "DESCRIPTION:Müllabfuhr Termin der Gemeinde Ahnsen",
+                "END:VEVENT",
+            ]
+        )
+
+    zeilen.append("END:VCALENDAR")
+
+    return Response(
+        "\r\n".join(zeilen) + "\r\n",
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="ahnsen-muelltermine.ics"'
+        },
+    )
+
+
 @app.post("/login")
 async def login(
     username: str = Form(...),
@@ -372,6 +465,21 @@ async def startseiten_bild():
     return FileResponse(
         STARTSEITEN_BILD,
         media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/uploads/{dateiname}")
+async def upload_asset(dateiname: str):
+    pfad = _upload_datei_pfad(dateiname)
+
+    if not pfad.exists() or not pfad.is_file():
+        raise HTTPException(status_code=404, detail="Datei nicht gefunden")
+
+    media_type = mimetypes.guess_type(pfad.name)[0] or "application/octet-stream"
+    return FileResponse(
+        pfad,
+        media_type=media_type,
         headers={"Cache-Control": "public, max-age=86400"},
     )
 
@@ -489,6 +597,7 @@ async def neue_veranstaltung(
     datum: str = Form(""),
     uhrzeit: str = Form(""),
     ort: str = Form(""),
+    kategorie: str = Form(""),
     ansprechpartner: str = Form(""),
     beschreibung: str = Form(""),
     bild: UploadFile | None = File(None),
@@ -504,6 +613,7 @@ async def neue_veranstaltung(
         datum=datum,
         uhrzeit=uhrzeit,
         ort=ort,
+        kategorie=kategorie,
         beschreibung=beschreibung,
         ansprechpartner=ansprechpartner,
         bild_bytes=bild_bytes,
@@ -519,6 +629,7 @@ async def veranstaltung_bearbeiten(
     datum: str = Form(""),
     uhrzeit: str = Form(""),
     ort: str = Form(""),
+    kategorie: str = Form(""),
     ansprechpartner: str = Form(""),
     beschreibung: str = Form(""),
     bild: UploadFile | None = File(None),
@@ -535,6 +646,7 @@ async def veranstaltung_bearbeiten(
         datum=datum,
         uhrzeit=uhrzeit,
         ort=ort,
+        kategorie=kategorie,
         beschreibung=beschreibung,
         ansprechpartner=ansprechpartner,
         bild_bytes=bild_bytes,
@@ -822,6 +934,78 @@ async def gemeindeseite_speichern(
 
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis=Gemeindeseite%20wurde%20gespeichert.",
+        status_code=303,
+    )
+
+
+@app.post("/gemeindeseite/upload")
+async def gemeindeseite_upload(
+    feld: str = Form(...),
+    datei: UploadFile = File(...),
+    _=Depends(check_dashboard_login),
+):
+    if feld not in ERLAUBTE_UPLOAD_FELDER:
+        raise HTTPException(status_code=400, detail="Dieses Upload-Feld ist nicht erlaubt")
+
+    originalname = datei.filename or ""
+    endung = Path(originalname).suffix.lower()
+
+    if endung not in ERLAUBTE_UPLOAD_ENDUNGEN:
+        return RedirectResponse(
+            url="/intern/gemeindeseite?hinweis="
+            + quote("Bitte nur PNG, JPG, JPEG oder WEBP hochladen."),
+            status_code=303,
+        )
+
+    inhalt = await datei.read()
+
+    if len(inhalt) > 5 * 1024 * 1024:
+        return RedirectResponse(
+            url="/intern/gemeindeseite?hinweis="
+            + quote("Die Datei darf höchstens 5 MB groß sein."),
+            status_code=303,
+        )
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    dateiname = (
+        f"{feld}-{int(time.time())}-{_sicherer_dateiname(originalname)}{endung}"
+    )
+    ziel = _upload_datei_pfad(dateiname)
+    ziel.write_bytes(inhalt)
+
+    set_gemeinde_einstellung(feld, f"/uploads/{dateiname}")
+
+    return RedirectResponse(
+        url="/intern/gemeindeseite?hinweis="
+        + quote("Bild wurde hochgeladen und übernommen."),
+        status_code=303,
+    )
+
+
+@app.post("/gemeindeseite/import-alt")
+async def gemeindeseite_alt_import(
+    url: str = Form("https://www.ahnsen-schaumburg.de/"),
+    _=Depends(check_dashboard_login),
+):
+    try:
+        daten = lade_alte_homepage_inhalte(url)
+        update_gemeinde_einstellungen(
+            {
+                **get_gemeinde_einstellungen(),
+                **daten,
+            }
+        )
+    except Exception as error:
+        print("Import alte Homepage fehlgeschlagen:", repr(error))
+        return RedirectResponse(
+            url="/intern/gemeindeseite?hinweis="
+            + quote("Import konnte nicht abgeschlossen werden. Bitte später erneut versuchen."),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url="/intern/gemeindeseite?hinweis="
+        + quote("Inhalte der alten Homepage wurden übernommen."),
         status_code=303,
     )
 
