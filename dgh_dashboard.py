@@ -8,6 +8,7 @@ from dgh_crud import (
     get_dgh_termin,
     parse_datum,
 )
+from intern_ui import intern_nav, intern_nav_css
 
 
 MONATSNAMEN = [
@@ -244,6 +245,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <style>
+            {intern_nav_css()}
             body {{
                 font-family: Arial, sans-serif;
                 background:#eef2f5;
@@ -634,13 +636,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
     </head>
 
     <body>
-        <div class="top-nav">
-            <a href="/">⌂ Start</a>
-            <a href="/intern/maengel">📋 Mängel</a>
-            <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-            <a href="/intern/dgh">🏠 DGH</a>
-            <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
-        </div>
+        {intern_nav("dgh")}
 
         <h1>🏠 DGH buchen</h1>
         <p class="subtitle">Termine verwalten, Belegung ansehen und interne Kommentare speichern.</p>

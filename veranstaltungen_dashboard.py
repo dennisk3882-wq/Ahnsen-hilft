@@ -6,6 +6,7 @@ from veranstaltungen_crud import (
     get_alle_veranstaltungen,
     get_veranstaltung,
 )
+from intern_ui import intern_nav, intern_nav_css
 
 
 def parse_datum(datum_text):
@@ -115,6 +116,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <style>
+            {intern_nav_css()}
             body {{
                 font-family: Arial, sans-serif;
                 background:#eef2f5;
@@ -326,13 +328,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
     </head>
 
     <body>
-        <div class="top-nav">
-            <a href="/">⌂ Start</a>
-            <a href="/intern/maengel">📋 Mängel</a>
-            <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-            <a href="/intern/dgh">🏠 DGH</a>
-            <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
-        </div>
+        {intern_nav("veranstaltungen")}
 
         <h1>📅 Veranstaltungen</h1>
         <p class="subtitle">

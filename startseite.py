@@ -4,6 +4,7 @@ from html import escape
 from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse
+from intern_ui import intern_nav, intern_nav_css
 
 
 GRUNDSTIL = """
@@ -1740,8 +1741,21 @@ def _public_design(einstellungen):
             font-family:Inter, "Segoe UI", Arial, sans-serif;
             color:var(--ink);
             background:
-                radial-gradient(circle at top left, rgba(47,111,159,.14), transparent 30rem),
-                linear-gradient(180deg, #f7fbfb 0%, #edf5f4 100%);
+                linear-gradient(105deg, rgba(247,251,251,.92), rgba(237,245,244,.86) 46%, rgba(237,245,244,.70)),
+                radial-gradient(circle at top left, rgba(47,111,159,.18), transparent 30rem),
+                var(--hero-image) center center / cover fixed;
+            background-color:#edf5f4;
+        }}
+
+        body::before {{
+            content:"";
+            position:fixed;
+            inset:0;
+            z-index:-1;
+            pointer-events:none;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.72)),
+                radial-gradient(circle at 85% 12%, rgba(255,255,255,.42), transparent 26rem);
         }}
 
         a {{ color:inherit; }}
@@ -1756,7 +1770,7 @@ def _public_design(einstellungen):
             gap:16px;
             padding:15px clamp(16px, 5vw, 60px);
             border-bottom:1px solid rgba(210,222,228,.78);
-            background:rgba(255,255,255,.86);
+            background:rgba(255,255,255,.90);
             backdrop-filter:blur(18px);
         }}
 
@@ -1829,8 +1843,12 @@ def _public_design(einstellungen):
         .hero-image {{
             min-height:430px;
             border-radius:34px;
-            background:var(--hero-image) center center / cover;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.58)),
+                var(--hero-image) center center / cover;
             box-shadow:0 28px 72px rgba(23,50,77,.20);
+            border:1px solid rgba(255,255,255,.54);
+            backdrop-filter:blur(2px);
         }}
 
         .eyebrow,
@@ -1948,10 +1966,11 @@ def _public_design(einstellungen):
             padding:22px;
             border:1px solid rgba(212,224,229,.8);
             border-radius:24px;
-            background:rgba(255,255,255,.9);
+            background:rgba(255,255,255,.88);
             box-shadow:0 16px 45px rgba(34,58,78,.09);
             text-decoration:none;
             transition:.2s ease;
+            backdrop-filter:blur(12px);
         }}
 
         .card:hover,
@@ -1996,7 +2015,8 @@ def _public_design(einstellungen):
             padding:17px 18px;
             border:1px solid #dce7eb;
             border-radius:18px;
-            background:white;
+            background:rgba(255,255,255,.90);
+            backdrop-filter:blur(10px);
         }}
 
         .row strong,
@@ -3085,6 +3105,7 @@ def start_page(uebersicht=None, suche=""):
         <title>Verwaltung · Ahnsen hilft</title>
         <style>
             {GRUNDSTIL}
+            {intern_nav_css()}
 
             .home {{
                 max-width:1120px;
@@ -3673,6 +3694,7 @@ def start_page(uebersicht=None, suche=""):
     <body>
         <main class="page">
             <div class="home">
+                {intern_nav("start")}
                 <header class="topbar">
                     <div class="brand">
                         <div class="brand-mark">⌂</div>

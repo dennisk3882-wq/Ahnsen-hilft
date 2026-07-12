@@ -4,6 +4,7 @@ from urllib.parse import quote
 from fastapi.responses import HTMLResponse
 
 from chat_crud import get_chat_kontakt, get_chat_verlauf
+from intern_ui import intern_nav, intern_nav_css
 
 
 def _datum_zeit(wert):
@@ -53,6 +54,7 @@ def chatbot_detail_page(whatsapp_nummer):
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Chatverlauf · Ahnsen hilft</title>
         <style>
+            {intern_nav_css()}
             body {{
                 font-family: Arial, sans-serif;
                 background:#eef2f5;
@@ -173,13 +175,7 @@ def chatbot_detail_page(whatsapp_nummer):
     </head>
     <body>
         <div class="container">
-            <div class="top-nav">
-                <a href="/">⌂ Start</a>
-                <a href="/intern/maengel">📋 Mängel</a>
-                <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-                <a href="/intern/dgh">🏠 DGH</a>
-                <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
-            </div>
+            {intern_nav("")}
 
             <section class="header">
                 <a class="link-button" href="/#chatbot-verlauf">

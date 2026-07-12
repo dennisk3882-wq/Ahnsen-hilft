@@ -3,6 +3,7 @@ from html import escape
 from fastapi.responses import HTMLResponse
 
 from gemeinde_crud import DEFAULT_GEMEINDE_EINSTELLUNGEN
+from intern_ui import intern_nav, intern_nav_css
 
 
 def gemeinde_dashboard(einstellungen, hinweis=""):
@@ -111,6 +112,7 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Gemeindeseite bearbeiten · Ahnsen hilft</title>
         <style>
+            {intern_nav_css()}
             body {{
                 margin:0;
                 padding:24px;
@@ -312,13 +314,7 @@ def gemeinde_dashboard(einstellungen, hinweis=""):
     </head>
     <body>
         <main class="wrap">
-            <nav class="top-nav">
-                <a href="/">⌂ Start</a>
-                <a href="/intern/maengel">📋 Mängel</a>
-                <a href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-                <a href="/intern/dgh">🏠 DGH</a>
-                <a href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
-            </nav>
+            {intern_nav("gemeindeseite")}
 
             <section class="hero">
                 <h1>Gemeindeseite bearbeiten</h1>

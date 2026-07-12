@@ -2,6 +2,7 @@ from fastapi.responses import HTMLResponse
 from html import escape
 
 from crud import suche_meldungen, get_meldung, statistik
+from intern_ui import intern_nav, intern_nav_css
 
 
 def status_farbe(status):
@@ -69,6 +70,7 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
         <title>Ahnsen hilft Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
+            {intern_nav_css()}
             body {{
                 font-family: Arial, sans-serif;
                 background:#eef2f5;
@@ -245,13 +247,7 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
     <body>
     <div class="container">
 
-        <div class="top-nav">
-            <a class="nav-button" href="/">⌂ Start</a>
-            <a class="nav-button" href="/intern/maengel">📋 Mängel</a>
-            <a class="nav-button" href="/intern/veranstaltungen">📅 Veranstaltungen</a>
-            <a class="nav-button" href="/intern/dgh">🏠 DGH</a>
-            <a class="nav-button" href="/intern/muelltermine">🗑️ Müllabfuhr Termine</a>
-        </div>
+        {intern_nav("maengel")}
 
         <h1>Ahnsen hilft Dashboard</h1>
 
