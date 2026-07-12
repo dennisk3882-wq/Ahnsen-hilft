@@ -1,4 +1,5 @@
-from datetime import date
+import calendar
+from datetime import date, datetime
 from html import escape
 from urllib.parse import quote
 
@@ -109,6 +110,11 @@ def login_page(fehler=""):
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="{escape(beschreibung)}">
+        <meta property="og:title" content="{escape(voller_titel)}">
+        <meta property="og:description" content="{escape(beschreibung)}">
+        <meta property="og:image" content="{escape(hero_bild)}">
+        <meta property="og:type" content="website">
         <title>Anmelden · Ahnsen hilft</title>
         <style>
             {GRUNDSTIL}
@@ -395,15 +401,15 @@ def _split_liste(text):
         if not zeile:
             continue
 
-        if "|" in zeile:
-            titel, beschreibung = zeile.split("|", 1)
-        else:
-            titel, beschreibung = zeile, ""
+        teile = [teil.strip() for teil in zeile.split("|")]
+        titel = teile[0] if teile else zeile
+        beschreibung = teile[1] if len(teile) > 1 else ""
 
         eintraege.append(
             {
                 "titel": titel.strip(),
                 "beschreibung": beschreibung.strip(),
+                "felder": teile[2:],
             }
         )
 
@@ -485,11 +491,17 @@ def _render_public_list(text, fallback_icon):
     cards = ""
 
     for eintrag in _split_liste(text):
+        extras = ""
+        for feld in eintrag.get("felder", []):
+            if feld:
+                extras += f"<span>{escape(feld)}</span>"
+
         cards += f"""
         <article class="mini-card reveal">
             <span class="mini-icon">{fallback_icon}</span>
             <h3>{escape(eintrag["titel"])}</h3>
             <p>{escape(eintrag["beschreibung"])}</p>
+            {f'<div class="meta">{extras}</div>' if extras else ''}
         </article>
         """
 
@@ -545,7 +557,7 @@ def _public_event_cards(veranstaltungen, limit=None):
             )
 
         cards += f"""
-        <article class="card">
+        <a class="card" href="/veranstaltungen/{v.id}">
             {bild}
             <span class="chip">📅 {escape(v.datum or "Termin")}</span>
             <h3>{escape(v.titel or "Veranstaltung")}</h3>
@@ -553,9 +565,10 @@ def _public_event_cards(veranstaltungen, limit=None):
             <div class="meta">
                 {f'<span>🕒 {escape(v.uhrzeit)}</span>' if v.uhrzeit else ''}
                 {f'<span>📍 {escape(v.ort)}</span>' if v.ort else ''}
+                {f'<span>🏷️ {escape(getattr(v, "kategorie", "") or "")}</span>' if getattr(v, "kategorie", "") else ''}
                 {f'<span>👤 {escape(v.ansprechpartner)}</span>' if v.ansprechpartner else ''}
             </div>
-        </article>
+        </a>
         """
 
     return cards or """
@@ -593,6 +606,188 @@ def _public_list_cards(text, fallback_icon, leertext):
         <h3>Noch keine Einträge gepflegt</h3>
         <p>{escape(leertext)}</p>
     </article>
+    """
+
+
+def _parse_de_datum(wert):
+    try:
+        return datetime.strptime(str(wert or ""), "%d.%m.%Y").date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _monats_optionen(veranstaltungen):
+    monate = []
+    gesehen = set()
+
+    for veranstaltung in veranstaltungen:
+        datum = _parse_de_datum(getattr(veranstaltung, "datum", ""))
+        if not datum:
+            continue
+        wert = datum.strftime("%Y-%m")
+        if wert in gesehen:
+            continue
+        gesehen.add(wert)
+        monate.append((wert, datum.strftime("%B %Y")))
+
+    return monate
+
+
+def _kategorie_optionen(veranstaltungen):
+    kategorien = []
+    gesehen = set()
+
+    for veranstaltung in veranstaltungen:
+        kategorie = str(getattr(veranstaltung, "kategorie", "") or "").strip()
+        if not kategorie:
+            continue
+        schluessel = kategorie.casefold()
+        if schluessel in gesehen:
+            continue
+        gesehen.add(schluessel)
+        kategorien.append(kategorie)
+
+    return sorted(kategorien, key=str.casefold)
+
+
+def _filter_veranstaltungen(veranstaltungen, filter_daten):
+    suchtext = (filter_daten or {}).get("q", "").strip().casefold()
+    monat = (filter_daten or {}).get("monat", "").strip()
+    kategorie = (filter_daten or {}).get("kategorie", "").strip().casefold()
+    ergebnis = []
+
+    for veranstaltung in veranstaltungen:
+        datum = _parse_de_datum(getattr(veranstaltung, "datum", ""))
+        if monat and (not datum or datum.strftime("%Y-%m") != monat):
+            continue
+
+        if kategorie and str(getattr(veranstaltung, "kategorie", "") or "").strip().casefold() != kategorie:
+            continue
+
+        if suchtext:
+            werte = [
+                veranstaltung.titel,
+                veranstaltung.datum,
+                veranstaltung.uhrzeit,
+                veranstaltung.ort,
+                getattr(veranstaltung, "kategorie", ""),
+                veranstaltung.beschreibung,
+                veranstaltung.ansprechpartner,
+            ]
+            if not any(suchtext in str(wert or "").casefold() for wert in werte):
+                continue
+
+        ergebnis.append(veranstaltung)
+
+    return ergebnis
+
+
+def _dgh_status_nach_datum(termine):
+    daten = {}
+
+    for termin in termine or []:
+        if getattr(termin, "aktiv", "Ja") != "Ja":
+            continue
+
+        datum = _parse_de_datum(getattr(termin, "datum", ""))
+        if not datum:
+            continue
+
+        status = getattr(termin, "status", "") or ""
+        if status == "Bestätigt":
+            daten[datum] = "booked"
+        elif status == "Anfrage" and daten.get(datum) != "booked":
+            daten[datum] = "request"
+
+    return daten
+
+
+def _render_monatskalender(start_monat, ende_monat, status_nach_datum=None, waste_nach_datum=None):
+    status_nach_datum = status_nach_datum or {}
+    waste_nach_datum = waste_nach_datum or {}
+    html = ""
+    jahr = start_monat.year
+    monat = start_monat.month
+
+    while (jahr, monat) <= (ende_monat.year, ende_monat.month):
+        erster = date(jahr, monat, 1)
+        titel = erster.strftime("%B %Y")
+        cal = calendar.Calendar(firstweekday=0)
+        tage = "".join(
+            f'<span class="head">{tag}</span>'
+            for tag in ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+        )
+
+        for tag in cal.itermonthdates(jahr, monat):
+            if tag.month != monat:
+                tage += "<span></span>"
+                continue
+
+            klasse = "free"
+            title = "Frei"
+            if tag in waste_nach_datum:
+                klasse = "waste"
+                title = waste_nach_datum[tag]
+            if tag in status_nach_datum:
+                klasse = status_nach_datum[tag]
+                title = {
+                    "booked": "Bestätigt belegt",
+                    "request": "Anfrage liegt vor",
+                }.get(klasse, title)
+
+            tage += f'<span class="{klasse}" title="{escape(title)}">{tag.day}</span>'
+
+        html += f"""
+        <article class="month-card">
+            <h3 class="month-title">{titel}</h3>
+            <div class="calendar">{tage}</div>
+        </article>
+        """
+
+        monat += 1
+        if monat == 13:
+            monat = 1
+            jahr += 1
+
+    return f'<div class="month-grid">{html}</div>'
+
+
+def _render_dgh_jahreskalender(termine):
+    heute = date.today()
+    start = date(heute.year, heute.month, 1)
+    ende = date(heute.year + 1, 12, 1)
+    kalender = _render_monatskalender(
+        start,
+        ende,
+        status_nach_datum=_dgh_status_nach_datum(termine),
+    )
+
+    return f"""
+    <div class="legend">
+        <span class="badge">Grün = frei</span>
+        <span class="badge">Gelb = Anfrage</span>
+        <span class="badge">Rot = bestätigt belegt</span>
+    </div>
+    {kalender}
+    """
+
+
+def _render_muell_jahreskalender(termine):
+    heute = date.today()
+    start = date(heute.year, heute.month, 1)
+    ende = date(heute.year + 1, 12, 1)
+    waste = {}
+
+    for termin in termine or []:
+        if getattr(termin, "datum", None):
+            waste[termin.datum] = termin.abfuhrarten or "Müllabfuhr"
+
+    return f"""
+    <div class="legend">
+        <span class="badge">Blau = Abholung</span>
+        <span class="badge">Kalender läuft bis Ende {heute.year + 1}</span>
+    </div>
+    {_render_monatskalender(start, ende, waste_nach_datum=waste)}
     """
 
 
@@ -1913,6 +2108,105 @@ def _public_design(einstellungen):
             margin:0 0 12px;
         }}
 
+        .event-img {{
+            width:100%;
+            max-height:260px;
+            object-fit:cover;
+            border-radius:18px;
+            margin-bottom:14px;
+        }}
+
+        .filter-bar {{
+            display:grid;
+            grid-template-columns:1fr 190px 190px auto;
+            gap:10px;
+            margin:0 0 20px;
+            padding:10px;
+            border:1px solid #dce7eb;
+            border-radius:24px;
+            background:white;
+        }}
+
+        .filter-bar input,
+        .filter-bar select {{
+            min-height:46px;
+            border:1px solid #dce7eb;
+            border-radius:16px;
+            padding:0 12px;
+            font:inherit;
+        }}
+
+        .month-grid {{
+            display:grid;
+            grid-template-columns:repeat(3, minmax(0, 1fr));
+            gap:16px;
+        }}
+
+        .month-card {{
+            padding:16px;
+            border:1px solid #dce7eb;
+            border-radius:22px;
+            background:white;
+            box-shadow:0 12px 36px rgba(34,58,78,.08);
+        }}
+
+        .month-title {{
+            margin:0 0 12px;
+            color:var(--navy);
+            font-weight:950;
+        }}
+
+        .calendar {{
+            display:grid;
+            grid-template-columns:repeat(7, 1fr);
+            gap:5px;
+            font-size:13px;
+        }}
+
+        .calendar span {{
+            min-height:32px;
+            display:grid;
+            place-items:center;
+            border-radius:10px;
+            background:#f2f6f8;
+            color:#627484;
+            font-weight:800;
+        }}
+
+        .calendar .head {{
+            min-height:auto;
+            background:transparent;
+            color:#8a98a4;
+            font-size:11px;
+        }}
+
+        .calendar .free {{
+            color:#315b2d;
+            background:#e9f4e2;
+        }}
+
+        .calendar .request {{
+            color:#7a5b00;
+            background:#fff2bf;
+        }}
+
+        .calendar .booked {{
+            color:#8b1e2d;
+            background:#fde1e6;
+        }}
+
+        .calendar .waste {{
+            color:#17324d;
+            background:#dcecf7;
+        }}
+
+        .legend {{
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            margin-top:14px;
+        }}
+
         .free-days {{
             display:flex;
             flex-wrap:wrap;
@@ -1972,6 +2266,14 @@ def _public_design(einstellungen):
                 grid-template-columns:1fr;
             }}
 
+            .month-grid {{
+                grid-template-columns:repeat(2, minmax(0, 1fr));
+            }}
+
+            .filter-bar {{
+                grid-template-columns:1fr;
+            }}
+
             .hero-image {{
                 min-height:300px;
             }}
@@ -2009,6 +2311,10 @@ def _public_design(einstellungen):
             .search-box {{
                 display:grid;
                 border-radius:22px;
+            }}
+
+            .month-grid {{
+                grid-template-columns:1fr;
             }}
         }}
     """
@@ -2084,8 +2390,16 @@ def _public_footer(einstellungen):
     """
 
 
-def _public_shell(einstellungen, title, body):
+def _public_shell(einstellungen, title, body, description=""):
     hero_bild = einstellungen.get("hero_bild_url") or "/assets/ahnsen-startseite.png"
+    beschreibung = (
+        description
+        or einstellungen.get("hero_text", "")
+        or einstellungen.get("hero_untertitel", "")
+    )
+    voller_titel = (
+        f"{title} · {einstellungen.get('seiten_titel', 'Ahnsen hilft')}"
+    )
     html = f"""
     <!doctype html>
     <html lang="de">
@@ -2248,8 +2562,10 @@ def portal_home_page(daten, fehler=""):
 def public_content_page(daten, seite):
     einstellungen = daten.get("einstellungen", {})
     veranstaltungen = daten.get("veranstaltungen", [])
+    dgh_termine = daten.get("dgh_termine", [])
     freie_tage = daten.get("freie_dgh_tage", [])
     muelltermine = daten.get("muelltermine", [])
+    alle_muelltermine = daten.get("alle_muelltermine", muelltermine)
     whatsapp_link = einstellungen.get("whatsapp_link") or "#"
 
     titel_map = {
@@ -2278,13 +2594,32 @@ def public_content_page(daten, seite):
     """
 
     if seite == "veranstaltungen":
+        filter_daten = daten.get("filter", {})
+        gefiltert = _filter_veranstaltungen(veranstaltungen, filter_daten)
+        monate = _monats_optionen(veranstaltungen)
+        kategorien = _kategorie_optionen(veranstaltungen)
+        optionen = '<option value="">Alle Monate</option>'
+        for wert, label in monate:
+            selected = " selected" if filter_daten.get("monat") == wert else ""
+            optionen += f'<option value="{escape(wert)}"{selected}>{escape(label)}</option>'
+        kategorie_optionen = '<option value="">Alle Kategorien</option>'
+        for wert in kategorien:
+            selected = " selected" if filter_daten.get("kategorie") == wert else ""
+            kategorie_optionen += f'<option value="{escape(wert)}"{selected}>{escape(wert)}</option>'
+
         detail = f"""
         <div class="section-head">
             <span class="eyebrow">Kalender</span>
             <h2>Kommende Termine in Ahnsen</h2>
             <p>{escape(einstellungen.get("veranstaltungen_hinweis", ""))}</p>
         </div>
-        <div class="grid">{_public_event_cards(veranstaltungen)}</div>
+        <form class="filter-bar" method="get" action="/veranstaltungen">
+            <input name="q" value="{escape(filter_daten.get("q", ""))}" placeholder="Veranstaltung suchen">
+            <select name="monat">{optionen}</select>
+            <select name="kategorie">{kategorie_optionen}</select>
+            <button class="btn primary" type="submit">Filtern</button>
+        </form>
+        <div class="grid">{_public_event_cards(gefiltert)}</div>
         """
     elif seite == "dgh":
         detail = f"""
@@ -2309,6 +2644,11 @@ def public_content_page(daten, seite):
                 <h3>Hinweise zur Nutzung</h3>
                 <div class="text-block">{_text_abschnitte(einstellungen.get("dgh_regeln", ""))}</div>
             </article>
+            <article class="card wide-card">
+                <h3>Öffentlicher Kalender</h3>
+                <p>Der Kalender zeigt das laufende Jahr und das komplette kommende Jahr. Aus Datenschutzgründen werden öffentlich keine Namen oder privaten Details angezeigt.</p>
+                {_render_dgh_jahreskalender(dgh_termine)}
+            </article>
         </div>
         """
     elif seite == "muell":
@@ -2323,7 +2663,15 @@ def public_content_page(daten, seite):
                 <span class="icon">🔔</span>
                 <h3>Erinnerung abonnieren</h3>
                 <p>{escape(einstellungen.get("muell_abo_text", ""))}</p>
-                <div class="actions"><a class="btn primary" href="{escape(whatsapp_link)}">Per WhatsApp abonnieren</a></div>
+                <div class="actions">
+                    <a class="btn primary" href="{escape(whatsapp_link)}">Per WhatsApp abonnieren</a>
+                    <a class="btn secondary" href="/muelltermine.ics">Kalender-Abo laden</a>
+                </div>
+            </article>
+            <article class="card wide-card">
+                <h3>Jahreskalender</h3>
+                <p>Alle importierten Termine für das laufende und kommende Jahr als Monatsübersicht.</p>
+                {_render_muell_jahreskalender(alle_muelltermine)}
             </article>
         </div>
         """
@@ -2500,6 +2848,77 @@ def public_search_page(daten, q=""):
     """
 
     return _public_shell(einstellungen, "Suche", body)
+
+
+def public_event_detail_page(daten, veranstaltung):
+    einstellungen = daten.get("einstellungen", {})
+    whatsapp_link = einstellungen.get("whatsapp_link") or "#"
+
+    if not veranstaltung or getattr(veranstaltung, "aktiv", "Ja") != "Ja":
+        body = """
+        <header class="hero">
+            <section class="hero-card">
+                <span class="eyebrow">📅 Veranstaltung</span>
+                <h1>Veranstaltung nicht gefunden</h1>
+                <p>Diese Veranstaltung ist nicht mehr öffentlich sichtbar.</p>
+                <div class="actions">
+                    <a class="btn secondary" href="/veranstaltungen">Zurück zu Veranstaltungen</a>
+                </div>
+            </section>
+            <div class="hero-image"></div>
+        </header>
+        """
+        return _public_shell(einstellungen, "Veranstaltung", body)
+
+    bild = ""
+    if getattr(veranstaltung, "bild_base64", None):
+        bild = (
+            '<img class="event-img" alt="" '
+            f'src="data:image/jpeg;base64,{veranstaltung.bild_base64}">'
+        )
+
+    body = f"""
+    <header class="hero">
+        <section class="hero-card">
+            <span class="eyebrow">📅 Veranstaltung</span>
+            <h1>{escape(veranstaltung.titel or "Veranstaltung")}</h1>
+            <p>{escape(veranstaltung.beschreibung or "Weitere Informationen folgen.")}</p>
+            <div class="actions">
+                <a class="btn secondary" href="/veranstaltungen">Alle Veranstaltungen</a>
+                <a class="btn primary" href="{escape(whatsapp_link)}">Per WhatsApp fragen</a>
+            </div>
+        </section>
+        <div class="hero-image"></div>
+    </header>
+    <main>
+        <section class="section">
+            <article class="card">
+                {bild}
+                <div class="meta">
+                    {f'<span>📅 {escape(veranstaltung.datum)}</span>' if veranstaltung.datum else ''}
+                    {f'<span>🕒 {escape(veranstaltung.uhrzeit)}</span>' if veranstaltung.uhrzeit else ''}
+                    {f'<span>📍 {escape(veranstaltung.ort)}</span>' if veranstaltung.ort else ''}
+                    {f'<span>🏷️ {escape(getattr(veranstaltung, "kategorie", "") or "")}</span>' if getattr(veranstaltung, "kategorie", "") else ''}
+                    {f'<span>👤 {escape(veranstaltung.ansprechpartner)}</span>' if veranstaltung.ansprechpartner else ''}
+                </div>
+                <div class="text-block" style="margin-top:18px;">
+                    {_text_abschnitte(veranstaltung.beschreibung or "")}
+                </div>
+            </article>
+        </section>
+    </main>
+    """
+
+    beschreibung = veranstaltung.beschreibung or einstellungen.get(
+        "veranstaltungen_seite_text",
+        "",
+    )
+    return _public_shell(
+        einstellungen,
+        veranstaltung.titel or "Veranstaltung",
+        body,
+        description=beschreibung,
+    )
 
 
 def start_page(uebersicht=None, suche=""):

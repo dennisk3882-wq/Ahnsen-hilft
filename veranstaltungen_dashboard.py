@@ -46,6 +46,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
         datum = edit.datum or ""
         uhrzeit = edit.uhrzeit or ""
         ort = edit.ort or ""
+        kategorie = getattr(edit, "kategorie", "") or ""
         ansprechpartner = edit.ansprechpartner or ""
         beschreibung = edit.beschreibung or ""
 
@@ -58,6 +59,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
         datum = ""
         uhrzeit = ""
         ort = ""
+        kategorie = ""
         ansprechpartner = ""
         beschreibung = ""
 
@@ -86,6 +88,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
             <td data-label="Datum">{escape(v.datum or "")}</td>
             <td data-label="Uhrzeit">{escape(v.uhrzeit or "")}</td>
             <td data-label="Ort">{escape(v.ort or "")}</td>
+            <td data-label="Kategorie">{escape(getattr(v, "kategorie", "") or "")}</td>
             <td data-label="Ansprechpartner">{escape(v.ansprechpartner or "")}</td>
             <td data-label="Bild">{bild_html}</td>
             <td data-label="Status"><span class="status-badge">{status_html}</span></td>
@@ -345,6 +348,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
                 <input name="datum" placeholder="Datum, z. B. 12.07.2026" value="{escape(datum)}">
                 <input name="uhrzeit" placeholder="Uhrzeit, z. B. 18:00 Uhr" value="{escape(uhrzeit)}">
                 <input name="ort" placeholder="Ort" value="{escape(ort)}">
+                <input name="kategorie" placeholder="Kategorie, z. B. Feuerwehr, Verein, Gemeinde" value="{escape(kategorie)}">
                 <input name="ansprechpartner" placeholder="Ansprechpartner" value="{escape(ansprechpartner)}">
 
                 <label><b>Bild:</b></label><br>
@@ -368,6 +372,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
                         <th>Datum</th>
                         <th>Uhrzeit</th>
                         <th>Ort</th>
+                        <th>Kategorie</th>
                         <th>Ansprechpartner</th>
                         <th>Bild</th>
                         <th>Status</th>

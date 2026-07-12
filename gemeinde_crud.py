@@ -39,6 +39,8 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     "facebook_url": "",
     "instagram_url": "",
     "externe_website_url": "https://www.ahnsen-schaumburg.de/",
+    "alt_homepage_import_quelle": "",
+    "alt_homepage_import_rohtext": "",
     "kontakt_name": "Gemeinde Ahnsen",
     "kontakt_adresse": "Schulstraße 5, 31708 Ahnsen",
     "kontakt_email": "",
@@ -222,6 +224,37 @@ def update_gemeinde_einstellungen(werte):
                         aktualisiert_am=datetime.utcnow(),
                     )
                 )
+
+        db.commit()
+
+    finally:
+        db.close()
+
+
+def set_gemeinde_einstellung(schluessel, wert):
+    if schluessel not in DEFAULT_GEMEINDE_EINSTELLUNGEN:
+        raise ValueError("Unbekannte Gemeindeeinstellung")
+
+    db = SessionLocal()
+
+    try:
+        einstellung = (
+            db.query(GemeindeEinstellung)
+            .filter(GemeindeEinstellung.schluessel == schluessel)
+            .first()
+        )
+
+        if einstellung:
+            einstellung.wert = str(wert or "").strip()
+            einstellung.aktualisiert_am = datetime.utcnow()
+        else:
+            db.add(
+                GemeindeEinstellung(
+                    schluessel=schluessel,
+                    wert=str(wert or "").strip(),
+                    aktualisiert_am=datetime.utcnow(),
+                )
+            )
 
         db.commit()
 

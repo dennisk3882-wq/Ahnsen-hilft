@@ -13,6 +13,7 @@ class Veranstaltung(Base):
     datum = Column(String)
     uhrzeit = Column(String)
     ort = Column(String)
+    kategorie = Column(String)
     beschreibung = Column(Text)
     ansprechpartner = Column(String)
 
