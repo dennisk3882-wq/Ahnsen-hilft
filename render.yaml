@@ -5,7 +5,7 @@ services:
     region: frankfurt
     plan: free
     branch: ahnsen-live-quiz-online
-    buildCommand: cat quiz-v5.part00 quiz-v5.part01 quiz-v5.part02 quiz-v5.part03 quiz-v5.part04 quiz-v5.part05 quiz-v5.part06 quiz-v5.part07 quiz-v5.part08 quiz-v5.part09a quiz-v5.part09b quiz-v5.part10 | tr -d '\r\n ' | base64 -d > quiz-v5.tar.gz && gzip -t quiz-v5.tar.gz && rm -rf quiz-app && mkdir quiz-app && tar -xzf quiz-v5.tar.gz -C quiz-app && cd quiz-app && npm install && npm run check && npm run test:core
+    buildCommand: cat quiz-v5.part00 quiz-v5.part01 quiz-v5.part02 quiz-v5.part03 quiz-v5.part04 quiz-v5.part05 quiz-v5.part06 quiz-v5.part07 quiz-v5.part08 quiz-v5.part09a quiz-v5.part09b0 quiz-v5.part09b10 quiz-v5.part09b11 quiz-v5.part09b20 quiz-v5.part09b21 quiz-v5.part10 | tr -d '\r\n ' | base64 -d > quiz-v5.tar.gz && gzip -t quiz-v5.tar.gz && rm -rf quiz-app && mkdir quiz-app && tar -xzf quiz-v5.tar.gz -C quiz-app && cd quiz-app && npm install && npm run check && npm run test:core
     startCommand: cd quiz-app && npm start
     healthCheckPath: /health
     autoDeploy: false
