@@ -11,8 +11,17 @@ pkg.dependencies = { ...(pkg.dependencies || {}), pg: '8.13.1' };
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 
 fs.writeFileSync(path.join(appDir, 'db.js'), `const { Pool } = require('pg');
-const url = String(process.env.DATABASE_URL || '').trim();
-const pool = url ? new Pool({ connectionString: url, ssl: { rejectUnauthorized: false }, max: 5 }) : null;
+const rawUrl = String(process.env.DATABASE_URL || '').trim();
+
+function databaseUrlWithStrictTls(value) {
+  if (!value) return '';
+  const parsed = new URL(value);
+  parsed.searchParams.set('sslmode', 'verify-full');
+  return parsed.toString();
+}
+
+const url = databaseUrlWithStrictTls(rawUrl);
+const pool = url ? new Pool({ connectionString: url, max: 5 }) : null;
 
 async function initDatabase(defaultSets) {
   if (!pool) return { enabled: false, questionSets: defaultSets };
@@ -58,6 +67,7 @@ if (!s.includes("require('./db')")) {
   s = s.replace(anchor, anchor + "\nconst { initDatabase, saveQuestionSet, saveQuizRun, databaseEnabled } = require('./db');");
 }
 
+// Make the question-save endpoint asynchronous and persist its selected set in Neon.
 s = s.replace(/app\.put\('\/api\/admin\/questions',\s*ensureAdmin,\s*\(req, res\)\s*=>/g,
   "app.put('/api/admin/questions', ensureAdmin, async (req, res) =>");
 if (!s.includes('await saveQuestionSet(quizType, validated)')) {
