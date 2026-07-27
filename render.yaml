@@ -5,7 +5,7 @@ services:
     region: frankfurt
     plan: free
     branch: ahnsen-live-quiz-online
-    buildCommand: cat quiz-live-archive.part* | base64 -d > quiz.tar.gz && rm -rf quiz-app && mkdir quiz-app && tar -xzf quiz.tar.gz -C quiz-app && node neon-build-patch.js quiz-app && cd quiz-app && npm install
+    buildCommand: cat quiz-live-archive.part00 quiz-live-archive.part01 quiz-live-archive.part02 quiz-live-archive.part03_0 quiz-live-archive.part03_1 quiz-live-archive.part03_2 quiz-live-archive.part03_3 quiz-live-archive.part04_0 quiz-live-archive.part04_1 quiz-live-archive.part04_2 quiz-live-archive.part04_3 | tr -d '\r\n ' | base64 -d > quiz.tar.gz && gzip -t quiz.tar.gz && rm -rf quiz-app && mkdir quiz-app && tar -xzf quiz.tar.gz -C quiz-app && cd quiz-app && npm install
     startCommand: cd quiz-app && npm start
     healthCheckPath: /health
     autoDeploy: false
