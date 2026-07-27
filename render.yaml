@@ -1,30 +1,22 @@
 services:
   - type: web
-    name: ahnsen-hilft
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-
-  - type: cron
-    name: ahnsen-muell-erinnerungen
-    runtime: python
-    plan: starter
-    schedule: "0 16,17 * * *"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python muelltermine_job.py
+    name: ahnsen-live-quiz
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: ahnsen-live-quiz-online
+    buildCommand: cat quiz-live-archive.part* | base64 -d > quiz.tar.gz && rm -rf quiz-app && mkdir quiz-app && tar -xzf quiz.tar.gz -C quiz-app && cd quiz-app && npm install
+    startCommand: cd quiz-app && npm start
+    healthCheckPath: /health
+    autoDeploy: false
     envVars:
-      - key: DATABASE_URL
-        fromService:
-          name: ahnsen-hilft
-          type: web
-          envVarKey: DATABASE_URL
-      - key: WHATSAPP_TOKEN
-        fromService:
-          name: ahnsen-hilft
-          type: web
-          envVarKey: WHATSAPP_TOKEN
-      - key: PHONE_NUMBER_ID
-        fromService:
-          name: ahnsen-hilft
-          type: web
-          envVarKey: PHONE_NUMBER_ID
+      - key: NODE_VERSION
+        value: "20"
+      - key: QUIZ_TITLE
+        value: Ahnsen Quizabend
+      - key: QUESTION_SECONDS
+        value: "20"
+      - key: EVENT_PASSWORD
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
