@@ -1,0 +1,23 @@
+{
+  "name": "ahnsen-live-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browserbasiertes Live-Quiz für den Quizabend in Ahnsen",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check public/js/player.js && node --check public/js/admin.js && node --check public/js/screen.js",
+    "test:core": "node tests/scoring.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "helmet": "8.0.0",
+    "qrcode": "1.5.4",
+    "socket.io": "4.8.1"
+  }
+}
