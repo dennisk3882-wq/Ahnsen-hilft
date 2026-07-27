@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ahnsen-live-quiz
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: ahnsen-live-quiz-online
+    buildCommand: cat quiz-live-archive.part* | base64 -d > quiz.tar.gz && rm -rf quiz-app && mkdir quiz-app && tar -xzf quiz.tar.gz -C quiz-app && cd quiz-app && npm install
+    startCommand: cd quiz-app && npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: QUIZ_TITLE
+        value: Ahnsen Quizabend
+      - key: QUESTION_SECONDS
+        value: "20"
+      - key: EVENT_PASSWORD
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
