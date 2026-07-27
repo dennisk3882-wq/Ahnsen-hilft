@@ -1,0 +1,1 @@
+Render-Build repariert am 27.07.2026. Geprüftes Archiv mit Erwachsenenquiz, Kinderquiz und Neon-Datenbankanbindung.
