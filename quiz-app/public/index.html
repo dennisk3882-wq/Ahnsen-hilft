@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#090b16">
   <title>Ahnsen Quizabend</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/solo.css">
 </head>
 <body class="player-body">
   <main class="player-shell">
@@ -17,18 +18,29 @@
       <span class="event-live-dot"><i></i> Live-Quiz</span>
     </header>
 
+    <section id="soloEntry" class="solo-entry-card">
+      <div>
+        <span class="eyebrow">Neu: Jederzeit alleine spielen</span>
+        <h2>Solo-Quiz ohne Quizmaster</h2>
+        <p class="muted">Kinder- oder Erwachsenenfragen, mit Zeitbonus oder ganz entspannt ohne Zeitdruck.</p>
+      </div>
+      <div class="solo-entry-actions">
+        <a class="btn primary" href="/solo">Solo-Quiz starten</a>
+      </div>
+    </section>
+
     <section id="loginCard" class="player-login-panel">
       <div class="login-visual" aria-hidden="true">
         <div class="question-orbit"><span>?</span></div>
         <p>Wissen. Schnelligkeit. Ruhm.</p>
       </div>
       <div class="login-form-panel">
-        <span class="eyebrow">Direkt mitspielen</span>
+        <span class="eyebrow">Live-Quiz beitreten</span>
         <h1>Bereit für den Quizabend?</h1>
         <p class="muted">Melde dich mit deinem Namen und dem Passwort des Abends an.</p>
         <label>Dein Spielername<input id="playerName" maxlength="30" autocomplete="nickname" placeholder="z. B. Quizfuchs"></label>
         <label>Quiz-Passwort<input id="eventPassword" type="password" autocomplete="current-password" placeholder="Passwort des Abends"></label>
-        <button id="loginButton" class="btn primary wide-button" type="button">Jetzt mitspielen</button>
+        <button id="loginButton" class="btn primary wide-button" type="button">Jetzt live mitspielen</button>
         <div id="loginMessage" class="message" aria-live="polite"></div>
       </div>
     </section>
