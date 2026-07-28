@@ -123,6 +123,14 @@ function controlSections() {
   if (!state) return '';
   const phase = state.phase;
   const excluded = state.players.filter(player => player.excluded);
+  const tied = state.tieCandidates || [];
+  const tiebreak = state.phase === 'revealed' && tied.length >= 2
+    ? actionButton(`Entscheidungsfrage für ${tied.map(player => player.name).join(', ')}`, 'start_tiebreak', 'btn success', {}, 'trophy')
+    : '<p class="muted">Nach der letzten Frage erscheint hier eine Entscheidungsrunde, wenn der erste Platz punktgleich ist.</p>';
+  const corrections = (state.scoreAdjustments || []).slice(-5).reverse();
+  const correctionLog = corrections.length
+    ? `<div class="adjustment-log">${corrections.map(item => `<div><strong>${esc(item.playerName)}</strong> <span class="${item.delta > 0 ? 'good-text' : 'bad-text'}">${item.delta > 0 ? '+' : ''}${item.delta}</span><small>${esc(item.reason)}</small></div>`).join('')}</div>`
+    : '<p class="muted">Noch keine manuellen Korrekturen.</p>';
   const emergency = [];
   if (['question', 'revealed'].includes(phase)) emergency.push(actionButton('Laufende Frage abbrechen & wiederholen', 'repeat_question', 'btn danger', {}, 'rotate'));
   if (['ready', 'question', 'revealed'].includes(phase)) emergency.push(actionButton('Einzelne Frage überspringen', 'skip_question', 'btn warning', {}, 'skip'));
@@ -139,9 +147,10 @@ function controlSections() {
     : '<p class="muted">Kein Spieler ist ausgeschlossen.</p>';
   return `
     <div class="control-group"><h3>${icon('check')} Quizablauf</h3><div class="control-buttons">${leaderboard}</div></div>
+    <div class="control-group"><h3>${icon('trophy')} Gleichstand</h3><div class="control-buttons">${tiebreak}</div></div>
     <div class="control-group"><h3>${icon('alert')} Notfall & Aktionen</h3><div class="control-buttons">${emergency.join('') || '<p class="muted">Während einer Frage verfügbar.</p>'}</div></div>
     <div class="control-group"><h3>${icon('clock')} Quizpause</h3><div class="control-buttons">${pause}</div></div>
-    <div class="control-group"><h3>${icon('reset')} Punkte & Sitzung</h3><div class="control-buttons">${actionButton('Punkte zurücksetzen', 'reset_scores', 'btn warning', {}, 'reset')}${actionButton('Quiz zurücksetzen', 'reset_quiz', 'btn danger', {}, 'reset')}${actionButton('Alle Spieler entfernen', 'remove_all_players', 'btn danger', {}, 'users')}</div></div>
+    <div class="control-group"><h3>${icon('reset')} Punkte & Sitzung</h3><div class="control-buttons">${actionButton('Punkte zurücksetzen', 'reset_scores', 'btn warning', {}, 'reset')}${actionButton('Quiz zurücksetzen', 'reset_quiz', 'btn danger', {}, 'reset')}${actionButton('Alle Spieler entfernen', 'remove_all_players', 'btn danger', {}, 'users')}</div>${correctionLog}</div>
     <div class="control-group"><h3>${icon('restore')} Ausgeschlossene Spieler</h3>${restore}</div>`;
 }
 function questionImageHtml(question, css = 'question-image') {
@@ -156,7 +165,7 @@ function renderQuestion() {
     return;
   }
   els.categoryBadge.textContent = currentState.question.category;
-  els.current.innerHTML = `${questionImageHtml(currentState.question)}<h2>${esc(currentState.question.text)}</h2><div class="admin-answer-list">${currentState.question.options.map((option, index) => `<div class="admin-answer ${currentState.phase === 'revealed' && index === currentState.question.correctIndex ? 'correct' : ''}"><span class="answer-letter">${String.fromCharCode(65 + index)}</span><span>${esc(option)}</span></div>`).join('')}</div>`;
+  els.current.innerHTML = `${questionImageHtml(currentState.question)}<h2>${esc(currentState.question.text)}</h2><div class="admin-answer-list">${currentState.question.options.map((option, index) => `<div class="admin-answer ${currentState.phase === 'revealed' && index === currentState.question.correctIndex ? 'correct' : ''}"><span class="answer-letter">${String.fromCharCode(65 + index)}</span><span>${esc(option)}</span></div>`).join('')}</div>${currentState.phase === 'revealed' && currentState.question.explanation ? `<div class="answer-feedback success"><strong>Warum?</strong><p>${esc(currentState.question.explanation)}</p></div>` : ''}`;
 }
 function distributionHtml(distribution) {
   const rows = distribution || [];
@@ -183,7 +192,7 @@ function renderPlayers() {
     const rank = player.excluded ? null : rankById.get(player.id);
     const statusClass = player.excluded ? 'excluded' : player.connected ? 'online' : '';
     const statusLabel = player.excluded ? 'Ausgeschlossen' : player.connected ? 'Online' : 'Offline';
-    return `<tr class="${player.excluded ? 'excluded-row' : ''}"><td>${rank ? `<span class="rank-medal ${rankClass(rank)}">${rank}</span>` : '–'}</td><td><span class="connection-state ${statusClass}"><i></i>${statusLabel}</span></td><td class="player-name-cell">${esc(player.name)}</td><td><strong>${player.score}</strong></td><td>${player.correct}</td><td>${player.wrong}</td><td class="latency ${latencyClass(player.latencyMs)}">${player.latencyMs == null ? '–' : `${player.latencyMs} ms`}</td><td>${player.excluded ? `<button class="btn success small" data-player-action="restore_player" data-player-id="${player.id}">Wiederherstellen</button>` : `<button class="btn danger small" data-player-action="exclude_player" data-player-id="${player.id}">Ausschließen</button>`}</td></tr>`;
+    return `<tr class="${player.excluded ? 'excluded-row' : ''}"><td>${rank ? `<span class="rank-medal ${rankClass(rank)}">${rank}</span>` : '–'}</td><td><span class="connection-state ${statusClass}"><i></i>${statusLabel}</span></td><td class="player-name-cell">${esc(player.name)}</td><td><strong>${player.score}</strong></td><td>${player.correct}</td><td>${player.wrong}</td><td class="latency ${latencyClass(player.latencyMs)}">${player.latencyMs == null ? '–' : `${player.latencyMs} ms`}</td><td><div class="row"><button class="btn secondary small" data-score-adjust="${player.id}" data-player-name="${esc(player.name)}">Punkte</button>${player.excluded ? `<button class="btn success small" data-player-action="restore_player" data-player-id="${player.id}">Wiederherstellen</button>` : `<button class="btn danger small" data-player-action="exclude_player" data-player-id="${player.id}">Ausschließen</button>`}</div></td></tr>`;
   }).join('') || '<tr><td colspan="8" class="muted">Noch keine Teilnehmer angemeldet.</td></tr>';
 }
 function renderState(nextState) {
@@ -195,7 +204,7 @@ function renderState(nextState) {
   els.dbStatusDot.className = `status-dot ${nextState.databaseConnected ? 'online' : 'offline'}`;
   els.phase.textContent = phaseNames[nextState.phase] || nextState.phase;
   els.progress.textContent = nextState.progressLabel || 'Noch nicht vorbereitet';
-  els.answerCount.textContent = `${nextState.responseCount}/${nextState.activePlayerCount} Antworten`;
+  els.answerCount.textContent = `${nextState.responseCount}/${nextState.answerEligibleCount ?? nextState.activePlayerCount} Antworten`;
   els.liveSummary.textContent = nextState.preparedAt ? `${nextState.quizType === 'adult' ? 'Erwachsenenquiz' : 'Kinderquiz'} · ${nextState.category} · ${nextState.questionCount} Fragen` : 'Noch kein Quiz vorbereitet';
   els.headerMeta.textContent = els.liveSummary.textContent;
   renderQuestion();
@@ -217,6 +226,7 @@ function bindDynamic() {
   document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => confirmAndRun(button.dataset.action, { minutes: button.dataset.minutes ? Number(button.dataset.minutes) : undefined })));
   document.querySelectorAll('[data-player-action]').forEach(button => button.addEventListener('click', () => runAction(button.dataset.playerAction, { playerId: button.dataset.playerId })));
   document.querySelector('[data-restore-selected]')?.addEventListener('click', () => { const id = $('#restorePlayerSelect')?.value; if (id) runAction('restore_player', { playerId: id }); });
+  document.querySelectorAll('[data-score-adjust]').forEach(button => button.addEventListener('click', () => { const raw = prompt(`Punktekorrektur für ${button.dataset.playerName}:\nPositive Zahl zum Addieren, negative Zahl zum Abziehen.`); if (raw === null) return; const delta = Number(raw); if (!Number.isInteger(delta) || delta === 0) { alert('Bitte eine ganze Zahl ungleich 0 eingeben.'); return; } const reason = prompt('Kurze Begründung für das Protokoll:'); if (!reason) return; runAction('adjust_score', { playerId: button.dataset.scoreAdjust, delta, reason }); }));
 }
 function confirmAndRun(action, extra = {}) {
   const messages = {
@@ -224,6 +234,7 @@ function confirmAndRun(action, extra = {}) {
     reset_quiz: 'Das vorbereitete Quiz wirklich vollständig zurücksetzen?',
     remove_all_players: 'Wirklich alle Spieler entfernen? Die Teilnehmer müssen sich danach neu anmelden.',
     skip_question: 'Diese Frage wirklich ohne Wertung überspringen?',
+    start_tiebreak: 'Entscheidungsfrage jetzt nur für die punktgleichen Spieler vorbereiten?',
   };
   if (messages[action] && !confirm(messages[action])) return;
   runAction(action, extra);
@@ -315,8 +326,8 @@ async function loadEditor() {
 function renderEditor() {
   const category = els.editorCategory.value || 'Alle';
   const search = els.editorSearch.value.trim().toLocaleLowerCase('de');
-  const filtered = editorQuestions.map((question, index) => ({ question, index })).filter(({ question }) => (category === 'Alle' || question.category === category) && (!search || question.text.toLocaleLowerCase('de').includes(search)));
-  els.editorList.innerHTML = filtered.map(({ question, index }) => `<article class="editor-item" data-editor-index="${index}"><div class="row between"><strong>Frage ${index + 1}</strong><button class="btn danger small" data-delete-question="${index}">Löschen</button></div><div class="form-grid three"><label>Kategorie<input data-field="category" value="${esc(question.category)}"></label><label style="grid-column:span 2">Optionaler Bildlink<input data-field="imageUrl" value="${esc(question.imageUrl || '')}" placeholder="Leer lassen: Frage ohne Bild"></label></div><label>Frage<textarea data-field="text" rows="2">${esc(question.text)}</textarea></label><div class="editor-options">${question.options.map((option, optionIndex) => `<label>Antwort ${String.fromCharCode(65 + optionIndex)}<input data-option="${optionIndex}" value="${esc(option)}"></label>`).join('')}</div><label>Richtige Antwort<select data-field="correctIndex">${[0, 1, 2, 3].map(optionIndex => `<option value="${optionIndex}" ${question.correctIndex === optionIndex ? 'selected' : ''}>${String.fromCharCode(65 + optionIndex)}</option>`).join('')}</select></label></article>`).join('') || '<p class="muted">Keine Fragen für diesen Filter.</p>';
+  const filtered = editorQuestions.map((question, index) => ({ question, index })).filter(({ question }) => (category === 'Alle' || question.category === category) && (!search || question.text.toLocaleLowerCase('de').includes(search) || String(question.explanation || '').toLocaleLowerCase('de').includes(search)));
+  els.editorList.innerHTML = filtered.map(({ question, index }) => `<article class="editor-item" data-editor-index="${index}"><div class="row between"><strong>Frage ${index + 1}</strong><button class="btn danger small" data-delete-question="${index}">Löschen</button></div><div class="form-grid three"><label>Kategorie<input data-field="category" value="${esc(question.category)}"></label><label style="grid-column:span 2">Optionaler Bildlink<input data-field="imageUrl" value="${esc(question.imageUrl || '')}" placeholder="Leer lassen: Frage ohne Bild"></label></div><label>Frage<textarea data-field="text" rows="2">${esc(question.text)}</textarea></label><label>Erklärung nach der Auflösung<textarea data-field="explanation" rows="2" placeholder="Warum ist diese Antwort richtig?">${esc(question.explanation || '')}</textarea></label><div class="editor-options">${question.options.map((option, optionIndex) => `<label>Antwort ${String.fromCharCode(65 + optionIndex)}<input data-option="${optionIndex}" value="${esc(option)}"></label>`).join('')}</div><label>Richtige Antwort<select data-field="correctIndex">${[0, 1, 2, 3].map(optionIndex => `<option value="${optionIndex}" ${question.correctIndex === optionIndex ? 'selected' : ''}>${String.fromCharCode(65 + optionIndex)}</option>`).join('')}</select></label></article>`).join('') || '<p class="muted">Keine Fragen für diesen Filter.</p>';
   document.querySelectorAll('[data-editor-index]').forEach(card => {
     const index = Number(card.dataset.editorIndex);
     card.querySelectorAll('[data-field]').forEach(node => node.addEventListener('input', () => { editorQuestions[index][node.dataset.field] = node.dataset.field === 'correctIndex' ? Number(node.value) : node.value; }));
@@ -326,7 +337,7 @@ function renderEditor() {
 }
 function addQuestion() {
   const category = els.editorCategory.value && els.editorCategory.value !== 'Alle' ? els.editorCategory.value : 'Allgemeinwissen';
-  editorQuestions.unshift({ id: `${editorType}-custom-${crypto.randomUUID()}`, category, text: 'Neue Frage', options: ['Antwort A', 'Antwort B', 'Antwort C', 'Antwort D'], correctIndex: 0, imageUrl: '' });
+  editorQuestions.unshift({ id: `${editorType}-custom-${crypto.randomUUID()}`, category, text: 'Neue Frage', options: ['Antwort A', 'Antwort B', 'Antwort C', 'Antwort D'], correctIndex: 0, imageUrl: '', explanation: 'Die richtige Antwort ist Antwort A.' });
   els.editorCategory.value = 'Alle';
   renderEditor();
 }

@@ -180,9 +180,10 @@ function renderQuestion(state) {
       if (response?.answerIndex === index) css += ' selected';
       if (revealed && question.correctIndex === index) css += ' correct';
       if (revealed && response?.answerIndex === index && !response.correct) css += ' wrong';
-      return `<button class="${css}" data-answer="${index}" ${state.phase !== 'question' || response ? 'disabled' : ''}><span class="answer-letter">${String.fromCharCode(65 + index)}</span><span class="answer-text">${escapeHtml(option)}</span></button>`;
+      return `<button class="${css}" data-answer="${index}" ${state.phase !== 'question' || response || state.eligibleForQuestion === false ? 'disabled' : ''}><span class="answer-letter">${String.fromCharCode(65 + index)}</span><span class="answer-text">${escapeHtml(option)}</span></button>`;
     }).join('')}</div>
     ${responseFeedback(response, revealed, question)}
+    ${revealed && question.explanation ? `<div class="answer-feedback success"><strong>Warum?</strong><p>${escapeHtml(question.explanation)}</p></div>` : ''}
   </div>`;
   document.querySelectorAll('[data-answer]').forEach(button => button.addEventListener('click', () => submitAnswer(Number(button.dataset.answer))));
 }
@@ -204,6 +205,8 @@ function renderState(state) {
   renderOverlay(state);
   if (state.player.excluded) {
     els.view.innerHTML = '<div class="big-status"><div class="icon">⛔</div><h2>Du bist derzeit ausgeschlossen</h2><p class="muted">Der Quizmaster kann dich wieder in das Quiz aufnehmen.</p></div>';
+  } else if (state.tiebreak?.active && state.eligibleForQuestion === false && (state.phase === 'question' || state.phase === 'revealed' || state.phase === 'ready')) {
+    els.view.innerHTML = `<div class="big-status"><div class="icon">👀</div><span class="eyebrow">Entscheidungsrunde</span><h2>Du schaust bei dieser Frage zu</h2><p class="muted">Diese Frage ist nur für ${escapeHtml((state.tiebreak.playerNames || []).join(', '))} bestimmt.</p></div>`;
   } else if (state.phase === 'paused') renderPause(state);
   else if (state.phase === 'question' || state.phase === 'revealed') renderQuestion(state);
   else if (state.phase === 'ready') els.view.innerHTML = `<div class="big-status"><div class="icon">🎯</div><span class="eyebrow">Gleich geht es weiter</span><h2>Bereit für ${escapeHtml(state.progressLabel)}</h2><p class="muted">Der Quizmaster startet gleich die nächste Frage.</p></div>`;
