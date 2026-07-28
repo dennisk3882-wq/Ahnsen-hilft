@@ -1,0 +1,21 @@
+name: Audit Quiz v7 Snapshot
+
+on:
+  push:
+    branches:
+      - quiz-v70-materialized-cleanup
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Projektstand als Prüfartefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiz-v70-audit-snapshot
+          path: quiz-app
+          retention-days: 1
