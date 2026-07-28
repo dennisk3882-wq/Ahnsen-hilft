@@ -57,6 +57,18 @@ jobs:
           rm -f quiz-app/tools/.apply-explanations.part*
           python - <<'PY'
           from pathlib import Path
+          import json
+
+          child_path = Path('quiz-app/data/child-questions.json')
+          children = json.loads(child_path.read_text(encoding='utf-8'))
+          for question in children:
+              if question.get('id') == 'child-film-001':
+                  question['explanation'] = 'Shrek hat grüne Haut und ist deshalb leicht an seiner grünen Farbe zu erkennen.'
+                  break
+          else:
+              raise SystemExit('Kinderfrage child-film-001 wurde nicht gefunden.')
+          child_path.write_text(json.dumps(children, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
           target = Path('quiz-app/tests/catalog-quality.test.js')
           content = target.read_text(encoding='utf-8')
           old = "  '- gültiger correctIndex von 0 bis 3',\n  '- exakte Duplikate und auffällig ähnliche Fragen',"
