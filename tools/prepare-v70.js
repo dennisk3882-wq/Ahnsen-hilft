@@ -39,6 +39,14 @@ function repairMigrationSource() {
     "assert(client.includes('result-${type}-'));",
     "assert(client.includes('result-\\${type}-'));",
   );
+  source = source.replace(
+    "fs.rmSync(path.join(root, '.github', 'workflows', 'apply-v70.yml'));",
+    "fs.rmSync(path.join(root, '.github', 'workflows', 'apply-v70.yml'), { force: true });",
+  );
+  source = source.replace(
+    "fs.rmSync(path.join(root, 'tools', 'apply-v70.js'));",
+    "fs.rmSync(path.join(root, 'tools', 'apply-v70.js'), { force: true });",
+  );
   fs.writeFileSync(patch, source);
   execFileSync(process.execPath, ['--check', patch], { cwd: root, stdio: 'inherit' });
 }
