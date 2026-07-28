@@ -19,12 +19,32 @@ async function ensureQrLibrary() {
   fs.writeFileSync(qrFile, content);
 }
 
+function repairMigrationSource() {
+  let source = fs.readFileSync(patch, 'utf8');
+  const lines = source.split('\n');
+  const index = lines.findIndex(line => line.includes('"adult: JSON.parse(fs.readFileSync'));
+  if (index >= 0 && lines[index + 1]?.includes('child: JSON.parse') && lines[index + 2]?.trim() === '",' && lines[index + 3]?.includes('"adult: JSON.parse')) {
+    lines.splice(index, 6,
+      "  `adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')),",
+      "  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')),",
+      "`,",
+      "  `adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion),",
+      "  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')).map(enrichQuestion),",
+      "`);",
+    );
+    source = lines.join('\n');
+    fs.writeFileSync(patch, source);
+  }
+  execFileSync(process.execPath, ['--check', patch], { cwd: root, stdio: 'inherit' });
+}
+
 async function main() {
   const pkg = JSON.parse(fs.readFileSync(path.join(app, 'package.json'), 'utf8'));
   const alreadyApplied = pkg.version === '7.0.0' && fs.existsSync(path.join(app, 'test', 'v70.test.js'));
   if (alreadyApplied) return;
   await ensureQrLibrary();
   if (!fs.existsSync(patch)) throw new Error('Das Version-7-Migrationsskript fehlt.');
+  repairMigrationSource();
   execFileSync(process.execPath, [patch], { cwd: root, stdio: 'inherit' });
 }
 
