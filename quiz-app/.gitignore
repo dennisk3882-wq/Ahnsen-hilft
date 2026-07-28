@@ -1,4 +1,6 @@
+# Installierte und lokale Dateien werden nicht versioniert.
 node_modules/
 .env
 .env.*
 npm-debug.log*
+coverage/
