@@ -63,11 +63,22 @@ echo 'b8bcf5708285e3c81e27d709a13fd970dba6963cb68f6f9b8781b130b25145e2  /tmp/qui
 xz -t /tmp/quiz-v62-ui-patch.tar.xz
 tar -xJf /tmp/quiz-v62-ui-patch.tar.xz -C quiz-app
 
-test -f quiz-app/server.js
-test -f quiz-app/package.json
-test -f quiz-app/public/js/admin.js
-test -f quiz-app/public/js/player.js
-test -f quiz-app/public/js/screen.js
+echo 'Entpackte Quiz-Dateien:'
+find quiz-app -maxdepth 4 -type f | sort
+
+required_files=(
+  quiz-app/server.js
+  quiz-app/package.json
+  quiz-app/public/js/admin.js
+  quiz-app/public/js/player.js
+  quiz-app/public/js/screen.js
+)
+for required_file in "${required_files[@]}"; do
+  if [ ! -f "$required_file" ]; then
+    echo "FEHLENDE DATEI: $required_file"
+    exit 1
+  fi
+done
 
 mkdir -p quiz-app/tests
 cp scripts/catalog-quality.test.js quiz-app/tests/catalog-quality.test.js
