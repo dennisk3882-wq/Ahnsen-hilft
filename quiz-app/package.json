@@ -1,13 +1,13 @@
 {
   "name": "ahnsen-live-quiz",
-  "version": "6.3.0",
+  "version": "6.3.1",
   "private": true,
   "description": "Live- und Solo-Quiz für den Ahnsen Quizabend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js && node --check db.js && node --check solo-routes.js && node --check public/player.js && node --check public/admin.js && node --check public/screen.js && node --check public/solo.js",
-    "test:core": "node test/core.test.js && node test/solo.test.js",
+    "test:core": "node test/core.test.js && node test/solo.test.js && node test/start-page.test.js",
     "test:catalog": "node tests/catalog-quality.test.js",
     "test:all": "npm run check && npm run test:core && npm run test:catalog"
   },
