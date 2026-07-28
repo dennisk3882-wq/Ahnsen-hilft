@@ -1,0 +1,38 @@
+name: Quiz v7 Diagnostics
+
+on:
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: quiz-app/package-lock.json
+      - name: Abhängigkeiten installieren
+        working-directory: quiz-app
+        run: npm ci
+      - name: Diagnosebericht erstellen
+        shell: bash
+        run: |
+          set +e
+          cd quiz-app
+          npm run test:all > ../v70-diagnostics.txt 2>&1
+          CODE=$?
+          echo "EXIT_CODE=$CODE" >> ../v70-diagnostics.txt
+          exit 0
+      - name: Diagnosebericht hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: v70-diagnostics
+          path: v70-diagnostics.txt
+          retention-days: 2
