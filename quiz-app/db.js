@@ -56,29 +56,52 @@ function isWeakExplanation(value) {
   return !text || WEAK_EXPLANATION_PATTERNS.some(pattern => pattern.test(text));
 }
 
+function normalizeMatchText(value) {
+  return String(value || '')
+    .normalize('NFKC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('de');
+}
+
+function questionIdentityKey(question) {
+  const options = Array.isArray(question?.options) ? question.options : [];
+  const correctIndex = Number(question?.correctIndex);
+  const correctAnswer = Number.isInteger(correctIndex) && correctIndex >= 0 && correctIndex < options.length
+    ? options[correctIndex]
+    : '';
+  return `${normalizeMatchText(question?.text)}\u0000${normalizeMatchText(correctAnswer)}`;
+}
+
 function mergeCatalog(existing, defaults, type) {
   const existingList = Array.isArray(existing) ? existing : [];
   const defaultList = (Array.isArray(defaults) ? defaults : []).map((q, i) => normalizeQuestion(q, type, i));
   const defaultsById = new Map(defaultList.map(question => [question.id, question]));
+  const defaultsByIdentity = new Map(defaultList.map(question => [questionIdentityKey(question), question]));
 
   const normalized = existingList
     .map((q, i) => normalizeQuestion(q, type, i))
     .filter(q => q.text)
     .map(question => {
-      const catalogDefault = defaultsById.get(question.id);
-      if (!catalogDefault) return question;
-
+      const catalogDefaultById = defaultsById.get(question.id);
       const merged = { ...question };
-      if (isWeakExplanation(merged.explanation) && catalogDefault.explanation) {
-        merged.explanation = catalogDefault.explanation;
-      }
 
       const oldText = DEFAULT_CONTENT_MIGRATIONS.get(merged.id);
-      if (oldText && merged.text === oldText) {
-        merged.text = catalogDefault.text;
-        merged.options = [...catalogDefault.options];
-        merged.correctIndex = catalogDefault.correctIndex;
+      if (catalogDefaultById && oldText && merged.text === oldText) {
+        merged.text = catalogDefaultById.text;
+        merged.options = [...catalogDefaultById.options];
+        merged.correctIndex = catalogDefaultById.correctIndex;
       }
+
+      const catalogDefaultByContent = defaultsByIdentity.get(questionIdentityKey(merged));
+      if (catalogDefaultByContent?.explanation) {
+        // Die Erklärung wird anhand von Fragetext und richtiger Antwort synchronisiert.
+        // So werden auch bereits gespeicherte, aber vertauschte Erklärungen zuverlässig repariert.
+        merged.explanation = catalogDefaultByContent.explanation;
+      } else if (catalogDefaultById && isWeakExplanation(merged.explanation) && catalogDefaultById.explanation) {
+        merged.explanation = catalogDefaultById.explanation;
+      }
+
       return merged;
     });
 
@@ -237,4 +260,8 @@ module.exports = {
   deleteQuizRun,
   pingDatabase,
   databaseEnabled: Boolean(pool),
+  _test: {
+    mergeCatalog,
+    questionIdentityKey,
+  },
 };
