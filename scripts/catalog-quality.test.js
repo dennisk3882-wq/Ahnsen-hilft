@@ -3,7 +3,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const appRoot = path.resolve(__dirname, '..', 'quiz-app');
+const localCandidate = path.resolve(__dirname, '..');
+const repositoryCandidate = path.resolve(__dirname, '..', 'quiz-app');
+const appRoot = fs.existsSync(path.join(localCandidate, 'package.json'))
+  ? localCandidate
+  : repositoryCandidate;
+
 const errors = [];
 const warnings = [];
 const questions = [];
@@ -92,8 +97,13 @@ function walk(directory) {
   return result;
 }
 
-const coreTestPath = path.join(appRoot, 'tests', 'scoring.test.js');
-if (fs.existsSync(coreTestPath)) {
+const coreTestPaths = [
+  path.join(appRoot, 'tests', 'scoring.test.js'),
+  path.join(appRoot, 'test', 'core.test.js')
+];
+
+for (const coreTestPath of coreTestPaths) {
+  if (!fs.existsSync(coreTestPath)) continue;
   const coreSource = fs.readFileSync(coreTestPath, 'utf8');
   const requirePattern = /require\(\s*['"](\.\.\/[^'"]+)['"]\s*\)/g;
   for (const match of coreSource.matchAll(requirePattern)) {
@@ -106,7 +116,8 @@ if (fs.existsSync(coreTestPath)) {
 for (const filePath of walk(appRoot)) {
   const relative = path.relative(appRoot, filePath);
   if (!/\.(js|cjs|json)$/i.test(filePath)) continue;
-  if (relative === 'server.js' || relative.startsWith(`tests${path.sep}`)) continue;
+  if (relative === 'server.js') continue;
+  if (relative.startsWith(`tests${path.sep}`) || relative.startsWith(`test${path.sep}`)) continue;
   if (!/(question|fragen|catalog|katalog|bank|quiz|data)/i.test(relative)) continue;
   requireAndCollect(filePath);
 }
