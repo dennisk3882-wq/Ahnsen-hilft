@@ -49,3 +49,5 @@ jobs:
           git add -A
           git commit -m "500 hochwertige Lern-Erklärungen vollständig einbauen"
           git push origin HEAD:quiz-explanations-500
+
+# Zweiter Commit startet den nun bereits registrierten Workflow.
