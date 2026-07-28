@@ -1,9 +1,9 @@
 name: Apply 500 Learning Explanations
 
 on:
-  push:
+  pull_request:
     branches:
-      - quiz-explanations-500
+      - ahnsen-live-quiz-online
     paths:
       - '.github/workflows/apply-explanations.yml'
 
@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   apply:
+    if: github.event.pull_request.head.ref == 'quiz-explanations-500'
     runs-on: ubuntu-latest
     steps:
       - name: Repository auschecken
@@ -49,5 +50,3 @@ jobs:
           git add -A
           git commit -m "500 hochwertige Lern-Erklärungen vollständig einbauen"
           git push origin HEAD:quiz-explanations-500
-
-# Zweiter Commit startet den nun bereits registrierten Workflow.
