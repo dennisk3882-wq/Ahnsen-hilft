@@ -44,11 +44,17 @@ for (const [type, catalog] of [['adult', adults], ['child', children]]) {
   });
 }
 
-const madrid = children.find(question => question.text === 'Welche Stadt ist die Hauptstadt von Spanien?');
+const madrid = children.find(question => {
+  const answer = question.options[question.correctIndex];
+  return answer === 'Madrid' && /Hauptstadt/.test(question.text) && /Spanien/.test(question.text);
+});
 assert(madrid);
 assert.strictEqual(madrid.explanation, 'Madrid ist die Hauptstadt von Spanien.');
 
-const drums = children.find(question => question.text === 'Welches Instrument wird mit Stöcken gespielt?');
+const drums = children.find(question => {
+  const answer = question.options[question.correctIndex];
+  return answer === 'Schlagzeug' && /Stöcken/.test(question.text);
+});
 assert(drums);
 assert.strictEqual(drums.explanation, 'Beim Schlagzeug spielt man mit Stöcken auf Trommelfelle und Becken.');
 
