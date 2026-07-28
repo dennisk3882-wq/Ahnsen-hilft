@@ -2,6 +2,9 @@
 
 const crypto = require('crypto');
 const elevenlabs = require('./elevenlabs');
+const storage = require('./extended-storage');
+const profileAuth = require('./solo-profile-auth');
+const { enrichQuestion } = require('./question-explanations');
 
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 const ALLOWED_COUNTS = new Set([5, 10, 15, 25, 50]);
@@ -18,6 +21,7 @@ function installSoloRoutes(app, {
   now = () => Date.now(),
 }) {
   const sessions = new Map();
+  profileAuth.installProfileRoutes(app);
 
   function cleanupSessions() {
     const cutoff = now() - SESSION_TTL_MS;
@@ -28,7 +32,7 @@ function installSoloRoutes(app, {
 
   function catalogFor(type) {
     const sets = getQuestionSets();
-    return Array.isArray(sets[type]) ? sets[type] : [];
+    return Array.isArray(sets[type]) ? sets[type].map(enrichQuestion) : [];
   }
 
   function findQuestion(session) {
@@ -52,7 +56,7 @@ function installSoloRoutes(app, {
       text: question.text,
       options: question.options,
       ...(question.imageUrl ? { imageUrl: question.imageUrl } : {}),
-      ...(reveal ? { correctIndex: question.correctIndex } : {}),
+      ...(reveal ? { correctIndex: question.correctIndex, explanation: question.explanation } : {}),
     };
   }
 
@@ -77,6 +81,7 @@ function installSoloRoutes(app, {
     const question = findQuestion(session);
     return {
       sessionId: session.id,
+      profile: { id: session.profileId, name: session.profileName },
       quizType: session.quizType,
       category: session.category,
       mode: session.mode,
@@ -95,8 +100,22 @@ function installSoloRoutes(app, {
     };
   }
 
+  function ensureOwnSession(req, res) {
+    const sessionId = String(req.body?.sessionId || req.params?.sessionId || '');
+    const session = sessions.get(sessionId);
+    if (!session) {
+      res.status(404).json({ error: 'Dieses Solo-Quiz ist nicht mehr verfügbar.' });
+      return null;
+    }
+    if (session.profileId !== req.soloProfile.id) {
+      res.status(403).json({ error: 'Dieses Solo-Quiz gehört zu einem anderen Profil.' });
+      return null;
+    }
+    return session;
+  }
+
   function finishCurrentQuestion(session, answerIndex, { timedOut = false } = {}) {
-    if (session.answered || session.finished) return;
+    if (session.answered || session.finished) return null;
     const question = findQuestion(session);
     if (!question) throw new Error('Die aktuelle Frage wurde nicht gefunden.');
 
@@ -123,9 +142,29 @@ function installSoloRoutes(app, {
       remainingSeconds: remaining,
     };
     session.lastActivityAt = now();
+    return { question, answerIndex: validAnswer ? answerIndex : null, correct, timedOut: isTimedOut, delta };
   }
 
-  app.get('/api/solo/config', (_req, res) => {
+  async function persistAttempt(session, finished) {
+    if (!finished) return;
+    await storage.saveSoloAttempt({
+      profileId: session.profileId,
+      sessionId: session.id,
+      questionIndex: session.currentIndex,
+      quizType: session.quizType,
+      category: finished.question.category,
+      mode: session.mode,
+      questionId: finished.question.id,
+      questionText: finished.question.text,
+      answerIndex: finished.answerIndex,
+      correctIndex: finished.question.correctIndex,
+      correct: finished.correct,
+      timedOut: finished.timedOut,
+      delta: finished.delta,
+    });
+  }
+
+  app.get('/api/solo/config', async (_req, res) => {
     cleanupSessions();
     const sets = getQuestionSets();
     const makeConfig = type => {
@@ -142,9 +181,13 @@ function installSoloRoutes(app, {
         ])),
       };
     };
+    let speechCache = { files: 0, bytes: 0 };
+    try { speechCache = await storage.speechCacheStats(); } catch { /* optionale Anzeige */ }
     res.json({
       questionCounts: [...ALLOWED_COUNTS],
       questionSeconds,
+      profileRequired: true,
+      speechCache,
       catalogs: { adult: makeConfig('adult'), child: makeConfig('child') },
     });
   });
@@ -157,7 +200,7 @@ function installSoloRoutes(app, {
     }
   });
 
-  app.post('/api/solo/speech', async (req, res) => {
+  app.post('/api/solo/speech', profileAuth.requireProfile, async (req, res) => {
     try {
       const quizType = req.body?.quizType === 'adult' ? 'adult' : 'child';
       const question = findQuestionByContent(quizType, req.body?.questionText, req.body?.options);
@@ -183,7 +226,7 @@ function installSoloRoutes(app, {
     }
   });
 
-  app.post('/api/solo/start', (req, res) => {
+  app.post('/api/solo/start', profileAuth.requireProfile, (req, res) => {
     cleanupSessions();
     const quizType = req.body?.quizType === 'adult' ? 'adult' : 'child';
     const category = String(req.body?.category || 'Gemischt').trim() || 'Gemischt';
@@ -206,6 +249,8 @@ function installSoloRoutes(app, {
     const timestamp = now();
     const session = {
       id: crypto.randomUUID(),
+      profileId: req.soloProfile.id,
+      profileName: req.soloProfile.name,
       quizType,
       category,
       mode,
@@ -228,21 +273,22 @@ function installSoloRoutes(app, {
     res.json(stateFor(session));
   });
 
-  app.get('/api/solo/state/:sessionId', (req, res) => {
+  app.get('/api/solo/state/:sessionId', profileAuth.requireProfile, async (req, res) => {
     cleanupSessions();
-    const session = sessions.get(String(req.params.sessionId || ''));
-    if (!session) return res.status(404).json({ error: 'Dieses Solo-Quiz ist nicht mehr verfügbar.' });
+    const session = ensureOwnSession(req, res);
+    if (!session) return;
     if (!session.answered && !session.finished && session.mode === 'timed' && remainingMs(session) <= 0) {
-      finishCurrentQuestion(session, null, { timedOut: true });
+      const finished = finishCurrentQuestion(session, null, { timedOut: true });
+      await persistAttempt(session, finished);
     }
     session.lastActivityAt = now();
     res.json(stateFor(session));
   });
 
-  app.post('/api/solo/answer', (req, res) => {
+  app.post('/api/solo/answer', profileAuth.requireProfile, async (req, res) => {
     cleanupSessions();
-    const session = sessions.get(String(req.body?.sessionId || ''));
-    if (!session) return res.status(404).json({ error: 'Dieses Solo-Quiz ist nicht mehr verfügbar.' });
+    const session = ensureOwnSession(req, res);
+    if (!session) return;
     if (session.finished) return res.status(409).json({ error: 'Das Solo-Quiz ist bereits beendet.' });
     if (session.answered) return res.json(stateFor(session));
 
@@ -252,14 +298,15 @@ function installSoloRoutes(app, {
       return res.status(400).json({ error: 'Bitte eine gültige Antwort auswählen.' });
     }
 
-    finishCurrentQuestion(session, answerIndex, { timedOut });
+    const finished = finishCurrentQuestion(session, answerIndex, { timedOut });
+    await persistAttempt(session, finished);
     res.json(stateFor(session));
   });
 
-  app.post('/api/solo/next', (req, res) => {
+  app.post('/api/solo/next', profileAuth.requireProfile, (req, res) => {
     cleanupSessions();
-    const session = sessions.get(String(req.body?.sessionId || ''));
-    if (!session) return res.status(404).json({ error: 'Dieses Solo-Quiz ist nicht mehr verfügbar.' });
+    const session = ensureOwnSession(req, res);
+    if (!session) return;
     if (session.finished) return res.json(stateFor(session));
     if (!session.answered) return res.status(409).json({ error: 'Bitte zuerst die aktuelle Frage beantworten.' });
 
@@ -278,8 +325,10 @@ function installSoloRoutes(app, {
     res.json(stateFor(session));
   });
 
-  app.delete('/api/solo/session/:sessionId', (req, res) => {
-    sessions.delete(String(req.params.sessionId || ''));
+  app.delete('/api/solo/session/:sessionId', profileAuth.requireProfile, (req, res) => {
+    const session = ensureOwnSession(req, res);
+    if (!session) return;
+    sessions.delete(session.id);
     res.json({ ok: true });
   });
 }
