@@ -32,6 +32,20 @@ jobs:
         run: |
           mkdir -p quiz-app/tools
           cat quiz-app/tools/.apply-explanations.part* | base64 --decode | gzip --decompress > quiz-app/tools/apply-learning-explanations.js
+          python - <<'PY'
+          from pathlib import Path
+          target = Path('quiz-app/tools/apply-learning-explanations.js')
+          content = target.read_text(encoding='utf-8')
+          for token in (
+              '${i + 1}',
+              '${escapeHtml(question.explanation)}',
+              '${file}',
+              '${question.id}',
+              '${label}',
+          ):
+              content = content.replace(token, '\\' + token)
+          target.write_text(content, encoding='utf-8')
+          PY
           node --check quiz-app/tools/apply-learning-explanations.js
           node quiz-app/tools/apply-learning-explanations.js
           rm -f quiz-app/tools/.apply-explanations.part*
