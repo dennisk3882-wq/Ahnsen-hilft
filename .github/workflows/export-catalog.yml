@@ -1,0 +1,25 @@
+name: Export Quiz Catalog
+
+on:
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Fragenkatalog als Arbeitsartefakt bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiz-question-catalog
+          path: |
+            quiz-app/data/adult-questions.json
+            quiz-app/data/child-questions.json
+          retention-days: 1
