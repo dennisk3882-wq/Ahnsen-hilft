@@ -1,0 +1,32 @@
+name: Materialize quiz app safely
+
+on:
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
+    paths:
+      - .github/workflows/materialize-quiz-app-pr.yml
+      - scripts/materialize-quiz.sh
+      - scripts/catalog-quality.test.js
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prüf-Branch auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: quiz-build-cleanup
+          fetch-depth: 0
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Projekt materialisieren, prüfen und zurückschreiben
+        run: bash scripts/materialize-quiz.sh
