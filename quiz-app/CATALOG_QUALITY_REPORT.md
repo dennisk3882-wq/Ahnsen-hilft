@@ -19,9 +19,10 @@ Prüfhinweise: **5**
 
 ## Hinweise
 
+Die folgenden Hinweise betreffen gleiche Fragetexte in Erwachsenen- und Kinderkatalog. Sie sind keine strukturellen Fehler.
+
 - Kinder[1]: Gleicher Fragetext auch in Erwachsene[8].
 - Kinder[93]: Gleicher Fragetext auch in Erwachsene[69].
 - Kinder[95]: Gleicher Fragetext auch in Erwachsene[74].
 - Kinder[97]: Gleicher Fragetext auch in Erwachsene[5].
 - Kinder[148]: Gleicher Fragetext auch in Erwachsene[171].
-
