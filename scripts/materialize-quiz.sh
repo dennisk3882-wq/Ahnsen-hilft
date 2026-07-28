@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+LOG_FILE="MATERIALIZE_FAILURE.log"
+: > "$LOG_FILE"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+finish() {
+  status=$?
+  trap - EXIT
+  if [ "$status" -ne 0 ]; then
+    git config user.name 'github-actions[bot]'
+    git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+    git add "$LOG_FILE"
+    git commit -m 'Protokolliere fehlgeschlagene Quiz-Materialisierung' || true
+    git push origin HEAD:quiz-build-cleanup || true
+  else
+    rm -f "$LOG_FILE"
+  fi
+  exit "$status"
+}
+trap finish EXIT
+
 cat \
   quiz-v6.b64.part00 quiz-v6.b64.part01 quiz-v6.b64.part02 \
   quiz-v6.b64.part03.0 quiz-v6.b64.part03.1 quiz-v6.b64.part03.2 \
