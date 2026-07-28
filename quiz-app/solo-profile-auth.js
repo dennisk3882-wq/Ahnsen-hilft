@@ -106,6 +106,7 @@ async function profileForRequest(req) {
 
 async function requireProfile(req, res, next) {
   try {
+    if (!storage.enabled()) { req.soloProfile = { id: '00000000-0000-0000-0000-000000000000', name: 'Gast' }; return next(); }
     const profile = await profileForRequest(req);
     if (!profile) return res.status(401).json({ error: 'Bitte zuerst ein Solo-Profil auswählen und das Passwort eingeben.' });
     req.soloProfile = profile;

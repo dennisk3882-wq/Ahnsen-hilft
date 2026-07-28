@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/solo.css">
   <link rel="stylesheet" href="/elevenlabs-speech.css">
+  <link rel="stylesheet" href="/solo-profiles.css">
 </head>
 <body class="solo-body">
   <main class="solo-shell">
@@ -65,7 +66,7 @@
           <span class="eyebrow">Deine Auswahl</span>
           <div id="selectionSummary" class="solo-selection-summary"></div>
           <div id="recordSummary" class="solo-record-card"><span>Persönlicher Rekord</span><strong>Noch keiner</strong></div>
-          <button id="startSoloButton" class="btn primary wide-button" type="button">Solo-Quiz starten</button>
+          <button id="startSoloButton" class="btn primary wide-button" type="button" disabled>Solo-Quiz starten</button>
           <div id="setupMessage" class="message" aria-live="polite"></div>
         </aside>
       </div>
@@ -88,6 +89,7 @@
     </section>
   </main>
 
+  <script src="/solo-profiles.js"></script>
   <script src="/solo.js"></script>
   <script src="/elevenlabs-speech.js"></script>
 </body>

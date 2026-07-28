@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const { Server } = require('socket.io');
 const { calculateAnswerScore } = require('./lib/scoring');
 const { installSoloRoutes } = require('./solo-routes');
+const { enrichQuestion } = require('./question-explanations');
 const {
   initDatabase,
   saveQuestionSet,
@@ -31,15 +32,15 @@ const ADMIN_IDLE_MS = 90 * 60 * 1000;
 const ADMIN_MAX_MS = 24 * 60 * 60 * 1000;
 
 const defaultSets = {
-  adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')),
-  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')),
+  adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion),
+  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')).map(enrichQuestion),
 };
 let questionSets = structuredClone(defaultSets);
 let dbConnected = false;
 
 function freshState(existingPlayers = {}) {
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     title: QUIZ_TITLE,
     phase: 'lobby',
     quizType: 'adult',
@@ -55,6 +56,8 @@ function freshState(existingPlayers = {}) {
     skippedQuestionIds: [],
     overlay: null,
     pause: null,
+    tiebreak: null,
+    scoreAdjustments: [],
     runUuid: null,
     startedAt: null,
     preparedAt: null,
@@ -98,6 +101,20 @@ function getIp(req) { return String(req.headers['x-forwarded-for'] || req.socket
 function getQuestion(type, id) { return (questionSets[type] || []).find(q => q.id === id) || null; }
 function currentQuestion() { return state.selectedQuestionIds.length ? getQuestion(state.quizType, state.selectedQuestionIds[state.currentIndex]) : null; }
 function activePlayers() { return Object.values(state.players).filter(p => !p.excluded); }
+function eligiblePlayers() {
+  if (!state.tiebreak?.active) return activePlayers();
+  const eligible = new Set(state.tiebreak.eligiblePlayerIds || []);
+  return activePlayers().filter(player => eligible.has(player.id));
+}
+function tieCandidates() {
+  const board = leaderboard();
+  const pool = state.tiebreak?.active
+    ? board.filter(player => (state.tiebreak.eligiblePlayerIds || []).includes(player.id))
+    : board;
+  if (pool.length < 2) return pool.slice(0, 1);
+  const topScore = pool[0].score;
+  return pool.filter(player => player.score === topScore);
+}
 function currentRemainingMs() {
   if (state.phase !== 'question' || !state.questionStartedAt) return 0;
   return Math.max(0, state.questionDurationSec * 1000 - (now() - state.questionStartedAt));
@@ -177,7 +194,7 @@ function publicQuestion({ reveal = false } = {}) {
     text: question.text,
     options: question.options,
     ...(question.imageUrl ? { imageUrl: question.imageUrl } : {}),
-    ...(reveal ? { correctIndex: question.correctIndex } : {}),
+    ...(reveal ? { correctIndex: question.correctIndex, explanation: enrichQuestion(question).explanation } : {}),
   };
 }
 
@@ -197,6 +214,8 @@ function basePublicState() {
     question: publicQuestion({ reveal }),
     responseCount: Object.keys(state.responses || {}).length,
     activePlayerCount: activePlayers().length,
+    answerEligibleCount: eligiblePlayers().length,
+    tiebreak: state.tiebreak ? { active: Boolean(state.tiebreak.active), round: state.tiebreak.round, playerNames: state.tiebreak.playerNames || [] } : null,
     distribution: reveal ? answerDistribution() : null,
     overlay: state.overlay,
     pause: state.pause,
@@ -222,6 +241,7 @@ function playerState(playerId) {
       latencyMs: player.latencyMs ?? null,
     } : null,
     ownResponse: state.responses[playerId] || null,
+    eligibleForQuestion: !state.tiebreak?.active || (state.tiebreak.eligiblePlayerIds || []).includes(playerId),
   };
 }
 
@@ -246,6 +266,9 @@ function adminState() {
       }))
       .sort((a, b) => Number(a.excluded) - Number(b.excluded) || b.score - a.score || a.name.localeCompare(b.name, 'de')),
     leaderboard: leaderboard(),
+    tieCandidates: tieCandidates(),
+    tiebreak: state.tiebreak,
+    scoreAdjustments: state.scoreAdjustments || [],
     selectedQuestionIds: state.selectedQuestionIds,
     runUuid: state.runUuid,
     startedAt: state.startedAt,
@@ -361,7 +384,7 @@ function startQuestion() {
 function revealQuestion({ automatic = false } = {}) {
   if (!currentQuestion() || state.phase !== 'question') return;
   const responded = new Set(Object.keys(state.responses || {}));
-  for (const player of activePlayers()) {
+  for (const player of eligiblePlayers()) {
     if (!responded.has(player.id)) player.unanswered += 1;
   }
   state.phase = 'revealed';
@@ -399,6 +422,16 @@ async function moveToNextQuestion() {
 
 async function finishQuiz() {
   if (state.phase === 'question') revealQuestion();
+  if (state.tiebreak?.active) {
+    const candidates = tieCandidates();
+    state.tiebreak = {
+      ...state.tiebreak,
+      active: false,
+      resolvedAt: now(),
+      winnerId: candidates.length === 1 ? candidates[0].id : null,
+      winnerName: candidates.length === 1 ? candidates[0].name : null,
+    };
+  }
   state.phase = 'finished';
   state.finishedAt = now();
   state.overlay = null;
@@ -415,7 +448,7 @@ async function finishQuiz() {
     startedAt: state.startedAt,
     leaderboard: board,
     answerHistory: state.answerHistory,
-    settings: { skippedQuestionIds: state.skippedQuestionIds, selectedQuestionIds: state.selectedQuestionIds },
+    settings: { skippedQuestionIds: state.skippedQuestionIds, selectedQuestionIds: state.selectedQuestionIds, scoreAdjustments: state.scoreAdjustments || [], tiebreak: state.tiebreak || null },
   };
   if (dbConnected && state.savedRunUuid !== run.runUuid) {
     await saveQuizRun(run);
@@ -529,7 +562,7 @@ function acceptCommand(commandId) {
 app.get('/health', async (_req, res) => {
   let database = false;
   try { database = await pingDatabase(); } catch { database = false; }
-  res.json({ ok: true, database, phase: state.phase, version: '6.3.0' });
+  res.json({ ok: true, database, phase: state.phase, version: '7.0.0' });
 });
 
 app.get('/api/config', (_req, res) => res.json({ title: QUIZ_TITLE, questionSeconds: QUESTION_SECONDS }));
@@ -584,6 +617,7 @@ app.get('/api/player/state', ensurePlayer, (req, res) => res.json(playerState(re
 app.post('/api/player/answer', ensurePlayer, async (req, res) => {
   const player = req.player;
   if (player.excluded) return res.status(403).json({ error: 'Du wurdest vom Quiz ausgeschlossen.' });
+  if (state.tiebreak?.active && !(state.tiebreak.eligiblePlayerIds || []).includes(player.id)) return res.status(403).json({ error: 'Diese Entscheidungsfrage ist nur für die punktgleichen Spieler bestimmt.' });
   if (state.phase !== 'question') return res.status(409).json({ error: 'Aktuell läuft keine beantwortbare Frage.' });
   if (state.responses[player.id]) return res.status(409).json({ error: 'Antwort wurde bereits gespeichert.' });
   const answerIndex = Number(req.body?.answerIndex);
@@ -717,6 +751,50 @@ app.post('/api/admin/action', ensureAdmin, async (req, res) => {
         broadcastAll();
         break;
       }
+      case 'adjust_score': {
+        if (state.phase === 'finished') throw new Error('Nach dem endgültigen Speichern kann die Punktzahl nicht mehr geändert werden. Bitte vorher korrigieren.');
+        const player = state.players[String(req.body?.playerId || '')];
+        const delta = Number(req.body?.delta);
+        const reason = String(req.body?.reason || '').trim().slice(0, 160);
+        if (!player) throw new Error('Spieler nicht gefunden.');
+        if (!Number.isInteger(delta) || delta === 0 || Math.abs(delta) > 500) throw new Error('Die Korrektur muss eine ganze Zahl zwischen −500 und 500 sein und darf nicht 0 sein.');
+        if (reason.length < 3) throw new Error('Bitte eine kurze Begründung für die Punktekorrektur angeben.');
+        player.score += delta;
+        state.scoreAdjustments ||= [];
+        state.scoreAdjustments.push({ id: crypto.randomUUID(), playerId: player.id, playerName: player.name, delta, reason, scoreAfter: player.score, adjustedAt: now() });
+        state.updatedAt = now();
+        await persistNow();
+        broadcastAll();
+        break;
+      }
+      case 'start_tiebreak': {
+        if (state.phase !== 'revealed') throw new Error('Eine Entscheidungsfrage kann nur nach einer aufgelösten Frage gestartet werden.');
+        if (state.currentIndex + 1 < state.selectedQuestionIds.length) throw new Error('Entscheidungsfragen sind erst nach der letzten regulären Frage möglich.');
+        const tied = tieCandidates();
+        if (tied.length < 2) throw new Error('Auf dem ersten Platz besteht aktuell kein Gleichstand.');
+        const allIds = chooseQuestions(state.quizType, 'Gemischt', questionSets[state.quizType].length);
+        const nextId = allIds.find(id => !state.selectedQuestionIds.includes(id));
+        if (!nextId) throw new Error('Es ist keine unbenutzte Frage für eine Entscheidungsrunde verfügbar.');
+        state.selectedQuestionIds.push(nextId);
+        state.questionCount = state.selectedQuestionIds.length;
+        state.currentIndex = state.selectedQuestionIds.length - 1;
+        state.phase = 'ready';
+        state.responses = {};
+        state.questionStartedAt = null;
+        state.overlay = null;
+        state.pause = null;
+        state.tiebreak = {
+          active: true,
+          round: Number(state.tiebreak?.round || 0) + 1,
+          eligiblePlayerIds: tied.map(player => player.id),
+          playerNames: tied.map(player => player.name),
+          startedAt: now(),
+        };
+        state.updatedAt = now();
+        await persistNow();
+        broadcastAll();
+        break;
+      }
       case 'finish_quiz':
         await finishQuiz();
         break;
@@ -729,6 +807,8 @@ app.post('/api/admin/action', ensureAdmin, async (req, res) => {
         state.skippedQuestionIds = [];
         state.overlay = null;
         state.pause = null;
+        state.tiebreak = null;
+        state.scoreAdjustments = [];
         state.questionStartedAt = null;
         state.questionDurationSec = QUESTION_SECONDS;
         state.finishedAt = null;
@@ -796,6 +876,7 @@ app.put('/api/admin/questions', ensureAdmin, async (req, res) => {
     const options = Array.isArray(q.options) ? q.options.map(v => String(v).trim()) : [];
     const correctIndex = Number(q.correctIndex);
     const imageUrl = String(q.imageUrl || '').trim();
+    const explanation = String(q.explanation || '').trim();
     if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
       return res.status(400).json({ error: `Frage ${i + 1}: Der optionale Bildlink muss mit http:// oder https:// beginnen.` });
     }
@@ -803,7 +884,7 @@ app.put('/api/admin/questions', ensureAdmin, async (req, res) => {
       return res.status(400).json({ error: `Frage ${i + 1} ist unvollständig oder ungültig.` });
     }
     ids.add(id);
-    validated.push({ id, category, text, options, correctIndex, ...(imageUrl ? { imageUrl } : {}) });
+    validated.push(enrichQuestion({ id, category, text, options, correctIndex, explanation, ...(imageUrl ? { imageUrl } : {}) }));
   }
   questionSets[type] = validated;
   await saveQuestionSet(type, validated);
@@ -918,7 +999,7 @@ setInterval(() => {
 async function bootstrap() {
   try {
     const initialized = await initDatabase(defaultSets);
-    questionSets = initialized.questionSets;
+    questionSets = { adult: (initialized.questionSets.adult || []).map(enrichQuestion), child: (initialized.questionSets.child || []).map(enrichQuestion) };
     dbConnected = initialized.enabled;
     if (initialized.liveState && typeof initialized.liveState === 'object') {
       state = { ...freshState(), ...initialized.liveState, title: QUIZ_TITLE };
@@ -926,6 +1007,8 @@ async function bootstrap() {
       state.responses = state.responses || {};
       state.answerHistory = state.answerHistory || [];
       state.skippedQuestionIds = state.skippedQuestionIds || [];
+      state.scoreAdjustments = state.scoreAdjustments || [];
+      state.tiebreak = state.tiebreak || null;
       for (const player of Object.values(state.players)) { player.connected = false; player.latencyMs = null; }
       if (state.phase === 'question' && currentRemainingMs() <= 0) revealQuestion({ automatic: true });
       if (state.phase === 'paused' && state.pause?.until <= now()) resumePause();

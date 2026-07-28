@@ -9,7 +9,7 @@ const html = fs.readFileSync(path.join(root, 'public', 'screen.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'public', 'screen.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'public', 'screen-qr.css'), 'utf8');
 
-assert(html.includes('qrcode-generator/1.4.4/qrcode.min.js'), 'QR-Code-Bibliothek fehlt auf der Beamerseite.');
+assert(html.includes('/vendor/qrcode.min.js'), 'Lokale QR-Code-Bibliothek fehlt auf der Beamerseite.');
 assert(html.includes('/screen-qr.css'), 'QR-Code-Stylesheet fehlt auf der Beamerseite.');
 assert(script.includes('function renderQrCode'), 'QR-Code-Rendering fehlt.');
 assert(script.includes('screenJoinQr'), 'QR-Code-Zielcontainer fehlt.');

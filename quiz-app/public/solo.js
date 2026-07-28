@@ -222,6 +222,7 @@ function renderQuestion(currentState) {
       return `<button class="${css}" type="button" data-answer="${index}" ${currentState.answered ? 'disabled' : ''}><span class="answer-letter">${String.fromCharCode(65 + index)}</span><span class="answer-text">${escapeHtml(option)}</span></button>`;
     }).join('')}</div>
     ${feedbackHtml(currentState)}
+    ${currentState.answered && question.explanation ? `<div class="solo-explanation answer-feedback success"><strong>Warum?</strong><p>${escapeHtml(question.explanation)}</p></div>` : ''}
     ${currentState.answered ? `<button id="nextSoloButton" class="btn primary wide-button solo-next-button" type="button">${currentState.currentIndex + 1 >= currentState.totalQuestions ? 'Ergebnis anzeigen' : 'Nächste Frage'} →</button>` : ''}
   </div>`;
 
