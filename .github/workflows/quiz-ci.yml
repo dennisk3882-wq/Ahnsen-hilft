@@ -1,0 +1,43 @@
+name: Quiz CI
+
+on:
+  push:
+    branches:
+      - ahnsen-live-quiz-online
+      - quiz-build-cleanup
+    paths:
+      - 'quiz-app/**'
+      - 'render.yaml'
+      - '.github/workflows/quiz-ci.yml'
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
+    paths:
+      - 'quiz-app/**'
+      - 'render.yaml'
+      - '.github/workflows/quiz-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: quiz-app/package-lock.json
+
+      - name: Abhängigkeiten reproduzierbar installieren
+        working-directory: quiz-app
+        run: npm ci
+
+      - name: Syntax, Spiellogik und 500 Fragen prüfen
+        working-directory: quiz-app
+        run: npm run test:all

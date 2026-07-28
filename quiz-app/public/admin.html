@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b16">
+  <title>Quizmaster – Ahnsen Quizabend</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="admin-body">
+  <section id="adminLogin" class="auth-shell">
+    <div class="auth-brand">
+      <div class="brand-mark" aria-hidden="true">?</div>
+      <div><strong>AHNSEN</strong><span>QUIZABEND</span></div>
+    </div>
+    <div class="auth-card">
+      <span class="eyebrow">Quizmaster-Konsole</span>
+      <h1>Willkommen zurück</h1>
+      <p class="muted">Melde dich an, um Quizze vorzubereiten und den Live-Abend zu steuern.</p>
+      <label>Quizmaster-Passwort<input id="adminPassword" type="password" autocomplete="current-password" placeholder="Passwort eingeben"></label>
+      <button id="adminLoginButton" class="btn primary wide-button">Anmelden</button>
+      <div id="adminLoginMessage" class="message" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="dashboard" class="admin-app hidden">
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark small" aria-hidden="true">?</div>
+        <div><strong>AHNSEN</strong><span>QUIZABEND</span></div>
+      </div>
+
+      <nav class="admin-nav" aria-label="Quizmaster-Navigation">
+        <button id="navSetup" class="nav-item active" type="button"><span class="nav-icon">⌂</span><span>Quiz vorbereiten</span></button>
+        <button id="navLive" class="nav-item" type="button"><span class="nav-icon">◉</span><span>Live-Quiz</span></button>
+        <button id="navHistory" class="nav-item" type="button"><span class="nav-icon">▣</span><span>Vergangene Quizze</span></button>
+        <button id="navEditor" class="nav-item" type="button"><span class="nav-icon">✎</span><span>Frageneditor</span></button>
+      </nav>
+
+      <div class="sidebar-status">
+        <p class="sidebar-label">Systemstatus</p>
+        <div class="status-line"><span id="adminConnection" class="status-dot offline"></span><span>Server</span><strong id="adminConnectionText">Getrennt</strong></div>
+        <div class="status-line"><span id="dbStatusDot" class="status-dot offline"></span><span>Datenbank</span><strong id="dbStatus">Prüfung …</strong></div>
+        <div class="status-line"><span class="status-dot online"></span><span>Spieler online</span><strong id="sidebarPlayerCount">0</strong></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <a class="btn ghost small" href="/screen" target="_blank" rel="noopener">Beamer öffnen</a>
+        <button id="logoutButton" class="btn ghost small" type="button">Abmelden</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-header">
+        <div>
+          <div class="row"><span id="phaseStatus" class="live-badge">Warteraum</span><span id="headerQuizMeta" class="muted">Noch kein Quiz vorbereitet</span></div>
+          <h1 id="adminPageTitle">Quiz vorbereiten</h1>
+        </div>
+        <div class="header-actions">
+          <button id="openLiveView" class="btn secondary small hidden" type="button">Live-Quiz öffnen</button>
+          <a class="btn ghost small" href="/screen" target="_blank" rel="noopener">Beameransicht</a>
+        </div>
+      </header>
+
+      <section id="setupView" class="stack page-view">
+        <div class="setup-grid">
+          <section class="panel setup-hero-panel">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Neuer Quizabend</span><h2>Quiz konfigurieren</h2></div>
+              <span id="catalogInfo" class="info-chip"></span>
+            </div>
+            <p class="muted">Wähle Quizart, Kategorie und Umfang. Nach der Vorbereitung wechselst du automatisch in die Live-Steuerung.</p>
+            <div class="form-grid three">
+              <label>Quizart<select id="quizType"><option value="adult">Erwachsenenquiz</option><option value="child">Kinderquiz</option></select></label>
+              <label>Kategorie<select id="category"></select></label>
+              <label>Fragenzahl<select id="questionCount"></select></label>
+            </div>
+            <button id="prepareButton" class="btn primary prepare-button" type="button">Ausgewähltes Quiz vorbereiten</button>
+            <div id="prepareMessage" class="message" aria-live="polite"></div>
+          </section>
+
+          <section class="panel quick-panel">
+            <div class="panel-heading"><div><span class="eyebrow">Schnellzugriff</span><h2>Verwaltung</h2></div></div>
+            <button class="quick-action" data-open-editor="adult" type="button"><span class="quick-icon">✎</span><span><strong>Erwachsenenfragen</strong><small>300 Fragen verwalten</small></span><b>›</b></button>
+            <button class="quick-action" data-open-editor="child" type="button"><span class="quick-icon">★</span><span><strong>Kinderfragen</strong><small>200 Fragen verwalten</small></span><b>›</b></button>
+            <button id="quickHistoryButton" class="quick-action" type="button"><span class="quick-icon">▣</span><span><strong>Quiz-Historie</strong><small>Ergebnisse vergleichen</small></span><b>›</b></button>
+          </section>
+        </div>
+
+        <section id="historySection" class="panel">
+          <div class="panel-heading">
+            <div><span class="eyebrow">Auswertung</span><h2>Vergangene Quizabende</h2></div>
+            <div class="row"><button id="compareHistory" class="btn secondary small" type="button">Zwei vergleichen</button><button id="reloadHistory" class="btn ghost small" type="button">Neu laden</button></div>
+          </div>
+          <div id="historyList" class="history-grid"></div>
+        </section>
+
+        <section id="editorPanel" class="panel hidden">
+          <div class="panel-heading">
+            <div><span class="eyebrow">Fragenkatalog</span><h2 id="editorTitle">Frageneditor</h2></div>
+            <div class="row"><button id="reloadEditor" class="btn ghost small" type="button">Neu laden</button><button id="closeEditor" class="btn danger small" type="button">Editor schließen</button></div>
+          </div>
+          <div class="form-grid editor-toolbar">
+            <label>Kategorie filtern<select id="editorCategory"></select></label>
+            <label>Fragen suchen<input id="editorSearch" placeholder="Suchbegriff"></label>
+            <div class="toolbar-actions"><button id="addQuestion" class="btn secondary" type="button">Neue Frage</button><button id="saveQuestions" class="btn success" type="button">Änderungen speichern</button></div>
+          </div>
+          <div id="editorMessage" class="message" aria-live="polite"></div>
+          <div id="editorList" class="editor-list"></div>
+        </section>
+
+        <section id="historyDetail" class="panel hidden"></section>
+      </section>
+
+      <section id="liveQuizView" class="hidden stack page-view">
+        <div class="live-titlebar">
+          <div><span class="eyebrow">Live-Steuerung</span><h2>Der Quizabend läuft</h2><p id="liveQuizSummary" class="muted"></p></div>
+          <button id="showSetupView" class="btn ghost small" type="button">Zur Vorbereitung</button>
+        </div>
+
+        <div class="live-dashboard-grid">
+          <section class="panel live-question-stage">
+            <div class="question-stage-header">
+              <div class="row"><span id="progressLabel" class="info-chip"></span><span id="answerCount" class="info-chip"></span></div>
+              <span id="questionCategoryBadge" class="category-chip"></span>
+            </div>
+            <div id="currentQuestion" class="live-question-content"></div>
+            <button id="primaryQuizButton" class="btn primary primary-quiz-button" data-always="true" type="button">Quiz starten</button>
+          </section>
+
+          <aside class="live-side-column">
+            <section class="panel timer-panel">
+              <span class="eyebrow">Verbleibende Zeit</span>
+              <div id="adminTimerRing" class="admin-timer-ring"><div id="adminTimer" class="admin-timer">20</div></div>
+              <div id="timerCaption" class="muted">Frage noch nicht gestartet</div>
+            </section>
+            <section id="liveInsight" class="panel insight-panel"></section>
+          </aside>
+
+          <aside class="panel controls-panel">
+            <div class="panel-heading compact"><div><span class="eyebrow">Kontrollzentrum</span><h2>Quizsteuerung</h2></div></div>
+            <div id="actionMessage" class="message" aria-live="polite"></div>
+            <div id="liveControls" class="live-control-sections"></div>
+          </aside>
+        </div>
+
+        <section class="panel player-panel">
+          <div class="panel-heading">
+            <div><span class="eyebrow">Live-Teilnehmer</span><h2>Rangliste &amp; Verbindung</h2></div>
+            <span id="playerCount" class="info-chip"></span>
+          </div>
+          <div class="table-wrap"><table class="data player-table"><thead><tr><th>Platz</th><th>Status</th><th>Spieler</th><th>Punkte</th><th>Richtig</th><th>Falsch</th><th>Latenz</th><th>Aktion</th></tr></thead><tbody id="playersBody"></tbody></table></div>
+        </section>
+      </section>
+    </main>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>

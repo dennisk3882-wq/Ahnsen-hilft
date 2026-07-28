@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050713">
+  <title>Beamer – Ahnsen Quizabend</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="screen-body">
+  <button id="fullscreenButton" class="btn ghost fullscreen-btn" type="button">⛶ Vollbild</button>
+  <main class="screen-shell">
+    <header class="screen-brandbar">
+      <div class="sidebar-brand player-brand"><div class="brand-mark small" aria-hidden="true">?</div><div><strong>AHNSEN</strong><span>QUIZABEND</span></div></div>
+      <span id="screenStatus" class="event-live-dot"><i></i> Bereit</span>
+    </header>
+    <section id="screenContent" class="screen-content"></section>
+  </main>
+  <div id="screenOverlay" class="overlay-modal hidden"><div id="screenOverlayInner" class="overlay-inner"></div></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/screen.js"></script>
+</body>
+</html>
