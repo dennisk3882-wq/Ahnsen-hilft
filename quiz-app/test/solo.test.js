@@ -1,5 +1,13 @@
 'use strict';
 
+// Dieser Test muss auch auf Render reproduzierbar bleiben und darf niemals
+// die dort gesetzte Neon-Datenbank oder ElevenLabs-API verwenden.
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL = '';
+process.env.ELEVENLABS_API_KEY = '';
+process.env.ELEVENLABS_VOICE_ID = '';
+process.env.PROFILE_SESSION_SECRET = 'solo-api-test-session-secret';
+
 const assert = require('assert');
 const express = require('express');
 const { installSoloRoutes, calculateSoloScore } = require('../solo-routes');
@@ -64,6 +72,7 @@ async function request(baseUrl, path, options = {}) {
       body: JSON.stringify({ quizType: 'child', category: 'Gemischt', questionCount: 5, mode: 'relaxed' }),
     });
     assert.strictEqual(relaxedStart.response.status, 200);
+    assert.strictEqual(relaxedStart.body.profile.name, 'Gast');
     assert.strictEqual(relaxedStart.body.question.correctIndex, undefined);
     assert.strictEqual(relaxedStart.body.totalQuestions, 5);
 
