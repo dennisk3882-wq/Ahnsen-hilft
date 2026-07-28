@@ -7,6 +7,7 @@
   <title>Ahnsen Quizabend</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/solo.css">
+  <link rel="stylesheet" href="/start.css">
 </head>
 <body class="player-body">
   <main class="player-shell">
@@ -15,26 +16,48 @@
         <div class="brand-mark small" aria-hidden="true">?</div>
         <div><strong id="title">AHNSEN</strong><span>QUIZABEND</span></div>
       </div>
-      <span class="event-live-dot"><i></i> Live-Quiz</span>
+      <span id="topModeBadge" class="mode-badge"><i></i> Quiz-Auswahl</span>
     </header>
 
-    <section id="soloEntry" class="solo-entry-card">
-      <div>
-        <span class="eyebrow">Neu: Jederzeit alleine spielen</span>
-        <h2>Solo-Quiz ohne Quizmaster</h2>
-        <p class="muted">Kinder- oder Erwachsenenfragen, mit Zeitbonus oder ganz entspannt ohne Zeitdruck.</p>
+    <section id="modeChooser" class="mode-chooser">
+      <div class="mode-chooser-heading">
+        <span class="eyebrow">Wie möchtest du spielen?</span>
+        <h1>Wähle deinen Quizmodus</h1>
+        <p class="muted">Spiele gemeinsam beim moderierten Quizabend oder starte jederzeit eine eigene Solo-Runde.</p>
       </div>
-      <div class="solo-entry-actions">
-        <a class="btn primary" href="/solo">Solo-Quiz starten</a>
+
+      <div class="mode-card-grid">
+        <article class="mode-card live-mode-card">
+          <div class="mode-card-icon" aria-hidden="true">🎤</div>
+          <span class="eyebrow">Gemeinsam mit Quizmaster</span>
+          <h2>Live-Quiz</h2>
+          <p class="muted">Melde dich mit deinem Namen und dem Passwort des Quizabends an. Der Quizmaster steuert die Fragen.</p>
+          <div class="mode-card-actions">
+            <button id="resumeLiveButton" class="btn primary wide-button hidden" type="button">Live-Quiz fortsetzen</button>
+            <button id="openLiveLoginButton" class="btn secondary wide-button" type="button">Live-Quiz beitreten</button>
+            <button id="forgetLiveButton" class="btn ghost small hidden" type="button">Gespeicherte Live-Anmeldung löschen</button>
+          </div>
+        </article>
+
+        <article class="mode-card solo-mode-card">
+          <div class="mode-card-icon" aria-hidden="true">🧠</div>
+          <span class="eyebrow">Jederzeit ohne Quizmaster</span>
+          <h2>Solo-Quiz</h2>
+          <p class="muted">Kinder- oder Erwachsenenfragen, verschiedene Kategorien und wahlweise mit Timer oder ganz ohne Zeitdruck.</p>
+          <div class="mode-card-actions">
+            <a class="btn primary wide-button" href="/solo">Solo-Quiz starten</a>
+          </div>
+        </article>
       </div>
     </section>
 
-    <section id="loginCard" class="player-login-panel">
+    <section id="loginCard" class="player-login-panel hidden">
       <div class="login-visual" aria-hidden="true">
         <div class="question-orbit"><span>?</span></div>
         <p>Wissen. Schnelligkeit. Ruhm.</p>
       </div>
       <div class="login-form-panel">
+        <button id="backToModesButton" class="btn ghost small login-back-button" type="button">← Zur Quiz-Auswahl</button>
         <span class="eyebrow">Live-Quiz beitreten</span>
         <h1>Bereit für den Quizabend?</h1>
         <p class="muted">Melde dich mit deinem Namen und dem Passwort des Abends an.</p>
@@ -47,8 +70,15 @@
 
     <section id="game" class="hidden player-game">
       <div class="player-statusbar">
-        <div class="row"><span id="connectionPill" class="status-chip offline"><i></i>Verbindung</span><span id="playerPill" class="status-chip"></span></div>
-        <span id="scorePill" class="score-chip">0 Punkte</span>
+        <div class="row">
+          <span id="connectionPill" class="status-chip offline"><i></i>Verbindung</span>
+          <span id="playerPill" class="status-chip"></span>
+        </div>
+        <div class="row live-view-actions">
+          <button id="exitLiveViewButton" class="btn ghost small" type="button">← Quiz-Auswahl</button>
+          <button id="logoutLiveButton" class="btn ghost small" type="button">Abmelden</button>
+          <span id="scorePill" class="score-chip">0 Punkte</span>
+        </div>
       </div>
       <div class="quiz-progress-track"><span id="quizProgress"></span></div>
       <section id="view" class="player-stage"></section>
