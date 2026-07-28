@@ -4,51 +4,123 @@
     "category": "Allgemeinwissen",
     "text": "Wie viele Tage hat eine Woche?",
     "options": [
-      "8",
-      "6",
       "5",
-      "7"
+      "6",
+      "7",
+      "8"
     ],
-    "correctIndex": 3
+    "correctIndex": 2
   },
   {
     "id": "child-general-002",
     "category": "Allgemeinwissen",
-    "text": "Welche Farbe hat eine reife Banane meistens?",
+    "text": "Welche Farbe entsteht aus Blau und Gelb?",
     "options": [
-      "Schwarz",
       "Lila",
-      "Blau",
-      "Gelb"
+      "Grün",
+      "Orange",
+      "Rosa"
     ],
-    "correctIndex": 3
+    "correctIndex": 1
   },
   {
     "id": "child-general-003",
     "category": "Allgemeinwissen",
-    "text": "Wie viele Beine hat eine Spinne?",
+    "text": "Wie viele Monate hat ein Jahr?",
     "options": [
-      "12",
-      "6",
       "10",
-      "8"
+      "11",
+      "12",
+      "13"
     ],
-    "correctIndex": 3
+    "correctIndex": 2
   },
   {
     "id": "child-general-004",
     "category": "Allgemeinwissen",
-    "text": "Wie heißt unser Planet?",
+    "text": "Was misst man mit einem Thermometer?",
     "options": [
-      "Mars",
-      "Erde",
-      "Sonne",
-      "Mond"
+      "Länge",
+      "Temperatur",
+      "Gewicht",
+      "Zeit"
     ],
     "correctIndex": 1
   },
   {
     "id": "child-general-005",
+    "category": "Allgemeinwissen",
+    "text": "Wie viele Minuten hat eine Stunde?",
+    "options": [
+      "30",
+      "45",
+      "60",
+      "100"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "child-general-006",
+    "category": "Allgemeinwissen",
+    "text": "Welche Form hat ein Stoppschild?",
+    "options": [
+      "Kreis",
+      "Dreieck",
+      "Achteck",
+      "Rechteck"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "child-general-007",
+    "category": "Allgemeinwissen",
+    "text": "Was ist das Gegenteil von laut?",
+    "options": [
+      "Schnell",
+      "Leise",
+      "Hell",
+      "Groß"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "child-general-008",
+    "category": "Allgemeinwissen",
+    "text": "Welcher Gegenstand zeigt die Uhrzeit an?",
+    "options": [
+      "Lineal",
+      "Waage",
+      "Uhr",
+      "Kompass"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "child-general-009",
+    "category": "Allgemeinwissen",
+    "text": "Wie viele Seiten hat ein Dreieck?",
+    "options": [
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "child-general-010",
+    "category": "Allgemeinwissen",
+    "text": "Welches Verkehrsmittel fährt auf Schienen?",
+    "options": [
+      "Fahrrad",
+      "Zug",
+      "Flugzeug",
+      "Schiff"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "child-general-011",
     "category": "Allgemeinwissen",
     "text": "Welche Zahl kommt nach 99?",
     "options": [
@@ -60,398 +132,326 @@
     "correctIndex": 1
   },
   {
-    "id": "child-general-006",
-    "category": "Allgemeinwissen",
-    "text": "Was zeigt eine Uhr an?",
-    "options": [
-      "Die Temperatur",
-      "Die Lautstärke",
-      "Die Zeit",
-      "Das Gewicht"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-general-007",
-    "category": "Allgemeinwissen",
-    "text": "Wie viele Monate hat ein Jahr?",
-    "options": [
-      "13",
-      "10",
-      "12",
-      "11"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-general-008",
-    "category": "Allgemeinwissen",
-    "text": "Welches Verkehrsmittel fährt auf Schienen?",
-    "options": [
-      "Flugzeug",
-      "Bus",
-      "Fahrrad",
-      "Zug"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-general-009",
-    "category": "Allgemeinwissen",
-    "text": "Wie nennt man gefrorenes Wasser?",
-    "options": [
-      "Nebel",
-      "Dampf",
-      "Eis",
-      "Regen"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-general-010",
-    "category": "Allgemeinwissen",
-    "text": "Welche Form hat ein Fußball ungefähr?",
-    "options": [
-      "Würfel",
-      "Kugel",
-      "Pyramide",
-      "Zylinder"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-general-011",
-    "category": "Allgemeinwissen",
-    "text": "Wie viele Buchstaben hat das deutsche Alphabet?",
-    "options": [
-      "24",
-      "26",
-      "28",
-      "30"
-    ],
-    "correctIndex": 1
-  },
-  {
     "id": "child-general-012",
     "category": "Allgemeinwissen",
-    "text": "Was braucht eine Kerze zum Brennen?",
+    "text": "Wie heißt die Jahreszeit nach dem Sommer?",
     "options": [
-      "Sand",
-      "Eis",
-      "Sauerstoff",
-      "Salz"
+      "Frühling",
+      "Herbst",
+      "Winter",
+      "Sommer"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "id": "child-general-013",
     "category": "Allgemeinwissen",
-    "text": "Welche Jahreszeit folgt auf den Frühling?",
+    "text": "Was braucht eine Taschenlampe meistens zum Leuchten?",
     "options": [
-      "Herbst",
-      "Winter",
-      "Frühling",
-      "Sommer"
+      "Batterien",
+      "Wasser",
+      "Sand",
+      "Papier"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-general-014",
     "category": "Allgemeinwissen",
-    "text": "Wie heißt die Zahl vor 20?",
+    "text": "Womit schreibt man normalerweise auf eine Schultafel?",
     "options": [
-      "18",
-      "19",
-      "21",
-      "29"
+      "Kreide",
+      "Gabel",
+      "Pinsel",
+      "Schere"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-general-015",
     "category": "Allgemeinwissen",
-    "text": "Welche Farbe entsteht aus Rot und Gelb?",
+    "text": "Wie viele Stunden hat ein Tag?",
     "options": [
-      "Orange",
-      "Blau",
-      "Violett",
-      "Grün"
+      "12",
+      "18",
+      "24",
+      "48"
     ],
-    "correctIndex": 0
+    "correctIndex": 2
   },
   {
     "id": "child-general-016",
     "category": "Allgemeinwissen",
-    "text": "Wie nennt man ein junges Huhn?",
+    "text": "Welches Gerät benutzt man zum Telefonieren unterwegs?",
     "options": [
-      "Lamm",
-      "Fohlen",
-      "Kalb",
-      "Küken"
+      "Toaster",
+      "Handy",
+      "Staubsauger",
+      "Mikrowelle"
     ],
-    "correctIndex": 3
+    "correctIndex": 1
   },
   {
     "id": "child-general-017",
     "category": "Allgemeinwissen",
-    "text": "Was benutzt man zum Radieren?",
+    "text": "Welche Farbe haben Briefkästen der Deutschen Post meist?",
     "options": [
-      "Pinsel",
-      "Kreide",
-      "Radiergummi",
-      "Lineal"
+      "Blau",
+      "Gelb",
+      "Grün",
+      "Schwarz"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "id": "child-general-018",
     "category": "Allgemeinwissen",
-    "text": "Wie viele Ecken hat ein Quadrat?",
+    "text": "Wie nennt man gefrorenes Wasser?",
     "options": [
-      "4",
-      "5",
-      "6",
-      "3"
+      "Dampf",
+      "Eis",
+      "Regen",
+      "Nebel"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "id": "child-general-019",
     "category": "Allgemeinwissen",
-    "text": "Welcher Tag kommt nach Freitag?",
+    "text": "Welches Wort ist ein Gruß am Morgen?",
     "options": [
-      "Donnerstag",
-      "Sonntag",
-      "Samstag",
-      "Montag"
+      "Gute Nacht",
+      "Guten Morgen",
+      "Tschüss",
+      "Bitte"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "id": "child-general-020",
     "category": "Allgemeinwissen",
-    "text": "Wie heißt die Hauptstadt von Deutschland?",
+    "text": "Was zeigt ein Kompass an?",
     "options": [
-      "München",
-      "Bonn",
-      "Hamburg",
-      "Berlin"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-general-021",
-    "category": "Allgemeinwissen",
-    "text": "Welches Gerät macht Fotos?",
-    "options": [
-      "Radio",
-      "Toaster",
-      "Staubsauger",
-      "Kamera"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-general-022",
-    "category": "Allgemeinwissen",
-    "text": "Was ist 5 + 7?",
-    "options": [
-      "13",
-      "10",
-      "11",
-      "12"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-general-023",
-    "category": "Allgemeinwissen",
-    "text": "Welche Farbe hat Schnee meistens?",
-    "options": [
-      "Braun",
-      "Rot",
-      "Grün",
-      "Weiß"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-general-024",
-    "category": "Allgemeinwissen",
-    "text": "Wie nennt man jemanden, der Bücher schreibt?",
-    "options": [
-      "Autor oder Autorin",
-      "Bäcker oder Bäckerin",
-      "Arzt oder Ärztin",
-      "Pilot oder Pilotin"
+      "Himmelsrichtungen",
+      "Temperatur",
+      "Lautstärke",
+      "Gewicht"
     ],
     "correctIndex": 0
   },
   {
-    "id": "child-general-025",
+    "id": "child-general-021",
     "category": "Allgemeinwissen",
-    "text": "Wie viele Minuten hat eine Stunde?",
+    "text": "Wie viele Finger haben zwei Hände zusammen?",
     "options": [
-      "50",
-      "100",
-      "60",
-      "30"
+      "8",
+      "9",
+      "10",
+      "12"
     ],
     "correctIndex": 2
   },
   {
+    "id": "child-general-022",
+    "category": "Allgemeinwissen",
+    "text": "Welcher Tag kommt nach Freitag?",
+    "options": [
+      "Donnerstag",
+      "Samstag",
+      "Sonntag",
+      "Montag"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "child-general-023",
+    "category": "Allgemeinwissen",
+    "text": "Womit schneidet man Papier?",
+    "options": [
+      "Schere",
+      "Löffel",
+      "Kissen",
+      "Lineal"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-general-024",
+    "category": "Allgemeinwissen",
+    "text": "Welche Zahl ist die Hälfte von 20?",
+    "options": [
+      "5",
+      "8",
+      "10",
+      "12"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "child-general-025",
+    "category": "Allgemeinwissen",
+    "text": "Wie nennt man ein Buch mit Landkarten?",
+    "options": [
+      "Atlas",
+      "Roman",
+      "Lexikon",
+      "Tagebuch"
+    ],
+    "correctIndex": 0
+  },
+  {
     "id": "child-general-026",
     "category": "Allgemeinwissen",
-    "text": "Welches Tier sagt „Miau“?",
+    "text": "Welche Farbe zeigt eine Verkehrsampel für Stopp?",
     "options": [
-      "Hund",
-      "Kuh",
-      "Katze",
-      "Ente"
+      "Grün",
+      "Gelb",
+      "Rot",
+      "Blau"
     ],
     "correctIndex": 2
   },
   {
     "id": "child-general-027",
     "category": "Allgemeinwissen",
-    "text": "Was braucht man zum Zähneputzen?",
+    "text": "Wie viele Cent sind ein Euro?",
     "options": [
-      "Hammer",
-      "Löffel",
-      "Zahnbürste",
-      "Kamm"
+      "10",
+      "50",
+      "100",
+      "1000"
     ],
     "correctIndex": 2
   },
   {
     "id": "child-general-028",
     "category": "Allgemeinwissen",
-    "text": "Welche Zahl ist größer: 42 oder 24?",
+    "text": "Welches Werkzeug dreht Schrauben hinein oder heraus?",
     "options": [
-      "24",
-      "Beide gleich",
-      "Keine",
-      "42"
+      "Hammer",
+      "Schraubendreher",
+      "Säge",
+      "Zange"
     ],
-    "correctIndex": 3
+    "correctIndex": 1
   },
   {
     "id": "child-general-029",
     "category": "Allgemeinwissen",
-    "text": "Wie heißt das Gegenteil von „hell“?",
+    "text": "Was benutzt man zum Radieren von Bleistift?",
     "options": [
-      "Dunkel",
-      "Weich",
-      "Warm",
-      "Leise"
+      "Radiergummi",
+      "Klebestift",
+      "Pinsel",
+      "Füller"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-general-030",
     "category": "Allgemeinwissen",
-    "text": "Welche Farbe hat eine Ampel bei „Fahren“?",
+    "text": "Wie nennt man die Person, die ein Flugzeug steuert?",
     "options": [
-      "Schwarz",
-      "Grün",
-      "Blau",
-      "Rot"
+      "Kapitän",
+      "Pilot",
+      "Lokführer",
+      "Schaffner"
     ],
     "correctIndex": 1
   },
   {
     "id": "child-nature-001",
     "category": "Natur & Tiere",
-    "text": "Welches Tier ist das größte an Land?",
+    "text": "Welches Tier ist das größte Landtier?",
     "options": [
+      "Elefant",
       "Giraffe",
-      "Nilpferd",
       "Nashorn",
-      "Elefant"
+      "Nilpferd"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-nature-002",
     "category": "Natur & Tiere",
-    "text": "Welches Tier kann seine Farbe verändern?",
+    "text": "Welches Tier legt Eier und kann fliegen?",
     "options": [
-      "Pinguin",
-      "Chamäleon",
-      "Igel",
-      "Zebra"
+      "Katze",
+      "Amsel",
+      "Hund",
+      "Pferd"
     ],
     "correctIndex": 1
   },
   {
     "id": "child-nature-003",
     "category": "Natur & Tiere",
-    "text": "Was brauchen Pflanzen zum Wachsen?",
+    "text": "Was brauchen Pflanzen für die Fotosynthese?",
     "options": [
-      "Sand und Salz",
-      "Lärm und Rauch",
-      "Plastik und Metall",
-      "Licht und Wasser"
+      "Sonnenlicht",
+      "Plastik",
+      "Salz",
+      "Sandpapier"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-nature-004",
     "category": "Natur & Tiere",
-    "text": "Welches Tier lebt in einem Bienenstock?",
+    "text": "Wie viele Beine hat eine Spinne?",
     "options": [
-      "Ameise",
-      "Schmetterling",
-      "Marienkäfer",
-      "Biene"
+      "6",
+      "8",
+      "10",
+      "12"
     ],
-    "correctIndex": 3
+    "correctIndex": 1
   },
   {
     "id": "child-nature-005",
     "category": "Natur & Tiere",
-    "text": "Wie heißt das Junge eines Pferdes?",
+    "text": "Welches Tier wird oft König der Tiere genannt?",
     "options": [
-      "Küken",
-      "Kalb",
-      "Fohlen",
-      "Welpe"
+      "Löwe",
+      "Wolf",
+      "Adler",
+      "Bär"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-nature-006",
     "category": "Natur & Tiere",
-    "text": "Welcher Vogel kann nicht fliegen und lebt in der Antarktis?",
+    "text": "Welches Tier lebt im Wasser und atmet mit Kiemen?",
     "options": [
-      "Storch",
-      "Adler",
-      "Spatz",
-      "Pinguin"
+      "Fisch",
+      "Katze",
+      "Vogel",
+      "Eidechse"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-nature-007",
     "category": "Natur & Tiere",
-    "text": "Welche Pflanze hat oft Dornen?",
+    "text": "Wie nennt man ein junges Pferd?",
     "options": [
-      "Rose",
-      "Tulpe",
-      "Sonnenblume",
-      "Gänseblümchen"
+      "Fohlen",
+      "Kalb",
+      "Lamm",
+      "Küken"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-nature-008",
     "category": "Natur & Tiere",
-    "text": "Was wird aus einer Raupe?",
+    "text": "Welches Tier hat einen langen Hals?",
     "options": [
-      "Schmetterling",
-      "Vogel",
-      "Frosch",
-      "Käfer"
+      "Giraffe",
+      "Dachs",
+      "Igel",
+      "Fuchs"
     ],
     "correctIndex": 0
   },
@@ -462,8 +462,8 @@
     "options": [
       "Schnecke",
       "Hase",
-      "Reh",
-      "Fuchs"
+      "Frosch",
+      "Maus"
     ],
     "correctIndex": 0
   },
@@ -472,12 +472,12 @@
     "category": "Natur & Tiere",
     "text": "Wie viele Flügel hat ein Schmetterling?",
     "options": [
-      "8",
       "2",
-      "6",
-      "4"
+      "3",
+      "4",
+      "6"
     ],
-    "correctIndex": 3
+    "correctIndex": 2
   },
   {
     "id": "child-nature-011",
@@ -508,276 +508,276 @@
     "category": "Natur & Tiere",
     "text": "Welcher Baum trägt Eicheln?",
     "options": [
-      "Buche",
+      "Eiche",
       "Birke",
-      "Ahorn",
-      "Eiche"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-nature-014",
-    "category": "Natur & Tiere",
-    "text": "Welches Tier ist für seinen langen Hals bekannt?",
-    "options": [
-      "Nashorn",
-      "Zebra",
-      "Giraffe",
-      "Kamel"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-nature-015",
-    "category": "Natur & Tiere",
-    "text": "Was atmen Fische mit ihren Kiemen aus dem Wasser?",
-    "options": [
-      "Salz",
-      "Sand",
-      "Licht",
-      "Sauerstoff"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-nature-016",
-    "category": "Natur & Tiere",
-    "text": "Welches Tier baut Dämme?",
-    "options": [
-      "Fuchs",
-      "Otter",
-      "Dachs",
-      "Biber"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-nature-017",
-    "category": "Natur & Tiere",
-    "text": "Wie nennt man die Wohnung eines Vogels?",
-    "options": [
-      "Aquarium",
-      "Nest",
-      "Stall",
-      "Höhle"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-nature-018",
-    "category": "Natur & Tiere",
-    "text": "Welches Tier hat schwarz-weiße Streifen?",
-    "options": [
-      "Elefant",
-      "Giraffe",
-      "Zebra",
-      "Känguru"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-nature-019",
-    "category": "Natur & Tiere",
-    "text": "Welche Jahreszeit verlieren viele Bäume ihre Blätter?",
-    "options": [
-      "Sommer",
-      "Herbst",
-      "Winter",
-      "Frühling"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-nature-020",
-    "category": "Natur & Tiere",
-    "text": "Welches Tier springt und trägt sein Junges im Beutel?",
-    "options": [
-      "Känguru",
-      "Panda",
-      "Koala",
-      "Faultier"
+      "Tanne",
+      "Ahorn"
     ],
     "correctIndex": 0
   },
   {
+    "id": "child-nature-014",
+    "category": "Natur & Tiere",
+    "text": "Was ist ein Delfin?",
+    "options": [
+      "Fisch",
+      "Säugetier",
+      "Vogel",
+      "Reptil"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "child-nature-015",
+    "category": "Natur & Tiere",
+    "text": "Welches Tier hat schwarz-weiße Streifen?",
+    "options": [
+      "Zebra",
+      "Kamel",
+      "Reh",
+      "Büffel"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-nature-016",
+    "category": "Natur & Tiere",
+    "text": "Wie heißt die Verwandlung von der Raupe zum Schmetterling?",
+    "options": [
+      "Metamorphose",
+      "Migration",
+      "Winterschlaf",
+      "Fotosynthese"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-nature-017",
+    "category": "Natur & Tiere",
+    "text": "Welches Tier kann seine Farbe wechseln?",
+    "options": [
+      "Chamäleon",
+      "Pinguin",
+      "Elefant",
+      "Eisbär"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-nature-018",
+    "category": "Natur & Tiere",
+    "text": "Wie nennt man die Gruppe von Sternen, zu der unsere Sonne gehört?",
+    "options": [
+      "Milchstraße",
+      "Regenbogen",
+      "Nordsee",
+      "Atmosphäre"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-nature-019",
+    "category": "Natur & Tiere",
+    "text": "Welcher Planet ist der Sonne am nächsten?",
+    "options": [
+      "Merkur",
+      "Venus",
+      "Erde",
+      "Mars"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-nature-020",
+    "category": "Natur & Tiere",
+    "text": "Was ist die Sonne?",
+    "options": [
+      "Planet",
+      "Stern",
+      "Mond",
+      "Komet"
+    ],
+    "correctIndex": 1
+  },
+  {
     "id": "child-nature-021",
     "category": "Natur & Tiere",
-    "text": "Welche Tiere leben in einem Ameisenhaufen?",
+    "text": "Welches Organ pumpt Blut durch den Körper?",
     "options": [
-      "Wespen",
-      "Spinnen",
-      "Ameisen",
-      "Bienen"
+      "Herz",
+      "Magen",
+      "Lunge",
+      "Niere"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-nature-022",
     "category": "Natur & Tiere",
-    "text": "Wie heißt der größte Ozean?",
+    "text": "Wie nennt man Tiere, die nur Pflanzen fressen?",
     "options": [
-      "Pazifik",
-      "Nordsee",
-      "Indischer Ozean",
-      "Atlantik"
+      "Pflanzenfresser",
+      "Fleischfresser",
+      "Allesfresser",
+      "Aasfresser"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-nature-023",
     "category": "Natur & Tiere",
-    "text": "Welches Tier wird oft „König der Tiere“ genannt?",
+    "text": "Welches Gas atmen Menschen hauptsächlich ein?",
     "options": [
-      "Tiger",
-      "Löwe",
-      "Bär",
-      "Wolf"
+      "Sauerstoff",
+      "Helium",
+      "Wasserstoff",
+      "Chlor"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-nature-024",
     "category": "Natur & Tiere",
-    "text": "Welche Farbe haben Blätter durch Chlorophyll meist?",
+    "text": "Wie nennt man Wasser, das aus Wolken fällt?",
     "options": [
-      "Grün",
-      "Weiß",
-      "Blau",
-      "Rot"
+      "Regen",
+      "Nebel",
+      "Dampf",
+      "Tau"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-nature-025",
     "category": "Natur & Tiere",
-    "text": "Was entsteht aus einer Eichel?",
+    "text": "Welches Tier hält Winterschlaf?",
     "options": [
-      "Ein Pilz",
-      "Eine Eiche",
-      "Eine Rose",
-      "Ein Farn"
+      "Igel",
+      "Storch",
+      "Delfin",
+      "Kuh"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-nature-026",
     "category": "Natur & Tiere",
-    "text": "Welches Tier hat einen Rüssel?",
+    "text": "Welche Farbe haben die Blätter vieler Bäume im Sommer?",
     "options": [
-      "Elefant",
-      "Krokodil",
-      "Nilpferd",
-      "Nashorn"
+      "Grün",
+      "Blau",
+      "Schwarz",
+      "Lila"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-nature-027",
     "category": "Natur & Tiere",
-    "text": "Welcher Körperteil hilft Vögeln beim Fliegen?",
+    "text": "Welches Tier baut einen Damm?",
     "options": [
-      "Hufe",
-      "Kiemen",
-      "Flügel",
-      "Schuppen"
+      "Biber",
+      "Fuchs",
+      "Hirsch",
+      "Eule"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-nature-028",
     "category": "Natur & Tiere",
-    "text": "Wie heißt der Lebensraum vieler Fische?",
+    "text": "Wie nennt man den Nachwuchs eines Frosches im Wasser?",
     "options": [
-      "Wüste",
-      "Gebirge",
-      "Wasser",
-      "Wiese"
+      "Kaulquappe",
+      "Küken",
+      "Fohlen",
+      "Welpe"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-nature-029",
     "category": "Natur & Tiere",
-    "text": "Welches Tier sammelt Nüsse und lebt oft auf Bäumen?",
+    "text": "Welches Tier ist für seinen langen Rüssel bekannt?",
     "options": [
-      "Maulwurf",
-      "Eichhörnchen",
-      "Igel",
-      "Dachs"
+      "Elefant",
+      "Löwe",
+      "Panda",
+      "Känguru"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-nature-030",
     "category": "Natur & Tiere",
-    "text": "Was fällt bei Regen aus Wolken?",
+    "text": "Wie heißt die harte äußere Schicht eines Baumes?",
     "options": [
-      "Steine",
-      "Blätter",
-      "Wassertropfen",
-      "Sand"
+      "Rinde",
+      "Blüte",
+      "Wurzel",
+      "Frucht"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-geo-001",
     "category": "Geografie",
     "text": "Auf welchem Kontinent liegt Deutschland?",
     "options": [
-      "Afrika",
-      "Asien",
       "Europa",
-      "Australien"
+      "Asien",
+      "Afrika",
+      "Amerika"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-geo-002",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Frankreich?",
+    "text": "Welches Gebirge trennt Europa und Asien in Russland?",
     "options": [
-      "Madrid",
-      "Paris",
-      "Rom",
-      "London"
+      "Ural",
+      "Karpaten",
+      "Alpen",
+      "Pyrenäen"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-geo-003",
     "category": "Geografie",
-    "text": "Welches Meer liegt im Norden Deutschlands?",
+    "text": "Welcher Ozean ist der größte?",
     "options": [
-      "Rotes Meer",
-      "Schwarzes Meer",
-      "Nordsee",
-      "Mittelmeer"
+      "Pazifik",
+      "Atlantik",
+      "Indischer Ozean",
+      "Arktischer Ozean"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-geo-004",
     "category": "Geografie",
-    "text": "In welchem Land stehen die Pyramiden von Gizeh?",
+    "text": "Wie heißt die Hauptstadt von Deutschland?",
     "options": [
-      "Mexiko",
-      "Indien",
-      "Ägypten",
-      "Spanien"
+      "Hamburg",
+      "München",
+      "Berlin",
+      "Köln"
     ],
     "correctIndex": 2
   },
   {
     "id": "child-geo-005",
     "category": "Geografie",
-    "text": "Wie heißt der höchste Berg der Erde?",
+    "text": "Welches Land ist für die Pyramiden von Gizeh bekannt?",
     "options": [
-      "Zugspitze",
-      "Brocken",
-      "Kilimandscharo",
-      "Mount Everest"
+      "Ägypten",
+      "Norwegen",
+      "Kanada",
+      "Japan"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-geo-006",
@@ -786,1011 +786,999 @@
     "options": [
       "Rhein",
       "Elbe",
-      "Weser",
-      "Donau"
+      "Donau",
+      "Weser"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-007",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Italien?",
+    "text": "Wie heißt das größte Land der Erde nach Fläche?",
     "options": [
-      "Neapel",
-      "Mailand",
-      "Venedig",
-      "Rom"
+      "Russland",
+      "China",
+      "Kanada",
+      "Brasilien"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-geo-008",
     "category": "Geografie",
-    "text": "Welcher Kontinent ist besonders kalt und fast vollständig von Eis bedeckt?",
+    "text": "Auf welchem Kontinent liegt Brasilien?",
     "options": [
-      "Antarktika",
       "Südamerika",
-      "Europa",
-      "Afrika"
+      "Nordamerika",
+      "Afrika",
+      "Asien"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-009",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Großbritannien?",
+    "text": "Welches Meer liegt nördlich von Deutschland?",
     "options": [
-      "London",
-      "Edinburgh",
-      "Dublin",
-      "Cardiff"
+      "Nordsee",
+      "Schwarzes Meer",
+      "Rotes Meer",
+      "Kaspisches Meer"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-010",
     "category": "Geografie",
-    "text": "Welches Land ist für Kängurus bekannt?",
+    "text": "Wie heißt die Hauptstadt von Italien?",
     "options": [
-      "Australien",
-      "Norwegen",
-      "Brasilien",
-      "Kanada"
+      "Rom",
+      "Mailand",
+      "Venedig",
+      "Neapel"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-011",
     "category": "Geografie",
-    "text": "Welche Stadt ist die Hauptstadt von Spanien?",
+    "text": "Welches Land hat die Form eines langen schmalen Streifens an Südamerikas Westküste?",
     "options": [
-      "Madrid",
-      "Lissabon",
-      "Barcelona",
-      "Sevilla"
+      "Chile",
+      "Peru",
+      "Bolivien",
+      "Uruguay"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-012",
     "category": "Geografie",
-    "text": "In welchem Land liegt die Chinesische Mauer?",
+    "text": "Wie heißt der höchste Berg der Erde?",
     "options": [
-      "China",
-      "Mongolei",
-      "Japan",
-      "Indien"
+      "Mount Everest",
+      "Zugspitze",
+      "Mont Blanc",
+      "Kilimandscharo"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-013",
     "category": "Geografie",
-    "text": "Wie heißt Deutschlands größtes Bundesland nach Fläche?",
+    "text": "Welcher Kontinent ist am kältesten?",
     "options": [
-      "Berlin",
-      "Saarland",
-      "Hessen",
-      "Bayern"
+      "Antarktika",
+      "Europa",
+      "Afrika",
+      "Australien"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-geo-014",
     "category": "Geografie",
-    "text": "Welche Himmelsrichtung zeigt auf Karten meist nach oben?",
+    "text": "Wie heißt die Hauptstadt von Spanien?",
     "options": [
-      "Norden",
-      "Osten",
-      "Süden",
-      "Westen"
+      "Madrid",
+      "Barcelona",
+      "Sevilla",
+      "Valencia"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-015",
     "category": "Geografie",
-    "text": "Welcher Kontinent liegt südlich von Europa?",
+    "text": "Welches Land grenzt direkt an Deutschland?",
     "options": [
-      "Asien",
-      "Australien",
-      "Afrika",
-      "Nordamerika"
+      "Polen",
+      "Portugal",
+      "Irland",
+      "Island"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-geo-016",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt der Niederlande?",
+    "text": "In welchem Land steht der Eiffelturm?",
     "options": [
-      "Amsterdam",
-      "Rotterdam",
-      "Antwerpen",
-      "Brüssel"
+      "Frankreich",
+      "Belgien",
+      "Italien",
+      "Schweiz"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-017",
     "category": "Geografie",
-    "text": "Welcher Fluss fließt durch Hamburg?",
+    "text": "Wie heißt die Hauptstadt von Großbritannien?",
     "options": [
-      "Mosel",
-      "Main",
-      "Neckar",
-      "Elbe"
+      "London",
+      "Manchester",
+      "Liverpool",
+      "Birmingham"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-geo-018",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Österreich?",
+    "text": "Durch welche deutsche Stadt fließt die Spree?",
     "options": [
-      "Wien",
-      "Graz",
-      "Linz",
-      "Salzburg"
+      "Berlin",
+      "Hamburg",
+      "München",
+      "Köln"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-019",
     "category": "Geografie",
-    "text": "In welchem Land liegt der Eiffelturm?",
+    "text": "Welches Land liegt auf einer Insel südlich von Indien?",
     "options": [
-      "Belgien",
-      "Frankreich",
-      "Schweiz",
-      "Italien"
+      "Sri Lanka",
+      "Nepal",
+      "Bhutan",
+      "Laos"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-geo-020",
     "category": "Geografie",
-    "text": "Welche Insel gehört zu Spanien?",
+    "text": "Welcher Fluss ist der längste in Deutschland?",
     "options": [
-      "Sizilien",
-      "Mallorca",
-      "Korsika",
-      "Kreta"
+      "Rhein",
+      "Elbe",
+      "Donau",
+      "Weser"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-geo-021",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Griechenland?",
+    "text": "Auf welchem Kontinent liegt Ägypten größtenteils?",
     "options": [
-      "Rhodos",
-      "Thessaloniki",
-      "Sparta",
-      "Athen"
+      "Afrika",
+      "Asien",
+      "Europa",
+      "Südamerika"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-geo-022",
     "category": "Geografie",
-    "text": "Welches Land hat die Form eines Stiefels?",
+    "text": "Wie heißt die Meerenge zwischen Europa und Afrika bei Spanien?",
     "options": [
-      "Norwegen",
-      "Kroatien",
-      "Portugal",
-      "Italien"
+      "Straße von Gibraltar",
+      "Bosporus",
+      "Ärmelkanal",
+      "Beringstraße"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-geo-023",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Polen?",
+    "text": "Welcher große Fluss fließt durch Budapest?",
     "options": [
-      "Danzig",
-      "Krakau",
-      "Warschau",
-      "Prag"
+      "Donau",
+      "Rhein",
+      "Themse",
+      "Seine"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-geo-024",
     "category": "Geografie",
     "text": "Welcher Ozean liegt zwischen Europa und Amerika?",
     "options": [
-      "Arktischer Ozean",
-      "Indischer Ozean",
+      "Atlantik",
       "Pazifik",
-      "Atlantik"
+      "Indischer Ozean",
+      "Südlicher Ozean"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-geo-025",
     "category": "Geografie",
-    "text": "In welchem Land liegt die Stadt Tokio?",
+    "text": "Wie heißt die Hauptstadt von Japan?",
     "options": [
-      "Thailand",
-      "Japan",
-      "Südkorea",
-      "China"
+      "Tokio",
+      "Kyoto",
+      "Osaka",
+      "Nagoya"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-geo-026",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Dänemark?",
+    "text": "Welches Land ist für Kängurus bekannt?",
     "options": [
-      "Kopenhagen",
-      "Oslo",
-      "Stockholm",
-      "Helsinki"
+      "Australien",
+      "Indien",
+      "Spanien",
+      "Mexiko"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-geo-027",
     "category": "Geografie",
-    "text": "Welches Gebirge liegt in Süddeutschland?",
+    "text": "Wie heißt die Hauptstadt der USA?",
     "options": [
-      "Anden",
-      "Himalaya",
-      "Alpen",
-      "Rocky Mountains"
+      "Washington, D.C.",
+      "New York",
+      "Los Angeles",
+      "Chicago"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-geo-028",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Schweden?",
+    "text": "Welches Gebirge liegt zwischen Frankreich und Spanien?",
     "options": [
-      "Malmö",
-      "Oslo",
-      "Göteborg",
-      "Stockholm"
+      "Pyrenäen",
+      "Alpen",
+      "Anden",
+      "Himalaya"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-history-001",
     "category": "Geschichte",
-    "text": "Wer erfand in Europa den Buchdruck mit beweglichen Buchstaben?",
+    "text": "Wie nennt man die Herrscher im alten Ägypten?",
     "options": [
-      "James Watt",
-      "Johannes Gutenberg",
-      "Albert Einstein",
-      "Galileo Galilei"
+      "Pharaonen",
+      "Kaiser",
+      "Wikinger",
+      "Ritter"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-history-002",
     "category": "Geschichte",
-    "text": "Wie nannte man die gepanzerten Kämpfer im Mittelalter?",
+    "text": "Wer erfand den Buchdruck mit beweglichen Lettern in Europa?",
     "options": [
-      "Ritter",
-      "Astronauten",
-      "Piraten",
-      "Gladiatoren"
+      "Johannes Gutenberg",
+      "Albert Einstein",
+      "Isaac Newton",
+      "Galileo Galilei"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-history-003",
     "category": "Geschichte",
-    "text": "Welche Bauwerke errichteten die alten Ägypter als Gräber?",
+    "text": "In welcher Zeit lebten Ritter auf Burgen?",
     "options": [
-      "Burgen",
-      "Pyramiden",
-      "Stadien",
-      "Leuchttürme"
+      "Mittelalter",
+      "Steinzeit",
+      "Antike",
+      "Zukunft"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-history-004",
     "category": "Geschichte",
-    "text": "Wer war der erste Mensch auf dem Mond?",
+    "text": "Welche berühmte ägyptische Königin lebte zur Zeit der Römer?",
     "options": [
-      "Neil Armstrong",
-      "Juri Gagarin",
-      "Marco Polo",
-      "Christoph Kolumbus"
+      "Kleopatra",
+      "Nofretete",
+      "Elisabeth I.",
+      "Marie Antoinette"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-history-005",
     "category": "Geschichte",
-    "text": "In welcher Stadt stand die Berliner Mauer?",
-    "options": [
-      "Berlin",
-      "München",
-      "Köln",
-      "Hamburg"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-history-006",
-    "category": "Geschichte",
-    "text": "Welche Menschen lebten schon vor vielen Tausend Jahren in Höhlen?",
-    "options": [
-      "Steinzeitmenschen",
-      "Römer",
-      "Astronauten",
-      "Wikinger"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-history-007",
-    "category": "Geschichte",
-    "text": "Wie hieß ein berühmter römischer Feldherr und Politiker?",
-    "options": [
-      "Napoleon Bonaparte",
-      "Abraham Lincoln",
-      "Julius Caesar",
-      "Karl der Große"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-history-008",
-    "category": "Geschichte",
-    "text": "Wer segelte 1492 über den Atlantik und erreichte Amerika?",
-    "options": [
-      "Christoph Kolumbus",
-      "Vasco da Gama",
-      "James Cook",
-      "Marco Polo"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-history-009",
-    "category": "Geschichte",
-    "text": "Welche Menschen bauten im Norden Europas schnelle Langschiffe?",
+    "text": "Welche Seefahrer kamen aus Skandinavien?",
     "options": [
       "Wikinger",
       "Römer",
-      "Ägypter",
-      "Inka"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-history-010",
-    "category": "Geschichte",
-    "text": "Wie nennt man die Zeit mit Burgen und Rittern?",
-    "options": [
-      "Mittelalter",
-      "Neuzeit",
-      "Steinzeit",
-      "Antike"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-history-011",
-    "category": "Geschichte",
-    "text": "Welche alte Stadt wurde vom Vesuv verschüttet?",
-    "options": [
-      "Athen",
-      "Pompeji",
-      "Rom",
-      "Sparta"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-history-012",
-    "category": "Geschichte",
-    "text": "Wer schrieb vor über 500 Jahren 95 Thesen?",
-    "options": [
-      "Martin Luther",
-      "Johann Sebastian Bach",
-      "Albert Einstein",
-      "Goethe"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-history-013",
-    "category": "Geschichte",
-    "text": "Welche Erfindung machte Reisen mit Dampf im 19. Jahrhundert schneller?",
-    "options": [
-      "Dampflokomotive",
-      "Heißluftballon",
-      "Segelboot",
-      "Fahrrad"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-history-014",
-    "category": "Geschichte",
-    "text": "In welchem Jahr fiel die Berliner Mauer?",
-    "options": [
-      "1979",
-      "1999",
-      "1989",
-      "2009"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-history-015",
-    "category": "Geschichte",
-    "text": "Welches Volk lebte im alten Rom?",
-    "options": [
-      "Römer",
-      "Wikinger",
       "Samurai",
       "Maya"
     ],
     "correctIndex": 0
   },
   {
+    "id": "child-history-006",
+    "category": "Geschichte",
+    "text": "Wer war der erste Bundeskanzler der Bundesrepublik Deutschland?",
+    "options": [
+      "Konrad Adenauer",
+      "Willy Brandt",
+      "Helmut Kohl",
+      "Angela Merkel"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-007",
+    "category": "Geschichte",
+    "text": "Welches Volk baute das Kolosseum?",
+    "options": [
+      "Römer",
+      "Ägypter",
+      "Wikinger",
+      "Azteken"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-008",
+    "category": "Geschichte",
+    "text": "In welchem Jahr endete der Zweite Weltkrieg in Europa?",
+    "options": [
+      "1945",
+      "1939",
+      "1918",
+      "1961"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-009",
+    "category": "Geschichte",
+    "text": "Welche Stadt wurde durch den Vesuv verschüttet?",
+    "options": [
+      "Pompeji",
+      "Athen",
+      "Paris",
+      "London"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-010",
+    "category": "Geschichte",
+    "text": "Wer malte die Mona Lisa?",
+    "options": [
+      "Leonardo da Vinci",
+      "Vincent van Gogh",
+      "Pablo Picasso",
+      "Claude Monet"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-011",
+    "category": "Geschichte",
+    "text": "Wie hieß das große Reich mit der Hauptstadt Rom?",
+    "options": [
+      "Römisches Reich",
+      "Osmanisches Reich",
+      "Mongolisches Reich",
+      "Fränkisches Reich"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-012",
+    "category": "Geschichte",
+    "text": "Welche Erfindung machte Reisen in der Luft möglich?",
+    "options": [
+      "Flugzeug",
+      "Dampfmaschine",
+      "Telefon",
+      "Buchdruck"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-013",
+    "category": "Geschichte",
+    "text": "Welche Mauer trennte früher Ost- und Westberlin?",
+    "options": [
+      "Berliner Mauer",
+      "Chinesische Mauer",
+      "Hadrianswall",
+      "Klagemauer"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-014",
+    "category": "Geschichte",
+    "text": "Wie nannte man die Schriftzeichen der alten Ägypter?",
+    "options": [
+      "Hieroglyphen",
+      "Runen",
+      "Keilschrift",
+      "Morsezeichen"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-015",
+    "category": "Geschichte",
+    "text": "Wer entdeckte Amerika aus europäischer Sicht im Jahr 1492?",
+    "options": [
+      "Christoph Kolumbus",
+      "James Cook",
+      "Marco Polo",
+      "Ferdinand Magellan"
+    ],
+    "correctIndex": 0
+  },
+  {
     "id": "child-history-016",
     "category": "Geschichte",
-    "text": "Wie hieß die berühmte Königin des alten Ägypten?",
+    "text": "Wie nennt man die früheste Epoche der Menschheit mit Werkzeugen aus Stein?",
     "options": [
-      "Elisabeth II.",
-      "Jeanne d’Arc",
-      "Marie Curie",
-      "Kleopatra"
+      "Steinzeit",
+      "Bronzezeit",
+      "Eisenzeit",
+      "Neuzeit"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-history-017",
     "category": "Geschichte",
-    "text": "Welche Tiere nutzten Ritter oft zum Reiten?",
+    "text": "Welche berühmte Königin regierte lange Zeit Großbritannien und gab einem Zeitalter ihren Namen?",
     "options": [
-      "Zebras",
-      "Kamele",
-      "Elefanten",
-      "Pferde"
+      "Königin Victoria",
+      "Kleopatra",
+      "Marie Curie",
+      "Jeanne d’Arc"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-history-018",
     "category": "Geschichte",
-    "text": "Was schützte eine Burg vor Angreifern?",
+    "text": "Welches Land erfand das Papier?",
     "options": [
-      "Mauern und Graben",
-      "Ampeln und Zebrastreifen",
-      "Solarzellen und Antennen",
-      "Glasdach und Teppich"
+      "China",
+      "Deutschland",
+      "Brasilien",
+      "Australien"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-history-019",
     "category": "Geschichte",
-    "text": "Wie nennt man die Menschen, die alte Dinge ausgraben und erforschen?",
+    "text": "Wie nennt man einen Ritterhelm mit herunterklappbarem Gesichtsschutz?",
     "options": [
-      "Musiker",
-      "Astronomen",
-      "Piloten",
-      "Archäologen"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-history-020",
-    "category": "Geschichte",
-    "text": "Wer war Napoleon Bonaparte?",
-    "options": [
-      "Ein berühmter Maler",
-      "Ein französischer Kaiser und Feldherr",
-      "Ein ägyptischer Pharao",
-      "Ein deutscher Komponist"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-history-021",
-    "category": "Geschichte",
-    "text": "Welche Schrift nutzten die alten Ägypter?",
-    "options": [
-      "Blindenschrift",
-      "Morsezeichen",
-      "Hieroglyphen",
-      "Notenschrift"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-history-022",
-    "category": "Geschichte",
-    "text": "Was war die Hanse?",
-    "options": [
-      "Ein römisches Schiff",
-      "Eine Ritterrüstung",
-      "Ein Bund von Handelsstädten",
-      "Eine ägyptische Pyramide"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-history-023",
-    "category": "Geschichte",
-    "text": "Wie nannte man die Herrscher im alten Ägypten?",
-    "options": [
-      "Kaiser von China",
-      "Konsuln",
-      "Pharaonen",
-      "Sheriffs"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-history-024",
-    "category": "Geschichte",
-    "text": "Wer erfand die Glühbirne nicht allein, entwickelte aber eine praktische Version?",
-    "options": [
-      "Ludwig van Beethoven",
-      "Charles Darwin",
-      "Isaac Newton",
-      "Thomas Edison"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-history-025",
-    "category": "Geschichte",
-    "text": "Welche Stadt war im alten Griechenland für die Demokratie bekannt?",
-    "options": [
-      "Troja",
-      "Athen",
-      "Olympia",
-      "Sparta"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-history-026",
-    "category": "Geschichte",
-    "text": "Wie hießen japanische Krieger im Mittelalter?",
-    "options": [
-      "Legionäre",
-      "Samurai",
-      "Musketiere",
-      "Wikinger"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-history-027",
-    "category": "Geschichte",
-    "text": "Was feiert Deutschland am 3. Oktober?",
-    "options": [
-      "Tag der Arbeit",
-      "Tag der Deutschen Einheit",
-      "Reformationstag",
-      "Neujahr"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-history-028",
-    "category": "Geschichte",
-    "text": "Welches Ereignis endete 1945 in Europa?",
-    "options": [
-      "Die Französische Revolution",
-      "Der Dreißigjährige Krieg",
-      "Der Zweite Weltkrieg",
-      "Der Erste Kreuzzug"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-music-001",
-    "category": "Musik",
-    "text": "Wie viele Tasten hat ein Klavier ungefähr in der Standardausführung?",
-    "options": [
-      "88",
-      "44",
-      "66",
-      "100"
+      "Visierhelm",
+      "Zylinder",
+      "Sombrero",
+      "Baskenmütze"
     ],
     "correctIndex": 0
   },
   {
+    "id": "child-history-020",
+    "category": "Geschichte",
+    "text": "Welches Bauwerk in China sollte vor Angreifern schützen?",
+    "options": [
+      "Chinesische Mauer",
+      "Eiffelturm",
+      "Kolosseum",
+      "Big Ben"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-021",
+    "category": "Geschichte",
+    "text": "Wer schrieb die 95 Thesen und löste die Reformation aus?",
+    "options": [
+      "Martin Luther",
+      "Johann Sebastian Bach",
+      "Albert Einstein",
+      "Otto von Bismarck"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-022",
+    "category": "Geschichte",
+    "text": "Welcher Kaiser ließ sich im Jahr 800 in Rom krönen?",
+    "options": [
+      "Karl der Große",
+      "Napoleon",
+      "Augustus",
+      "Wilhelm II."
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-023",
+    "category": "Geschichte",
+    "text": "Wie nennt man die Schrift der alten Römer, die wir heute noch nutzen?",
+    "options": [
+      "Lateinische Schrift",
+      "Keilschrift",
+      "Hieroglyphen",
+      "Runen"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-024",
+    "category": "Geschichte",
+    "text": "Welche Stadt war im antiken Griechenland für die Olympischen Spiele bekannt?",
+    "options": [
+      "Olympia",
+      "Sparta",
+      "Troja",
+      "Korinth"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-025",
+    "category": "Geschichte",
+    "text": "Wie hießen die großen Schiffe der Wikinger?",
+    "options": [
+      "Langschiffe",
+      "Galeonen",
+      "U-Boote",
+      "Dampfer"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-026",
+    "category": "Geschichte",
+    "text": "Wer war Jeanne d’Arc?",
+    "options": [
+      "Eine französische Nationalheldin",
+      "Eine ägyptische Königin",
+      "Eine römische Göttin",
+      "Eine deutsche Erfinderin"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-027",
+    "category": "Geschichte",
+    "text": "Welche Stadt wurde im Mittelalter auch Hansestadt genannt und liegt an der Ostsee?",
+    "options": [
+      "Lübeck",
+      "München",
+      "Stuttgart",
+      "Nürnberg"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-history-028",
+    "category": "Geschichte",
+    "text": "Wie nennt man die Epoche nach dem Mittelalter?",
+    "options": [
+      "Neuzeit",
+      "Steinzeit",
+      "Bronzezeit",
+      "Eiszeit"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-music-001",
+    "category": "Musik",
+    "text": "Wie viele Saiten hat eine klassische Gitarre meist?",
+    "options": [
+      "4",
+      "5",
+      "6",
+      "8"
+    ],
+    "correctIndex": 2
+  },
+  {
     "id": "child-music-002",
     "category": "Musik",
-    "text": "Welches Instrument hat sechs Saiten?",
+    "text": "Welches Instrument hat schwarze und weiße Tasten?",
     "options": [
+      "Klavier",
       "Trommel",
-      "Trompete",
       "Flöte",
-      "Gitarre"
+      "Geige"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-music-003",
     "category": "Musik",
-    "text": "Wie nennt man jemanden, der ein Orchester leitet?",
+    "text": "Welches Instrument spielt man mit einem Bogen?",
     "options": [
-      "Regisseur oder Regisseurin",
-      "Schiedsrichter oder Schiedsrichterin",
-      "Trainer oder Trainerin",
-      "Dirigent oder Dirigentin"
+      "Geige",
+      "Trompete",
+      "Gitarre",
+      "Schlagzeug"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-music-004",
     "category": "Musik",
-    "text": "Welches Instrument wird mit Stöcken gespielt?",
+    "text": "Wie nennt man ein Lied ohne Gesang?",
     "options": [
-      "Schlagzeug",
-      "Klarinette",
-      "Akkordeon",
-      "Harfe"
+      "Instrumentalstück",
+      "Gedicht",
+      "Roman",
+      "Hörspiel"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-005",
     "category": "Musik",
-    "text": "Wie viele Linien hat ein Notensystem?",
+    "text": "Welches Blechblasinstrument wird mit einem Zug gespielt?",
     "options": [
-      "5",
-      "4",
-      "8",
-      "6"
+      "Posaune",
+      "Trompete",
+      "Tuba",
+      "Horn"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-006",
     "category": "Musik",
-    "text": "Welches Instrument ist besonders groß und hat viele Pfeifen?",
+    "text": "Wie nennt man eine Gruppe von Sängerinnen und Sängern?",
     "options": [
-      "Triangel",
-      "Orgel",
-      "Blockflöte",
-      "Ukulele"
+      "Chor",
+      "Orchester",
+      "Band",
+      "Duo"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-music-007",
     "category": "Musik",
-    "text": "Was macht man beim Singen?",
+    "text": "Welches Instrument gehört zum Schlagzeug?",
     "options": [
-      "Nur malen",
-      "Nur springen",
-      "Töne mit der Stimme erzeugen",
-      "Nur klatschen"
+      "Trommel",
+      "Harfe",
+      "Klarinette",
+      "Cello"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-008",
     "category": "Musik",
-    "text": "Welches Instrument wird mit einem Bogen gestrichen?",
+    "text": "Welches Zeichen zeigt in Noten eine Pause an?",
     "options": [
-      "Trompete",
-      "Flöte",
-      "Violine",
-      "Klavier"
+      "Pausenzeichen",
+      "Fragezeichen",
+      "Komma",
+      "Pfeil"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-009",
     "category": "Musik",
-    "text": "Wie nennt man eine Gruppe von Sängern?",
+    "text": "Wie nennt man sehr leises Spielen in der Musik?",
     "options": [
-      "Chor",
-      "Orchester",
-      "Mannschaft",
-      "Klasse"
+      "Piano",
+      "Forte",
+      "Allegro",
+      "Presto"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-010",
     "category": "Musik",
-    "text": "Welches Instrument gehört zu den Blechblasinstrumenten?",
+    "text": "Welches Instrument hat viele Pfeifen und steht oft in Kirchen?",
     "options": [
-      "Geige",
-      "Klavier",
-      "Harfe",
-      "Trompete"
+      "Orgel",
+      "Saxofon",
+      "Banjo",
+      "Ukulele"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-music-011",
     "category": "Musik",
-    "text": "Wie heißt eine sehr hohe Frauenstimme?",
+    "text": "Wie nennt man zwei gemeinsam musizierende Personen?",
     "options": [
-      "Sopran",
-      "Bariton",
-      "Tenor",
-      "Bass"
+      "Duo",
+      "Trio",
+      "Quartett",
+      "Chor"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-012",
     "category": "Musik",
-    "text": "Welcher Komponist schrieb „Die Zauberflöte“?",
+    "text": "Welches Blasinstrument besteht oft aus Metall und hat Ventile?",
     "options": [
-      "Mozart",
-      "Beethoven",
-      "Vivaldi",
-      "Bach"
+      "Trompete",
+      "Blockflöte",
+      "Oboe",
+      "Fagott"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-013",
     "category": "Musik",
-    "text": "Welches kleine Instrument schlägt man mit einem Metallstab an?",
+    "text": "Wie heißt die tiefste männliche Singstimme?",
     "options": [
-      "Triangel",
-      "Cello",
-      "Fagott",
-      "Tuba"
+      "Bass",
+      "Tenor",
+      "Sopran",
+      "Alt"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-014",
     "category": "Musik",
-    "text": "Was zeigt ein Takt an?",
+    "text": "Wie nennt man das Tempo eines Musikstücks?",
     "options": [
-      "Wie schwer ein Lied ist",
-      "Wo ein Konzert stattfindet",
-      "Wie Musik zeitlich gegliedert ist",
-      "Welche Farbe ein Instrument hat"
+      "Geschwindigkeit",
+      "Farbe",
+      "Länge",
+      "Lautsprecher"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-015",
     "category": "Musik",
-    "text": "Wie heißt das Zeichen am Anfang vieler Notenzeilen?",
+    "text": "Welches Instrument ist klein, hat Tasten und wird mit Luft gespielt?",
     "options": [
-      "Fragezeichen",
-      "Komma",
-      "Notenschlüssel",
-      "Pfeil"
+      "Akkordeon",
+      "Xylofon",
+      "Becken",
+      "Harfe"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-016",
     "category": "Musik",
-    "text": "Welches Instrument hat schwarze und weiße Tasten?",
+    "text": "Welches Instrument besitzt meistens schwarze und weiße Tasten?",
     "options": [
-      "Trommel",
-      "Saxofon",
       "Klavier",
-      "Gitarre"
+      "Trompete",
+      "Geige",
+      "Trommel"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-017",
     "category": "Musik",
-    "text": "Welche Musikrichtung hat oft Reime und gesprochenen Rhythmus?",
+    "text": "Wie nennt man ein Lied, das eine Nation repräsentiert?",
     "options": [
-      "Marsch",
-      "Walzer",
+      "Nationalhymne",
+      "Wiegenlied",
       "Oper",
-      "Rap"
+      "Marsch"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-music-018",
     "category": "Musik",
-    "text": "Wie nennt man Musik ohne Gesang?",
+    "text": "Welches Instrument hat vier Saiten und wird häufig im Orchester gespielt?",
     "options": [
-      "Nachricht",
-      "Gedicht",
-      "Instrumentalmusik",
-      "Hörspiel"
+      "Violine",
+      "Trompete",
+      "Flöte",
+      "Tuba"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-019",
     "category": "Musik",
-    "text": "Welches Instrument klingt durch das Blasen über ein Mundloch?",
+    "text": "Wie nennt man das gemeinsame Spielen vieler Instrumente unter einer Leitung?",
     "options": [
-      "Pauke",
-      "Klavier",
-      "Cello",
-      "Querflöte"
+      "Orchester",
+      "Solo",
+      "Gedicht",
+      "Theater"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-music-020",
     "category": "Musik",
-    "text": "Wie heißt ein Lied, das viele Menschen gemeinsam singen?",
+    "text": "Welches Instrument wird häufig aus Holz gebaut und hat sechs Saiten?",
     "options": [
-      "Etüde",
-      "Chorlied",
-      "Solo",
-      "Pause"
+      "Gitarre",
+      "Trommel",
+      "Trompete",
+      "Flöte"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-music-021",
     "category": "Musik",
-    "text": "Welches Instrument hat sehr tiefe Töne und gehört zur Geigenfamilie?",
+    "text": "Wie nennt man die höchste weibliche Singstimme?",
     "options": [
-      "Triangel",
-      "Kontrabass",
-      "Piccoloflöte",
-      "Ukulele"
+      "Sopran",
+      "Alt",
+      "Bass",
+      "Tenor"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-music-022",
     "category": "Musik",
-    "text": "Wie heißt eine Aufführung mit Gesang, Schauspiel und Orchester?",
+    "text": "Welches Instrument hat Metallstäbe und wird mit Schlägeln gespielt?",
     "options": [
-      "Museum",
-      "Zirkus",
-      "Oper",
-      "Quiz"
+      "Glockenspiel",
+      "Harfe",
+      "Klarinette",
+      "Cello"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-023",
     "category": "Musik",
-    "text": "Wer komponierte die „Ode an die Freude“ in seiner 9. Sinfonie?",
+    "text": "Wie nennt man ein Musikstück für eine einzelne Person?",
     "options": [
-      "Beethoven",
-      "Vivaldi",
-      "Händel",
-      "Mozart"
+      "Solo",
+      "Duo",
+      "Trio",
+      "Chor"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-024",
     "category": "Musik",
-    "text": "Was bedeutet „laut“ in der Musik oft als Zeichen „f“?",
+    "text": "Welches Holzblasinstrument hat oft ein Rohrblatt und einen gebogenen Schallbecher?",
     "options": [
-      "Largo",
-      "Pause",
-      "Piano",
-      "Forte"
+      "Saxofon",
+      "Violine",
+      "Pauke",
+      "Harfe"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-music-025",
     "category": "Musik",
-    "text": "Welches Instrument hat Tasten und einen Blasebalg?",
+    "text": "Wie nennt man eine Gruppe aus vier Musikerinnen oder Musikern?",
     "options": [
-      "Trompete",
-      "Harfe",
-      "Akkordeon",
-      "Geige"
+      "Quartett",
+      "Duo",
+      "Solo",
+      "Chor"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-music-026",
     "category": "Musik",
-    "text": "Wie nennt man eine einzelne Person, die singt oder spielt?",
+    "text": "Welches Instrument wird mit zwei Stöcken auf Felle und Becken gespielt?",
     "options": [
-      "Solist oder Solistin",
-      "Publikum",
-      "Orchester",
-      "Chor"
+      "Schlagzeug",
+      "Klavier",
+      "Blockflöte",
+      "Kontrabass"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-music-027",
     "category": "Musik",
-    "text": "Welche Instrumente gehören zum Schlagwerk?",
+    "text": "Wie nennt man die Zeichen, mit denen Musik aufgeschrieben wird?",
     "options": [
-      "Flöten und Klarinetten",
-      "Trommeln und Becken",
-      "Geigen und Celli",
-      "Trompeten und Hörner"
+      "Noten",
+      "Zahlen",
+      "Runen",
+      "Hieroglyphen"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-music-028",
     "category": "Musik",
-    "text": "Wie nennt man die Geschwindigkeit eines Musikstücks?",
+    "text": "Welches Instrument ist besonders tief und gehört zur Familie der Geigen?",
     "options": [
-      "Bühne",
-      "Tonart",
-      "Tempo",
-      "Farbe"
+      "Kontrabass",
+      "Piccoloflöte",
+      "Triangel",
+      "Ukulele"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-sport-001",
     "category": "Sport",
-    "text": "Wie viele Spieler hat eine Fußballmannschaft normalerweise auf dem Feld?",
+    "text": "Wie viele Spieler stehen beim Fußball pro Mannschaft normalerweise auf dem Feld?",
     "options": [
-      "11",
       "9",
-      "12",
-      "10"
-    ],
-    "correctIndex": 0
-  },
-  {
-    "id": "child-sport-002",
-    "category": "Sport",
-    "text": "Welche Sportart spielt man mit einem orangefarbenen Ball und Körben?",
-    "options": [
-      "Fußball",
-      "Basketball",
-      "Hockey",
-      "Tennis"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "id": "child-sport-003",
-    "category": "Sport",
-    "text": "Was trägt man beim Fahrradfahren zum Schutz auf dem Kopf?",
-    "options": [
-      "Gürtel",
-      "Handschuh",
-      "Schal",
-      "Helm"
-    ],
-    "correctIndex": 3
-  },
-  {
-    "id": "child-sport-004",
-    "category": "Sport",
-    "text": "Wie heißt das Ziel beim Fußball?",
-    "options": [
-      "Loch",
-      "Netz",
-      "Tor",
-      "Korb"
+      "10",
+      "11",
+      "12"
     ],
     "correctIndex": 2
   },
   {
-    "id": "child-sport-005",
+    "id": "child-sport-002",
     "category": "Sport",
-    "text": "Welche Sportart wird in einem Schwimmbecken ausgeübt?",
+    "text": "Welcher Sport wird auf einem Eisfeld mit Puck gespielt?",
     "options": [
-      "Schwimmen",
-      "Skifahren",
-      "Golf",
-      "Reiten"
+      "Eishockey",
+      "Basketball",
+      "Handball",
+      "Volleyball"
     ],
     "correctIndex": 0
   },
   {
-    "id": "child-sport-006",
+    "id": "child-sport-003",
     "category": "Sport",
-    "text": "Wie viele Ringe hat das Zeichen der Olympischen Spiele?",
+    "text": "Wie nennt man das Ziel beim Basketball?",
+    "options": [
+      "Korb",
+      "Tor",
+      "Netz",
+      "Loch"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-sport-004",
+    "category": "Sport",
+    "text": "Welche Sportart wird mit Schläger und Federball gespielt?",
+    "options": [
+      "Badminton",
+      "Tennis",
+      "Tischtennis",
+      "Golf"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "child-sport-005",
+    "category": "Sport",
+    "text": "Wie viele Ringe hat das olympische Symbol?",
     "options": [
       "4",
       "5",
@@ -1800,603 +1788,615 @@
     "correctIndex": 1
   },
   {
+    "id": "child-sport-006",
+    "category": "Sport",
+    "text": "Welcher Sport wird im Wasser in Bahnen geschwommen?",
+    "options": [
+      "Schwimmen",
+      "Turnen",
+      "Fechten",
+      "Radsport"
+    ],
+    "correctIndex": 0
+  },
+  {
     "id": "child-sport-007",
     "category": "Sport",
-    "text": "Welche Sportart spielt man mit Schläger und gelbem Filzball?",
+    "text": "Welche Sportart nutzt einen Sattel?",
     "options": [
-      "Handball",
-      "Tennis",
-      "Rugby",
-      "Volleyball"
+      "Reiten",
+      "Boxen",
+      "Volleyball",
+      "Ringen"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-sport-008",
     "category": "Sport",
-    "text": "Was macht ein Torwart?",
+    "text": "Wie nennt man den Start eines Autorennens?",
     "options": [
-      "Er spielt immer außerhalb des Feldes",
-      "Er zählt nur die Zuschauer",
-      "Er verteilt Medaillen",
-      "Er schützt das Tor"
+      "Start",
+      "Anpfiff",
+      "Aufschlag",
+      "Abwurf"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-sport-009",
     "category": "Sport",
-    "text": "Welche Sportart wird auf Eis mit Schlittschuhen gespielt?",
+    "text": "Welche Sportart wird auf einer Matte mit Würfen ausgeübt?",
     "options": [
-      "Baseball",
-      "Beachvolleyball",
-      "Eishockey",
-      "Golf"
+      "Judo",
+      "Segeln",
+      "Skifahren",
+      "Rudern"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-sport-010",
     "category": "Sport",
-    "text": "Wie heißt der Start eines Rennens?",
+    "text": "Welche Farbe hat die Karte für einen Platzverweis im Fußball?",
     "options": [
-      "Halbzeit",
-      "Ziel",
-      "Pause",
-      "Start"
+      "Rot",
+      "Gelb",
+      "Blau",
+      "Grün"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-sport-011",
     "category": "Sport",
-    "text": "Welche Farbe hat eine rote Karte im Fußball?",
+    "text": "Wie nennt man einen Lauf über 42,195 Kilometer?",
     "options": [
-      "Grün",
-      "Blau",
-      "Gelb",
-      "Rot"
+      "Marathon",
+      "Sprint",
+      "Staffel",
+      "Hürdenlauf"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-sport-012",
     "category": "Sport",
-    "text": "Wie viele Minuten dauert eine Fußballhalbzeit bei Erwachsenen?",
+    "text": "Welcher Sport wird mit einem kleinen weißen Ball auf einem großen Rasenplatz gespielt?",
     "options": [
-      "60",
-      "45",
-      "30",
-      "40"
+      "Golf",
+      "Handball",
+      "Basketball",
+      "Eishockey"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-sport-013",
     "category": "Sport",
-    "text": "Welche Sportart nutzt ein Brett auf Wellen?",
+    "text": "Wie viele Punkte gibt ein Korb aus der Nähe beim Basketball normalerweise?",
     "options": [
-      "Fechten",
-      "Turnen",
-      "Surfen",
-      "Skispringen"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "id": "child-sport-014",
-    "category": "Sport",
-    "text": "Wie heißt das Ende einer Rennstrecke?",
-    "options": [
-      "Start",
-      "Ziel",
-      "Kurve",
-      "Tribüne"
+      "1",
+      "2",
+      "3",
+      "4"
     ],
     "correctIndex": 1
   },
   {
+    "id": "child-sport-014",
+    "category": "Sport",
+    "text": "Welche Sportart wird mit einem Degen oder Florett ausgeübt?",
+    "options": [
+      "Fechten",
+      "Ringen",
+      "Boxen",
+      "Turnen"
+    ],
+    "correctIndex": 0
+  },
+  {
     "id": "child-sport-015",
     "category": "Sport",
-    "text": "Welche Sportart spielt man mit einem Federball?",
+    "text": "Welcher Wintersport nutzt zwei lange Bretter an den Füßen?",
     "options": [
-      "Squash",
-      "Tischtennis",
-      "Baseball",
-      "Badminton"
+      "Skifahren",
+      "Eislaufen",
+      "Rodeln",
+      "Curling"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-sport-016",
     "category": "Sport",
-    "text": "Was braucht man beim Skifahren an den Füßen?",
+    "text": "Wie nennt man beim Tennis den ersten Schlag eines Ballwechsels?",
     "options": [
-      "Rollschuhe",
-      "Turnschuhe",
-      "Flossen",
-      "Ski"
+      "Aufschlag",
+      "Abwurf",
+      "Anstoß",
+      "Einwurf"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-sport-017",
     "category": "Sport",
-    "text": "Wie heißt ein sehr langer Lauf über 42,195 Kilometer?",
+    "text": "Welche Sportart wird auf einem Brett mit Rollen gefahren?",
     "options": [
-      "Marathon",
-      "Sprint",
-      "Slalom",
-      "Staffel"
+      "Skateboarden",
+      "Segeln",
+      "Rudern",
+      "Tauchen"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-sport-018",
     "category": "Sport",
-    "text": "Welche Sportart wird mit Handschuhen in einem Ring ausgetragen?",
+    "text": "Wie nennt man den Schiedsrichterpfiff am Beginn eines Fußballspiels?",
     "options": [
-      "Boxen",
-      "Judo",
-      "Tennis",
-      "Rudern"
+      "Anpfiff",
+      "Aufschlag",
+      "Startschuss",
+      "Abwurf"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-sport-019",
     "category": "Sport",
-    "text": "Wie viele Punkte zählt ein Freiwurf im Basketball?",
+    "text": "Welcher Sport wird mit einem Schläger auf einer Tischplatte gespielt?",
     "options": [
-      "2",
-      "3",
-      "1",
-      "4"
+      "Tischtennis",
+      "Golf",
+      "Baseball",
+      "Hockey"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-sport-020",
     "category": "Sport",
-    "text": "Welche Sportart wird auf einem Pferd ausgeübt?",
+    "text": "Wie nennt man das Fahren auf Wellen mit einem Brett?",
     "options": [
-      "Tauchen",
+      "Surfen",
+      "Rudern",
       "Segeln",
-      "Reiten",
-      "Klettern"
+      "Tauchen"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-sport-021",
     "category": "Sport",
-    "text": "Was ist ein Unentschieden?",
+    "text": "Welche Sportart wird mit einem ovalen Ball gespielt?",
     "options": [
-      "Eine Mannschaft gewinnt immer",
-      "Nur der Schiedsrichter spielt",
-      "Das Spiel wurde nie begonnen",
-      "Beide Seiten haben gleich viele Punkte oder Tore"
+      "Rugby",
+      "Tennis",
+      "Volleyball",
+      "Badminton"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-sport-022",
     "category": "Sport",
-    "text": "Welche Sportart hat Geräte wie Reck und Barren?",
+    "text": "Wie nennt man das Überqueren einer Ziellinie als Erster?",
     "options": [
-      "Turnen",
-      "Eishockey",
-      "Rugby",
-      "Golf"
+      "Sieg",
+      "Unentschieden",
+      "Pause",
+      "Foul"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-sport-023",
     "category": "Sport",
-    "text": "Wie nennt man die Person, die auf die Regeln achtet?",
+    "text": "Welcher Sport nutzt ein Netz in der Mitte und wird oft am Strand gespielt?",
     "options": [
-      "Schiedsrichter oder Schiedsrichterin",
-      "Koch oder Köchin",
-      "Reporter oder Reporterin",
-      "Dirigent oder Dirigentin"
+      "Volleyball",
+      "Handball",
+      "Fußball",
+      "Basketball"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-sport-024",
     "category": "Sport",
-    "text": "Welche Sportart spielt man an einer Tischtennisplatte?",
+    "text": "Wie nennt man beim Fußball einen Treffer ins eigene Tor?",
     "options": [
-      "Squash",
-      "Tischtennis",
-      "Tennis",
-      "Badminton"
+      "Eigentor",
+      "Elfmeter",
+      "Abseits",
+      "Eckball"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-sport-025",
     "category": "Sport",
-    "text": "Was trägt man beim Schwimmen oft vor den Augen?",
+    "text": "Welche Sportart enthält Übungen am Barren und am Reck?",
     "options": [
-      "Schwimmbrille",
-      "Sonnenhut",
-      "Helm",
-      "Schal"
+      "Turnen",
+      "Schwimmen",
+      "Laufen",
+      "Skifahren"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-sport-026",
     "category": "Sport",
-    "text": "Wie viele Löcher hat eine normale Golfrunde?",
+    "text": "Wie nennt man das schnelle Laufen über eine kurze Strecke?",
     "options": [
-      "20",
-      "18",
-      "9",
-      "12"
+      "Sprint",
+      "Marathon",
+      "Wandern",
+      "Rudern"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-sport-027",
     "category": "Sport",
-    "text": "Welche Sportart nutzt Pfeil und Bogen?",
+    "text": "Welcher Sport wird mit Handschuhen in einem Ring ausgeübt?",
     "options": [
-      "Darts",
+      "Boxen",
       "Fechten",
-      "Bogenschießen",
-      "Kegeln"
+      "Reiten",
+      "Segeln"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-sport-028",
     "category": "Sport",
-    "text": "Wie heißt die Pause zwischen zwei Fußballhalbzeiten?",
+    "text": "Wie nennt man eine Mannschaft ohne Gegentor?",
     "options": [
+      "Zu null gespielt",
+      "Abseits",
       "Verlängerung",
-      "Halbzeitpause",
-      "Siegerehrung",
       "Auszeit"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-001",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der Schneemann aus „Die Eiskönigin“?",
+    "text": "Welche Farbe hat die Figur Shrek?",
     "options": [
-      "Kristoff",
-      "Hans",
-      "Sven",
-      "Olaf"
+      "Grün",
+      "Blau",
+      "Rot",
+      "Gelb"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-002",
     "category": "Film & Fernsehen",
-    "text": "Welcher Junge besucht die Zauberschule Hogwarts?",
+    "text": "Wie heißt die Schule für Zauberei in Harry Potter?",
     "options": [
-      "Pinocchio",
-      "Harry Potter",
-      "Peter Pan",
-      "Mogli"
+      "Hogwarts",
+      "Narnia",
+      "Camelot",
+      "Atlantis"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-003",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der Löwe aus „Der König der Löwen“?",
+    "text": "Welches Tier ist Simba in Der König der Löwen?",
     "options": [
-      "Nemo",
-      "Balu",
-      "Simba",
-      "Dumbo"
+      "Löwe",
+      "Tiger",
+      "Bär",
+      "Wolf"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-film-004",
     "category": "Film & Fernsehen",
-    "text": "Welcher Superheld kann Spinnennetze schießen?",
+    "text": "Wie heißt der Cowboy aus Toy Story?",
     "options": [
-      "Superman",
-      "Spider-Man",
-      "Batman",
-      "Hulk"
+      "Woody",
+      "Buzz",
+      "Rex",
+      "Slinky"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-005",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der grüne Oger aus einer Filmreihe?",
+    "text": "Welche Prinzessin hat eine Schwester namens Anna?",
     "options": [
-      "Grinch",
-      "Mike",
-      "Hulk",
-      "Shrek"
+      "Elsa",
+      "Arielle",
+      "Belle",
+      "Mulan"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-006",
     "category": "Film & Fernsehen",
-    "text": "Welcher Fisch wird in einem Pixar-Film gesucht?",
+    "text": "Wie heißt der gelbe Schwamm aus Bikini Bottom?",
     "options": [
-      "Nemo",
-      "Bruce",
-      "Marlin",
-      "Dorie"
+      "SpongeBob",
+      "Patrick",
+      "Thaddäus",
+      "Mr. Krabs"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-film-007",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt die Cowboy-Figur aus „Toy Story“?",
+    "text": "Welcher Superheld trägt oft ein schwarzes Fledermauskostüm?",
     "options": [
-      "Rex",
-      "Hamm",
-      "Buzz Lightyear",
-      "Woody"
+      "Batman",
+      "Superman",
+      "Spider-Man",
+      "Hulk"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-008",
     "category": "Film & Fernsehen",
-    "text": "Welche Prinzessin verliert einen gläsernen Schuh?",
+    "text": "Wie heißt der Schneemann aus Die Eiskönigin?",
     "options": [
-      "Jasmin",
-      "Arielle",
-      "Rapunzel",
-      "Aschenputtel"
+      "Olaf",
+      "Sven",
+      "Kristoff",
+      "Hans"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-009",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt das Mädchen mit sehr langem Haar im Turm?",
+    "text": "Welches Tier ist der kleine Drache Ohnezahn?",
     "options": [
-      "Vaiana",
-      "Merida",
-      "Belle",
-      "Rapunzel"
+      "Drache",
+      "Hund",
+      "Pferd",
+      "Adler"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-010",
     "category": "Film & Fernsehen",
-    "text": "Welcher Bär liebt Honig und heißt Winnie?",
+    "text": "Wie heißt die Maus mit den großen runden Ohren von Disney?",
     "options": [
-      "Winnie Puuh",
-      "Yogi",
-      "Paddington",
-      "Balu"
+      "Micky Maus",
+      "Jerry",
+      "Stuart Little",
+      "Speedy Gonzales"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-film-011",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt Batmans Stadt?",
+    "text": "Welcher Roboter räumt in einem Pixar-Film die Erde auf?",
     "options": [
-      "Entenhausen",
-      "Metropolis",
-      "Hawkins",
-      "Gotham City"
+      "WALL-E",
+      "R2-D2",
+      "Baymax",
+      "Optimus Prime"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-012",
     "category": "Film & Fernsehen",
-    "text": "Welche Figur ist ein kleiner gelber Schwamm?",
+    "text": "Wie heißt der sprechende Schneemannfreund von Anna und Elsa?",
     "options": [
-      "Tweety",
-      "Garfield",
-      "Patrick Star",
-      "SpongeBob Schwammkopf"
+      "Olaf",
+      "Sven",
+      "Hans",
+      "Kristoff"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-013",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der Roboter, der auf einer verlassenen Erde Müll sammelt?",
+    "text": "Welche Figur lebt in einer Ananas unter dem Meer?",
     "options": [
-      "R2-D2",
-      "Bumblebee",
-      "Baymax",
-      "WALL-E"
+      "SpongeBob",
+      "Patrick",
+      "Arielle",
+      "Nemo"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-014",
     "category": "Film & Fernsehen",
-    "text": "Welches Tier ist Dumbo?",
+    "text": "Wie heißt der kleine Clownfisch aus dem Pixar-Film?",
     "options": [
-      "Hund",
-      "Elefant",
-      "Löwe",
-      "Maus"
+      "Nemo",
+      "Dorie",
+      "Marlin",
+      "Bruce"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-015",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt die Meerjungfrau von Disney?",
+    "text": "Welche Farbe hat Lightning McQueen?",
     "options": [
-      "Elsa",
-      "Arielle",
-      "Mulan",
-      "Anna"
+      "Rot",
+      "Blau",
+      "Grün",
+      "Schwarz"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-016",
     "category": "Film & Fernsehen",
-    "text": "Welche Farbe hat der Hulk meistens?",
+    "text": "Wie heißt der Bär aus dem Dschungelbuch?",
     "options": [
-      "Gelb",
-      "Grün",
-      "Rot",
-      "Blau"
+      "Balu",
+      "Baghira",
+      "Shir Khan",
+      "Kaa"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-017",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der sprechende Esel in „Shrek“?",
+    "text": "Welcher Held klettert an Wänden und schwingt an Netzen?",
     "options": [
-      "Kater",
-      "Pferd",
-      "Esel",
-      "Drache"
+      "Spider-Man",
+      "Batman",
+      "Thor",
+      "Hulk"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-film-018",
     "category": "Film & Fernsehen",
-    "text": "Welcher Zauberer trägt in „Der Herr der Ringe“ einen langen grauen Bart?",
+    "text": "Wie heißt der grüne Oger mit dem sprechenden Esel?",
     "options": [
-      "Gandalf",
-      "Gollum",
-      "Legolas",
-      "Frodo"
+      "Shrek",
+      "Hulk",
+      "Grinch",
+      "Yoda"
     ],
     "correctIndex": 0
   },
   {
     "id": "child-film-019",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der Drache aus „Drachenzähmen leicht gemacht“?",
+    "text": "Welche Figur ist ein freundlicher weißer Gesundheitsroboter?",
     "options": [
-      "Smaug",
-      "Ohnezahn",
-      "Mushu",
-      "Fuchur"
+      "Baymax",
+      "WALL-E",
+      "R2-D2",
+      "C-3PO"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-020",
     "category": "Film & Fernsehen",
-    "text": "Welche Figur lebt in einer Ananas ganz tief im Meer?",
+    "text": "Wie heißt der Zauberer mit der Narbe auf der Stirn?",
     "options": [
-      "Arielle",
-      "SpongeBob",
-      "Patrick",
-      "Nemo"
+      "Harry Potter",
+      "Ron Weasley",
+      "Hagrid",
+      "Draco Malfoy"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-021",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt die Eiskönigin?",
+    "text": "Welches Tier ist Meister Shifu in Kung Fu Panda?",
     "options": [
-      "Merida",
-      "Elsa",
-      "Anna",
-      "Olaf"
+      "Roter Panda",
+      "Tiger",
+      "Affe",
+      "Kranich"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "id": "child-film-022",
     "category": "Film & Fernsehen",
-    "text": "Welcher Held trägt einen Schild mit Stern?",
+    "text": "Wie heißt der berühmte Detektiv aus der Baker Street?",
     "options": [
-      "Hawkeye",
-      "Thor",
-      "Iron Man",
-      "Captain America"
+      "Sherlock Holmes",
+      "Hercule Poirot",
+      "Kommissar Rex",
+      "Batman"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-023",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der kleine grüne Jedi-Meister aus „Star Wars“?",
+    "text": "Welche Figur trägt in Star Wars ein schwarzes Kostüm und atmet laut?",
     "options": [
-      "Chewbacca",
-      "Han Solo",
+      "Darth Vader",
+      "Luke Skywalker",
       "Yoda",
-      "Luke"
+      "Han Solo"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-film-024",
     "category": "Film & Fernsehen",
-    "text": "Welche Familie besitzt in „Encanto“ ein magisches Haus?",
+    "text": "Wie heißt das Mädchen mit dem sehr langen magischen Haar?",
     "options": [
-      "Parr",
-      "Addams",
-      "Weasley",
-      "Madrigal"
+      "Rapunzel",
+      "Mulan",
+      "Merida",
+      "Vaiana"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-025",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt der freundliche Gesundheitsroboter aus „Baymax“?",
+    "text": "Welche Figur ist ein sprechendes Schweinchen in einer bekannten Kinderserie?",
     "options": [
-      "R2-D2",
-      "C-3PO",
-      "WALL-E",
-      "Baymax"
+      "Peppa Wutz",
+      "Biene Maja",
+      "Heidi",
+      "Wickie"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-026",
     "category": "Film & Fernsehen",
-    "text": "Welches Tier ist Paddington?",
+    "text": "Wie heißt der Esel aus Shrek?",
     "options": [
-      "Fuchs",
-      "Hund",
-      "Bär",
-      "Panda"
+      "Esel",
+      "Balu",
+      "Sven",
+      "Timon"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "id": "child-film-027",
     "category": "Film & Fernsehen",
-    "text": "Wie heißt das Mädchen, das über den Ozean segelt, um ihre Insel zu retten?",
+    "text": "Welche Figur kann sich in einen riesigen grünen Helden verwandeln?",
     "options": [
-      "Belle",
-      "Mulan",
-      "Jasmin",
-      "Vaiana"
+      "Hulk",
+      "Iron Man",
+      "Thor",
+      "Flash"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "id": "child-film-028",
     "category": "Film & Fernsehen",
-    "text": "Welcher Filmheld ist ein Archäologe mit Hut und Peitsche?",
+    "text": "Wie heißt der rote Rennwagen mit der Nummer 95?",
     "options": [
-      "James Bond",
-      "Rocky Balboa",
-      "Peter Pan",
-      "Indiana Jones"
+      "Lightning McQueen",
+      "Hook",
+      "Doc Hudson",
+      "Sally"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   }
 ]
