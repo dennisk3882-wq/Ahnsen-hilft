@@ -28,16 +28,63 @@ function normalizeQuestion(question, type, index) {
     options,
     correctIndex: Math.max(0, Math.min(3, Number(question.correctIndex ?? question.correct ?? 0) || 0)),
     ...(String(question.imageUrl || '').trim() ? { imageUrl: String(question.imageUrl).trim() } : {}),
+    ...(String(question.explanation || '').trim() ? { explanation: String(question.explanation).trim() } : {}),
   };
+}
+
+const WEAK_EXPLANATION_PATTERNS = [
+  /beantwortet diese frage richtig/i,
+  /hat beziehungsweise haben/i,
+  /ist die richtige (anzahl|zeitangabe|höhenangabe|größenangabe|bezeichnung|auswahl|farbe|form)/i,
+  /ist die gesuchte (person|figur|ort|pflanze|sprache|tier)/i,
+  /ist die richtige lösung aus/i,
+  /diese frage gehört zur kategorie/i,
+  /^die richtige antwort ist\b/i,
+];
+
+const DEFAULT_CONTENT_MIGRATIONS = new Map([
+  ['adult-sport-018', 'Wie heißt der Wurfkreis beim Darts?'],
+  ['adult-history-023', 'Welche Stadt wurde im Mittelalter als „ewige Stadt“ bezeichnet?'],
+  ['child-geo-017', 'Wie heißt die Hauptstadt von Großbritannien?'],
+  ['child-geo-020', 'Welcher Fluss ist der längste in Deutschland?'],
+  ['child-nature-012', 'Wie heißt der männliche Löwe meist wegen seines Fells am Kopf?'],
+  ['child-sport-028', 'Wie nennt man eine Mannschaft ohne Gegentor?'],
+]);
+
+function isWeakExplanation(value) {
+  const text = String(value || '').trim();
+  return !text || WEAK_EXPLANATION_PATTERNS.some(pattern => pattern.test(text));
 }
 
 function mergeCatalog(existing, defaults, type) {
   const existingList = Array.isArray(existing) ? existing : [];
-  const normalized = existingList.map((q, i) => normalizeQuestion(q, type, i)).filter(q => q.text);
+  const defaultList = (Array.isArray(defaults) ? defaults : []).map((q, i) => normalizeQuestion(q, type, i));
+  const defaultsById = new Map(defaultList.map(question => [question.id, question]));
+
+  const normalized = existingList
+    .map((q, i) => normalizeQuestion(q, type, i))
+    .filter(q => q.text)
+    .map(question => {
+      const catalogDefault = defaultsById.get(question.id);
+      if (!catalogDefault) return question;
+
+      const merged = { ...question };
+      if (isWeakExplanation(merged.explanation) && catalogDefault.explanation) {
+        merged.explanation = catalogDefault.explanation;
+      }
+
+      const oldText = DEFAULT_CONTENT_MIGRATIONS.get(merged.id);
+      if (oldText && merged.text === oldText) {
+        merged.text = catalogDefault.text;
+        merged.options = [...catalogDefault.options];
+        merged.correctIndex = catalogDefault.correctIndex;
+      }
+      return merged;
+    });
+
   const ids = new Set(normalized.map(q => q.id));
   const texts = new Set(normalized.map(q => q.text.toLocaleLowerCase('de')));
-  for (const [i, question] of defaults.entries()) {
-    const candidate = normalizeQuestion(question, type, i);
+  for (const candidate of defaultList) {
     if (!ids.has(candidate.id) && !texts.has(candidate.text.toLocaleLowerCase('de'))) {
       normalized.push(candidate);
       ids.add(candidate.id);

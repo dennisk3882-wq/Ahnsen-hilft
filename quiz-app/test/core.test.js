@@ -18,6 +18,7 @@ for (const file of ['adult-questions.json', 'child-questions.json']) {
     assert.ok(question.text);
     assert.strictEqual(question.options.length, 4);
     assert.ok(Number.isInteger(question.correctIndex) && question.correctIndex >= 0 && question.correctIndex < 4);
+    assert.ok(typeof question.explanation === 'string' && question.explanation.trim().length >= 15, `Fehlende oder zu kurze Erklärung in ${file}: ${question.id}`);
   }
 }
 const adults = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'adult-questions.json'), 'utf8'));

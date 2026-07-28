@@ -9,7 +9,8 @@
       "7",
       "8"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Eine Woche hat sieben Tage: Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag und Sonntag."
   },
   {
     "id": "child-general-002",
@@ -21,7 +22,8 @@
       "Orange",
       "Rosa"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Wenn man Blau und Gelb mischt, entsteht Grün."
   },
   {
     "id": "child-general-003",
@@ -33,7 +35,8 @@
       "12",
       "13"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Jahr hat zwölf Monate."
   },
   {
     "id": "child-general-004",
@@ -45,7 +48,8 @@
       "Gewicht",
       "Zeit"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Mit einem Thermometer misst man die Temperatur."
   },
   {
     "id": "child-general-005",
@@ -57,7 +61,8 @@
       "60",
       "100"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Eine Stunde hat 60 Minuten."
   },
   {
     "id": "child-general-006",
@@ -69,7 +74,8 @@
       "Achteck",
       "Rechteck"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Stoppschild hat acht Seiten und ist deshalb ein Achteck."
   },
   {
     "id": "child-general-007",
@@ -81,7 +87,8 @@
       "Hell",
       "Groß"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Leise ist das Gegenteil von laut."
   },
   {
     "id": "child-general-008",
@@ -93,7 +100,8 @@
       "Uhr",
       "Kompass"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Eine Uhr zeigt die Uhrzeit an."
   },
   {
     "id": "child-general-009",
@@ -105,7 +113,8 @@
       "4",
       "5"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Ein Dreieck hat drei Seiten."
   },
   {
     "id": "child-general-010",
@@ -117,7 +126,8 @@
       "Flugzeug",
       "Schiff"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Ein Zug fährt auf Schienen."
   },
   {
     "id": "child-general-011",
@@ -129,7 +139,8 @@
       "101",
       "109"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Nach 99 kommt die Zahl 100."
   },
   {
     "id": "child-general-012",
@@ -141,7 +152,8 @@
       "Winter",
       "Sommer"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Nach dem Sommer kommt der Herbst."
   },
   {
     "id": "child-general-013",
@@ -153,7 +165,8 @@
       "Sand",
       "Papier"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Taschenlampe braucht meistens Batterien, damit sie leuchten kann."
   },
   {
     "id": "child-general-014",
@@ -165,7 +178,8 @@
       "Pinsel",
       "Schere"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Auf einer klassischen Schultafel schreibt man mit Kreide."
   },
   {
     "id": "child-general-015",
@@ -177,7 +191,8 @@
       "24",
       "48"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein ganzer Tag hat 24 Stunden."
   },
   {
     "id": "child-general-016",
@@ -189,7 +204,8 @@
       "Staubsauger",
       "Mikrowelle"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Mit einem Handy kann man unterwegs telefonieren."
   },
   {
     "id": "child-general-017",
@@ -201,7 +217,8 @@
       "Grün",
       "Schwarz"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Briefkästen der Deutschen Post sind meistens gelb."
   },
   {
     "id": "child-general-018",
@@ -213,7 +230,8 @@
       "Regen",
       "Nebel"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Wenn Wasser gefriert, wird es zu Eis."
   },
   {
     "id": "child-general-019",
@@ -225,7 +243,8 @@
       "Tschüss",
       "Bitte"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "„Guten Morgen“ ist ein Gruß für den Morgen."
   },
   {
     "id": "child-general-020",
@@ -237,7 +256,8 @@
       "Lautstärke",
       "Gewicht"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Kompass zeigt die Himmelsrichtungen Norden, Osten, Süden und Westen an."
   },
   {
     "id": "child-general-021",
@@ -249,7 +269,8 @@
       "10",
       "12"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Zwei Hände haben zusammen zehn Finger."
   },
   {
     "id": "child-general-022",
@@ -261,7 +282,8 @@
       "Sonntag",
       "Montag"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Nach Freitag kommt Samstag."
   },
   {
     "id": "child-general-023",
@@ -273,7 +295,8 @@
       "Kissen",
       "Lineal"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Mit einer Schere kann man Papier schneiden."
   },
   {
     "id": "child-general-024",
@@ -285,7 +308,8 @@
       "10",
       "12"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Die Hälfte von 20 ist 10, denn 10 + 10 ergibt 20."
   },
   {
     "id": "child-general-025",
@@ -297,7 +321,8 @@
       "Lexikon",
       "Tagebuch"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Buch mit Landkarten nennt man Atlas."
   },
   {
     "id": "child-general-026",
@@ -309,7 +334,8 @@
       "Rot",
       "Blau"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Rot bedeutet an einer Verkehrsampel: Stopp."
   },
   {
     "id": "child-general-027",
@@ -321,7 +347,8 @@
       "100",
       "1000"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Euro besteht aus 100 Cent."
   },
   {
     "id": "child-general-028",
@@ -333,7 +360,8 @@
       "Säge",
       "Zange"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Mit einem Schraubendreher kann man Schrauben hinein- oder herausdrehen."
   },
   {
     "id": "child-general-029",
@@ -345,7 +373,8 @@
       "Pinsel",
       "Füller"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Mit einem Radiergummi kann man Bleistiftstriche wegradieren."
   },
   {
     "id": "child-general-030",
@@ -357,7 +386,8 @@
       "Lokführer",
       "Schaffner"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Person, die ein Flugzeug steuert, nennt man Pilot oder Pilotin."
   },
   {
     "id": "child-nature-001",
@@ -369,7 +399,8 @@
       "Nashorn",
       "Nilpferd"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Elefant ist das größte Tier, das an Land lebt."
   },
   {
     "id": "child-nature-002",
@@ -381,7 +412,8 @@
       "Hund",
       "Pferd"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Eine Amsel ist ein Vogel. Sie legt Eier und kann fliegen."
   },
   {
     "id": "child-nature-003",
@@ -393,7 +425,8 @@
       "Salz",
       "Sandpapier"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Pflanzen brauchen Sonnenlicht für die Fotosynthese. Dabei stellen sie aus Wasser und Kohlendioxid energiereichen Zucker her."
   },
   {
     "id": "child-nature-004",
@@ -405,7 +438,8 @@
       "10",
       "12"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Eine Spinne hat acht Beine."
   },
   {
     "id": "child-nature-005",
@@ -417,7 +451,8 @@
       "Adler",
       "Bär"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Löwe wird oft „König der Tiere“ genannt."
   },
   {
     "id": "child-nature-006",
@@ -429,7 +464,8 @@
       "Vogel",
       "Eidechse"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Fisch lebt im Wasser und atmet mit Kiemen."
   },
   {
     "id": "child-nature-007",
@@ -441,7 +477,8 @@
       "Lamm",
       "Küken"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein junges Pferd nennt man Fohlen."
   },
   {
     "id": "child-nature-008",
@@ -453,7 +490,8 @@
       "Igel",
       "Fuchs"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Giraffe ist für ihren besonders langen Hals bekannt."
   },
   {
     "id": "child-nature-009",
@@ -465,7 +503,8 @@
       "Frosch",
       "Maus"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Schnecke trägt ihr schützendes Gehäuse auf dem Rücken."
   },
   {
     "id": "child-nature-010",
@@ -477,7 +516,8 @@
       "4",
       "6"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Schmetterling hat vier Flügel."
   },
   {
     "id": "child-nature-011",
@@ -489,19 +529,21 @@
       "Eichhörnchen",
       "Frosch"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Fledermäuse hängen beim Ruhen häufig kopfüber."
   },
   {
     "id": "child-nature-012",
     "category": "Natur & Tiere",
-    "text": "Wie heißt der männliche Löwe meist wegen seines Fells am Kopf?",
+    "text": "Woran erkennt man einen erwachsenen männlichen Löwen häufig?",
     "options": [
-      "Löwe mit Mähne",
-      "Tiger mit Streifen",
-      "Bär mit Fell",
-      "Wolf mit Schwanz"
+      "An seiner Mähne",
+      "An seinen Streifen",
+      "An einem Geweih",
+      "An einem langen Rüssel"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Einen erwachsenen männlichen Löwen erkennt man häufig an seiner auffälligen Mähne."
   },
   {
     "id": "child-nature-013",
@@ -513,7 +555,8 @@
       "Tanne",
       "Ahorn"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "An einer Eiche wachsen Eicheln."
   },
   {
     "id": "child-nature-014",
@@ -525,7 +568,8 @@
       "Vogel",
       "Reptil"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Ein Delfin ist ein Säugetier. Er atmet Luft und muss deshalb regelmäßig an die Wasseroberfläche kommen."
   },
   {
     "id": "child-nature-015",
@@ -537,7 +581,8 @@
       "Reh",
       "Büffel"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Zebra hat ein schwarz-weißes Streifenmuster."
   },
   {
     "id": "child-nature-016",
@@ -549,7 +594,8 @@
       "Winterschlaf",
       "Fotosynthese"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Verwandlung von der Raupe zum Schmetterling heißt Metamorphose."
   },
   {
     "id": "child-nature-017",
@@ -561,7 +607,8 @@
       "Elefant",
       "Eisbär"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Chamäleon kann seine Hautfarbe verändern."
   },
   {
     "id": "child-nature-018",
@@ -573,7 +620,8 @@
       "Nordsee",
       "Atmosphäre"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Unsere Sonne gehört zur Milchstraße. Die Milchstraße ist eine Galaxie mit sehr vielen Sternen."
   },
   {
     "id": "child-nature-019",
@@ -585,7 +633,8 @@
       "Erde",
       "Mars"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Merkur ist der Planet, der der Sonne am nächsten ist."
   },
   {
     "id": "child-nature-020",
@@ -597,7 +646,8 @@
       "Mond",
       "Komet"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Sonne ist ein Stern und liefert der Erde Licht und Wärme."
   },
   {
     "id": "child-nature-021",
@@ -609,7 +659,8 @@
       "Lunge",
       "Niere"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Herz pumpt das Blut durch den Körper."
   },
   {
     "id": "child-nature-022",
@@ -621,7 +672,8 @@
       "Allesfresser",
       "Aasfresser"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Tiere, die nur Pflanzen fressen, nennt man Pflanzenfresser."
   },
   {
     "id": "child-nature-023",
@@ -633,7 +685,8 @@
       "Wasserstoff",
       "Chlor"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Menschen brauchen Sauerstoff zum Atmen."
   },
   {
     "id": "child-nature-024",
@@ -645,7 +698,8 @@
       "Dampf",
       "Tau"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Wasser, das aus Wolken zur Erde fällt, nennt man Regen."
   },
   {
     "id": "child-nature-025",
@@ -657,7 +711,8 @@
       "Delfin",
       "Kuh"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Igel hält im Winter Winterschlaf."
   },
   {
     "id": "child-nature-026",
@@ -669,7 +724,8 @@
       "Schwarz",
       "Lila"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Blätter vieler Bäume sind im Sommer grün, weil sie den Farbstoff Chlorophyll enthalten."
   },
   {
     "id": "child-nature-027",
@@ -681,7 +737,8 @@
       "Hirsch",
       "Eule"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Biber baut Dämme aus Ästen, Schlamm und Pflanzen."
   },
   {
     "id": "child-nature-028",
@@ -693,7 +750,8 @@
       "Fohlen",
       "Welpe"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Nachwuchs eines Frosches lebt zunächst als Kaulquappe im Wasser."
   },
   {
     "id": "child-nature-029",
@@ -705,7 +763,8 @@
       "Panda",
       "Känguru"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Elefant ist für seinen langen Rüssel bekannt."
   },
   {
     "id": "child-nature-030",
@@ -717,7 +776,8 @@
       "Wurzel",
       "Frucht"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die harte äußere Schicht eines Baumes heißt Rinde."
   },
   {
     "id": "child-geo-001",
@@ -729,7 +789,8 @@
       "Afrika",
       "Amerika"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Deutschland liegt auf dem Kontinent Europa."
   },
   {
     "id": "child-geo-002",
@@ -741,7 +802,8 @@
       "Alpen",
       "Pyrenäen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Uralgebirge gilt als ein Teil der Grenze zwischen Europa und Asien."
   },
   {
     "id": "child-geo-003",
@@ -753,7 +815,8 @@
       "Indischer Ozean",
       "Arktischer Ozean"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Pazifik ist der größte Ozean der Erde."
   },
   {
     "id": "child-geo-004",
@@ -765,7 +828,8 @@
       "Berlin",
       "Köln"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Berlin ist die Hauptstadt von Deutschland."
   },
   {
     "id": "child-geo-005",
@@ -777,7 +841,8 @@
       "Kanada",
       "Japan"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die berühmten Pyramiden von Gizeh stehen in Ägypten."
   },
   {
     "id": "child-geo-006",
@@ -789,7 +854,8 @@
       "Donau",
       "Weser"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Rhein fließt durch Köln."
   },
   {
     "id": "child-geo-007",
@@ -801,7 +867,8 @@
       "Kanada",
       "Brasilien"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Russland ist nach seiner Fläche das größte Land der Erde."
   },
   {
     "id": "child-geo-008",
@@ -813,7 +880,8 @@
       "Afrika",
       "Asien"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Brasilien liegt auf dem Kontinent Südamerika."
   },
   {
     "id": "child-geo-009",
@@ -825,7 +893,8 @@
       "Rotes Meer",
       "Kaspisches Meer"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Nordsee liegt nördlich von Deutschland."
   },
   {
     "id": "child-geo-010",
@@ -837,7 +906,8 @@
       "Venedig",
       "Neapel"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Rom ist die Hauptstadt von Italien."
   },
   {
     "id": "child-geo-011",
@@ -849,7 +919,8 @@
       "Bolivien",
       "Uruguay"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Chile liegt als langer, schmaler Streifen an der Westküste Südamerikas."
   },
   {
     "id": "child-geo-012",
@@ -861,7 +932,8 @@
       "Mont Blanc",
       "Kilimandscharo"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Mount Everest ist der höchste Berg der Erde."
   },
   {
     "id": "child-geo-013",
@@ -873,7 +945,8 @@
       "Afrika",
       "Australien"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Antarktika ist der kälteste Kontinent."
   },
   {
     "id": "child-geo-014",
@@ -885,7 +958,8 @@
       "Sevilla",
       "Valencia"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Madrid ist die Hauptstadt von Spanien."
   },
   {
     "id": "child-geo-015",
@@ -897,7 +971,8 @@
       "Irland",
       "Island"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Polen grenzt direkt an Deutschland."
   },
   {
     "id": "child-geo-016",
@@ -909,19 +984,21 @@
       "Italien",
       "Schweiz"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Eiffelturm steht in Frankreich, genauer gesagt in Paris."
   },
   {
     "id": "child-geo-017",
     "category": "Geografie",
-    "text": "Wie heißt die Hauptstadt von Großbritannien?",
+    "text": "Wie heißt die Hauptstadt des Vereinigten Königreichs?",
     "options": [
       "London",
       "Manchester",
       "Liverpool",
       "Birmingham"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "London ist die Hauptstadt des Vereinigten Königreichs."
   },
   {
     "id": "child-geo-018",
@@ -933,7 +1010,8 @@
       "München",
       "Köln"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Spree fließt durch Berlin."
   },
   {
     "id": "child-geo-019",
@@ -945,19 +1023,21 @@
       "Bhutan",
       "Laos"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Sri Lanka ist ein Inselstaat südlich von Indien."
   },
   {
     "id": "child-geo-020",
     "category": "Geografie",
-    "text": "Welcher Fluss ist der längste in Deutschland?",
+    "text": "Welcher Fluss fließt durch Dresden und Hamburg?",
     "options": [
       "Rhein",
       "Elbe",
       "Donau",
       "Weser"
     ],
-    "correctIndex": 0
+    "correctIndex": 1,
+    "explanation": "Die Elbe fließt durch Dresden und Hamburg und mündet später in die Nordsee."
   },
   {
     "id": "child-geo-021",
@@ -969,7 +1049,8 @@
       "Europa",
       "Südamerika"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ägypten liegt größtenteils auf dem Kontinent Afrika."
   },
   {
     "id": "child-geo-022",
@@ -981,7 +1062,8 @@
       "Ärmelkanal",
       "Beringstraße"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Straße von Gibraltar liegt zwischen Europa und Afrika und verbindet Atlantik und Mittelmeer."
   },
   {
     "id": "child-geo-023",
@@ -993,7 +1075,8 @@
       "Themse",
       "Seine"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Donau fließt durch Budapest."
   },
   {
     "id": "child-geo-024",
@@ -1005,7 +1088,8 @@
       "Indischer Ozean",
       "Südlicher Ozean"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Atlantik liegt zwischen Europa und Amerika."
   },
   {
     "id": "child-geo-025",
@@ -1017,7 +1101,8 @@
       "Osaka",
       "Nagoya"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Tokio ist die Hauptstadt von Japan."
   },
   {
     "id": "child-geo-026",
@@ -1029,7 +1114,8 @@
       "Spanien",
       "Mexiko"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Australien ist besonders für seine Kängurus bekannt."
   },
   {
     "id": "child-geo-027",
@@ -1041,7 +1127,8 @@
       "Los Angeles",
       "Chicago"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Washington, D.C. ist die Hauptstadt der USA."
   },
   {
     "id": "child-geo-028",
@@ -1053,7 +1140,8 @@
       "Anden",
       "Himalaya"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Pyrenäen bilden ein Gebirge zwischen Frankreich und Spanien."
   },
   {
     "id": "child-history-001",
@@ -1065,7 +1153,8 @@
       "Wikinger",
       "Ritter"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Herrscher im alten Ägypten nannte man Pharaonen."
   },
   {
     "id": "child-history-002",
@@ -1077,7 +1166,8 @@
       "Isaac Newton",
       "Galileo Galilei"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Johannes Gutenberg entwickelte in Europa den Buchdruck mit beweglichen Lettern."
   },
   {
     "id": "child-history-003",
@@ -1089,7 +1179,8 @@
       "Antike",
       "Zukunft"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ritter lebten vor allem im Mittelalter auf Burgen."
   },
   {
     "id": "child-history-004",
@@ -1101,7 +1192,8 @@
       "Elisabeth I.",
       "Marie Antoinette"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Kleopatra war eine berühmte ägyptische Königin zur Zeit der Römer."
   },
   {
     "id": "child-history-005",
@@ -1113,7 +1205,8 @@
       "Samurai",
       "Maya"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Wikinger waren Seefahrer aus Skandinavien."
   },
   {
     "id": "child-history-006",
@@ -1125,7 +1218,8 @@
       "Helmut Kohl",
       "Angela Merkel"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Konrad Adenauer war der erste Bundeskanzler der Bundesrepublik Deutschland."
   },
   {
     "id": "child-history-007",
@@ -1137,7 +1231,8 @@
       "Wikinger",
       "Azteken"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Römer bauten das Kolosseum in Rom."
   },
   {
     "id": "child-history-008",
@@ -1149,7 +1244,8 @@
       "1918",
       "1961"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Zweite Weltkrieg endete in Europa im Jahr 1945."
   },
   {
     "id": "child-history-009",
@@ -1161,7 +1257,8 @@
       "Paris",
       "London"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Stadt Pompeji wurde beim Ausbruch des Vesuvs verschüttet."
   },
   {
     "id": "child-history-010",
@@ -1173,7 +1270,8 @@
       "Pablo Picasso",
       "Claude Monet"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Leonardo da Vinci malte die Mona Lisa."
   },
   {
     "id": "child-history-011",
@@ -1185,7 +1283,8 @@
       "Mongolisches Reich",
       "Fränkisches Reich"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das große Reich mit der Hauptstadt Rom hieß Römisches Reich."
   },
   {
     "id": "child-history-012",
@@ -1197,7 +1296,8 @@
       "Telefon",
       "Buchdruck"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Flugzeug machte Reisen durch die Luft möglich."
   },
   {
     "id": "child-history-013",
@@ -1209,7 +1309,8 @@
       "Hadrianswall",
       "Klagemauer"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Berliner Mauer trennte früher Ost- und Westberlin."
   },
   {
     "id": "child-history-014",
@@ -1221,7 +1322,8 @@
       "Keilschrift",
       "Morsezeichen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Schriftzeichen der alten Ägypter heißen Hieroglyphen."
   },
   {
     "id": "child-history-015",
@@ -1233,7 +1335,8 @@
       "Marco Polo",
       "Ferdinand Magellan"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Christoph Kolumbus erreichte 1492 aus europäischer Sicht Amerika."
   },
   {
     "id": "child-history-016",
@@ -1245,7 +1348,8 @@
       "Eisenzeit",
       "Neuzeit"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die früheste Epoche mit Werkzeugen aus Stein nennt man Steinzeit."
   },
   {
     "id": "child-history-017",
@@ -1257,7 +1361,8 @@
       "Marie Curie",
       "Jeanne d’Arc"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Königin Victoria regierte Großbritannien sehr lange. Nach ihr ist das viktorianische Zeitalter benannt."
   },
   {
     "id": "child-history-018",
@@ -1269,7 +1374,8 @@
       "Brasilien",
       "Australien"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Papier wurde im alten China erfunden."
   },
   {
     "id": "child-history-019",
@@ -1281,7 +1387,8 @@
       "Sombrero",
       "Baskenmütze"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Ritterhelm mit herunterklappbarem Gesichtsschutz heißt Visierhelm."
   },
   {
     "id": "child-history-020",
@@ -1293,7 +1400,8 @@
       "Kolosseum",
       "Big Ben"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Chinesische Mauer sollte das Land vor Angreifern schützen."
   },
   {
     "id": "child-history-021",
@@ -1305,7 +1413,8 @@
       "Albert Einstein",
       "Otto von Bismarck"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Martin Luther schrieb die 95 Thesen und gab damit einen wichtigen Anstoß zur Reformation."
   },
   {
     "id": "child-history-022",
@@ -1317,7 +1426,8 @@
       "Augustus",
       "Wilhelm II."
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Karl der Große wurde im Jahr 800 in Rom zum Kaiser gekrönt."
   },
   {
     "id": "child-history-023",
@@ -1329,7 +1439,8 @@
       "Hieroglyphen",
       "Runen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Unsere Buchstaben gehören zur lateinischen Schrift, die schon die alten Römer benutzten."
   },
   {
     "id": "child-history-024",
@@ -1341,7 +1452,8 @@
       "Troja",
       "Korinth"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Olympia war im antiken Griechenland der Ort der Olympischen Spiele."
   },
   {
     "id": "child-history-025",
@@ -1353,7 +1465,8 @@
       "U-Boote",
       "Dampfer"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die großen Schiffe der Wikinger nannte man Langschiffe."
   },
   {
     "id": "child-history-026",
@@ -1365,7 +1478,8 @@
       "Eine römische Göttin",
       "Eine deutsche Erfinderin"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Jeanne d’Arc war eine französische Nationalheldin. Sie kämpfte im Hundertjährigen Krieg."
   },
   {
     "id": "child-history-027",
@@ -1377,7 +1491,8 @@
       "Stuttgart",
       "Nürnberg"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Lübeck ist eine bekannte Hansestadt an der Ostsee."
   },
   {
     "id": "child-history-028",
@@ -1389,7 +1504,8 @@
       "Bronzezeit",
       "Eiszeit"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Epoche nach dem Mittelalter nennt man Neuzeit."
   },
   {
     "id": "child-music-001",
@@ -1401,7 +1517,8 @@
       "6",
       "8"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Eine klassische Gitarre hat meistens sechs Saiten."
   },
   {
     "id": "child-music-002",
@@ -1413,7 +1530,8 @@
       "Flöte",
       "Geige"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Klavier hat schwarze und weiße Tasten."
   },
   {
     "id": "child-music-003",
@@ -1425,7 +1543,8 @@
       "Gitarre",
       "Schlagzeug"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Geige spielt man mit einem Bogen."
   },
   {
     "id": "child-music-004",
@@ -1437,7 +1556,8 @@
       "Roman",
       "Hörspiel"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Lied oder Musikstück ohne Gesang nennt man Instrumentalstück."
   },
   {
     "id": "child-music-005",
@@ -1449,7 +1569,8 @@
       "Tuba",
       "Horn"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Posaune wird mit einem beweglichen Zug gespielt."
   },
   {
     "id": "child-music-006",
@@ -1461,7 +1582,8 @@
       "Band",
       "Duo"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Gruppe von Sängerinnen und Sängern nennt man Chor."
   },
   {
     "id": "child-music-007",
@@ -1473,7 +1595,8 @@
       "Klarinette",
       "Cello"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Trommel gehört zum Schlagzeug."
   },
   {
     "id": "child-music-008",
@@ -1485,7 +1608,8 @@
       "Komma",
       "Pfeil"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Pausenzeichen zeigt in Noten eine Stelle ohne gespielten Ton an."
   },
   {
     "id": "child-music-009",
@@ -1497,7 +1621,8 @@
       "Allegro",
       "Presto"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Piano ist eine musikalische Angabe für leises Spielen."
   },
   {
     "id": "child-music-010",
@@ -1509,7 +1634,8 @@
       "Banjo",
       "Ukulele"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Orgel hat viele Pfeifen und steht häufig in Kirchen."
   },
   {
     "id": "child-music-011",
@@ -1521,7 +1647,8 @@
       "Quartett",
       "Chor"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Zwei Personen, die gemeinsam musizieren, nennt man Duo."
   },
   {
     "id": "child-music-012",
@@ -1533,7 +1660,8 @@
       "Oboe",
       "Fagott"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Trompete besteht meist aus Metall und besitzt Ventile."
   },
   {
     "id": "child-music-013",
@@ -1545,7 +1673,8 @@
       "Sopran",
       "Alt"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Bass ist die tiefste männliche Singstimme."
   },
   {
     "id": "child-music-014",
@@ -1557,7 +1686,8 @@
       "Länge",
       "Lautsprecher"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Tempo beschreibt, wie schnell oder langsam ein Musikstück gespielt wird."
   },
   {
     "id": "child-music-015",
@@ -1569,7 +1699,8 @@
       "Becken",
       "Harfe"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Akkordeon hat Tasten oder Knöpfe und erzeugt Töne mit Luft aus einem Balg."
   },
   {
     "id": "child-music-016",
@@ -1581,7 +1712,8 @@
       "Geige",
       "Trommel"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Klavier besitzt schwarze und weiße Tasten."
   },
   {
     "id": "child-music-017",
@@ -1593,7 +1725,8 @@
       "Oper",
       "Marsch"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Lied, das ein Land oder eine Nation repräsentiert, heißt Nationalhymne."
   },
   {
     "id": "child-music-018",
@@ -1605,7 +1738,8 @@
       "Flöte",
       "Tuba"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Violine hat vier Saiten und wird häufig im Orchester gespielt."
   },
   {
     "id": "child-music-019",
@@ -1617,7 +1751,8 @@
       "Gedicht",
       "Theater"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Viele Musikerinnen und Musiker, die gemeinsam unter einer Leitung spielen, bilden ein Orchester."
   },
   {
     "id": "child-music-020",
@@ -1629,7 +1764,8 @@
       "Trompete",
       "Flöte"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Gitarre wird häufig aus Holz gebaut und hat meist sechs Saiten."
   },
   {
     "id": "child-music-021",
@@ -1641,7 +1777,8 @@
       "Bass",
       "Tenor"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Sopran ist die höchste weibliche Singstimme."
   },
   {
     "id": "child-music-022",
@@ -1653,7 +1790,8 @@
       "Klarinette",
       "Cello"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Glockenspiel hat Metallstäbe, die mit Schlägeln angeschlagen werden."
   },
   {
     "id": "child-music-023",
@@ -1665,7 +1803,8 @@
       "Trio",
       "Chor"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Musikstück oder Auftritt für eine einzelne Person nennt man Solo."
   },
   {
     "id": "child-music-024",
@@ -1677,7 +1816,8 @@
       "Pauke",
       "Harfe"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Saxofon besitzt ein Rohrblatt und einen gebogenen Schallbecher."
   },
   {
     "id": "child-music-025",
@@ -1689,7 +1829,8 @@
       "Solo",
       "Chor"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Gruppe aus vier Musikerinnen oder Musikern nennt man Quartett."
   },
   {
     "id": "child-music-026",
@@ -1701,7 +1842,8 @@
       "Blockflöte",
       "Kontrabass"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Schlagzeug spielt man mit Stöcken auf Trommelfelle und Becken."
   },
   {
     "id": "child-music-027",
@@ -1713,7 +1855,8 @@
       "Runen",
       "Hieroglyphen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Mit Noten wird Musik aufgeschrieben."
   },
   {
     "id": "child-music-028",
@@ -1725,7 +1868,8 @@
       "Triangel",
       "Ukulele"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Kontrabass ist ein besonders tief klingendes Streichinstrument aus der Familie der Geigen."
   },
   {
     "id": "child-sport-001",
@@ -1737,7 +1881,8 @@
       "11",
       "12"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Beim Fußball stehen normalerweise elf Spieler pro Mannschaft auf dem Feld."
   },
   {
     "id": "child-sport-002",
@@ -1749,7 +1894,8 @@
       "Handball",
       "Volleyball"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eishockey wird auf Eis mit einem Puck gespielt."
   },
   {
     "id": "child-sport-003",
@@ -1761,7 +1907,8 @@
       "Netz",
       "Loch"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Ziel beim Basketball ist der Korb."
   },
   {
     "id": "child-sport-004",
@@ -1773,7 +1920,8 @@
       "Tischtennis",
       "Golf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Badminton spielt man mit einem Schläger und einem Federball."
   },
   {
     "id": "child-sport-005",
@@ -1785,7 +1933,8 @@
       "6",
       "7"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Das olympische Symbol hat fünf miteinander verbundene Ringe."
   },
   {
     "id": "child-sport-006",
@@ -1797,7 +1946,8 @@
       "Fechten",
       "Radsport"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Schwimmen bewegt man sich im Wasser in Bahnen."
   },
   {
     "id": "child-sport-007",
@@ -1809,7 +1959,8 @@
       "Volleyball",
       "Ringen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Reiten sitzt man auf einem Sattel."
   },
   {
     "id": "child-sport-008",
@@ -1821,7 +1972,8 @@
       "Aufschlag",
       "Abwurf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Autorennen beginnt am Start."
   },
   {
     "id": "child-sport-009",
@@ -1833,7 +1985,8 @@
       "Skifahren",
       "Rudern"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Judo werden auf einer Matte Würfe und Haltegriffe ausgeführt."
   },
   {
     "id": "child-sport-010",
@@ -1845,7 +1998,8 @@
       "Blau",
       "Grün"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine rote Karte bedeutet im Fußball einen Platzverweis."
   },
   {
     "id": "child-sport-011",
@@ -1857,7 +2011,8 @@
       "Staffel",
       "Hürdenlauf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Lauf über 42,195 Kilometer heißt Marathon."
   },
   {
     "id": "child-sport-012",
@@ -1869,7 +2024,8 @@
       "Basketball",
       "Eishockey"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Golf wird mit Schlägern und einem kleinen Ball auf einem großen Platz gespielt."
   },
   {
     "id": "child-sport-013",
@@ -1881,7 +2037,8 @@
       "3",
       "4"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Ein normaler Korb aus der Nähe zählt beim Basketball zwei Punkte."
   },
   {
     "id": "child-sport-014",
@@ -1893,7 +2050,8 @@
       "Boxen",
       "Turnen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Fechten kämpft man sportlich mit Degen, Florett oder Säbel."
   },
   {
     "id": "child-sport-015",
@@ -1905,7 +2063,8 @@
       "Rodeln",
       "Curling"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Skifahren trägt man zwei lange Skier an den Füßen."
   },
   {
     "id": "child-sport-016",
@@ -1917,7 +2076,8 @@
       "Anstoß",
       "Einwurf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der erste Schlag eines Ballwechsels beim Tennis heißt Aufschlag."
   },
   {
     "id": "child-sport-017",
@@ -1929,7 +2089,8 @@
       "Rudern",
       "Tauchen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Skateboarden fährt man auf einem Brett mit Rollen."
   },
   {
     "id": "child-sport-018",
@@ -1941,7 +2102,8 @@
       "Startschuss",
       "Abwurf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Pfiff zu Beginn eines Fußballspiels heißt Anpfiff."
   },
   {
     "id": "child-sport-019",
@@ -1953,7 +2115,8 @@
       "Baseball",
       "Hockey"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Tischtennis wird mit Schlägern und einem kleinen Ball auf einer Tischplatte gespielt."
   },
   {
     "id": "child-sport-020",
@@ -1965,7 +2128,8 @@
       "Segeln",
       "Tauchen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Fahren auf Wellen mit einem Brett nennt man Surfen."
   },
   {
     "id": "child-sport-021",
@@ -1977,7 +2141,8 @@
       "Volleyball",
       "Badminton"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Rugby wird mit einem ovalen Ball gespielt."
   },
   {
     "id": "child-sport-022",
@@ -1989,7 +2154,8 @@
       "Pause",
       "Foul"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Wer die Ziellinie als Erster überquert, gewinnt das Rennen."
   },
   {
     "id": "child-sport-023",
@@ -2001,7 +2167,8 @@
       "Fußball",
       "Basketball"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Volleyball wird über ein Netz gespielt und ist auch am Strand beliebt."
   },
   {
     "id": "child-sport-024",
@@ -2013,7 +2180,8 @@
       "Abseits",
       "Eckball"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Treffer ins eigene Tor heißt beim Fußball Eigentor."
   },
   {
     "id": "child-sport-025",
@@ -2025,7 +2193,8 @@
       "Laufen",
       "Skifahren"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Barren und Reck sind Turngeräte."
   },
   {
     "id": "child-sport-026",
@@ -2037,7 +2206,8 @@
       "Wandern",
       "Rudern"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Schnelles Laufen über eine kurze Strecke nennt man Sprint."
   },
   {
     "id": "child-sport-027",
@@ -2049,19 +2219,21 @@
       "Reiten",
       "Segeln"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Boxen kämpfen Sportler mit gepolsterten Handschuhen in einem Ring."
   },
   {
     "id": "child-sport-028",
     "category": "Sport",
-    "text": "Wie nennt man eine Mannschaft ohne Gegentor?",
+    "text": "Wie sagt man, wenn eine Mannschaft kein Gegentor bekommen hat?",
     "options": [
-      "Zu null gespielt",
+      "Sie hat zu null gespielt",
       "Abseits",
       "Verlängerung",
       "Auszeit"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Wenn eine Mannschaft kein Gegentor bekommt, hat sie „zu null“ gespielt."
   },
   {
     "id": "child-film-001",
@@ -2073,7 +2245,8 @@
       "Rot",
       "Gelb"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Shrek hat grüne Haut und ist deshalb leicht an seiner grünen Farbe zu erkennen."
   },
   {
     "id": "child-film-002",
@@ -2085,7 +2258,8 @@
       "Camelot",
       "Atlantis"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Zauberschule in Harry Potter heißt Hogwarts."
   },
   {
     "id": "child-film-003",
@@ -2097,7 +2271,8 @@
       "Bär",
       "Wolf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Simba ist ein Löwe."
   },
   {
     "id": "child-film-004",
@@ -2109,7 +2284,8 @@
       "Rex",
       "Slinky"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Cowboy aus Toy Story heißt Woody."
   },
   {
     "id": "child-film-005",
@@ -2121,7 +2297,8 @@
       "Belle",
       "Mulan"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Elsa ist die Prinzessin mit der Schwester Anna."
   },
   {
     "id": "child-film-006",
@@ -2133,7 +2310,8 @@
       "Thaddäus",
       "Mr. Krabs"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der gelbe Schwamm aus Bikini Bottom heißt SpongeBob."
   },
   {
     "id": "child-film-007",
@@ -2145,7 +2323,8 @@
       "Spider-Man",
       "Hulk"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Batman trägt ein schwarzes Kostüm, das an eine Fledermaus erinnert."
   },
   {
     "id": "child-film-008",
@@ -2157,7 +2336,8 @@
       "Kristoff",
       "Hans"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Schneemann aus „Die Eiskönigin“ heißt Olaf."
   },
   {
     "id": "child-film-009",
@@ -2169,7 +2349,8 @@
       "Pferd",
       "Adler"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ohnezahn ist ein Drache."
   },
   {
     "id": "child-film-010",
@@ -2181,7 +2362,8 @@
       "Stuart Little",
       "Speedy Gonzales"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die bekannte Disney-Maus mit den großen runden Ohren heißt Micky Maus."
   },
   {
     "id": "child-film-011",
@@ -2193,7 +2375,8 @@
       "Baymax",
       "Optimus Prime"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "WALL-E ist der Roboter, der in dem Pixar-Film die verlassene Erde aufräumt."
   },
   {
     "id": "child-film-012",
@@ -2205,7 +2388,8 @@
       "Hans",
       "Kristoff"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Olaf ist der sprechende Schneemannfreund von Anna und Elsa."
   },
   {
     "id": "child-film-013",
@@ -2217,7 +2401,8 @@
       "Arielle",
       "Nemo"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "SpongeBob lebt in einer Ananas unter dem Meer."
   },
   {
     "id": "child-film-014",
@@ -2229,7 +2414,8 @@
       "Marlin",
       "Bruce"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der kleine Clownfisch im Pixar-Film heißt Nemo."
   },
   {
     "id": "child-film-015",
@@ -2241,7 +2427,8 @@
       "Grün",
       "Schwarz"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Lightning McQueen ist rot."
   },
   {
     "id": "child-film-016",
@@ -2253,7 +2440,8 @@
       "Shir Khan",
       "Kaa"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Bär aus dem Dschungelbuch heißt Balu."
   },
   {
     "id": "child-film-017",
@@ -2265,7 +2453,8 @@
       "Thor",
       "Hulk"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Spider-Man kann an Wänden klettern und sich an Netzen durch die Stadt schwingen."
   },
   {
     "id": "child-film-018",
@@ -2277,7 +2466,8 @@
       "Grinch",
       "Yoda"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der grüne Oger mit dem sprechenden Esel heißt Shrek."
   },
   {
     "id": "child-film-019",
@@ -2289,7 +2479,8 @@
       "R2-D2",
       "C-3PO"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Baymax ist ein freundlicher weißer Gesundheitsroboter."
   },
   {
     "id": "child-film-020",
@@ -2301,7 +2492,8 @@
       "Hagrid",
       "Draco Malfoy"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Zauberer mit der Narbe auf der Stirn heißt Harry Potter."
   },
   {
     "id": "child-film-021",
@@ -2313,7 +2505,8 @@
       "Affe",
       "Kranich"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Meister Shifu aus „Kung Fu Panda“ ist ein Roter Panda."
   },
   {
     "id": "child-film-022",
@@ -2325,7 +2518,8 @@
       "Kommissar Rex",
       "Batman"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Sherlock Holmes ist der berühmte Detektiv aus der Baker Street."
   },
   {
     "id": "child-film-023",
@@ -2337,7 +2531,8 @@
       "Yoda",
       "Han Solo"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Darth Vader trägt in Star Wars ein schwarzes Kostüm und ist an seinem lauten Atem zu erkennen."
   },
   {
     "id": "child-film-024",
@@ -2349,7 +2544,8 @@
       "Merida",
       "Vaiana"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Rapunzel ist das Mädchen mit dem sehr langen magischen Haar."
   },
   {
     "id": "child-film-025",
@@ -2361,7 +2557,8 @@
       "Heidi",
       "Wickie"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Peppa Wutz ist ein sprechendes Schweinchen aus einer bekannten Kinderserie."
   },
   {
     "id": "child-film-026",
@@ -2373,7 +2570,8 @@
       "Sven",
       "Timon"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Esel aus Shrek heißt einfach Esel."
   },
   {
     "id": "child-film-027",
@@ -2385,7 +2583,8 @@
       "Thor",
       "Flash"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Hulk kann sich in einen riesigen grünen Helden verwandeln."
   },
   {
     "id": "child-film-028",
@@ -2397,6 +2596,7 @@
       "Doc Hudson",
       "Sally"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der rote Rennwagen mit der Nummer 95 heißt Lightning McQueen."
   }
 ]

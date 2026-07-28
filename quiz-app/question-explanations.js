@@ -12,9 +12,26 @@ function correctAnswer(question) {
   return clean(question?.options?.[Number(question?.correctIndex)] || '');
 }
 
+const WEAK_EXPLANATION_PATTERNS = [
+  /beantwortet diese frage richtig/i,
+  /hat beziehungsweise haben/i,
+  /ist die richtige (anzahl|zeitangabe|höhenangabe|größenangabe|bezeichnung|auswahl|farbe|form)/i,
+  /ist die gesuchte (person|figur|ort|pflanze|sprache|tier)/i,
+  /ist die richtige lösung aus/i,
+  /diese frage gehört zur kategorie/i,
+  /wird dafür benötigt/i,
+  /wird damit angezeigt/i,
+  /^die richtige antwort ist\b/i,
+];
+
+function isWeakExplanation(value) {
+  const text = clean(value);
+  return !text || WEAK_EXPLANATION_PATTERNS.some(pattern => pattern.test(text));
+}
+
 function buildExplanation(question) {
   const custom = clean(question?.explanation);
-  if (custom) return custom;
+  if (custom && !isWeakExplanation(custom)) return custom;
 
   const text = withoutQuestionMark(question?.text);
   const answer = correctAnswer(question);
@@ -24,113 +41,47 @@ function buildExplanation(question) {
   if ((match = text.match(/^Welche Farbe entsteht aus (.+) und (.+)$/i))) {
     return `Wenn man ${match[1]} und ${match[2]} mischt, entsteht ${answer}.`;
   }
-  if ((match = text.match(/^Was misst man mit (?:einem|einer) (.+)$/i))) {
-    return `Mit ${match[1]} misst man ${answer}.`;
+  if ((match = text.match(/^Wofür steht (?:die Abkürzung )?(.+)$/i))) {
+    return `${match[1]} steht für ${answer}.`;
   }
-  if ((match = text.match(/^Womit misst man (.+)$/i))) {
-    return `${match[1]} misst man mit ${answer}.`;
+  if ((match = text.match(/^Wie viele (.+) hat (.+)$/i))) {
+    return `${match[2]} hat ${answer} ${match[1]}.`;
   }
-  if ((match = text.match(/^Womit (.+)$/i))) {
-    return `Dafür verwendet man ${answer}.`;
+  if ((match = text.match(/^Wie viele (.+) haben (.+)$/i))) {
+    return `${match[2]} haben ${answer} ${match[1]}.`;
   }
-  if ((match = text.match(/^Wie viele (.+) (?:hat|haben|sind) (.+)$/i))) {
-    return `${match[2]} hat beziehungsweise haben ${answer} ${match[1]}.`;
+  if ((match = text.match(/^Wie nennt man (.+)$/i))) {
+    return `${match[1]} nennt man ${answer}.`;
   }
-  if (/^Wie viele /i.test(text)) {
-    return `${answer} ist die richtige Anzahl.`;
+  if ((match = text.match(/^Wie heißt (der|die|das|ein|eine) (.+)$/i))) {
+    return `${match[1][0].toUpperCase()}${match[1].slice(1)} ${match[2]} heißt ${answer}.`;
   }
-  if (/^Wie lange /i.test(text)) {
-    return `${answer} ist die richtige Zeitangabe.`;
+  if ((match = text.match(/^Was ist (.+)$/i))) {
+    return `${match[1]} ist ${answer}.`;
   }
-  if (/^Wie hoch /i.test(text)) {
-    return `${answer} ist die richtige Höhenangabe.`;
+  if ((match = text.match(/^Was bedeutet (.+)$/i))) {
+    return `${match[1]} bedeutet ${answer}.`;
   }
-  if (/^Wie groß /i.test(text)) {
-    return `${answer} ist die richtige Größenangabe.`;
+  if ((match = text.match(/^Wer schrieb (.+)$/i))) {
+    return `${answer} schrieb ${match[1]}.`;
   }
-  if (/^Wie nennt man /i.test(text) || /^Wie heißt /i.test(text)) {
-    return `${answer} ist die richtige Bezeichnung.`;
+  if ((match = text.match(/^Wer malte (.+)$/i))) {
+    return `${answer} malte ${match[1]}.`;
   }
-  if (/^Wer /i.test(text)) {
-    return `${answer} ist die gesuchte Person beziehungsweise Figur.`;
+  if ((match = text.match(/^Wer komponierte (.+)$/i))) {
+    return `${answer} komponierte ${match[1]}.`;
   }
-  if (/^(Wo|In welchem Land|In welcher Stadt|Auf welchem Kontinent) /i.test(text)) {
-    return `${answer} ist der gesuchte Ort.`;
+  if ((match = text.match(/^Aus welchem Land stammt (.+)$/i))) {
+    return `${match[1]} stammt aus ${answer}.`;
   }
-  if (/^(Wann|In welchem Jahr|In welchem Jahrhundert) /i.test(text)) {
-    return `${answer} ist der richtige Zeitpunkt.`;
+  if ((match = text.match(/^In welchem Land liegt (.+)$/i))) {
+    return `${match[1]} liegt in ${answer}.`;
   }
-  if (/^Welcher Tag /i.test(text)) {
-    return `${answer} ist der richtige Wochentag.`;
-  }
-  if (/^Welcher Monat /i.test(text)) {
-    return `${answer} ist der richtige Monat.`;
-  }
-  if (/^Welche Jahreszeit /i.test(text) || /Jahreszeit/i.test(text)) {
-    return `${answer} ist die passende Jahreszeit.`;
-  }
-  if (/^Welche Zahl /i.test(text) || /^Was ist .*\d/i.test(text) || /Hälfte|Doppelte|Summe|Ergebnis/i.test(text)) {
-    return `${answer} ist das richtige Rechenergebnis.`;
-  }
-  if (/^Welches Tier /i.test(text) || /^Welche Tier/i.test(text)) {
-    return `${answer} ist das gesuchte Tier.`;
-  }
-  if (/^Welche Pflanze /i.test(text) || /^Welcher Baum /i.test(text)) {
-    return `${answer} ist die gesuchte Pflanze.`;
-  }
-  if (/^Welches Instrument /i.test(text)) {
-    return `${answer} ist das gesuchte Musikinstrument.`;
-  }
-  if (/^Welcher Song|^Welches Lied|^Welche Band|^Welcher Sänger|^Welche Sängerin/i.test(text)) {
-    return `${answer} ist die richtige Lösung aus dem Bereich Musik.`;
-  }
-  if (/^Welcher Film|^Welche Serie|^Welche Figur|^Welcher Schauspieler|^Welche Schauspielerin/i.test(text)) {
-    return `${answer} ist die richtige Lösung aus Film und Fernsehen.`;
-  }
-  if (/^Welche Sportart|^Welcher Verein|^Welche Mannschaft|^Welcher Spieler/i.test(text)) {
-    return `${answer} ist die richtige Lösung aus dem Bereich Sport.`;
-  }
-  if (/^Welche Sprache /i.test(text)) {
-    return `${answer} ist die gesuchte Sprache.`;
-  }
-  if (/^Welche Form /i.test(text)) {
-    return `${answer} ist die richtige geometrische Form.`;
-  }
-  if (/^Welche Farbe /i.test(text)) {
-    return `${answer} ist die richtige Farbe.`;
-  }
-  if (/^Welches Gerät /i.test(text) || /^Welcher Gegenstand /i.test(text) || /^Welches Werkzeug /i.test(text)) {
-    return `${answer} ist der passende Gegenstand dafür.`;
-  }
-  if (/^Was bedeutet /i.test(text) || /^Wofür steht /i.test(text)) {
-    return `${answer} ist die richtige Bedeutung.`;
-  }
-  if (/^Was braucht /i.test(text)) {
-    return `${answer} wird dafür benötigt.`;
-  }
-  if (/^Was zeigt /i.test(text)) {
-    return `${answer} wird damit angezeigt.`;
-  }
-  if (/^Was ist das Gegenteil /i.test(text)) {
-    return `${answer} ist das passende Gegenteil.`;
-  }
-  if (/^Was entsteht /i.test(text)) {
-    return `Dabei entsteht ${answer}.`;
-  }
-  if (/^Was /i.test(text)) {
-    return `${answer} beantwortet diese Frage richtig.`;
-  }
-  if (/^(Welcher|Welche|Welches) /i.test(text)) {
-    return `${answer} ist hier die richtige Auswahl.`;
-  }
-  if (/^(Richtig oder falsch|Stimmt es)/i.test(text)) {
-    return `${answer} ist korrekt.`;
+  if ((match = text.match(/^Auf welchem Kontinent liegt (.+)$/i))) {
+    return `${match[1]} liegt auf dem Kontinent ${answer}.`;
   }
 
-  const category = clean(question?.category);
-  return category
-    ? `Die richtige Antwort ist ${answer}. Diese Frage gehört zur Kategorie „${category}“.`
-    : `Die richtige Antwort ist ${answer}.`;
+  return `Die richtige Antwort lautet „${answer}“.`;
 }
 
 function enrichQuestion(question) {
@@ -141,4 +92,10 @@ function enrichCatalog(catalog) {
   return Array.isArray(catalog) ? catalog.map(enrichQuestion) : [];
 }
 
-module.exports = { buildExplanation, enrichQuestion, enrichCatalog, correctAnswer };
+module.exports = {
+  buildExplanation,
+  enrichQuestion,
+  enrichCatalog,
+  correctAnswer,
+  isWeakExplanation,
+};

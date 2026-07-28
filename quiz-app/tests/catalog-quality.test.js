@@ -108,6 +108,7 @@ for (const catalog of catalogs) {
     const category = String(question.category ?? '').trim();
     const options = question.options;
     const correctIndex = question.correctIndex;
+    const explanation = String(question.explanation ?? '').trim();
 
     if (!id) {
       errors.push(`${label}: Feste Frage-ID fehlt.`);
@@ -170,6 +171,26 @@ for (const catalog of catalogs) {
       errors.push(`${label}: correctIndex muss eine Ganzzahl von 0 bis 3 sein.`);
     }
 
+    const weakExplanationPatterns = [
+      /beantwortet diese frage richtig/i,
+      /hat beziehungsweise haben/i,
+      /ist die richtige (anzahl|zeitangabe|höhenangabe|größenangabe|bezeichnung|auswahl|farbe|form)/i,
+      /ist die gesuchte (person|figur|ort|pflanze|sprache|tier)/i,
+      /ist die richtige lösung aus/i,
+      /diese frage gehört zur kategorie/i,
+      /^die richtige antwort ist\b/i,
+    ];
+    if (!explanation) {
+      errors.push(`${label}: Lern-Erklärung fehlt.`);
+    } else {
+      if (explanation.length < 15) errors.push(`${label}: Lern-Erklärung ist zu kurz.`);
+      if (explanation.length > 280) warnings.push(`${label}: Lern-Erklärung ist für ein Handy ungewöhnlich lang.`);
+      if (!/[.!?]$/.test(explanation)) errors.push(`${label}: Lern-Erklärung endet nicht mit einem Satzzeichen.`);
+      if (weakExplanationPatterns.some(pattern => pattern.test(explanation))) {
+        errors.push(`${label}: Lern-Erklärung enthält eine nichtssagende Standardfloskel.`);
+      }
+    }
+
     if (text.length < 10) warnings.push(`${label}: Sehr kurzer Fragetext.`);
     if (text.length > 220) warnings.push(`${label}: Sehr langer Fragetext für Handy oder Beamer.`);
     if (text && !/[?？]$/.test(text)) warnings.push(`${label}: Fragetext endet nicht mit einem Fragezeichen.`);
@@ -207,6 +228,7 @@ const reportLines = [
   '- zulässige Kategorien',
   '- genau vier nicht leere und unterschiedliche Antworten',
   '- gültiger correctIndex von 0 bis 3',
+  '- vollständige, verständliche Lern-Erklärungen ohne Standardfloskeln',
   '- exakte Duplikate und auffällig ähnliche Fragen',
   '- ungewöhnlich kurze oder lange Texte',
   '',

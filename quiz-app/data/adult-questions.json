@@ -9,7 +9,8 @@
       "Ernest Hemingway",
       "George Orwell"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "George Orwell schrieb den dystopischen Roman „1984“."
   },
   {
     "id": "adult-general-002",
@@ -21,7 +22,8 @@
       "4",
       "6"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein Würfel hat sechs quadratische Seitenflächen."
   },
   {
     "id": "adult-general-003",
@@ -33,7 +35,8 @@
       "Französisch",
       "Spanisch"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "In Brasilien wird überwiegend Portugiesisch gesprochen."
   },
   {
     "id": "adult-general-004",
@@ -45,7 +48,8 @@
       "Organisation der Vereinten Nationen für Bildung, Wissenschaft und Kultur",
       "Internationaler Währungsfonds"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "UNESCO steht für „Organisation der Vereinten Nationen für Bildung, Wissenschaft und Kultur“."
   },
   {
     "id": "adult-general-005",
@@ -57,7 +61,8 @@
       "April",
       "Januar"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "In einem Schaltjahr hat der Februar 29 Tage statt 28."
   },
   {
     "id": "adult-general-006",
@@ -69,7 +74,8 @@
       "Michelangelo",
       "Vincent van Gogh"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Leonardo da Vinci malte die „Mona Lisa“."
   },
   {
     "id": "adult-general-007",
@@ -81,7 +87,8 @@
       "Astrologie",
       "Astronomie"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die Wissenschaft von den Sternen und Himmelskörpern heißt Astronomie."
   },
   {
     "id": "adult-general-008",
@@ -93,7 +100,8 @@
       "1440",
       "1640"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Tag hat 1.440 Minuten: 24 Stunden mal 60 Minuten."
   },
   {
     "id": "adult-general-009",
@@ -105,7 +113,8 @@
       "Orange",
       "Grün"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Beim Mischen von Blau und Gelb entsteht Grün."
   },
   {
     "id": "adult-general-010",
@@ -117,7 +126,8 @@
       "Semikolon",
       "Ausrufezeichen"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Am Ende einer direkten Frage steht ein Fragezeichen."
   },
   {
     "id": "adult-general-011",
@@ -129,7 +139,8 @@
       "Nordamerika",
       "Europa"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Asien ist flächenmäßig der größte Kontinent."
   },
   {
     "id": "adult-general-012",
@@ -141,7 +152,8 @@
       "Antonym",
       "Homonym"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Ein Wort mit gleicher oder ähnlicher Bedeutung nennt man Synonym."
   },
   {
     "id": "adult-general-013",
@@ -153,7 +165,8 @@
       "L",
       "X"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Die römische Zahl L steht für 50."
   },
   {
     "id": "adult-general-014",
@@ -165,7 +178,8 @@
       "20",
       "100"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Ein Jahrzehnt umfasst zehn Jahre."
   },
   {
     "id": "adult-general-015",
@@ -177,7 +191,8 @@
       "Arthur Conan Doyle",
       "Jules Verne"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Arthur Conan Doyle erfand die Detektivfigur Sherlock Holmes."
   },
   {
     "id": "adult-general-016",
@@ -189,7 +204,8 @@
       "Temperatur",
       "Luftdruck"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Thermometer misst die Temperatur."
   },
   {
     "id": "adult-general-017",
@@ -201,7 +217,8 @@
       "Herz",
       "Haut"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die Haut ist flächenmäßig das größte Organ des menschlichen Körpers."
   },
   {
     "id": "adult-general-018",
@@ -213,7 +230,8 @@
       "Yuan",
       "Yen"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "In Japan wird mit Yen bezahlt."
   },
   {
     "id": "adult-general-019",
@@ -225,7 +243,8 @@
       "Salzburg",
       "Graz"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Wien ist die Hauptstadt von Österreich."
   },
   {
     "id": "adult-general-020",
@@ -237,7 +256,8 @@
       "21",
       "27"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "29 ist eine Primzahl, weil sie nur durch 1 und 29 ohne Rest teilbar ist."
   },
   {
     "id": "adult-general-021",
@@ -249,7 +269,8 @@
       "Bär",
       "Wolf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Bundesadler ist das Wappentier der Bundesrepublik Deutschland."
   },
   {
     "id": "adult-general-022",
@@ -261,7 +282,8 @@
       "16",
       "14"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Deutschland besteht aus 16 Bundesländern."
   },
   {
     "id": "adult-general-023",
@@ -273,7 +295,8 @@
       "Ohm",
       "Volt"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Elektrische Leistung wird in Watt gemessen."
   },
   {
     "id": "adult-general-024",
@@ -285,7 +308,8 @@
       "Thomas Mann",
       "Heinrich Heine"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Johann Wolfgang von Goethe schrieb „Faust“."
   },
   {
     "id": "adult-general-025",
@@ -297,7 +321,8 @@
       "Westen",
       "Norden"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Westen liegt genau gegenüber von Osten."
   },
   {
     "id": "adult-general-026",
@@ -309,7 +334,8 @@
       "9",
       "7"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine Million wird als 1.000.000 geschrieben und hat sechs Nullen."
   },
   {
     "id": "adult-general-027",
@@ -321,7 +347,8 @@
       "Mars",
       "Jupiter"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Mars wird wegen seiner rötlichen Oberfläche auch „Roter Planet“ genannt."
   },
   {
     "id": "adult-general-028",
@@ -333,7 +360,8 @@
       "Tangente",
       "Hypotenuse"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die längste Seite eines rechtwinkligen Dreiecks heißt Hypotenuse."
   },
   {
     "id": "adult-general-029",
@@ -345,7 +373,8 @@
       "Berlin",
       "Dresden"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Berlin ist für das Brandenburger Tor bekannt."
   },
   {
     "id": "adult-general-030",
@@ -357,7 +386,8 @@
       "Sauerstoff",
       "Stickstoff"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Menschen benötigen Sauerstoff für die Atmung."
   },
   {
     "id": "adult-general-031",
@@ -369,7 +399,8 @@
       "Choreografie",
       "Typografie"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Wissenschaft und Herstellung von Landkarten nennt man Kartografie."
   },
   {
     "id": "adult-general-032",
@@ -381,7 +412,8 @@
       "81",
       "18"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Drei hoch drei bedeutet 3 × 3 × 3. Das ergibt 27."
   },
   {
     "id": "adult-general-033",
@@ -393,7 +425,8 @@
       "Haiku",
       "Sonett"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein Gedicht mit 14 Zeilen nennt man Sonett."
   },
   {
     "id": "adult-general-034",
@@ -405,7 +438,8 @@
       "Barometer",
       "Sextant"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Ein Kompass zeigt die Himmelsrichtungen an."
   },
   {
     "id": "adult-geo-001",
@@ -417,7 +451,8 @@
       "Ljubljana",
       "Paris"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Paris ist die Hauptstadt von Frankreich."
   },
   {
     "id": "adult-geo-002",
@@ -429,7 +464,8 @@
       "Ottawa",
       "Wellington"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ottawa ist die Hauptstadt von Kanada."
   },
   {
     "id": "adult-geo-003",
@@ -441,7 +477,8 @@
       "Wellington",
       "Dublin"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Canberra ist die Hauptstadt von Australien."
   },
   {
     "id": "adult-geo-004",
@@ -453,7 +490,8 @@
       "Oslo",
       "Prag"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Oslo ist die Hauptstadt von Norwegen."
   },
   {
     "id": "adult-geo-005",
@@ -465,7 +503,8 @@
       "Buenos Aires",
       "Ottawa"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Helsinki ist die Hauptstadt von Finnland."
   },
   {
     "id": "adult-geo-006",
@@ -477,7 +516,8 @@
       "Zagreb",
       "Lima"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Lissabon ist die Hauptstadt von Portugal."
   },
   {
     "id": "adult-geo-007",
@@ -489,7 +529,8 @@
       "Dublin",
       "Buenos Aires"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Dublin ist die Hauptstadt von Irland."
   },
   {
     "id": "adult-geo-008",
@@ -501,7 +542,8 @@
       "Canberra",
       "Reykjavík"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Reykjavík ist die Hauptstadt von Island."
   },
   {
     "id": "adult-geo-009",
@@ -513,7 +555,8 @@
       "Paris",
       "Dublin"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Athen ist die Hauptstadt von Griechenland."
   },
   {
     "id": "adult-geo-010",
@@ -525,7 +568,8 @@
       "Budapest",
       "Athen"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Budapest ist die Hauptstadt von Ungarn."
   },
   {
     "id": "adult-geo-011",
@@ -537,7 +581,8 @@
       "Ottawa",
       "Sofia"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Prag ist die Hauptstadt von Tschechien."
   },
   {
     "id": "adult-geo-012",
@@ -549,7 +594,8 @@
       "Bratislava",
       "Santiago de Chile"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Warschau ist die Hauptstadt von Polen."
   },
   {
     "id": "adult-geo-013",
@@ -561,7 +607,8 @@
       "Bukarest",
       "Vilnius"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Bukarest ist die Hauptstadt von Rumänien."
   },
   {
     "id": "adult-geo-014",
@@ -573,7 +620,8 @@
       "Sofia",
       "Athen"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Sofia ist die Hauptstadt von Bulgarien."
   },
   {
     "id": "adult-geo-015",
@@ -585,7 +633,8 @@
       "Budapest",
       "Vilnius"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Zagreb ist die Hauptstadt von Kroatien."
   },
   {
     "id": "adult-geo-016",
@@ -597,7 +646,8 @@
       "Sofia",
       "Ljubljana"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ljubljana ist die Hauptstadt von Slowenien."
   },
   {
     "id": "adult-geo-017",
@@ -609,7 +659,8 @@
       "Buenos Aires",
       "Ottawa"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Bratislava ist die Hauptstadt von Slowakei."
   },
   {
     "id": "adult-geo-018",
@@ -621,7 +672,8 @@
       "Budapest",
       "Helsinki"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Tallinn ist die Hauptstadt von Estland."
   },
   {
     "id": "adult-geo-019",
@@ -633,7 +685,8 @@
       "Reykjavík",
       "Riga"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Riga ist die Hauptstadt von Lettland."
   },
   {
     "id": "adult-geo-020",
@@ -645,7 +698,8 @@
       "Bratislava",
       "Prag"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Vilnius ist die Hauptstadt von Litauen."
   },
   {
     "id": "adult-geo-021",
@@ -657,7 +711,8 @@
       "Lissabon",
       "Buenos Aires"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Buenos Aires ist die Hauptstadt von Argentinien."
   },
   {
     "id": "adult-geo-022",
@@ -669,7 +724,8 @@
       "Bratislava",
       "Budapest"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Santiago de Chile ist die Hauptstadt von Chile."
   },
   {
     "id": "adult-geo-023",
@@ -681,7 +737,8 @@
       "Ottawa",
       "Canberra"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Lima ist die Hauptstadt von Peru."
   },
   {
     "id": "adult-geo-024",
@@ -693,7 +750,8 @@
       "Wellington",
       "Ottawa"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Wellington ist die Hauptstadt von Neuseeland."
   },
   {
     "id": "adult-geo-025",
@@ -705,7 +763,8 @@
       "Lissabon",
       "Paris"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Kairo ist die Hauptstadt von Ägypten."
   },
   {
     "id": "adult-geo-026",
@@ -717,7 +776,8 @@
       "Rhein",
       "Elbe"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Donau fließt durch Budapest."
   },
   {
     "id": "adult-geo-027",
@@ -729,7 +789,8 @@
       "Kroatien",
       "Griechenland"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Italien wird wegen seiner Umrisse auf der Landkarte oft mit einem Stiefel verglichen."
   },
   {
     "id": "adult-geo-028",
@@ -741,7 +802,8 @@
       "Rocky Mountains",
       "Alpen"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Der Himalaya ist das höchste Gebirge der Erde; dort liegt auch der Mount Everest."
   },
   {
     "id": "adult-geo-029",
@@ -753,7 +815,8 @@
       "Atlantischer Ozean",
       "Pazifischer Ozean"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Atlantische Ozean liegt zwischen Europa und Nordamerika."
   },
   {
     "id": "adult-geo-030",
@@ -765,7 +828,8 @@
       "Ägypten",
       "Jordanien"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "die Stadt Marrakesch liegt in Marokko."
   },
   {
     "id": "adult-geo-031",
@@ -777,7 +841,8 @@
       "Neuguinea",
       "Grönland"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Grönland ist die größte Insel der Erde."
   },
   {
     "id": "adult-geo-032",
@@ -789,7 +854,8 @@
       "Namibia",
       "Eswatini"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Lesotho ist vollständig vom Staatsgebiet Südafrikas umgeben."
   },
   {
     "id": "adult-geo-033",
@@ -801,7 +867,8 @@
       "Baikalsee",
       "Oberer See"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Das Kaspische Meer ist trotz seines Namens ein See und flächenmäßig der größte der Erde."
   },
   {
     "id": "adult-geo-034",
@@ -813,7 +880,8 @@
       "Spanien",
       "Dänemark"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Spanien grenzt nicht an Deutschland; die beiden Länder werden durch Frankreich getrennt."
   },
   {
     "id": "adult-history-001",
@@ -825,7 +893,8 @@
       "1987",
       "1990"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Berliner Mauer fiel 1989 und öffnete den Weg zur deutschen Wiedervereinigung."
   },
   {
     "id": "adult-history-002",
@@ -837,7 +906,8 @@
       "Willy Brandt",
       "Theodor Heuss"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Konrad Adenauer war der erste Bundeskanzler der Bundesrepublik Deutschland."
   },
   {
     "id": "adult-history-003",
@@ -849,7 +919,8 @@
       "Pompeji",
       "Troja"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Pompeji wurde im Jahr 79 n. Chr. beim Ausbruch des Vesuvs verschüttet."
   },
   {
     "id": "adult-history-004",
@@ -861,7 +932,8 @@
       "Christoph Kolumbus",
       "Vasco da Gama"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Christoph Kolumbus erreichte 1492 im Auftrag Spaniens Amerika."
   },
   {
     "id": "adult-history-005",
@@ -873,7 +945,8 @@
       "Französische Revolution",
       "Russische Revolution"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Die Französische Revolution begann 1789."
   },
   {
     "id": "adult-history-006",
@@ -885,7 +958,8 @@
       "Nero",
       "Caesar"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Augustus gilt als erster römischer Kaiser."
   },
   {
     "id": "adult-history-007",
@@ -897,7 +971,8 @@
       "1948",
       "1944"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Der Zweite Weltkrieg endete in Europa im Jahr 1945."
   },
   {
     "id": "adult-history-008",
@@ -909,7 +984,8 @@
       "Olmeken",
       "Azteken"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Inka errichteten die Bergstadt Machu Picchu."
   },
   {
     "id": "adult-history-009",
@@ -921,7 +997,8 @@
       "Johannes Calvin",
       "Philipp Melanchthon"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Martin Luther veröffentlichte 1517 seine 95 Thesen und gab damit einen wichtigen Anstoß zur Reformation."
   },
   {
     "id": "adult-history-010",
@@ -933,7 +1010,8 @@
       "Konstantinopel",
       "Athen"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Konstantinopel war die Hauptstadt des Byzantinischen Reiches; heute heißt die Stadt Istanbul."
   },
   {
     "id": "adult-history-011",
@@ -945,7 +1023,8 @@
       "Verdun",
       "Waterloo"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Seeschlacht von Trafalgar fand 1805 statt."
   },
   {
     "id": "adult-history-012",
@@ -957,7 +1036,8 @@
       "Kleopatra VII.",
       "Arsinoë"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Kleopatra VII. war eine ägyptische Königin und politisch mit Caesar und Marcus Antonius verbunden."
   },
   {
     "id": "adult-history-013",
@@ -969,7 +1049,8 @@
       "Meißen",
       "Leipzig"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Wittenberg war ein wichtiges Zentrum der Reformation in Sachsen."
   },
   {
     "id": "adult-history-014",
@@ -981,7 +1062,8 @@
       "1951",
       "1949"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die Bundesrepublik Deutschland wurde 1949 gegründet."
   },
   {
     "id": "adult-history-015",
@@ -993,7 +1075,8 @@
       "Westfälischer Friede",
       "Augsburger Religionsfriede"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Westfälische Friede beendete 1648 den Dreißigjährigen Krieg."
   },
   {
     "id": "adult-history-016",
@@ -1005,7 +1088,8 @@
       "Neil Armstrong",
       "Michael Collins"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Neil Armstrong betrat 1969 als erster Mensch den Mond."
   },
   {
     "id": "adult-history-017",
@@ -1017,7 +1101,8 @@
       "Belgrad",
       "Wien"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Attentat von Sarajevo löste 1914 die Julikrise aus, die zum Ersten Weltkrieg führte."
   },
   {
     "id": "adult-history-018",
@@ -1029,7 +1114,8 @@
       "Endeavour",
       "Bounty"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Mayflower brachte 1620 englische Pilgerväter nach Nordamerika."
   },
   {
     "id": "adult-history-019",
@@ -1041,7 +1127,8 @@
       "Qing-Dynastie",
       "Tang-Dynastie"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Unter der Ming-Dynastie wurden große Teile der Chinesischen Mauer ausgebaut."
   },
   {
     "id": "adult-history-020",
@@ -1053,7 +1140,8 @@
       "Jawaharlal Nehru",
       "Rabindranath Tagore"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Mahatma Gandhi kämpfte mit gewaltfreiem Widerstand für die Unabhängigkeit Indiens."
   },
   {
     "id": "adult-history-021",
@@ -1065,7 +1153,8 @@
       "Persisches Reich",
       "Mongolisches Reich"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Dschingis Khan begründete das Mongolische Reich."
   },
   {
     "id": "adult-history-022",
@@ -1077,19 +1166,21 @@
       "1914",
       "1916"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Erste Weltkrieg begann 1914."
   },
   {
     "id": "adult-history-023",
     "category": "Geschichte",
-    "text": "Welche Stadt wurde im Mittelalter als „ewige Stadt“ bezeichnet?",
+    "text": "Welche Stadt wird auch „Ewige Stadt“ genannt?",
     "options": [
       "Konstantinopel",
       "Paris",
       "Jerusalem",
       "Rom"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Rom wird seit der Antike auch „Ewige Stadt“ genannt."
   },
   {
     "id": "adult-history-024",
@@ -1101,7 +1192,8 @@
       "Galileo Galilei",
       "Nikolaus Kopernikus"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Johannes Gutenberg entwickelte um 1450 in Europa den Buchdruck mit beweglichen Metalllettern."
   },
   {
     "id": "adult-history-025",
@@ -1113,7 +1205,8 @@
       "Aufklärung",
       "Renaissance"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Auf das Mittelalter folgte in Europa die Renaissance."
   },
   {
     "id": "adult-history-026",
@@ -1125,7 +1218,8 @@
       "Anne",
       "Mary I."
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Königin Victoria regierte Großbritannien von 1837 bis 1901."
   },
   {
     "id": "adult-history-027",
@@ -1137,7 +1231,8 @@
       "Nikolaus II.",
       "Iwan IV."
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Nikolaus II. war der letzte Zar Russlands."
   },
   {
     "id": "adult-history-028",
@@ -1149,7 +1244,8 @@
       "Athen",
       "Korinth"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Athen gilt als Wiege der Demokratie."
   },
   {
     "id": "adult-history-029",
@@ -1161,7 +1257,8 @@
       "Wiener Kongress",
       "Berliner Kongokonferenz"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Auf der Berliner Kongokonferenz von 1884/85 teilten europäische Kolonialmächte große Teile Afrikas unter sich auf."
   },
   {
     "id": "adult-history-030",
@@ -1173,7 +1270,8 @@
       "Nelson Mandela",
       "Martin Luther King Jr."
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Martin Luther King Jr. hielt 1963 die berühmte Rede „I Have a Dream“."
   },
   {
     "id": "adult-history-031",
@@ -1185,7 +1283,8 @@
       "Atlantikwall",
       "Hadrianswall"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Berliner Mauer wurde ab 1961 gebaut und trennte Ost- und Westberlin."
   },
   {
     "id": "adult-history-032",
@@ -1197,7 +1296,8 @@
       "Sumerer",
       "Römer"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Die Sumerer entwickelten die Keilschrift."
   },
   {
     "id": "adult-history-033",
@@ -1209,7 +1309,8 @@
       "Helmut Schmidt",
       "Friedrich Ebert"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Otto von Bismarck wurde wegen seiner machtbewussten Politik „Eiserner Kanzler“ genannt."
   },
   {
     "id": "adult-history-034",
@@ -1221,7 +1322,8 @@
       "Wiener Kongress 1815",
       "Untergang Roms 476"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die europäische Entdeckung Amerikas im Jahr 1492 gilt häufig als Beginn der Neuzeit."
   },
   {
     "id": "adult-science-001",
@@ -1233,7 +1335,8 @@
       "C",
       "H"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Wasserstoff ist H."
   },
   {
     "id": "adult-science-002",
@@ -1245,7 +1348,8 @@
       "He",
       "Hg"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Das chemische Symbol für Helium ist He."
   },
   {
     "id": "adult-science-003",
@@ -1257,7 +1361,8 @@
       "C",
       "Cl"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Das chemische Symbol für Kohlenstoff ist C."
   },
   {
     "id": "adult-science-004",
@@ -1269,7 +1374,8 @@
       "K",
       "Al"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Das chemische Symbol für Stickstoff ist N."
   },
   {
     "id": "adult-science-005",
@@ -1281,7 +1387,8 @@
       "O",
       "Au"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Das chemische Symbol für Sauerstoff ist O."
   },
   {
     "id": "adult-science-006",
@@ -1293,7 +1400,8 @@
       "Si",
       "Na"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Natrium ist Na."
   },
   {
     "id": "adult-science-007",
@@ -1305,7 +1413,8 @@
       "K",
       "Al"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das chemische Symbol für Magnesium ist Mg."
   },
   {
     "id": "adult-science-008",
@@ -1317,7 +1426,8 @@
       "K",
       "Al"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Aluminium ist Al."
   },
   {
     "id": "adult-science-009",
@@ -1329,7 +1439,8 @@
       "Cu",
       "Si"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Silicium ist Si."
   },
   {
     "id": "adult-science-010",
@@ -1341,7 +1452,8 @@
       "N",
       "P"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Phosphor ist P."
   },
   {
     "id": "adult-science-011",
@@ -1353,7 +1465,8 @@
       "Au",
       "Zn"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Das chemische Symbol für Schwefel ist S."
   },
   {
     "id": "adult-science-012",
@@ -1365,7 +1478,8 @@
       "Mg",
       "He"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das chemische Symbol für Chlor ist Cl."
   },
   {
     "id": "adult-science-013",
@@ -1377,7 +1491,8 @@
       "Fe",
       "K"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Kalium ist K."
   },
   {
     "id": "adult-science-014",
@@ -1389,7 +1504,8 @@
       "Zn",
       "Ca"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Calcium ist Ca."
   },
   {
     "id": "adult-science-015",
@@ -1401,7 +1517,8 @@
       "P",
       "H"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das chemische Symbol für Eisen ist Fe."
   },
   {
     "id": "adult-science-016",
@@ -1413,7 +1530,8 @@
       "S",
       "P"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Das chemische Symbol für Kupfer ist Cu."
   },
   {
     "id": "adult-science-017",
@@ -1425,7 +1543,8 @@
       "S",
       "H"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Das chemische Symbol für Zink ist Zn."
   },
   {
     "id": "adult-science-018",
@@ -1437,7 +1556,8 @@
       "Ag",
       "Zn"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Das chemische Symbol für Silber ist Ag."
   },
   {
     "id": "adult-science-019",
@@ -1449,7 +1569,8 @@
       "S",
       "Au"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Das chemische Symbol für Gold ist Au."
   },
   {
     "id": "adult-science-020",
@@ -1461,7 +1582,8 @@
       "He",
       "Cl"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das chemische Symbol für Quecksilber ist Hg."
   },
   {
     "id": "adult-science-021",
@@ -1473,7 +1595,8 @@
       "Newton",
       "Hertz"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die Frequenz wird in Hertz gemessen."
   },
   {
     "id": "adult-science-022",
@@ -1485,7 +1608,8 @@
       "48",
       "46"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein gesunder menschlicher Körperzellenkern besitzt normalerweise 46 Chromosomen, also 23 Paare."
   },
   {
     "id": "adult-science-023",
@@ -1497,7 +1621,8 @@
       "Mars",
       "Saturn"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Saturn ist für sein besonders deutlich sichtbares Ringsystem bekannt."
   },
   {
     "id": "adult-science-024",
@@ -1509,7 +1634,8 @@
       "Photosynthese",
       "Fermentation"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Bei der Photosynthese wandeln Pflanzen Lichtenergie in chemische Energie um."
   },
   {
     "id": "adult-science-025",
@@ -1521,7 +1647,8 @@
       "B negativ",
       "0 negativ"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Bei roten Blutkörperchen gilt 0 negativ als Universalspender, weil wichtige A-, B- und Rhesus-D-Merkmale fehlen."
   },
   {
     "id": "adult-science-026",
@@ -1533,7 +1660,8 @@
       "Watt",
       "Newton"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die SI-Einheit der Kraft heißt Newton."
   },
   {
     "id": "adult-science-027",
@@ -1545,7 +1673,8 @@
       "Zellkern",
       "Ribosom"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Zellkern enthält den größten Teil der Erbinformation einer Zelle."
   },
   {
     "id": "adult-science-028",
@@ -1557,7 +1686,8 @@
       "Heliopause",
       "Photosphäre"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Der Ereignishorizont ist die Grenze eines Schwarzen Lochs, hinter der nichts mehr entkommen kann."
   },
   {
     "id": "adult-science-029",
@@ -1569,7 +1699,8 @@
       "Kohlensäure",
       "Salzsäure"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Salzsäure ist ein wichtiger Bestandteil des Magensafts und hilft bei der Verdauung."
   },
   {
     "id": "adult-science-030",
@@ -1581,7 +1712,8 @@
       "Sublimation",
       "Resublimation"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Den direkten Übergang eines Stoffes vom festen in den gasförmigen Zustand nennt man Sublimation."
   },
   {
     "id": "adult-science-031",
@@ -1593,7 +1725,8 @@
       "Niere",
       "Leber"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Bauchspeicheldrüse produziert das Hormon Insulin."
   },
   {
     "id": "adult-science-032",
@@ -1605,7 +1738,8 @@
       "Troposphäre",
       "Stratosphäre"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "In der Troposphäre entsteht der größte Teil unseres Wetters."
   },
   {
     "id": "adult-science-033",
@@ -1617,7 +1751,8 @@
       "300.000 km/s",
       "3.000.000 km/s"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Licht bewegt sich im Vakuum mit ungefähr 300.000 Kilometern pro Sekunde."
   },
   {
     "id": "adult-music-001",
@@ -1629,7 +1764,8 @@
       "Johann Sebastian Bach",
       "Franz Schubert"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ludwig van Beethoven komponierte die 9. Sinfonie mit der „Ode an die Freude“."
   },
   {
     "id": "adult-music-002",
@@ -1641,7 +1777,8 @@
       "Orgel",
       "Klavier"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein Klavier besitzt in der Standardausführung 88 Tasten."
   },
   {
     "id": "adult-music-003",
@@ -1653,7 +1790,8 @@
       "4",
       "8"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Notensystem besteht aus fünf waagerechten Linien. Auf und zwischen ihnen werden die Noten eingetragen."
   },
   {
     "id": "adult-music-004",
@@ -1665,7 +1803,8 @@
       "Georg Friedrich Händel",
       "Giacomo Puccini"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Antonio Vivaldi komponierte den Konzertzyklus „Die vier Jahreszeiten“."
   },
   {
     "id": "adult-music-005",
@@ -1677,7 +1816,8 @@
       "Bariton",
       "Tenor"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Der Bass ist die tiefste männliche Stimmlage."
   },
   {
     "id": "adult-music-006",
@@ -1689,7 +1829,8 @@
       "Queen",
       "Led Zeppelin"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Pink Floyd veröffentlichte das Album „The Dark Side of the Moon“."
   },
   {
     "id": "adult-music-007",
@@ -1701,7 +1842,8 @@
       "Gioachino Rossini",
       "Giuseppe Verdi"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Wolfgang Amadeus Mozart komponierte die Oper „Die Zauberflöte“."
   },
   {
     "id": "adult-music-008",
@@ -1713,7 +1855,8 @@
       "Saxofon",
       "Oboe"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die Oboe ist ein Holzblasinstrument, dessen Ton mit einem Doppelrohrblatt erzeugt wird."
   },
   {
     "id": "adult-music-009",
@@ -1725,7 +1868,8 @@
       "Sehr laut spielen",
       "Langsam werden"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "„A cappella“ bedeutet Gesang ohne Instrumentalbegleitung."
   },
   {
     "id": "adult-music-010",
@@ -1737,7 +1881,8 @@
       "D-Dur",
       "G-Dur"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "C-Dur hat in der üblichen Notenschrift keine Vorzeichen."
   },
   {
     "id": "adult-music-011",
@@ -1749,7 +1894,8 @@
       "Elvis Presley",
       "Prince"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Michael Jackson wurde als „King of Pop“ bezeichnet."
   },
   {
     "id": "adult-music-012",
@@ -1761,7 +1907,8 @@
       "Presto",
       "Largo"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Largo ist eine musikalische Tempoangabe für langsames Spielen."
   },
   {
     "id": "adult-music-013",
@@ -1773,7 +1920,8 @@
       "Blechblasinstrumente",
       "Holzblasinstrumente"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Die Trompete gehört zu den Blechblasinstrumenten."
   },
   {
     "id": "adult-music-014",
@@ -1785,7 +1933,8 @@
       "Andrew Lloyd Webber",
       "Stephen Sondheim"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Andrew Lloyd Webber schrieb das Musical „Das Phantom der Oper“."
   },
   {
     "id": "adult-music-015",
@@ -1797,7 +1946,8 @@
       "Rammstein",
       "Alphaville"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die deutsche Band Kraftwerk hatte den Hit „Autobahn“."
   },
   {
     "id": "adult-music-016",
@@ -1809,7 +1959,8 @@
       "Johannes Brahms",
       "Frédéric Chopin"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Johann Sebastian Bach wurde in Eisenach geboren und wirkte viele Jahre in Leipzig."
   },
   {
     "id": "adult-music-017",
@@ -1821,7 +1972,8 @@
       "Tempo verlangsamen",
       "Plötzlich stoppen"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "„Crescendo“ bedeutet, dass die Musik allmählich lauter wird."
   },
   {
     "id": "adult-music-018",
@@ -1833,7 +1985,8 @@
       "Fagott",
       "Marimba"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Cello gehört zur Familie der Streichinstrumente."
   },
   {
     "id": "adult-music-019",
@@ -1845,7 +1998,8 @@
       "Lady Gaga",
       "Rihanna"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Adele veröffentlichte den Song „Rolling in the Deep“."
   },
   {
     "id": "adult-music-020",
@@ -1857,7 +2011,8 @@
       "Aida",
       "Carmen"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die Oper „Carmen“ stammt von Georges Bizet."
   },
   {
     "id": "adult-music-021",
@@ -1869,7 +2024,8 @@
       "6",
       "5"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Eine klassische Gitarre hat normalerweise sechs Saiten."
   },
   {
     "id": "adult-music-022",
@@ -1881,7 +2037,8 @@
       "Konzert",
       "Fuge"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Musikstück für einen Solisten und Orchester nennt man Konzert."
   },
   {
     "id": "adult-music-023",
@@ -1893,7 +2050,8 @@
       "The Beatles",
       "The Rolling Stones"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "John Lennon, Paul McCartney, George Harrison und Ringo Starr bildeten die Band The Beatles."
   },
   {
     "id": "adult-music-024",
@@ -1905,7 +2063,8 @@
       "Claude Debussy",
       "Camille Saint-Saëns"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Maurice Ravel komponierte den „Boléro“."
   },
   {
     "id": "adult-music-025",
@@ -1917,7 +2076,8 @@
       "Alt",
       "Sopran"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Der Bariton liegt stimmlich zwischen Tenor und Bass."
   },
   {
     "id": "adult-music-026",
@@ -1929,7 +2089,8 @@
       "Klavier",
       "Cembalo"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Bei einer Orgel entsteht der Ton durch Luft, die durch Pfeifen strömt."
   },
   {
     "id": "adult-music-027",
@@ -1941,7 +2102,8 @@
       "Ostinato",
       "Leitmotiv"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein wiederkehrendes musikalisches Thema, das einer Figur oder Idee zugeordnet ist, heißt Leitmotiv."
   },
   {
     "id": "adult-music-028",
@@ -1953,7 +2115,8 @@
       "Cher",
       "Madonna"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Adele ist für ihr erfolgreiches Album „21“ bekannt."
   },
   {
     "id": "adult-music-029",
@@ -1965,7 +2128,8 @@
       "Kreuz",
       "Auflösungszeichen"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Kreuz erhöht einen notierten Ton um einen Halbton."
   },
   {
     "id": "adult-music-030",
@@ -1977,7 +2141,8 @@
       "Carl Orff",
       "Gustav Mahler"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Richard Wagner schrieb den vierteiligen Opernzyklus „Der Ring des Nibelungen“."
   },
   {
     "id": "adult-music-031",
@@ -1989,7 +2154,8 @@
       "Violine",
       "Harfe"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Yo-Yo Ma ist Cellist und spielt Cello."
   },
   {
     "id": "adult-music-032",
@@ -2001,7 +2167,8 @@
       "Takt",
       "Phrase"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Abstand zwischen zwei Tonhöhen heißt Intervall."
   },
   {
     "id": "adult-music-033",
@@ -2013,7 +2180,8 @@
       "Hip-Hop",
       "Grunge"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Hip-Hop entstand in den 1970er-Jahren in der Bronx in New York."
   },
   {
     "id": "adult-sport-001",
@@ -2025,7 +2193,8 @@
       "12",
       "9"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Fußball stehen pro Mannschaft regulär elf Spieler zu Spielbeginn auf dem Feld."
   },
   {
     "id": "adult-sport-002",
@@ -2037,7 +2206,8 @@
       "45 km",
       "40 km"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein offizieller Marathon ist 42,195 Kilometer lang."
   },
   {
     "id": "adult-sport-003",
@@ -2049,7 +2219,8 @@
       "Volleyball",
       "Basketball"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein „Slam Dunk“ ist ein Wurf im Basketball, bei dem der Ball direkt von oben in den Korb gelegt wird."
   },
   {
     "id": "adult-sport-004",
@@ -2061,7 +2232,8 @@
       "5",
       "7"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Das olympische Symbol besteht aus fünf miteinander verbundenen Ringen."
   },
   {
     "id": "adult-sport-005",
@@ -2073,7 +2245,8 @@
       "Grün",
       "Blau"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Führende der Tour de France trägt das Gelbe Trikot."
   },
   {
     "id": "adult-sport-006",
@@ -2085,7 +2258,8 @@
       "5",
       "4"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Im Herren-Einzel eines Grand-Slam-Turniers muss ein Spieler drei Sätze gewinnen."
   },
   {
     "id": "adult-sport-007",
@@ -2097,7 +2271,8 @@
       "Eishockey",
       "American Football"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Stanley Cup ist die Meisterschaftstrophäe im nordamerikanischen Eishockey."
   },
   {
     "id": "adult-sport-008",
@@ -2109,7 +2284,8 @@
       "6",
       "7"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Touchdown im American Football zählt sechs Punkte."
   },
   {
     "id": "adult-sport-009",
@@ -2121,7 +2297,8 @@
       "80 Meter",
       "110 Meter"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der olympische Sprintklassiker wird über 100 Meter gelaufen."
   },
   {
     "id": "adult-sport-010",
@@ -2133,7 +2310,8 @@
       "Oberliga",
       "Regionalliga"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die höchste deutsche Fußballliga heißt Bundesliga."
   },
   {
     "id": "adult-sport-011",
@@ -2145,7 +2323,8 @@
       "5",
       "7"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Volleyball stehen sechs Spieler einer Mannschaft gleichzeitig auf dem Feld."
   },
   {
     "id": "adult-sport-012",
@@ -2157,7 +2336,8 @@
       "Turm",
       "Läufer"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Springer ist die einzige Schachfigur, die über andere Figuren springen darf."
   },
   {
     "id": "adult-sport-013",
@@ -2169,7 +2349,8 @@
       "Matchball",
       "Break"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Tennis nennt man den Spielstand 40:40 Einstand."
   },
   {
     "id": "adult-sport-014",
@@ -2181,7 +2362,8 @@
       "Fechten",
       "Moderner Fünfkampf"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Boden, Pferd und Ringe sind Geräte des Gerätturnens."
   },
   {
     "id": "adult-sport-015",
@@ -2193,7 +2375,8 @@
       "9",
       "18"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Eine reguläre Golfrunde wird über 18 Löcher gespielt."
   },
   {
     "id": "adult-sport-016",
@@ -2205,7 +2388,8 @@
       "Deutschland",
       "Argentinien"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Deutschland gewann die Fußball-Weltmeisterschaft 2014."
   },
   {
     "id": "adult-sport-017",
@@ -2217,19 +2401,21 @@
       "Zwei Schläge unter Par",
       "Ein Schlag unter Par"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein Birdie bedeutet im Golf, dass ein Loch mit einem Schlag unter Par gespielt wurde."
   },
   {
     "id": "adult-sport-018",
     "category": "Sport",
-    "text": "Wie heißt der Wurfkreis beim Darts?",
+    "text": "Wie heißt die Abwurflinie beim Darts?",
     "options": [
       "Leg",
       "Oche",
       "Bull",
       "Checkout"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Abwurflinie beim Darts heißt Oche."
   },
   {
     "id": "adult-sport-019",
@@ -2241,7 +2427,8 @@
       "Pentathlon",
       "Duathlon"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Triathlon kombiniert Schwimmen, Radfahren und Laufen."
   },
   {
     "id": "adult-sport-020",
@@ -2253,7 +2440,8 @@
       "2",
       "1"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein erfolgreicher Freiwurf im Basketball zählt einen Punkt."
   },
   {
     "id": "adult-sport-021",
@@ -2265,7 +2453,8 @@
       "Blaue Karte",
       "Gelbe Karte"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Rote Karte bedeutet im Fußball einen Platzverweis."
   },
   {
     "id": "adult-sport-022",
@@ -2277,7 +2466,8 @@
       "147",
       "155"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Die höchste mögliche Aufnahme beim Snooker ohne Free Ball beträgt 147 Punkte."
   },
   {
     "id": "adult-sport-023",
@@ -2289,7 +2479,8 @@
       "Judo",
       "Ringen"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "„Ippon“ ist die höchste Wertung im Judo und kann einen Kampf sofort entscheiden."
   },
   {
     "id": "adult-sport-024",
@@ -2301,7 +2492,8 @@
       "10",
       "6"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein olympisches Schwimmbecken hat typischerweise zehn Bahnen, von denen bei großen Rennen acht genutzt werden."
   },
   {
     "id": "adult-sport-025",
@@ -2313,7 +2505,8 @@
       "Tennis",
       "Cricket"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "In Wimbledon wird Tennis gespielt."
   },
   {
     "id": "adult-sport-026",
@@ -2325,7 +2518,8 @@
       "90",
       "40"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein reguläres Handballspiel der Erwachsenen dauert 60 Minuten."
   },
   {
     "id": "adult-sport-027",
@@ -2337,7 +2531,8 @@
       "Torwart",
       "Libero"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Torwart schützt im Fußball das eigene Tor."
   },
   {
     "id": "adult-sport-028",
@@ -2349,7 +2544,8 @@
       "Gate",
       "Kicker"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Beim Skispringen starten die Athleten vom Balken."
   },
   {
     "id": "adult-sport-029",
@@ -2361,7 +2557,8 @@
       "Rudern",
       "Schwimmen"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Der Butterfly- beziehungsweise Schmetterlingsstil ist eine Schwimmart."
   },
   {
     "id": "adult-sport-030",
@@ -2373,7 +2570,8 @@
       "18",
       "19"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Auf einem üblichen Dartboard steht die Zahl 20 ganz oben."
   },
   {
     "id": "adult-sport-031",
@@ -2385,7 +2583,8 @@
       "6",
       "3"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Try im Rugby zählt fünf Punkte."
   },
   {
     "id": "adult-sport-032",
@@ -2397,7 +2596,8 @@
       "Teppich",
       "Sand"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Die French Open werden traditionell auf Sandplätzen ausgetragen."
   },
   {
     "id": "adult-sport-033",
@@ -2409,7 +2609,8 @@
       "Stanley Cup",
       "World Series"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Endspiel der NFL heißt Super Bowl."
   },
   {
     "id": "adult-film-001",
@@ -2421,7 +2622,8 @@
       "George Lucas",
       "Martin Scorsese"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Steven Spielberg führte bei „Der weiße Hai“ Regie."
   },
   {
     "id": "adult-film-002",
@@ -2433,7 +2635,8 @@
       "Harry Potter",
       "Star Wars"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Die Filmreihe „Harry Potter“ spielt teilweise in der Zauberschule Hogwarts."
   },
   {
     "id": "adult-film-003",
@@ -2445,7 +2648,8 @@
       "Robin Williams",
       "Tom Hanks"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Tom Hanks spielte die Hauptrolle in „Forrest Gump“."
   },
   {
     "id": "adult-film-004",
@@ -2457,7 +2661,8 @@
       "Simba",
       "Dumbo"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Löwe in Disneys „Der König der Löwen“ heißt Simba."
   },
   {
     "id": "adult-film-005",
@@ -2469,7 +2674,8 @@
       "James Cameron",
       "Quentin Tarantino"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Quentin Tarantino führte bei „Pulp Fiction“ Regie."
   },
   {
     "id": "adult-film-006",
@@ -2481,7 +2687,8 @@
       "Star Wars",
       "Star Trek"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Der Satz „Möge die Macht mit dir sein“ gehört zur Filmwelt von „Star Wars“."
   },
   {
     "id": "adult-film-007",
@@ -2493,7 +2700,8 @@
       "Legolas",
       "Aragorn"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Frodo Beutlin trägt in „Der Herr der Ringe“ den Einen Ring."
   },
   {
     "id": "adult-film-008",
@@ -2505,7 +2713,8 @@
       "Meg Ryan",
       "Julia Roberts"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Julia Roberts spielte die Titelrolle in „Erin Brockovich“."
   },
   {
     "id": "adult-film-009",
@@ -2517,7 +2726,8 @@
       "Peter Jackson",
       "James Cameron"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "James Cameron führte bei „Titanic“ Regie."
   },
   {
     "id": "adult-film-010",
@@ -2529,7 +2739,8 @@
       "Jack Ryan",
       "Indiana Jones"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Der Archäologe mit Hut und Peitsche heißt Indiana Jones."
   },
   {
     "id": "adult-film-011",
@@ -2541,7 +2752,8 @@
       "Titanic",
       "Der englische Patient"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "„Titanic“ gewann bei der Oscarverleihung 1998 insgesamt elf Oscars."
   },
   {
     "id": "adult-film-012",
@@ -2553,7 +2765,8 @@
       "JARVIS",
       "Skynet"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die künstliche Intelligenz in „2001: Odyssee im Weltraum“ heißt HAL 9000."
   },
   {
     "id": "adult-film-013",
@@ -2565,7 +2778,8 @@
       "Johnny Depp",
       "Jude Law"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Johnny Depp spielte den Piraten Jack Sparrow."
   },
   {
     "id": "adult-film-014",
@@ -2577,7 +2791,8 @@
       "Grün",
       "Rot"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Neo entscheidet sich in „Matrix“ für die rote Pille."
   },
   {
     "id": "adult-film-015",
@@ -2589,7 +2804,8 @@
       "Christopher Nolan",
       "Wes Anderson"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Christopher Nolan ist der Regisseur von „Inception“."
   },
   {
     "id": "adult-film-016",
@@ -2601,7 +2817,8 @@
       "Serenity",
       "Enterprise"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Das Raumschiff von Han Solo heißt Millennium Falke."
   },
   {
     "id": "adult-film-017",
@@ -2613,7 +2830,8 @@
       "Imperator Palpatine",
       "Obi-Wan Kenobi"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Darth Vader sagt den berühmten Satz zu Luke Skywalker."
   },
   {
     "id": "adult-film-018",
@@ -2625,7 +2843,8 @@
       "Demi Moore",
       "Julia Roberts"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Julia Roberts spielte die Hauptrolle in „Pretty Woman“."
   },
   {
     "id": "adult-film-019",
@@ -2637,7 +2856,8 @@
       "Studio Ghibli",
       "DreamWorks"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Pixar produzierte den Animationsfilm „Toy Story“."
   },
   {
     "id": "adult-film-020",
@@ -2649,7 +2869,8 @@
       "Hulk",
       "Shrek"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Der grüne Oger aus der Animationsfilmreihe heißt Shrek."
   },
   {
     "id": "adult-film-021",
@@ -2661,7 +2882,8 @@
       "Godzilla",
       "Jurassic Park"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "„Jurassic Park“ handelt von einem Freizeitpark mit geklonten Dinosauriern."
   },
   {
     "id": "adult-film-022",
@@ -2673,7 +2895,8 @@
       "Arnold Schwarzenegger",
       "Jean-Claude Van Damme"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Sylvester Stallone spielte den Boxer Rocky Balboa."
   },
   {
     "id": "adult-film-023",
@@ -2685,7 +2908,8 @@
       "Central City",
       "Star City"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Batmans Heimatstadt heißt Gotham City."
   },
   {
     "id": "adult-film-024",
@@ -2697,7 +2921,8 @@
       "Emma Watson",
       "Keira Knightley"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Emma Watson spielte Hermine Granger in den Harry-Potter-Filmen."
   },
   {
     "id": "adult-film-025",
@@ -2709,7 +2934,8 @@
       "Cocoon",
       "Unheimliche Begegnung der dritten Art"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Figur E.T. gehört zum Film „E.T. – Der Außerirdische“."
   },
   {
     "id": "adult-film-026",
@@ -2721,7 +2947,8 @@
       "John Williams",
       "Ennio Morricone"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "John Williams komponierte bekannte Filmmusiken für „Star Wars“ und „Indiana Jones“."
   },
   {
     "id": "adult-film-027",
@@ -2733,7 +2960,8 @@
       "Marlin",
       "Dorie"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Der Clownfisch im Pixar-Film „Findet Nemo“ heißt Nemo."
   },
   {
     "id": "adult-film-028",
@@ -2745,7 +2973,8 @@
       "Oblivion",
       "Avatar"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "„Avatar“ spielt zu großen Teilen auf dem Planeten Pandora."
   },
   {
     "id": "adult-film-029",
@@ -2757,7 +2986,8 @@
       "Matt Damon",
       "Brad Pitt"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Tom Hanks spielte die Hauptfigur in „Cast Away“."
   },
   {
     "id": "adult-film-030",
@@ -2769,7 +2999,8 @@
       "Daily Bugle",
       "Daily Planet"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Clark Kent arbeitet bei der Zeitung Daily Planet."
   },
   {
     "id": "adult-film-031",
@@ -2781,7 +3012,8 @@
       "Million Dollar Baby",
       "The Fighter"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "„Wie ein wilder Stier“ erzählt die Geschichte des Boxers Jake LaMotta."
   },
   {
     "id": "adult-film-032",
@@ -2793,7 +3025,8 @@
       "Mushu",
       "Ohnezahn"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Der Glücksdrache in „Die unendliche Geschichte“ heißt Fuchur."
   },
   {
     "id": "adult-film-033",
@@ -2805,7 +3038,8 @@
       "Lost",
       "Twin Peaks"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Die Serie „Stranger Things“ spielt in der fiktiven Stadt Hawkins."
   },
   {
     "id": "adult-tech-001",
@@ -2817,7 +3051,8 @@
       "Core Program User",
       "Central Processing Unit"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "CPU steht für „Central Processing Unit“ und bezeichnet den Hauptprozessor eines Computers."
   },
   {
     "id": "adult-tech-002",
@@ -2829,7 +3064,8 @@
       "Byte",
       "Volt"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Datenmengen werden grundsätzlich in Byte und größeren Einheiten wie Kilobyte oder Megabyte angegeben."
   },
   {
     "id": "adult-tech-003",
@@ -2841,7 +3077,8 @@
       "FTP",
       "Telnet"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "HTTPS wird für verschlüsselte Verbindungen zu Webseiten verwendet."
   },
   {
     "id": "adult-tech-004",
@@ -2853,7 +3090,8 @@
       "Read Access Module",
       "Remote Application Mode"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "RAM steht für „Random Access Memory“ und bezeichnet den Arbeitsspeicher."
   },
   {
     "id": "adult-tech-005",
@@ -2865,7 +3103,8 @@
       "8",
       "16"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Binärcode verwendet die Zahlenbasis 2 und arbeitet nur mit 0 und 1."
   },
   {
     "id": "adult-tech-006",
@@ -2877,7 +3116,8 @@
       "Switch",
       "Router"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein Router verbindet unterschiedliche Netzwerke und leitet Datenpakete weiter."
   },
   {
     "id": "adult-tech-007",
@@ -2889,7 +3129,8 @@
       "Quellcode ist öffentlich einsehbar und nutzbar",
       "Software besitzt keinen Urheber"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Open Source bedeutet, dass der Quellcode öffentlich einsehbar und unter den jeweiligen Lizenzbedingungen nutzbar ist."
   },
   {
     "id": "adult-tech-008",
@@ -2901,7 +3142,8 @@
       ".pdf",
       ".exe"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "PDF-Dokumente haben typischerweise die Dateiendung „.pdf“."
   },
   {
     "id": "adult-tech-009",
@@ -2913,7 +3155,8 @@
       "User Reference List",
       "Universal Routing Link"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "URL steht für „Uniform Resource Locator“ und bezeichnet eine Internetadresse."
   },
   {
     "id": "adult-tech-010",
@@ -2925,7 +3168,8 @@
       "RAM",
       "CPU-Cache"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Eine SSD speichert Daten dauerhaft, auch wenn das Gerät keinen Strom hat."
   },
   {
     "id": "adult-tech-011",
@@ -2937,7 +3181,8 @@
       "Verschlüsselung eines Backups",
       "Optimierung einer Festplatte"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Phishing ist ein Täuschungsversuch, bei dem Angreifer Zugangsdaten oder andere vertrauliche Informationen stehlen wollen."
   },
   {
     "id": "adult-tech-012",
@@ -2949,7 +3194,8 @@
       "21",
       "443"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "HTTPS verwendet standardmäßig den Netzwerkport 443."
   },
   {
     "id": "adult-tech-013",
@@ -2961,7 +3207,8 @@
       "4",
       "8"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein Byte besteht aus acht Bits."
   },
   {
     "id": "adult-tech-014",
@@ -2973,7 +3220,8 @@
       "iOS",
       "macOS Classic"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Android basiert auf einem Linux-Kernel."
   },
   {
     "id": "adult-tech-015",
@@ -2985,7 +3233,8 @@
       "Passwort für WLAN",
       "Dateiformat für Bilder"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine IP-Adresse kennzeichnet ein Gerät beziehungsweise eine Netzwerkschnittstelle in einem IP-Netzwerk."
   },
   {
     "id": "adult-tech-016",
@@ -2997,7 +3246,8 @@
       "Distributed Number Storage",
       "Data Node Service"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "DNS steht für „Domain Name System“ und übersetzt unter anderem Domainnamen in IP-Adressen."
   },
   {
     "id": "adult-tech-017",
@@ -3009,7 +3259,8 @@
       "HDMI",
       "VGA"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "HDMI überträgt typischerweise digitales Bild und digitalen Ton über ein gemeinsames Kabel."
   },
   {
     "id": "adult-tech-018",
@@ -3021,7 +3272,8 @@
       "Komprimiert ausschließlich Bilder",
       "Übersetzt Quellcode in ausführbaren Code"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Ein Compiler übersetzt Quellcode in ausführbaren oder weiterverarbeitbaren Maschinencode."
   },
   {
     "id": "adult-tech-019",
@@ -3033,7 +3285,8 @@
       "//",
       "##"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "In vielen Programmiersprachen leitet „//“ einen einzeiligen Kommentar ein."
   },
   {
     "id": "adult-tech-020",
@@ -3045,7 +3298,8 @@
       "Mechanischer Schutz der Festplatte",
       "Programm zur Textverarbeitung"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Eine Firewall kontrolliert Netzwerkverkehr anhand festgelegter Regeln."
   },
   {
     "id": "adult-tech-021",
@@ -3057,7 +3311,8 @@
       "Byte",
       "Pixel"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Prozessortakt wird in Hertz angegeben, heute meist in Gigahertz."
   },
   {
     "id": "adult-tech-022",
@@ -3069,7 +3324,8 @@
       "Online-Werbung",
       "Temporäre Browserdatei"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Ein Backup ist eine Sicherheitskopie von Daten, mit der sie nach einem Verlust wiederhergestellt werden können."
   },
   {
     "id": "adult-tech-023",
@@ -3081,7 +3337,8 @@
       "SMTP",
       "HTTP"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "SMTP wird häufig zum Versenden von E-Mails zwischen Mailservern verwendet."
   },
   {
     "id": "adult-tech-024",
@@ -3093,7 +3350,8 @@
       "Drucken ohne Kabel",
       "Nur lokale Datenspeicherung"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Cloud Computing bedeutet, Rechenleistung, Speicher oder Anwendungen über ein Netzwerk von externen Systemen zu nutzen."
   },
   {
     "id": "adult-tech-025",
@@ -3105,7 +3363,8 @@
       "PNG",
       "MP3"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "PNG komprimiert Bilder verlustfrei, sodass beim Speichern keine Bildinformationen verloren gehen."
   },
   {
     "id": "adult-tech-026",
@@ -3117,7 +3376,8 @@
       "Zwei Benutzer teilen ein Passwort",
       "Anmeldung mit zwei unabhängigen Nachweisen"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Bei der Zwei-Faktor-Authentifizierung werden zwei voneinander unabhängige Nachweise für die Anmeldung verlangt."
   },
   {
     "id": "adult-tech-027",
@@ -3129,7 +3389,8 @@
       "Verified Public Node",
       "Virtual Private Network"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "VPN steht für „Virtual Private Network“ und ermöglicht eine geschützte Verbindung über ein anderes Netzwerk."
   },
   {
     "id": "adult-tech-028",
@@ -3141,7 +3402,8 @@
       "Unverschlüsseltes Textprotokoll",
       "Sammlung nur aus Bilddateien"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Eine relationale Datenbank speichert Daten in Tabellen, die über Beziehungen miteinander verknüpft werden können."
   },
   {
     "id": "adult-tech-029",
@@ -3153,7 +3415,8 @@
       "C",
       "SQL"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "JavaScript wird direkt im Browser ausgeführt und macht Webseiten interaktiv."
   },
   {
     "id": "adult-tech-030",
@@ -3165,7 +3428,8 @@
       "Maximale Speicherkapazität",
       "Anzahl der Benutzerkonten"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Latenz ist die Zeitverzögerung, die bei der Übertragung von Daten in einem Netzwerk entsteht."
   },
   {
     "id": "adult-tech-031",
@@ -3177,7 +3441,8 @@
       "VGA",
       "DSL"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "NFC ermöglicht kontaktlose Datenübertragung und Bezahlen über sehr kurze Entfernungen."
   },
   {
     "id": "adult-tech-032",
@@ -3189,7 +3454,8 @@
       "Fester Prüfwert aus Daten",
       "Physischer Netzwerkschalter"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Hashwert ist ein aus Daten berechneter Prüfwert mit fester Länge."
   },
   {
     "id": "adult-tech-033",
@@ -3201,7 +3467,8 @@
       "Kelvin",
       "Ampere"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Die Auflösung digitaler Bilder wird in Pixeln angegeben."
   },
   {
     "id": "adult-food-001",
@@ -3213,7 +3480,8 @@
       "Portugal",
       "Griechenland"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Paella stammt aus Spanien."
   },
   {
     "id": "adult-food-002",
@@ -3225,7 +3493,8 @@
       "Erbse",
       "Sojabohne"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Kichererbsen sind die Hauptzutat von Hummus."
   },
   {
     "id": "adult-food-003",
@@ -3237,7 +3506,8 @@
       "Sojabohnen",
       "Kichererbsen"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Tofu wird traditionell aus Sojabohnen hergestellt."
   },
   {
     "id": "adult-food-004",
@@ -3249,7 +3519,8 @@
       "Rum",
       "Gin"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein klassischer Mojito enthält Rum."
   },
   {
     "id": "adult-food-005",
@@ -3261,7 +3532,8 @@
       "Bissfest gegarte Pasta",
       "Stark geröstetes Brot"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "„Al dente“ bedeutet, dass Pasta bissfest gegart ist."
   },
   {
     "id": "adult-food-006",
@@ -3273,7 +3545,8 @@
       "Mozzarella",
       "Roquefort"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Auf eine klassische Pizza Margherita gehört Mozzarella."
   },
   {
     "id": "adult-food-007",
@@ -3285,7 +3558,8 @@
       "China",
       "Japan"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Sushi stammt aus Japan."
   },
   {
     "id": "adult-food-008",
@@ -3297,7 +3571,8 @@
       "Walnuss",
       "Pistazie"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Marzipan wird hauptsächlich aus Mandeln und Zucker hergestellt."
   },
   {
     "id": "adult-food-009",
@@ -3309,7 +3584,8 @@
       "Paprika",
       "Tomate"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Avocado ist die Hauptzutat von Guacamole."
   },
   {
     "id": "adult-food-010",
@@ -3321,7 +3597,8 @@
       "Birne",
       "Kirsche"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Für Cidre werden Äpfel vergoren."
   },
   {
     "id": "adult-food-011",
@@ -3333,7 +3610,8 @@
       "Kaffee mit Kakao",
       "Konzentrierten Kaffee aus hohem Druck"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Espresso ist ein konzentrierter Kaffee, bei dem heißes Wasser unter hohem Druck durch fein gemahlenes Kaffeepulver gepresst wird."
   },
   {
     "id": "adult-food-012",
@@ -3345,7 +3623,8 @@
       "Salz",
       "Kakao"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Hefe bildet Gase, die einen Hefeteig aufgehen lassen."
   },
   {
     "id": "adult-food-013",
@@ -3357,7 +3636,8 @@
       "Reis",
       "Roggen"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Klassisches Risotto wird aus Reis zubereitet."
   },
   {
     "id": "adult-food-014",
@@ -3369,7 +3649,8 @@
       "Tomatensauce",
       "Pesto"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Sauce Hollandaise wird klassisch aus Eigelb und Butter hergestellt."
   },
   {
     "id": "adult-food-015",
@@ -3381,7 +3662,8 @@
       "Luftige Ofenspeise",
       "Geräucherter Fisch"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Ein Soufflé ist eine luftige Ofenspeise, die beim Backen aufgeht."
   },
   {
     "id": "adult-food-016",
@@ -3393,7 +3675,8 @@
       "Rose",
       "Orchidee"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Vanille stammt aus den Fruchtkapseln bestimmter Orchideen."
   },
   {
     "id": "adult-food-017",
@@ -3405,7 +3688,8 @@
       "Mexikanische Salsa",
       "Fermentiertes koreanisches Gemüse"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Kimchi ist fermentiertes, würzig eingelegtes Gemüse aus der koreanischen Küche."
   },
   {
     "id": "adult-food-018",
@@ -3417,7 +3701,8 @@
       "Kurkuma",
       "Muskat"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Kurkuma verleiht vielen Currys ihre gelbe Farbe."
   },
   {
     "id": "adult-food-019",
@@ -3429,7 +3714,8 @@
       "Orange",
       "Apfel"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Britischer Cider wird hauptsächlich aus Äpfeln hergestellt."
   },
   {
     "id": "adult-food-020",
@@ -3441,7 +3727,8 @@
       "Süße Creme",
       "Reisgericht"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Bruschetta ist geröstetes Brot mit einem herzhaften Belag, häufig aus Tomaten."
   },
   {
     "id": "adult-food-021",
@@ -3453,7 +3740,8 @@
       "Sojabohne",
       "Kaffeebohne"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Schokolade wird aus den Samen der Kakaobohne hergestellt."
   },
   {
     "id": "adult-food-022",
@@ -3465,7 +3753,8 @@
       "Vorgegarter Hartweizen",
       "Fermentierter Fisch"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Bulgur besteht aus vorgekochtem, getrocknetem und zerkleinertem Hartweizen."
   },
   {
     "id": "adult-food-023",
@@ -3477,7 +3766,8 @@
       "Basilikum",
       "Dill"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Basilikum ist eine typische Hauptzutat von Pesto Genovese."
   },
   {
     "id": "adult-food-024",
@@ -3489,7 +3779,8 @@
       "Frankreich",
       "Niederlande"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Feta stammt traditionell aus Griechenland."
   },
   {
     "id": "adult-food-025",
@@ -3501,7 +3792,8 @@
       "Eine japanische Gartechnik",
       "Eine Reissorte"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Umami ist neben süß, sauer, salzig und bitter eine grundlegende Geschmacksrichtung."
   },
   {
     "id": "adult-food-026",
@@ -3513,7 +3805,8 @@
       "Erdbeere",
       "Himbeere"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Botanisch gilt die Banane als Beere."
   },
   {
     "id": "adult-food-027",
@@ -3525,7 +3818,8 @@
       "120 °C",
       "90 °C"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Wasser siedet auf Meereshöhe bei normalem Luftdruck ungefähr bei 100 Grad Celsius."
   },
   {
     "id": "adult-food-028",
@@ -3537,7 +3831,8 @@
       "Fleischmarinade",
       "Mehlschwitze"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Roux ist der französische Begriff für eine Mehlschwitze aus Fett und Mehl."
   },
   {
     "id": "adult-food-029",
@@ -3549,7 +3844,8 @@
       "Hafer",
       "Kartoffeln"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Polenta wird aus Maisgrieß zubereitet."
   },
   {
     "id": "adult-food-030",
@@ -3561,7 +3857,8 @@
       "Karamellisieren",
       "Pochieren"
     ],
-    "correctIndex": 2
+    "correctIndex": 2,
+    "explanation": "Wenn Zucker durch Hitze braun wird und neue Aromen entwickelt, nennt man das Karamellisieren."
   },
   {
     "id": "adult-food-031",
@@ -3573,7 +3870,8 @@
       "Weiße Bohnen",
       "Kichererbsen"
     ],
-    "correctIndex": 3
+    "correctIndex": 3,
+    "explanation": "Klassische Falafel werden aus Kichererbsen hergestellt."
   },
   {
     "id": "adult-food-032",
@@ -3585,7 +3883,8 @@
       "Reisessig",
       "Algenblatt"
     ],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "Miso ist eine fermentierte Paste, die meist aus Sojabohnen hergestellt wird."
   },
   {
     "id": "adult-food-033",
@@ -3597,6 +3896,7 @@
       "Limette",
       "Grapefruit"
     ],
-    "correctIndex": 1
+    "correctIndex": 1,
+    "explanation": "Lemon Curd erhält seinen typischen Geschmack durch Zitronen."
   }
 ]

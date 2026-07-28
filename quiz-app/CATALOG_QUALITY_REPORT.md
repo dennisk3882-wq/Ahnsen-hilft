@@ -11,6 +11,7 @@ Prüfhinweise: **5**
 - zulässige Kategorien
 - genau vier nicht leere und unterschiedliche Antworten
 - gültiger correctIndex von 0 bis 3
+- vollständige, verständliche Lern-Erklärungen ohne Standardfloskeln
 - exakte Duplikate und auffällig ähnliche Fragen
 - ungewöhnlich kurze oder lange Texte
 
