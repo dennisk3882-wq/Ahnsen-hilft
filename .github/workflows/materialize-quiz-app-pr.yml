@@ -30,3 +30,12 @@ jobs:
 
       - name: Projekt materialisieren, prüfen und zurückschreiben
         run: bash scripts/materialize-quiz.sh
+
+      - name: Materialisierungsprotokoll speichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: materialize-quiz-log
+          path: MATERIALIZE_FAILURE.log
+          if-no-files-found: warn
+          retention-days: 1
