@@ -1,7 +1,7 @@
 'use strict';
 
 const els = {
-  title: document.querySelector('#title'), loginCard: document.querySelector('#loginCard'), game: document.querySelector('#game'),
+  title: document.querySelector('#title'), soloEntry: document.querySelector('#soloEntry'), loginCard: document.querySelector('#loginCard'), game: document.querySelector('#game'),
   playerName: document.querySelector('#playerName'), eventPassword: document.querySelector('#eventPassword'), loginButton: document.querySelector('#loginButton'),
   loginMessage: document.querySelector('#loginMessage'), connectionPill: document.querySelector('#connectionPill'), playerPill: document.querySelector('#playerPill'),
   scorePill: document.querySelector('#scorePill'), quizProgress: document.querySelector('#quizProgress'), view: document.querySelector('#view'),
@@ -107,6 +107,7 @@ function renderState(state) {
   document.title = state.title || 'Ahnsen Quizabend';
   if (!state.player) return;
   els.loginCard.classList.add('hidden');
+  els.soloEntry?.classList.add('hidden');
   els.game.classList.remove('hidden');
   els.playerPill.textContent = state.player.name;
   els.scorePill.textContent = `${state.player.score} Punkte`;

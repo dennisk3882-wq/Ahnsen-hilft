@@ -96,7 +96,7 @@ function installSoloRoutes(app, {
       : 0;
     const validAnswer = Number.isInteger(answerIndex) && answerIndex >= 0 && answerIndex <= 3;
     const isTimedOut = timedOut || (session.mode === 'timed' && remainingMs(session) <= 0 && !validAnswer);
-    const correct = validAnswer && answerIndex === question.correctIndex;
+    const correct = !isTimedOut && validAnswer && answerIndex === question.correctIndex;
     const delta = isTimedOut ? 0 : calculateSoloScore({ correct, mode: session.mode, remainingSeconds: remaining });
 
     session.score += delta;
