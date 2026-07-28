@@ -69,9 +69,12 @@ find quiz-app -maxdepth 4 -type f | sort
 required_files=(
   quiz-app/server.js
   quiz-app/package.json
-  quiz-app/public/js/admin.js
-  quiz-app/public/js/player.js
-  quiz-app/public/js/screen.js
+  quiz-app/public/admin.js
+  quiz-app/public/player.js
+  quiz-app/public/screen.js
+  quiz-app/data/adult-questions.json
+  quiz-app/data/child-questions.json
+  quiz-app/test/core.test.js
 )
 for required_file in "${required_files[@]}"; do
   if [ ! -f "$required_file" ]; then
@@ -131,6 +134,7 @@ git rm -f .github/workflows/materialize-quiz-app.yml
 git rm -f .github/workflows/materialize-quiz-app-pr.yml
 git rm -f scripts/materialize-quiz.sh
 git rm -f scripts/catalog-quality.test.js
+git rm -f MATERIALIZE_FAILURE.log || true
 
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
