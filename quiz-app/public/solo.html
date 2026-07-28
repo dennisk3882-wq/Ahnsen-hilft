@@ -7,6 +7,7 @@
   <title>Solo-Quiz – Ahnsen Quizabend</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/solo.css">
+  <link rel="stylesheet" href="/elevenlabs-speech.css">
 </head>
 <body class="solo-body">
   <main class="solo-shell">
@@ -57,7 +58,7 @@
               <span class="solo-choice-icon">🌿</span><strong>Entspannter Modus</strong><small>Keine Zeitbegrenzung und keine Minuspunkte</small>
             </button>
           </div>
-          <label class="solo-toggle"><input id="speechToggle" type="checkbox" checked><span><strong>Fragen automatisch vorlesen</strong><small>Frage und Antworten werden auf Wunsch vorgelesen.</small></span></label>
+          <label class="solo-toggle"><input id="speechToggle" type="checkbox" checked><span><strong>Fragen automatisch vorlesen</strong><small>Die natürliche Stimme liest die Frage beim Start automatisch vor.</small></span></label>
         </section>
 
         <aside class="panel solo-start-card">
@@ -88,5 +89,6 @@
   </main>
 
   <script src="/solo.js"></script>
+  <script src="/elevenlabs-speech.js"></script>
 </body>
 </html>

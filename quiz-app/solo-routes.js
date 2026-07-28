@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const elevenlabs = require('./elevenlabs');
 
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 const ALLOWED_COUNTS = new Set([5, 10, 15, 25, 50]);
@@ -33,6 +34,14 @@ function installSoloRoutes(app, {
   function findQuestion(session) {
     const id = session.questionIds[session.currentIndex];
     return catalogFor(session.quizType).find(question => question.id === id) || null;
+  }
+
+  function findQuestionByContent(type, text, options) {
+    const normalizedText = String(text || '').trim();
+    const normalizedOptions = Array.isArray(options) ? options.map(option => String(option || '').trim()) : [];
+    return catalogFor(type).find(question => question.text === normalizedText
+      && question.options.length === normalizedOptions.length
+      && question.options.every((option, index) => option === normalizedOptions[index])) || null;
   }
 
   function publicQuestion(question, reveal = false) {
@@ -138,6 +147,40 @@ function installSoloRoutes(app, {
       questionSeconds,
       catalogs: { adult: makeConfig('adult'), child: makeConfig('child') },
     });
+  });
+
+  app.get('/api/solo/speech/config', async (_req, res) => {
+    try {
+      res.json(await elevenlabs.getPublicConfig());
+    } catch (error) {
+      res.status(503).json({ enabled: false, error: error.message });
+    }
+  });
+
+  app.post('/api/solo/speech', async (req, res) => {
+    try {
+      const quizType = req.body?.quizType === 'adult' ? 'adult' : 'child';
+      const question = findQuestionByContent(quizType, req.body?.questionText, req.body?.options);
+      if (!question) return res.status(404).json({ error: 'Die Quizfrage wurde im aktuellen Katalog nicht gefunden.' });
+      const result = await elevenlabs.synthesize({
+        question,
+        scope: req.body?.scope,
+        quizType,
+        voiceId: String(req.body?.voiceId || ''),
+        ip: String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim(),
+      });
+      res.set({
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': String(result.buffer.length),
+        'Cache-Control': 'private, max-age=31536000, immutable',
+        ETag: `"${result.key}"`,
+        'X-Audio-Cache': result.cache,
+        'X-ElevenLabs-Voice': result.voiceId,
+      });
+      res.send(result.buffer);
+    } catch (error) {
+      res.status(Number(error.statusCode) || 502).json({ error: error.message || 'Sprachausgabe fehlgeschlagen.' });
+    }
   });
 
   app.post('/api/solo/start', (req, res) => {
