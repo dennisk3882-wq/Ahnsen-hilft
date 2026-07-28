@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - quiz-v70-materialized-cleanup
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
 
 permissions:
   contents: read
