@@ -2,7 +2,7 @@
 
 (() => {
   const STORAGE_KEY = 'ahnsen_elevenlabs_speech';
-  const CACHE_NAME = 'ahnsen-elevenlabs-audio-v2';
+  const CACHE_NAME = 'ahnsen-elevenlabs-audio-v3';
   const preferences = loadPreferences();
   let speechConfig = null;
   let currentAudio = null;
@@ -35,8 +35,9 @@
     const card = document.querySelector('.solo-question-card');
     const questionText = card?.querySelector('.solo-question-title h2')?.textContent?.trim();
     const options = [...(card?.querySelectorAll('.answer-text') || [])].map(node => node.textContent.trim());
+    const explanation = card?.querySelector('.solo-explanation')?.textContent?.replace(/^Warum\?\s*/i, '').trim() || '';
     if (!questionText || options.length !== 4) return null;
-    return { questionText, options, quizType: getQuizType() };
+    return { questionText, options, explanation, quizType: getQuizType() };
   }
 
   function simpleHash(value) {
@@ -45,11 +46,11 @@
       hash ^= value.charCodeAt(index);
       hash = Math.imul(hash, 16777619);
     }
-    return (hash >>> 0).toString(36);
+    return hash >>> 0;
   }
 
   function cacheRequest(payload) {
-    const signature = simpleHash(JSON.stringify({ ...payload, modelId: speechConfig?.modelId || '' }));
+    const signature = simpleHash(JSON.stringify({ ...payload, modelId: speechConfig?.modelId || '' })).toString(36);
     return new Request(`${location.origin}/__speech_cache__/${signature}`);
   }
 
@@ -83,10 +84,20 @@
     });
   }
 
+  function resultType(scope) {
+    return String(scope || '').match(/^result-(correct|wrong|timeout)-\d+$/)?.[1] || null;
+  }
+
   function fallbackText(question, scope) {
-    if (scope === 'feedback-correct') return 'Super, das ist die richtige Antwort!';
-    if (scope === 'feedback-wrong') return 'Schade, leider falsch. Bei der nächsten Frage klappt es bestimmt!';
-    if (scope === 'feedback-timeout') return 'Schade, die Zeit ist leider abgelaufen.';
+    const type = resultType(scope);
+    if (type) {
+      const intro = type === 'correct'
+        ? 'Super, das ist die richtige Antwort!'
+        : type === 'timeout'
+          ? 'Schade, die Zeit ist leider abgelaufen.'
+          : 'Schade, leider falsch. Bei der nächsten Frage klappt es bestimmt.';
+      return `${intro} Erklärung. ${question.explanation || 'Die richtige Lösung wird auf dem Bildschirm angezeigt.'}`;
+    }
     const letters = ['A', 'B', 'C', 'D'];
     return scope === 'question'
       ? `Frage. ${question.questionText}`
@@ -98,7 +109,7 @@
     stopSpeech();
     const utterance = new SpeechSynthesisUtterance(fallbackText(question, scope));
     utterance.lang = 'de-DE';
-    utterance.rate = scope.startsWith('feedback-') ? 0.95 : question.quizType === 'child' ? 0.84 : 0.94;
+    utterance.rate = resultType(scope) ? 0.92 : question.quizType === 'child' ? 0.84 : 0.94;
     const voices = window.speechSynthesis.getVoices();
     const germanVoice = voices.find(voice => /^de/i.test(voice.lang));
     if (germanVoice) utterance.voice = germanVoice;
@@ -132,7 +143,6 @@
   async function requestAudio(payload) {
     const cachedBlob = await getCachedAudio(payload);
     if (cachedBlob) return cachedBlob;
-
     const response = await fetch('/api/solo/speech', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -153,7 +163,6 @@
       browserFallback(question, speechConfig?.error || 'ElevenLabs ist nicht verfügbar.', payload.scope);
       return;
     }
-
     loading = true;
     stopSpeech();
     updateButtons(false);
@@ -186,23 +195,27 @@
       stopSpeech();
       return;
     }
-    const payload = {
+    await playElevenLabs({
       ...question,
       scope: preferences.scope,
       voiceId: preferences.voiceId || speechConfig?.defaultVoiceId,
-    };
-    await playElevenLabs(payload, question);
+    }, question);
   }
 
-  async function speakAnswerFeedback(scope) {
+  function resultScope(type, question) {
+    const count = Math.max(1, Number(speechConfig?.feedbackCounts?.[type] || 1));
+    const seed = `${localStorage.getItem('ahnsen_solo_session') || ''}:${question.questionText}:${type}`;
+    return `result-${type}-${simpleHash(seed) % count}`;
+  }
+
+  async function speakAnswerFeedback(type) {
     const question = getRenderedQuestion();
-    if (!question || !scope.startsWith('feedback-')) return;
-    const payload = {
+    if (!question || !['correct', 'wrong', 'timeout'].includes(type)) return;
+    await playElevenLabs({
       ...question,
-      scope,
+      scope: resultScope(type, question),
       voiceId: preferences.voiceId || speechConfig?.defaultVoiceId,
-    };
-    await playElevenLabs(payload, question, { quietFallback: true });
+    }, question, { quietFallback: true });
   }
 
   function showStatus(text, type = '') {
@@ -241,16 +254,15 @@
       controls.id = 'elevenLabsControls';
       controls.className = 'elevenlabs-controls';
       controls.innerHTML = `
-        <div class="elevenlabs-heading"><div><strong>Natürliche ElevenLabs-Stimme</strong><small>Fragen und Antwort-Feedback werden auf dem Server vertont; dein API-Key bleibt verborgen.</small></div><span class="elevenlabs-badge">AI Voice</span></div>
+        <div class="elevenlabs-heading"><div><strong>Natürliche ElevenLabs-Stimme</strong><small>Fragen, Rückmeldungen und Erklärungen werden dauerhaft vertont; dein API-Key bleibt verborgen.</small></div><span class="elevenlabs-badge">AI Voice</span></div>
         <label>Stimme<select id="elevenLabsVoiceSelect"><option>Stimmen werden geladen …</option></select></label>
         <div class="elevenlabs-scope" role="radiogroup" aria-label="Vorleseumfang">
           <button type="button" data-speech-scope="question">Nur Frage</button>
           <button type="button" data-speech-scope="all">Frage und Antworten</button>
         </div>
-        <p class="muted" style="margin:0;font-size:.82rem">Nach einer Antwort hörst du automatisch „richtig“, „falsch“ oder „Zeit abgelaufen“, solange automatisches Vorlesen aktiviert ist.</p>
+        <p class="muted" style="margin:0;font-size:.82rem">Nach jeder Antwort hörst du eine abwechslungsreiche Rückmeldung und die passende Erklärung.</p>
         <div id="elevenLabsStatus" class="elevenlabs-status">Verbindung zu ElevenLabs wird geprüft …</div>`;
       speechToggle.insertAdjacentElement('afterend', controls);
-
       document.querySelector('#elevenLabsVoiceSelect').addEventListener('change', event => {
         preferences.voiceId = event.target.value;
         savePreferences();
@@ -286,12 +298,12 @@
     });
   }
 
-  function feedbackScopeFromDom() {
+  function feedbackTypeFromDom() {
     const feedback = document.querySelector('.solo-question-card .answer-feedback');
     if (!feedback) return null;
-    if (/Zeit ist abgelaufen/i.test(feedback.textContent || '')) return 'feedback-timeout';
-    if (feedback.classList.contains('success')) return 'feedback-correct';
-    if (feedback.classList.contains('error')) return 'feedback-wrong';
+    if (/Zeit ist abgelaufen/i.test(feedback.textContent || '')) return 'timeout';
+    if (feedback.classList.contains('success')) return 'correct';
+    if (feedback.classList.contains('error')) return 'wrong';
     return null;
   }
 
@@ -299,15 +311,14 @@
     clearTimeout(feedbackTimer);
     feedbackTimer = setTimeout(() => {
       const speechEnabled = document.querySelector('#speechToggle')?.checked !== false;
-      const scope = feedbackScopeFromDom();
+      const type = feedbackTypeFromDom();
       const question = getRenderedQuestion();
-      if (!speechEnabled || !scope || !question) return;
-      const sessionId = localStorage.getItem('ahnsen_solo_session') || '';
-      const signature = `${sessionId}:${question.questionText}:${scope}`;
+      if (!speechEnabled || !type || !question) return;
+      const signature = `${localStorage.getItem('ahnsen_solo_session') || ''}:${question.questionText}:${type}`;
       if (signature === lastFeedbackSignature) return;
       lastFeedbackSignature = signature;
-      speakAnswerFeedback(scope);
-    }, 180);
+      speakAnswerFeedback(type);
+    }, 240);
   }
 
   async function loadConfig() {
@@ -317,14 +328,12 @@
       const data = await response.json().catch(() => ({}));
       speechConfig = data;
       renderVoiceOptions();
+      const cacheFiles = Number(data.persistentCache?.files || 0);
+      const cacheText = cacheFiles ? ` · ${cacheFiles} Audiodateien dauerhaft gespeichert` : '';
       if (data.enabled) {
-        if (data.warning) {
-          showStatus(`Bereit, mit Hinweis: ${data.warning}`, 'warning');
-        } else if (data.voiceSelectionAvailable === false) {
-          showStatus('ElevenLabs ist bereit · Standardstimme aktiv. Weitere Stimmen erscheinen nach Freigabe von voices_read.', 'success');
-        } else {
-          showStatus(`ElevenLabs ist bereit · Modell ${data.modelId}`, 'success');
-        }
+        if (data.warning) showStatus(`Bereit, mit Hinweis: ${data.warning}`, 'warning');
+        else if (data.voiceSelectionAvailable === false) showStatus(`ElevenLabs ist bereit · Standardstimme aktiv${cacheText}`, 'success');
+        else showStatus(`ElevenLabs ist bereit · Modell ${data.modelId}${cacheText}`, 'success');
       } else {
         showStatus(`ElevenLabs ist nicht aktiv. ${data.error || ''} Die Browserstimme bleibt als Ersatz verfügbar.`, 'warning');
       }
