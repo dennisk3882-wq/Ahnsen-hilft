@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#050713">
   <title>Beamer – Ahnsen Quizabend</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/screen-qr.css">
 </head>
 <body class="screen-body">
   <button id="fullscreenButton" class="btn ghost fullscreen-btn" type="button">⛶ Vollbild</button>
@@ -17,6 +18,7 @@
     <section id="screenContent" class="screen-content"></section>
   </main>
   <div id="screenOverlay" class="overlay-modal hidden"><div id="screenOverlayInner" class="overlay-inner"></div></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/screen.js"></script>
 </body>
