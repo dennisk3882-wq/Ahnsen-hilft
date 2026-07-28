@@ -1,0 +1,51 @@
+name: Apply 500 Learning Explanations
+
+on:
+  push:
+    branches:
+      - quiz-explanations-500
+    paths:
+      - '.github/workflows/apply-explanations.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: quiz-explanations-500
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: quiz-app/package-lock.json
+
+      - name: Erklärungs-Patcher zusammensetzen und ausführen
+        shell: bash
+        run: |
+          mkdir -p quiz-app/tools
+          cat quiz-app/tools/.apply-explanations.part* | base64 --decode | gzip --decompress > quiz-app/tools/apply-learning-explanations.js
+          node --check quiz-app/tools/apply-learning-explanations.js
+          node quiz-app/tools/apply-learning-explanations.js
+          rm -f quiz-app/tools/.apply-explanations.part*
+
+      - name: Abhängigkeiten installieren und alle Prüfungen ausführen
+        working-directory: quiz-app
+        run: |
+          npm ci
+          npm run test:all
+
+      - name: Fertige Änderungen übernehmen
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "500 hochwertige Lern-Erklärungen vollständig einbauen"
+          git push origin HEAD:quiz-explanations-500
