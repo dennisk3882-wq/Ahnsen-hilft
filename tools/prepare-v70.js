@@ -21,18 +21,19 @@ async function ensureQrLibrary() {
 
 function repairMigrationSource() {
   let source = fs.readFileSync(patch, 'utf8');
-  const lines = source.split('\n');
-  const index = lines.findIndex(line => line.includes('"adult: JSON.parse(fs.readFileSync'));
-  if (index >= 0 && lines[index + 1]?.includes('child: JSON.parse') && lines[index + 2]?.trim() === '",' && lines[index + 3]?.includes('"adult: JSON.parse')) {
-    lines.splice(index, 6,
-      "  `adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')),",
-      "  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')),",
-      "`,",
-      "  `adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion),",
-      "  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')).map(enrichQuestion),",
-      "`);",
-    );
-    source = lines.join('\n');
+  const start = source.indexOf('replaceOnce(server,\n  "adult: JSON.parse(fs.readFileSync');
+  const endMarker = "replaceOnce(server, 'schemaVersion: 6,'";
+  const end = start >= 0 ? source.indexOf(endMarker, start) : -1;
+  if (start >= 0 && end > start) {
+    const fixed = `replaceOnce(server,
+  \`adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')),
+  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')),
+\`,
+  \`adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion),
+  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')).map(enrichQuestion),
+\`);
+`;
+    source = `${source.slice(0, start)}${fixed}${source.slice(end)}`;
     fs.writeFileSync(patch, source);
   }
   execFileSync(process.execPath, ['--check', patch], { cwd: root, stdio: 'inherit' });
