@@ -337,7 +337,7 @@ function renderEditor() {
 }
 function addQuestion() {
   const category = els.editorCategory.value && els.editorCategory.value !== 'Alle' ? els.editorCategory.value : 'Allgemeinwissen';
-  editorQuestions.unshift({ id: `${editorType}-custom-${crypto.randomUUID()}`, category, text: 'Neue Frage', options: ['Antwort A', 'Antwort B', 'Antwort C', 'Antwort D'], correctIndex: 0, imageUrl: '', explanation: 'Die richtige Antwort ist Antwort A.' });
+  editorQuestions.unshift({ id: `${editorType}-custom-${crypto.randomUUID()}`, category, text: 'Neue Frage', options: ['Antwort A', 'Antwort B', 'Antwort C', 'Antwort D'], correctIndex: 0, imageUrl: '', explanation: '' });
   els.editorCategory.value = 'Alle';
   renderEditor();
 }

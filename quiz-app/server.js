@@ -877,6 +877,9 @@ app.put('/api/admin/questions', ensureAdmin, async (req, res) => {
     const correctIndex = Number(q.correctIndex);
     const imageUrl = String(q.imageUrl || '').trim();
     const explanation = String(q.explanation || '').trim();
+    if (explanation.length < 15) {
+      return res.status(400).json({ error: `Frage ${i + 1}: Bitte eine kurze Lern-Erklärung mit mindestens 15 Zeichen eintragen.` });
+    }
     if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
       return res.status(400).json({ error: `Frage ${i + 1}: Der optionale Bildlink muss mit http:// oder https:// beginnen.` });
     }
