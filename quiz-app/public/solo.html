@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b16">
+  <title>Solo-Quiz – Ahnsen Quizabend</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/solo.css">
+</head>
+<body class="solo-body">
+  <main class="solo-shell">
+    <header class="solo-header">
+      <a class="sidebar-brand" href="/" aria-label="Zurück zur Startseite">
+        <div class="brand-mark small" aria-hidden="true">?</div>
+        <div><strong>AHNSEN</strong><span>SOLO-QUIZ</span></div>
+      </a>
+      <a class="btn ghost small" href="/">← Zum Live-Quiz</a>
+    </header>
+
+    <section id="setupView" class="solo-setup">
+      <div class="solo-hero panel">
+        <div>
+          <span class="eyebrow">Spielen ohne Quizmaster</span>
+          <h1>Dein Quiz. Dein Tempo.</h1>
+          <p class="muted">Wähle Kinder- oder Erwachsenenfragen und entscheide selbst, ob du mit Zeitbonus oder ganz entspannt spielen möchtest.</p>
+        </div>
+        <div class="solo-mascot" aria-hidden="true">
+          <div class="solo-orbit"><span>?</span></div>
+          <strong>Los geht’s!</strong>
+        </div>
+      </div>
+
+      <div class="solo-config-grid">
+        <section class="panel solo-config-card">
+          <div class="panel-heading compact"><div><span class="eyebrow">1. Fragen auswählen</span><h2>Welches Quiz möchtest du?</h2></div></div>
+          <div class="solo-choice-grid two" role="radiogroup" aria-label="Quizart">
+            <button class="solo-choice active" type="button" data-quiz-type="child" aria-pressed="true"><span class="solo-choice-icon">🧒</span><strong>Kinderquiz</strong><small>Leicht bis knifflig</small></button>
+            <button class="solo-choice" type="button" data-quiz-type="adult" aria-pressed="false"><span class="solo-choice-icon">🧠</span><strong>Erwachsenenquiz</strong><small>Mehr Herausforderung</small></button>
+          </div>
+          <label>Kategorie<select id="categorySelect"><option>Gemischt</option></select></label>
+        </section>
+
+        <section class="panel solo-config-card">
+          <div class="panel-heading compact"><div><span class="eyebrow">2. Länge festlegen</span><h2>Wie viele Fragen?</h2></div></div>
+          <div id="countChoices" class="solo-count-grid" role="radiogroup" aria-label="Fragenzahl"></div>
+          <p id="availabilityHint" class="muted solo-hint"></p>
+        </section>
+
+        <section class="panel solo-config-card solo-mode-card-wrap">
+          <div class="panel-heading compact"><div><span class="eyebrow">3. Spielart wählen</span><h2>Mit oder ohne Zeitdruck?</h2></div></div>
+          <div class="solo-choice-grid two" role="radiogroup" aria-label="Spielmodus">
+            <button class="solo-mode-choice" type="button" data-mode="timed" aria-pressed="false">
+              <span class="solo-choice-icon">⏱️</span><strong>Zeitmodus</strong><small>20 Sekunden, Zeitbonus und −5 Punkte bei einer falschen Antwort</small>
+            </button>
+            <button class="solo-mode-choice active" type="button" data-mode="relaxed" aria-pressed="true">
+              <span class="solo-choice-icon">🌿</span><strong>Entspannter Modus</strong><small>Keine Zeitbegrenzung und keine Minuspunkte</small>
+            </button>
+          </div>
+          <label class="solo-toggle"><input id="speechToggle" type="checkbox" checked><span><strong>Fragen automatisch vorlesen</strong><small>Frage und Antworten werden auf Wunsch vorgelesen.</small></span></label>
+        </section>
+
+        <aside class="panel solo-start-card">
+          <span class="eyebrow">Deine Auswahl</span>
+          <div id="selectionSummary" class="solo-selection-summary"></div>
+          <div id="recordSummary" class="solo-record-card"><span>Persönlicher Rekord</span><strong>Noch keiner</strong></div>
+          <button id="startSoloButton" class="btn primary wide-button" type="button">Solo-Quiz starten</button>
+          <div id="setupMessage" class="message" aria-live="polite"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="gameView" class="solo-game hidden">
+      <div class="solo-game-topbar">
+        <div class="row">
+          <span id="soloProgressLabel" class="info-chip">Frage 1 von 10</span>
+          <span id="soloCategory" class="category-chip">Gemischt</span>
+          <span id="soloModePill" class="status-chip">Entspannt</span>
+        </div>
+        <div class="row">
+          <button id="speakButton" class="btn ghost small" type="button">🔊 Vorlesen</button>
+          <span id="soloScore" class="score-chip">0 Punkte</span>
+        </div>
+      </div>
+      <div class="quiz-progress-track"><span id="soloProgress"></span></div>
+      <section id="soloStage" class="player-stage solo-stage"></section>
+    </section>
+  </main>
+
+  <script src="/solo.js"></script>
+</body>
+</html>
