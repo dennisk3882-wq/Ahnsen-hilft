@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b16">
+  <title>Ahnsen Quizabend</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="player-body">
+  <main class="player-shell">
+    <header class="player-brandbar">
+      <div class="sidebar-brand player-brand">
+        <div class="brand-mark small" aria-hidden="true">?</div>
+        <div><strong id="title">AHNSEN</strong><span>QUIZABEND</span></div>
+      </div>
+      <span class="event-live-dot"><i></i> Live-Quiz</span>
+    </header>
+
+    <section id="loginCard" class="player-login-panel">
+      <div class="login-visual" aria-hidden="true">
+        <div class="question-orbit"><span>?</span></div>
+        <p>Wissen. Schnelligkeit. Ruhm.</p>
+      </div>
+      <div class="login-form-panel">
+        <span class="eyebrow">Direkt mitspielen</span>
+        <h1>Bereit für den Quizabend?</h1>
+        <p class="muted">Melde dich mit deinem Namen und dem Passwort des Abends an.</p>
+        <label>Dein Spielername<input id="playerName" maxlength="30" autocomplete="nickname" placeholder="z. B. Quizfuchs"></label>
+        <label>Quiz-Passwort<input id="eventPassword" type="password" autocomplete="current-password" placeholder="Passwort des Abends"></label>
+        <button id="loginButton" class="btn primary wide-button" type="button">Jetzt mitspielen</button>
+        <div id="loginMessage" class="message" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="game" class="hidden player-game">
+      <div class="player-statusbar">
+        <div class="row"><span id="connectionPill" class="status-chip offline"><i></i>Verbindung</span><span id="playerPill" class="status-chip"></span></div>
+        <span id="scorePill" class="score-chip">0 Punkte</span>
+      </div>
+      <div class="quiz-progress-track"><span id="quizProgress"></span></div>
+      <section id="view" class="player-stage"></section>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay-modal hidden"><div id="overlayInner" class="overlay-inner"></div></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/player.js"></script>
+</body>
+</html>

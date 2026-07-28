@@ -1,0 +1,3602 @@
+[
+  {
+    "id": "adult-general-001",
+    "category": "Allgemeinwissen",
+    "text": "Wer schrieb den Roman „1984“?",
+    "options": [
+      "Franz Kafka",
+      "Aldous Huxley",
+      "Ernest Hemingway",
+      "George Orwell"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-002",
+    "category": "Allgemeinwissen",
+    "text": "Wie viele Seiten hat ein Würfel?",
+    "options": [
+      "12",
+      "8",
+      "4",
+      "6"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-003",
+    "category": "Allgemeinwissen",
+    "text": "Welche Sprache wird in Brasilien überwiegend gesprochen?",
+    "options": [
+      "Portugiesisch",
+      "Englisch",
+      "Französisch",
+      "Spanisch"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-004",
+    "category": "Allgemeinwissen",
+    "text": "Wofür steht die Abkürzung „UNESCO“?",
+    "options": [
+      "Weltgesundheitsorganisation",
+      "Europäische Weltraumorganisation",
+      "Organisation der Vereinten Nationen für Bildung, Wissenschaft und Kultur",
+      "Internationaler Währungsfonds"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-005",
+    "category": "Allgemeinwissen",
+    "text": "Welcher Monat hat in einem Schaltjahr 29 Tage?",
+    "options": [
+      "Februar",
+      "März",
+      "April",
+      "Januar"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-006",
+    "category": "Allgemeinwissen",
+    "text": "Wer malte die „Mona Lisa“?",
+    "options": [
+      "Raphael",
+      "Leonardo da Vinci",
+      "Michelangelo",
+      "Vincent van Gogh"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-general-007",
+    "category": "Allgemeinwissen",
+    "text": "Wie heißt die Wissenschaft von den Sternen und Himmelskörpern?",
+    "options": [
+      "Geologie",
+      "Meteorologie",
+      "Astrologie",
+      "Astronomie"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-008",
+    "category": "Allgemeinwissen",
+    "text": "Wie viele Minuten hat ein Tag?",
+    "options": [
+      "1240",
+      "1540",
+      "1440",
+      "1640"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-009",
+    "category": "Allgemeinwissen",
+    "text": "Welche Farbe entsteht aus Blau und Gelb?",
+    "options": [
+      "Braun",
+      "Violett",
+      "Orange",
+      "Grün"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-010",
+    "category": "Allgemeinwissen",
+    "text": "Welches Satzzeichen steht am Ende einer direkten Frage?",
+    "options": [
+      "Fragezeichen",
+      "Doppelpunkt",
+      "Semikolon",
+      "Ausrufezeichen"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-011",
+    "category": "Allgemeinwissen",
+    "text": "Welcher Kontinent ist flächenmäßig der größte?",
+    "options": [
+      "Asien",
+      "Afrika",
+      "Nordamerika",
+      "Europa"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-012",
+    "category": "Allgemeinwissen",
+    "text": "Wie nennt man ein Wort mit gleicher oder ähnlicher Bedeutung?",
+    "options": [
+      "Akronym",
+      "Synonym",
+      "Antonym",
+      "Homonym"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-general-013",
+    "category": "Allgemeinwissen",
+    "text": "Welche römische Zahl steht für 50?",
+    "options": [
+      "D",
+      "C",
+      "L",
+      "X"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-014",
+    "category": "Allgemeinwissen",
+    "text": "Wie viele Jahre umfasst ein Jahrzehnt?",
+    "options": [
+      "5",
+      "10",
+      "20",
+      "100"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-general-015",
+    "category": "Allgemeinwissen",
+    "text": "Welcher Schriftsteller erfand Sherlock Holmes?",
+    "options": [
+      "Agatha Christie",
+      "Charles Dickens",
+      "Arthur Conan Doyle",
+      "Jules Verne"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-016",
+    "category": "Allgemeinwissen",
+    "text": "Was misst ein Thermometer?",
+    "options": [
+      "Geschwindigkeit",
+      "Lautstärke",
+      "Temperatur",
+      "Luftdruck"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-017",
+    "category": "Allgemeinwissen",
+    "text": "Welches Organ ist das größte des menschlichen Körpers?",
+    "options": [
+      "Leber",
+      "Lunge",
+      "Herz",
+      "Haut"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-018",
+    "category": "Allgemeinwissen",
+    "text": "Welche Währung wird in Japan verwendet?",
+    "options": [
+      "Won",
+      "Rupie",
+      "Yuan",
+      "Yen"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-019",
+    "category": "Allgemeinwissen",
+    "text": "Wie heißt die Hauptstadt von Österreich?",
+    "options": [
+      "Wien",
+      "Innsbruck",
+      "Salzburg",
+      "Graz"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-020",
+    "category": "Allgemeinwissen",
+    "text": "Welche Zahl ist eine Primzahl?",
+    "options": [
+      "29",
+      "33",
+      "21",
+      "27"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-021",
+    "category": "Allgemeinwissen",
+    "text": "Welches Tier ist auf dem Wappen der Bundesrepublik Deutschland?",
+    "options": [
+      "Adler",
+      "Löwe",
+      "Bär",
+      "Wolf"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-022",
+    "category": "Allgemeinwissen",
+    "text": "Wie viele Bundesländer hat Deutschland?",
+    "options": [
+      "15",
+      "18",
+      "16",
+      "14"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-023",
+    "category": "Allgemeinwissen",
+    "text": "Welche Einheit wird für elektrische Leistung verwendet?",
+    "options": [
+      "Watt",
+      "Ampere",
+      "Ohm",
+      "Volt"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-024",
+    "category": "Allgemeinwissen",
+    "text": "Wer schrieb „Faust“?",
+    "options": [
+      "Johann Wolfgang von Goethe",
+      "Friedrich Schiller",
+      "Thomas Mann",
+      "Heinrich Heine"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-025",
+    "category": "Allgemeinwissen",
+    "text": "Welche Himmelsrichtung liegt gegenüber von Osten?",
+    "options": [
+      "Süden",
+      "Nordosten",
+      "Westen",
+      "Norden"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-026",
+    "category": "Allgemeinwissen",
+    "text": "Wie viele Nullen hat eine Million?",
+    "options": [
+      "6",
+      "5",
+      "9",
+      "7"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-general-027",
+    "category": "Allgemeinwissen",
+    "text": "Welcher Planet wird auch „Roter Planet“ genannt?",
+    "options": [
+      "Venus",
+      "Merkur",
+      "Mars",
+      "Jupiter"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-028",
+    "category": "Allgemeinwissen",
+    "text": "Wie heißt die längste Seite in einem rechtwinkligen Dreieck?",
+    "options": [
+      "Kathete",
+      "Diagonale",
+      "Tangente",
+      "Hypotenuse"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-029",
+    "category": "Allgemeinwissen",
+    "text": "Welche deutsche Stadt ist für das Brandenburger Tor bekannt?",
+    "options": [
+      "Hamburg",
+      "München",
+      "Berlin",
+      "Dresden"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-030",
+    "category": "Allgemeinwissen",
+    "text": "Welches Gas benötigen Menschen hauptsächlich zum Atmen?",
+    "options": [
+      "Wasserstoff",
+      "Helium",
+      "Sauerstoff",
+      "Stickstoff"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-general-031",
+    "category": "Allgemeinwissen",
+    "text": "Wie nennt man die Lehre von den Karten?",
+    "options": [
+      "Fotografie",
+      "Kartografie",
+      "Choreografie",
+      "Typografie"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-general-032",
+    "category": "Allgemeinwissen",
+    "text": "Welche Zahl entspricht 3 hoch 3?",
+    "options": [
+      "9",
+      "27",
+      "81",
+      "18"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-general-033",
+    "category": "Allgemeinwissen",
+    "text": "Wie heißt ein Gedicht mit 14 Zeilen?",
+    "options": [
+      "Ode",
+      "Ballade",
+      "Haiku",
+      "Sonett"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-general-034",
+    "category": "Allgemeinwissen",
+    "text": "Welches Instrument zeigt die Himmelsrichtung an?",
+    "options": [
+      "Chronometer",
+      "Kompass",
+      "Barometer",
+      "Sextant"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-001",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Frankreich?",
+    "options": [
+      "Helsinki",
+      "Reykjavík",
+      "Ljubljana",
+      "Paris"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-geo-002",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Kanada?",
+    "options": [
+      "Budapest",
+      "Riga",
+      "Ottawa",
+      "Wellington"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-003",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Australien?",
+    "options": [
+      "Canberra",
+      "Ottawa",
+      "Wellington",
+      "Dublin"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-004",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Norwegen?",
+    "options": [
+      "Bratislava",
+      "Paris",
+      "Oslo",
+      "Prag"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-005",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Finnland?",
+    "options": [
+      "Helsinki",
+      "Tallinn",
+      "Buenos Aires",
+      "Ottawa"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-006",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Portugal?",
+    "options": [
+      "Lissabon",
+      "Paris",
+      "Zagreb",
+      "Lima"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-007",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Irland?",
+    "options": [
+      "Lissabon",
+      "Helsinki",
+      "Dublin",
+      "Buenos Aires"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-008",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Island?",
+    "options": [
+      "Lissabon",
+      "Lima",
+      "Canberra",
+      "Reykjavík"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-geo-009",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Griechenland?",
+    "options": [
+      "Athen",
+      "Helsinki",
+      "Paris",
+      "Dublin"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-010",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Ungarn?",
+    "options": [
+      "Bukarest",
+      "Ljubljana",
+      "Budapest",
+      "Athen"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-011",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Tschechien?",
+    "options": [
+      "Prag",
+      "Riga",
+      "Ottawa",
+      "Sofia"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-012",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Polen?",
+    "options": [
+      "Warschau",
+      "Paris",
+      "Bratislava",
+      "Santiago de Chile"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-013",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Rumänien?",
+    "options": [
+      "Ljubljana",
+      "Zagreb",
+      "Bukarest",
+      "Vilnius"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-014",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Bulgarien?",
+    "options": [
+      "Buenos Aires",
+      "Ottawa",
+      "Sofia",
+      "Athen"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-015",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Kroatien?",
+    "options": [
+      "Zagreb",
+      "Paris",
+      "Budapest",
+      "Vilnius"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-016",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Slowenien?",
+    "options": [
+      "Reykjavík",
+      "Warschau",
+      "Sofia",
+      "Ljubljana"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-geo-017",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Slowakei?",
+    "options": [
+      "Kairo",
+      "Bratislava",
+      "Buenos Aires",
+      "Ottawa"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-018",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Estland?",
+    "options": [
+      "Riga",
+      "Tallinn",
+      "Budapest",
+      "Helsinki"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-019",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Lettland?",
+    "options": [
+      "Prag",
+      "Wellington",
+      "Reykjavík",
+      "Riga"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-geo-020",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Litauen?",
+    "options": [
+      "Vilnius",
+      "Oslo",
+      "Bratislava",
+      "Prag"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-021",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Argentinien?",
+    "options": [
+      "Warschau",
+      "Vilnius",
+      "Lissabon",
+      "Buenos Aires"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-geo-022",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Chile?",
+    "options": [
+      "Santiago de Chile",
+      "Canberra",
+      "Bratislava",
+      "Budapest"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-023",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Peru?",
+    "options": [
+      "Lima",
+      "Athen",
+      "Ottawa",
+      "Canberra"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-geo-024",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Neuseeland?",
+    "options": [
+      "Canberra",
+      "Budapest",
+      "Wellington",
+      "Ottawa"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-025",
+    "category": "Geografie",
+    "text": "Wie heißt die Hauptstadt von Ägypten?",
+    "options": [
+      "Sofia",
+      "Kairo",
+      "Lissabon",
+      "Paris"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-026",
+    "category": "Geografie",
+    "text": "Welcher Fluss fließt durch Budapest?",
+    "options": [
+      "Seine",
+      "Donau",
+      "Rhein",
+      "Elbe"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-027",
+    "category": "Geografie",
+    "text": "Welches Land hat die Form eines „Stiefels“?",
+    "options": [
+      "Portugal",
+      "Italien",
+      "Kroatien",
+      "Griechenland"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-028",
+    "category": "Geografie",
+    "text": "Wie heißt das höchste Gebirge der Erde?",
+    "options": [
+      "Anden",
+      "Himalaya",
+      "Rocky Mountains",
+      "Alpen"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-029",
+    "category": "Geografie",
+    "text": "Welcher Ozean liegt zwischen Europa und Nordamerika?",
+    "options": [
+      "Arktischer Ozean",
+      "Indischer Ozean",
+      "Atlantischer Ozean",
+      "Pazifischer Ozean"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-geo-030",
+    "category": "Geografie",
+    "text": "In welchem Land liegt die Stadt Marrakesch?",
+    "options": [
+      "Tunesien",
+      "Marokko",
+      "Ägypten",
+      "Jordanien"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-031",
+    "category": "Geografie",
+    "text": "Wie heißt die größte Insel der Erde?",
+    "options": [
+      "Borneo",
+      "Madagaskar",
+      "Neuguinea",
+      "Grönland"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-geo-032",
+    "category": "Geografie",
+    "text": "Welcher Staat ist vollständig von Südafrika umgeben?",
+    "options": [
+      "Botswana",
+      "Lesotho",
+      "Namibia",
+      "Eswatini"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-033",
+    "category": "Geografie",
+    "text": "Welcher See ist flächenmäßig der größte der Erde?",
+    "options": [
+      "Victoriasee",
+      "Kaspisches Meer",
+      "Baikalsee",
+      "Oberer See"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-geo-034",
+    "category": "Geografie",
+    "text": "Welches Land grenzt nicht an Deutschland?",
+    "options": [
+      "Belgien",
+      "Tschechien",
+      "Spanien",
+      "Dänemark"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-001",
+    "category": "Geschichte",
+    "text": "In welchem Jahr fiel die Berliner Mauer?",
+    "options": [
+      "1989",
+      "1991",
+      "1987",
+      "1990"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-history-002",
+    "category": "Geschichte",
+    "text": "Wer war der erste Bundeskanzler der Bundesrepublik Deutschland?",
+    "options": [
+      "Ludwig Erhard",
+      "Konrad Adenauer",
+      "Willy Brandt",
+      "Theodor Heuss"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-003",
+    "category": "Geschichte",
+    "text": "Welche antike Stadt wurde 79 n. Chr. vom Vesuv verschüttet?",
+    "options": [
+      "Delphi",
+      "Sparta",
+      "Pompeji",
+      "Troja"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-004",
+    "category": "Geschichte",
+    "text": "Wer erreichte 1492 im Auftrag Spaniens Amerika?",
+    "options": [
+      "Ferdinand Magellan",
+      "James Cook",
+      "Christoph Kolumbus",
+      "Vasco da Gama"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-005",
+    "category": "Geschichte",
+    "text": "Welche Revolution begann 1789?",
+    "options": [
+      "Amerikanische Revolution",
+      "Industrielle Revolution",
+      "Französische Revolution",
+      "Russische Revolution"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-006",
+    "category": "Geschichte",
+    "text": "Wie hieß der erste römische Kaiser?",
+    "options": [
+      "Trajan",
+      "Augustus",
+      "Nero",
+      "Caesar"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-007",
+    "category": "Geschichte",
+    "text": "In welchem Jahr endete der Zweite Weltkrieg in Europa?",
+    "options": [
+      "1946",
+      "1945",
+      "1948",
+      "1944"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-008",
+    "category": "Geschichte",
+    "text": "Welche Hochkultur errichtete Machu Picchu?",
+    "options": [
+      "Maya",
+      "Inka",
+      "Olmeken",
+      "Azteken"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-009",
+    "category": "Geschichte",
+    "text": "Wer veröffentlichte 1517 die 95 Thesen?",
+    "options": [
+      "Martin Luther",
+      "Thomas Müntzer",
+      "Johannes Calvin",
+      "Philipp Melanchthon"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-history-010",
+    "category": "Geschichte",
+    "text": "Wie hieß die Hauptstadt des Byzantinischen Reiches?",
+    "options": [
+      "Antiochia",
+      "Alexandria",
+      "Konstantinopel",
+      "Athen"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-011",
+    "category": "Geschichte",
+    "text": "Welche Seeschlacht fand 1805 statt?",
+    "options": [
+      "Trafalgar",
+      "Gettysburg",
+      "Verdun",
+      "Waterloo"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-history-012",
+    "category": "Geschichte",
+    "text": "Wer war die ägyptische Königin, die mit Caesar und Antonius verbunden war?",
+    "options": [
+      "Nofretete",
+      "Hatschepsut",
+      "Kleopatra VII.",
+      "Arsinoë"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-013",
+    "category": "Geschichte",
+    "text": "Welche Stadt war Zentrum der Reformation in Sachsen?",
+    "options": [
+      "Dresden",
+      "Wittenberg",
+      "Meißen",
+      "Leipzig"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-014",
+    "category": "Geschichte",
+    "text": "In welchem Jahr wurde die Bundesrepublik Deutschland gegründet?",
+    "options": [
+      "1955",
+      "1947",
+      "1951",
+      "1949"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-history-015",
+    "category": "Geschichte",
+    "text": "Welcher Vertrag beendete 1648 den Dreißigjährigen Krieg?",
+    "options": [
+      "Versailler Vertrag",
+      "Wiener Kongress",
+      "Westfälischer Friede",
+      "Augsburger Religionsfriede"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-016",
+    "category": "Geschichte",
+    "text": "Wer war der erste Mensch auf dem Mond?",
+    "options": [
+      "Juri Gagarin",
+      "Buzz Aldrin",
+      "Neil Armstrong",
+      "Michael Collins"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-017",
+    "category": "Geschichte",
+    "text": "Welche Stadt wurde 1914 durch ein Attentat zum Ausgangspunkt der Julikrise?",
+    "options": [
+      "Sarajevo",
+      "Prag",
+      "Belgrad",
+      "Wien"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-history-018",
+    "category": "Geschichte",
+    "text": "Wie hieß das Schiff der Pilgerväter von 1620?",
+    "options": [
+      "Mayflower",
+      "Santa Maria",
+      "Endeavour",
+      "Bounty"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-history-019",
+    "category": "Geschichte",
+    "text": "Welche Dynastie ließ große Teile der Chinesischen Mauer ausbauen?",
+    "options": [
+      "Ming-Dynastie",
+      "Han-Dynastie",
+      "Qing-Dynastie",
+      "Tang-Dynastie"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-history-020",
+    "category": "Geschichte",
+    "text": "Wer führte Indien mit gewaltfreiem Widerstand Richtung Unabhängigkeit?",
+    "options": [
+      "Subhas Chandra Bose",
+      "Mahatma Gandhi",
+      "Jawaharlal Nehru",
+      "Rabindranath Tagore"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-021",
+    "category": "Geschichte",
+    "text": "Welches Reich wurde von Dschingis Khan begründet?",
+    "options": [
+      "Osmanisches Reich",
+      "Mogulreich",
+      "Persisches Reich",
+      "Mongolisches Reich"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-history-022",
+    "category": "Geschichte",
+    "text": "Wann begann der Erste Weltkrieg?",
+    "options": [
+      "1918",
+      "1912",
+      "1914",
+      "1916"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-023",
+    "category": "Geschichte",
+    "text": "Welche Stadt wurde im Mittelalter als „ewige Stadt“ bezeichnet?",
+    "options": [
+      "Konstantinopel",
+      "Paris",
+      "Jerusalem",
+      "Rom"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-history-024",
+    "category": "Geschichte",
+    "text": "Wer erfand um 1450 den Buchdruck mit beweglichen Metalllettern in Europa?",
+    "options": [
+      "Leonardo da Vinci",
+      "Johannes Gutenberg",
+      "Galileo Galilei",
+      "Nikolaus Kopernikus"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-025",
+    "category": "Geschichte",
+    "text": "Welche Epoche folgte in Europa auf das Mittelalter?",
+    "options": [
+      "Antike",
+      "Romantik",
+      "Aufklärung",
+      "Renaissance"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-history-026",
+    "category": "Geschichte",
+    "text": "Welche Königin regierte Großbritannien von 1837 bis 1901?",
+    "options": [
+      "Elizabeth I.",
+      "Victoria",
+      "Anne",
+      "Mary I."
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-027",
+    "category": "Geschichte",
+    "text": "Wie hieß der letzte Zar Russlands?",
+    "options": [
+      "Alexander II.",
+      "Peter III.",
+      "Nikolaus II.",
+      "Iwan IV."
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-028",
+    "category": "Geschichte",
+    "text": "Welche antike Polis gilt als Wiege der Demokratie?",
+    "options": [
+      "Theben",
+      "Sparta",
+      "Athen",
+      "Korinth"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-029",
+    "category": "Geschichte",
+    "text": "Welche Konferenz teilte 1884/85 große Teile Afrikas unter Kolonialmächten auf?",
+    "options": [
+      "Potsdamer Konferenz",
+      "Jalta-Konferenz",
+      "Wiener Kongress",
+      "Berliner Kongokonferenz"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-history-030",
+    "category": "Geschichte",
+    "text": "Wer hielt 1963 die Rede „I Have a Dream“?",
+    "options": [
+      "Malcolm X",
+      "Rosa Parks",
+      "Nelson Mandela",
+      "Martin Luther King Jr."
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-history-031",
+    "category": "Geschichte",
+    "text": "Welche Mauer wurde ab 1961 gebaut?",
+    "options": [
+      "Chinesische Mauer",
+      "Berliner Mauer",
+      "Atlantikwall",
+      "Hadrianswall"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-history-032",
+    "category": "Geschichte",
+    "text": "Welche Kultur entwickelte die Keilschrift?",
+    "options": [
+      "Phönizier",
+      "Kelten",
+      "Sumerer",
+      "Römer"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-history-033",
+    "category": "Geschichte",
+    "text": "Wer war als „Eiserne Kanzler“ bekannt?",
+    "options": [
+      "Otto von Bismarck",
+      "Gustav Stresemann",
+      "Helmut Schmidt",
+      "Friedrich Ebert"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-history-034",
+    "category": "Geschichte",
+    "text": "Welches Ereignis markiert häufig den Beginn der Neuzeit?",
+    "options": [
+      "Krönung Karls des Großen 800",
+      "Entdeckung Amerikas 1492",
+      "Wiener Kongress 1815",
+      "Untergang Roms 476"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-science-001",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Wasserstoff?",
+    "options": [
+      "Al",
+      "Zn",
+      "C",
+      "H"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-002",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Helium?",
+    "options": [
+      "Si",
+      "Mg",
+      "He",
+      "Hg"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-003",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Kohlenstoff?",
+    "options": [
+      "Ag",
+      "O",
+      "C",
+      "Cl"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-004",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Stickstoff?",
+    "options": [
+      "Zn",
+      "N",
+      "K",
+      "Al"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-science-005",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Sauerstoff?",
+    "options": [
+      "Cu",
+      "Na",
+      "O",
+      "Au"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-006",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Natrium?",
+    "options": [
+      "Hg",
+      "Mg",
+      "Si",
+      "Na"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-007",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Magnesium?",
+    "options": [
+      "Mg",
+      "He",
+      "K",
+      "Al"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-science-008",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Aluminium?",
+    "options": [
+      "Hg",
+      "S",
+      "K",
+      "Al"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-009",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Silicium?",
+    "options": [
+      "Hg",
+      "Zn",
+      "Cu",
+      "Si"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-010",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Phosphor?",
+    "options": [
+      "Zn",
+      "O",
+      "N",
+      "P"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-011",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Schwefel?",
+    "options": [
+      "He",
+      "S",
+      "Au",
+      "Zn"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-science-012",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Chlor?",
+    "options": [
+      "Cl",
+      "Cu",
+      "Mg",
+      "He"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-science-013",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Kalium?",
+    "options": [
+      "Zn",
+      "Na",
+      "Fe",
+      "K"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-014",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Calcium?",
+    "options": [
+      "Cl",
+      "Fe",
+      "Zn",
+      "Ca"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-015",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Eisen?",
+    "options": [
+      "Fe",
+      "Cu",
+      "P",
+      "H"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-science-016",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Kupfer?",
+    "options": [
+      "O",
+      "Cu",
+      "S",
+      "P"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-science-017",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Zink?",
+    "options": [
+      "Cl",
+      "Zn",
+      "S",
+      "H"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-science-018",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Silber?",
+    "options": [
+      "C",
+      "P",
+      "Ag",
+      "Zn"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-019",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Gold?",
+    "options": [
+      "Fe",
+      "Al",
+      "S",
+      "Au"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-020",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches chemische Symbol hat Quecksilber?",
+    "options": [
+      "Hg",
+      "O",
+      "He",
+      "Cl"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-science-021",
+    "category": "Natur & Wissenschaft",
+    "text": "Welche Einheit misst die Frequenz?",
+    "options": [
+      "Joule",
+      "Pascal",
+      "Newton",
+      "Hertz"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-022",
+    "category": "Natur & Wissenschaft",
+    "text": "Wie viele Chromosomen besitzt ein gesunder menschlicher Körperzellenkern normalerweise?",
+    "options": [
+      "44",
+      "23",
+      "48",
+      "46"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-023",
+    "category": "Natur & Wissenschaft",
+    "text": "Welcher Planet hat die meisten deutlich sichtbaren Ringe?",
+    "options": [
+      "Venus",
+      "Merkur",
+      "Mars",
+      "Saturn"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-024",
+    "category": "Natur & Wissenschaft",
+    "text": "Wie heißt der Prozess, bei dem Pflanzen Lichtenergie in chemische Energie umwandeln?",
+    "options": [
+      "Osmose",
+      "Transpiration",
+      "Photosynthese",
+      "Fermentation"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-025",
+    "category": "Natur & Wissenschaft",
+    "text": "Welche Blutgruppe gilt bei roten Blutkörperchen als Universalspender?",
+    "options": [
+      "AB positiv",
+      "A positiv",
+      "B negativ",
+      "0 negativ"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-026",
+    "category": "Natur & Wissenschaft",
+    "text": "Was ist die SI-Einheit der Kraft?",
+    "options": [
+      "Joule",
+      "Pascal",
+      "Watt",
+      "Newton"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-027",
+    "category": "Natur & Wissenschaft",
+    "text": "Welcher Teil einer Zelle enthält hauptsächlich die Erbinformation?",
+    "options": [
+      "Zellmembran",
+      "Golgi-Apparat",
+      "Zellkern",
+      "Ribosom"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-028",
+    "category": "Natur & Wissenschaft",
+    "text": "Wie heißt die Grenze, ab der einem Schwarzen Loch nichts entkommen kann?",
+    "options": [
+      "Magnetopause",
+      "Ereignishorizont",
+      "Heliopause",
+      "Photosphäre"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-science-029",
+    "category": "Natur & Wissenschaft",
+    "text": "Welche Säure ist Hauptbestandteil des Magensafts?",
+    "options": [
+      "Schwefelsäure",
+      "Essigsäure",
+      "Kohlensäure",
+      "Salzsäure"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-science-030",
+    "category": "Natur & Wissenschaft",
+    "text": "Wie nennt man den Übergang von fest direkt zu gasförmig?",
+    "options": [
+      "Schmelzen",
+      "Kondensation",
+      "Sublimation",
+      "Resublimation"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-031",
+    "category": "Natur & Wissenschaft",
+    "text": "Welches Organ produziert Insulin?",
+    "options": [
+      "Milz",
+      "Bauchspeicheldrüse",
+      "Niere",
+      "Leber"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-science-032",
+    "category": "Natur & Wissenschaft",
+    "text": "Welche Schicht der Atmosphäre enthält den größten Teil des Wetters?",
+    "options": [
+      "Mesosphäre",
+      "Thermosphäre",
+      "Troposphäre",
+      "Stratosphäre"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-science-033",
+    "category": "Natur & Wissenschaft",
+    "text": "Wie schnell bewegt sich Licht im Vakuum ungefähr?",
+    "options": [
+      "3.000 km/s",
+      "30.000 km/s",
+      "300.000 km/s",
+      "3.000.000 km/s"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-music-001",
+    "category": "Musik",
+    "text": "Wer komponierte die 9. Sinfonie mit der „Ode an die Freude“?",
+    "options": [
+      "Ludwig van Beethoven",
+      "Wolfgang Amadeus Mozart",
+      "Johann Sebastian Bach",
+      "Franz Schubert"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-002",
+    "category": "Musik",
+    "text": "Welches Instrument besitzt in der Standardausführung 88 Tasten?",
+    "options": [
+      "Cembalo",
+      "Akkordeon",
+      "Orgel",
+      "Klavier"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-music-003",
+    "category": "Musik",
+    "text": "Wie viele Linien hat ein Notensystem?",
+    "options": [
+      "5",
+      "6",
+      "4",
+      "8"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-004",
+    "category": "Musik",
+    "text": "Welcher Komponist schrieb „Die vier Jahreszeiten“?",
+    "options": [
+      "Antonio Vivaldi",
+      "Joseph Haydn",
+      "Georg Friedrich Händel",
+      "Giacomo Puccini"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-005",
+    "category": "Musik",
+    "text": "Wie heißt die tiefste männliche Stimmlage?",
+    "options": [
+      "Alt",
+      "Bass",
+      "Bariton",
+      "Tenor"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-006",
+    "category": "Musik",
+    "text": "Welche Band veröffentlichte das Album „The Dark Side of the Moon“?",
+    "options": [
+      "The Beatles",
+      "Pink Floyd",
+      "Queen",
+      "Led Zeppelin"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-007",
+    "category": "Musik",
+    "text": "Wer komponierte die Oper „Die Zauberflöte“?",
+    "options": [
+      "Wolfgang Amadeus Mozart",
+      "Richard Wagner",
+      "Gioachino Rossini",
+      "Giuseppe Verdi"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-008",
+    "category": "Musik",
+    "text": "Welches Holzblasinstrument verwendet ein Doppelrohrblatt?",
+    "options": [
+      "Klarinette",
+      "Querflöte",
+      "Saxofon",
+      "Oboe"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-music-009",
+    "category": "Musik",
+    "text": "Was bedeutet „a cappella“?",
+    "options": [
+      "Gesang ohne Instrumentalbegleitung",
+      "Im gleichen Tempo",
+      "Sehr laut spielen",
+      "Langsam werden"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-010",
+    "category": "Musik",
+    "text": "Welche Tonart hat keine Vorzeichen?",
+    "options": [
+      "C-Dur",
+      "F-Dur",
+      "D-Dur",
+      "G-Dur"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-011",
+    "category": "Musik",
+    "text": "Welcher Sänger wurde als „King of Pop“ bezeichnet?",
+    "options": [
+      "Freddie Mercury",
+      "Michael Jackson",
+      "Elvis Presley",
+      "Prince"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-012",
+    "category": "Musik",
+    "text": "Wie heißt das Tempozeichen für „langsam“?",
+    "options": [
+      "Vivace",
+      "Allegro",
+      "Presto",
+      "Largo"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-music-013",
+    "category": "Musik",
+    "text": "Welche Instrumentengruppe gehört die Trompete an?",
+    "options": [
+      "Schlaginstrumente",
+      "Streichinstrumente",
+      "Blechblasinstrumente",
+      "Holzblasinstrumente"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-music-014",
+    "category": "Musik",
+    "text": "Wer schrieb das Musical „Das Phantom der Oper“?",
+    "options": [
+      "Leonard Bernstein",
+      "Claude-Michel Schönberg",
+      "Andrew Lloyd Webber",
+      "Stephen Sondheim"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-music-015",
+    "category": "Musik",
+    "text": "Welche deutsche Band hatte den Hit „Autobahn“?",
+    "options": [
+      "Scorpions",
+      "Kraftwerk",
+      "Rammstein",
+      "Alphaville"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-016",
+    "category": "Musik",
+    "text": "Welcher Komponist wurde in Eisenach geboren und wirkte lange in Leipzig?",
+    "options": [
+      "Claude Debussy",
+      "Johann Sebastian Bach",
+      "Johannes Brahms",
+      "Frédéric Chopin"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-017",
+    "category": "Musik",
+    "text": "Was bezeichnet „crescendo“?",
+    "options": [
+      "Allmählich leiser werden",
+      "Allmählich lauter werden",
+      "Tempo verlangsamen",
+      "Plötzlich stoppen"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-018",
+    "category": "Musik",
+    "text": "Welches Instrument gehört zur Familie der Streichinstrumente?",
+    "options": [
+      "Cello",
+      "Horn",
+      "Fagott",
+      "Marimba"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-019",
+    "category": "Musik",
+    "text": "Welche Sängerin veröffentlichte „Rolling in the Deep“?",
+    "options": [
+      "Adele",
+      "Beyoncé",
+      "Lady Gaga",
+      "Rihanna"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-020",
+    "category": "Musik",
+    "text": "Welche Oper stammt von Georges Bizet?",
+    "options": [
+      "Turandot",
+      "Fidelio",
+      "Aida",
+      "Carmen"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-music-021",
+    "category": "Musik",
+    "text": "Wie viele Saiten hat eine klassische Gitarre normalerweise?",
+    "options": [
+      "8",
+      "4",
+      "6",
+      "5"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-music-022",
+    "category": "Musik",
+    "text": "Welcher Begriff bezeichnet ein Musikstück für einen Solisten und Orchester?",
+    "options": [
+      "Etüde",
+      "Kantate",
+      "Konzert",
+      "Fuge"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-music-023",
+    "category": "Musik",
+    "text": "Welche Band bestand aus John Lennon, Paul McCartney, George Harrison und Ringo Starr?",
+    "options": [
+      "ABBA",
+      "The Who",
+      "The Beatles",
+      "The Rolling Stones"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-music-024",
+    "category": "Musik",
+    "text": "Wer komponierte den „Boléro“?",
+    "options": [
+      "Erik Satie",
+      "Maurice Ravel",
+      "Claude Debussy",
+      "Camille Saint-Saëns"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-025",
+    "category": "Musik",
+    "text": "Welche Stimmlage liegt zwischen Tenor und Bass?",
+    "options": [
+      "Mezzosopran",
+      "Bariton",
+      "Alt",
+      "Sopran"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-026",
+    "category": "Musik",
+    "text": "Welches Tasteninstrument erzeugt den Ton durch Luft in Pfeifen?",
+    "options": [
+      "Orgel",
+      "Celesta",
+      "Klavier",
+      "Cembalo"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-027",
+    "category": "Musik",
+    "text": "Wie heißt ein wiederkehrendes musikalisches Thema in einer Oper?",
+    "options": [
+      "Intervall",
+      "Kadenz",
+      "Ostinato",
+      "Leitmotiv"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-music-028",
+    "category": "Musik",
+    "text": "Welche Musikerin ist für das Album „21“ bekannt?",
+    "options": [
+      "Taylor Swift",
+      "Adele",
+      "Cher",
+      "Madonna"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-029",
+    "category": "Musik",
+    "text": "Welches Zeichen erhöht einen Ton um einen Halbton?",
+    "options": [
+      "Fermate",
+      "Be",
+      "Kreuz",
+      "Auflösungszeichen"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-music-030",
+    "category": "Musik",
+    "text": "Wer schrieb die Opernreihe „Der Ring des Nibelungen“?",
+    "options": [
+      "Richard Strauss",
+      "Richard Wagner",
+      "Carl Orff",
+      "Gustav Mahler"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-031",
+    "category": "Musik",
+    "text": "Welches Instrument spielt Yo-Yo Ma?",
+    "options": [
+      "Klavier",
+      "Cello",
+      "Violine",
+      "Harfe"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-music-032",
+    "category": "Musik",
+    "text": "Wie heißt der Abstand zwischen zwei Tonhöhen?",
+    "options": [
+      "Intervall",
+      "Rhythmus",
+      "Takt",
+      "Phrase"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-music-033",
+    "category": "Musik",
+    "text": "Welche Musikrichtung entstand in den 1970er-Jahren in der Bronx?",
+    "options": [
+      "Techno",
+      "Reggae",
+      "Hip-Hop",
+      "Grunge"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-001",
+    "category": "Sport",
+    "text": "Wie viele Spieler stehen beim Fußball pro Mannschaft regulär zu Spielbeginn auf dem Feld?",
+    "options": [
+      "11",
+      "10",
+      "12",
+      "9"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-002",
+    "category": "Sport",
+    "text": "Wie lang ist ein Marathon offiziell?",
+    "options": [
+      "42,195 km",
+      "41,5 km",
+      "45 km",
+      "40 km"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-003",
+    "category": "Sport",
+    "text": "In welcher Sportart gibt es einen „Slam Dunk“?",
+    "options": [
+      "Handball",
+      "Eishockey",
+      "Volleyball",
+      "Basketball"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-sport-004",
+    "category": "Sport",
+    "text": "Wie viele Ringe hat das olympische Symbol?",
+    "options": [
+      "6",
+      "4",
+      "5",
+      "7"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-005",
+    "category": "Sport",
+    "text": "Welche Farbe trägt der Führende der Tour de France?",
+    "options": [
+      "Gelb",
+      "Rot",
+      "Grün",
+      "Blau"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-006",
+    "category": "Sport",
+    "text": "Wie viele Sätze muss ein Spieler im Herren-Einzel bei Grand-Slam-Turnieren gewinnen?",
+    "options": [
+      "3",
+      "2",
+      "5",
+      "4"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-007",
+    "category": "Sport",
+    "text": "In welcher Sportart wird um den Stanley Cup gespielt?",
+    "options": [
+      "Basketball",
+      "Baseball",
+      "Eishockey",
+      "American Football"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-008",
+    "category": "Sport",
+    "text": "Wie viele Punkte zählt ein Touchdown im American Football?",
+    "options": [
+      "5",
+      "3",
+      "6",
+      "7"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-009",
+    "category": "Sport",
+    "text": "Welche Distanz wird beim olympischen Sprintklassiker gelaufen?",
+    "options": [
+      "100 Meter",
+      "200 Meter",
+      "80 Meter",
+      "110 Meter"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-010",
+    "category": "Sport",
+    "text": "Wie heißt die höchste deutsche Fußballliga?",
+    "options": [
+      "2. Liga",
+      "Bundesliga",
+      "Oberliga",
+      "Regionalliga"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-sport-011",
+    "category": "Sport",
+    "text": "Wie viele Spieler hat eine Volleyballmannschaft gleichzeitig auf dem Feld?",
+    "options": [
+      "6",
+      "8",
+      "5",
+      "7"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-012",
+    "category": "Sport",
+    "text": "Welche Schachfigur darf über andere Figuren springen?",
+    "options": [
+      "Springer",
+      "Dame",
+      "Turm",
+      "Läufer"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-013",
+    "category": "Sport",
+    "text": "Wie heißt der Spielstand 40:40 im Tennis?",
+    "options": [
+      "Einstand",
+      "Tie-Break",
+      "Matchball",
+      "Break"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-014",
+    "category": "Sport",
+    "text": "In welcher Sportart gibt es die Geräte Boden, Pferd und Ringe?",
+    "options": [
+      "Gerätturnen",
+      "Gewichtheben",
+      "Fechten",
+      "Moderner Fünfkampf"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-015",
+    "category": "Sport",
+    "text": "Wie viele Löcher hat eine reguläre Golfrunde?",
+    "options": [
+      "12",
+      "20",
+      "9",
+      "18"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-sport-016",
+    "category": "Sport",
+    "text": "Welche Nation gewann die Fußball-Weltmeisterschaft 2014?",
+    "options": [
+      "Spanien",
+      "Brasilien",
+      "Deutschland",
+      "Argentinien"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-017",
+    "category": "Sport",
+    "text": "Was bedeutet ein „Birdie“ im Golf?",
+    "options": [
+      "Genau Par",
+      "Ein Schlag über Par",
+      "Zwei Schläge unter Par",
+      "Ein Schlag unter Par"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-sport-018",
+    "category": "Sport",
+    "text": "Wie heißt der Wurfkreis beim Darts?",
+    "options": [
+      "Leg",
+      "Oche",
+      "Bull",
+      "Checkout"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-sport-019",
+    "category": "Sport",
+    "text": "Welche Disziplin kombiniert Schwimmen, Radfahren und Laufen?",
+    "options": [
+      "Triathlon",
+      "Biathlon",
+      "Pentathlon",
+      "Duathlon"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-020",
+    "category": "Sport",
+    "text": "Wie viele Punkte ist ein Freiwurf im Basketball wert?",
+    "options": [
+      "4",
+      "3",
+      "2",
+      "1"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-sport-021",
+    "category": "Sport",
+    "text": "Welche Karte bedeutet im Fußball Platzverweis?",
+    "options": [
+      "Grüne Karte",
+      "Rote Karte",
+      "Blaue Karte",
+      "Gelbe Karte"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-sport-022",
+    "category": "Sport",
+    "text": "Wie heißt die höchste mögliche Aufnahme beim Snooker ohne Free Ball?",
+    "options": [
+      "180",
+      "120",
+      "147",
+      "155"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-023",
+    "category": "Sport",
+    "text": "In welcher Sportart wird der Begriff „Ippon“ verwendet?",
+    "options": [
+      "Taekwondo",
+      "Karate",
+      "Judo",
+      "Ringen"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-024",
+    "category": "Sport",
+    "text": "Wie viele Bahnen hat ein olympisches Schwimmbecken typischerweise?",
+    "options": [
+      "12",
+      "8",
+      "10",
+      "6"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-025",
+    "category": "Sport",
+    "text": "Welche Sportart wird in Wimbledon gespielt?",
+    "options": [
+      "Golf",
+      "Rugby",
+      "Tennis",
+      "Cricket"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-026",
+    "category": "Sport",
+    "text": "Wie viele Minuten dauert ein reguläres Handballspiel der Erwachsenen?",
+    "options": [
+      "60",
+      "50",
+      "90",
+      "40"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-027",
+    "category": "Sport",
+    "text": "Welche Position schützt im Fußball das Tor?",
+    "options": [
+      "Stürmer",
+      "Sechser",
+      "Torwart",
+      "Libero"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-sport-028",
+    "category": "Sport",
+    "text": "Wie heißt der Startblock beim Skispringen?",
+    "options": [
+      "Balken",
+      "Podest",
+      "Gate",
+      "Kicker"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-029",
+    "category": "Sport",
+    "text": "In welcher Sportart gibt es den „Butterfly“-Schwimmstil?",
+    "options": [
+      "Segeln",
+      "Wasserball",
+      "Rudern",
+      "Schwimmen"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-sport-030",
+    "category": "Sport",
+    "text": "Welche Zahl steht beim Darts ganz oben auf dem Board?",
+    "options": [
+      "1",
+      "20",
+      "18",
+      "19"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-sport-031",
+    "category": "Sport",
+    "text": "Wie viele Punkte erzielt ein Rugby-Try?",
+    "options": [
+      "5",
+      "7",
+      "6",
+      "3"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-sport-032",
+    "category": "Sport",
+    "text": "Welcher Belag ist typisch für die French Open?",
+    "options": [
+      "Rasen",
+      "Hartplatz",
+      "Teppich",
+      "Sand"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-sport-033",
+    "category": "Sport",
+    "text": "Wie heißt das Endspiel der NFL?",
+    "options": [
+      "Super Bowl",
+      "Final Four",
+      "Stanley Cup",
+      "World Series"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-film-001",
+    "category": "Film & Fernsehen",
+    "text": "Wer führte Regie bei „Der weiße Hai“?",
+    "options": [
+      "Ridley Scott",
+      "Steven Spielberg",
+      "George Lucas",
+      "Martin Scorsese"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-002",
+    "category": "Film & Fernsehen",
+    "text": "Welche Filmreihe spielt teilweise in Hogwarts?",
+    "options": [
+      "Der Herr der Ringe",
+      "Indiana Jones",
+      "Harry Potter",
+      "Star Wars"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-003",
+    "category": "Film & Fernsehen",
+    "text": "Wer spielte die Hauptrolle in „Forrest Gump“?",
+    "options": [
+      "Kevin Costner",
+      "Tom Cruise",
+      "Robin Williams",
+      "Tom Hanks"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-004",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt der Löwe in Disneys „Der König der Löwen“?",
+    "options": [
+      "Mogli",
+      "Balu",
+      "Simba",
+      "Dumbo"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-005",
+    "category": "Film & Fernsehen",
+    "text": "Welcher Regisseur drehte „Pulp Fiction“?",
+    "options": [
+      "Tim Burton",
+      "David Fincher",
+      "James Cameron",
+      "Quentin Tarantino"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-006",
+    "category": "Film & Fernsehen",
+    "text": "In welchem Film sagt eine Figur sinngemäß „Möge die Macht mit dir sein“?",
+    "options": [
+      "Matrix",
+      "Dune",
+      "Star Wars",
+      "Star Trek"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-007",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt der Ringträger in „Der Herr der Ringe“?",
+    "options": [
+      "Gandalf",
+      "Frodo Beutlin",
+      "Legolas",
+      "Aragorn"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-008",
+    "category": "Film & Fernsehen",
+    "text": "Welche Schauspielerin spielte die Titelrolle in „Erin Brockovich“?",
+    "options": [
+      "Sandra Bullock",
+      "Nicole Kidman",
+      "Meg Ryan",
+      "Julia Roberts"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-009",
+    "category": "Film & Fernsehen",
+    "text": "Wer führte Regie bei „Titanic“?",
+    "options": [
+      "Ron Howard",
+      "Christopher Nolan",
+      "Peter Jackson",
+      "James Cameron"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-010",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt der Archäologe mit Hut und Peitsche?",
+    "options": [
+      "Rick O’Connell",
+      "Allan Quatermain",
+      "Jack Ryan",
+      "Indiana Jones"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-011",
+    "category": "Film & Fernsehen",
+    "text": "Welcher Film gewann 1998 elf Oscars?",
+    "options": [
+      "Gladiator",
+      "Braveheart",
+      "Titanic",
+      "Der englische Patient"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-012",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt die künstliche Intelligenz in „2001: Odyssee im Weltraum“?",
+    "options": [
+      "TARS",
+      "HAL 9000",
+      "JARVIS",
+      "Skynet"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-013",
+    "category": "Film & Fernsehen",
+    "text": "Wer spielte Jack Sparrow?",
+    "options": [
+      "Geoffrey Rush",
+      "Orlando Bloom",
+      "Johnny Depp",
+      "Jude Law"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-014",
+    "category": "Film & Fernsehen",
+    "text": "Welche Farbe hat die Pille, die Neo in „Matrix“ wählt?",
+    "options": [
+      "Weiß",
+      "Blau",
+      "Grün",
+      "Rot"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-015",
+    "category": "Film & Fernsehen",
+    "text": "Welcher Regisseur ist für „Inception“ bekannt?",
+    "options": [
+      "Denis Villeneuve",
+      "Sam Mendes",
+      "Christopher Nolan",
+      "Wes Anderson"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-016",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt das Raumschiff von Han Solo?",
+    "options": [
+      "Millennium Falke",
+      "Nostromo",
+      "Serenity",
+      "Enterprise"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-film-017",
+    "category": "Film & Fernsehen",
+    "text": "Welche Figur sagt „Ich bin dein Vater“?",
+    "options": [
+      "Yoda",
+      "Darth Vader",
+      "Imperator Palpatine",
+      "Obi-Wan Kenobi"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-018",
+    "category": "Film & Fernsehen",
+    "text": "Wer spielte die Hauptrolle in „Pretty Woman“?",
+    "options": [
+      "Meryl Streep",
+      "Jodie Foster",
+      "Demi Moore",
+      "Julia Roberts"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-019",
+    "category": "Film & Fernsehen",
+    "text": "Welches Studio produzierte „Toy Story“?",
+    "options": [
+      "Pixar",
+      "Illumination",
+      "Studio Ghibli",
+      "DreamWorks"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-film-020",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt der grüne Oger aus einer Animationsfilmreihe?",
+    "options": [
+      "Grinch",
+      "Mike Glotzkowski",
+      "Hulk",
+      "Shrek"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-021",
+    "category": "Film & Fernsehen",
+    "text": "Welcher Film handelt von einem Freizeitpark mit geklonten Dinosauriern?",
+    "options": [
+      "King Kong",
+      "Jumanji",
+      "Godzilla",
+      "Jurassic Park"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-022",
+    "category": "Film & Fernsehen",
+    "text": "Wer spielte Rocky Balboa?",
+    "options": [
+      "Bruce Willis",
+      "Sylvester Stallone",
+      "Arnold Schwarzenegger",
+      "Jean-Claude Van Damme"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-023",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt Batmans Heimatstadt?",
+    "options": [
+      "Gotham City",
+      "Metropolis",
+      "Central City",
+      "Star City"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-film-024",
+    "category": "Film & Fernsehen",
+    "text": "Welche Schauspielerin spielte Hermine Granger?",
+    "options": [
+      "Natalie Portman",
+      "Emma Stone",
+      "Emma Watson",
+      "Keira Knightley"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-025",
+    "category": "Film & Fernsehen",
+    "text": "Welcher Film enthält die Figur E.T.?",
+    "options": [
+      "Alien",
+      "E.T. – Der Außerirdische",
+      "Cocoon",
+      "Unheimliche Begegnung der dritten Art"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-026",
+    "category": "Film & Fernsehen",
+    "text": "Wer komponierte viele bekannte Filmmusiken zu „Star Wars“ und „Indiana Jones“?",
+    "options": [
+      "Howard Shore",
+      "Hans Zimmer",
+      "John Williams",
+      "Ennio Morricone"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-film-027",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt der Clownfisch in einem Pixar-Film?",
+    "options": [
+      "Bruce",
+      "Nemo",
+      "Marlin",
+      "Dorie"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-028",
+    "category": "Film & Fernsehen",
+    "text": "Welcher Film spielt auf dem Planeten Pandora?",
+    "options": [
+      "Interstellar",
+      "Dune",
+      "Oblivion",
+      "Avatar"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-029",
+    "category": "Film & Fernsehen",
+    "text": "Wer spielte die Hauptfigur in „Cast Away“?",
+    "options": [
+      "Russell Crowe",
+      "Tom Hanks",
+      "Matt Damon",
+      "Brad Pitt"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-030",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt die Zeitung, bei der Clark Kent arbeitet?",
+    "options": [
+      "New York Bulletin",
+      "Gotham Gazette",
+      "Daily Bugle",
+      "Daily Planet"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-film-031",
+    "category": "Film & Fernsehen",
+    "text": "Welcher Film erzählt die Geschichte des Boxers Jake LaMotta?",
+    "options": [
+      "Rocky",
+      "Wie ein wilder Stier",
+      "Million Dollar Baby",
+      "The Fighter"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-film-032",
+    "category": "Film & Fernsehen",
+    "text": "Wie heißt der Drache in „Die unendliche Geschichte“?",
+    "options": [
+      "Fuchur",
+      "Smaug",
+      "Mushu",
+      "Ohnezahn"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-film-033",
+    "category": "Film & Fernsehen",
+    "text": "Welche Serie spielt in der fiktiven Stadt Hawkins?",
+    "options": [
+      "Dark",
+      "Stranger Things",
+      "Lost",
+      "Twin Peaks"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-tech-001",
+    "category": "Technik",
+    "text": "Wofür steht „CPU“?",
+    "options": [
+      "Central Power Utility",
+      "Computer Personal Unit",
+      "Core Program User",
+      "Central Processing Unit"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-tech-002",
+    "category": "Technik",
+    "text": "Welche Einheit misst die Datenmenge?",
+    "options": [
+      "Hertz",
+      "Watt",
+      "Byte",
+      "Volt"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-003",
+    "category": "Technik",
+    "text": "Welches Protokoll wird typischerweise für verschlüsselte Webseiten verwendet?",
+    "options": [
+      "HTTPS",
+      "SMTP",
+      "FTP",
+      "Telnet"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-004",
+    "category": "Technik",
+    "text": "Wofür steht „RAM“?",
+    "options": [
+      "Rapid Archive Memory",
+      "Random Access Memory",
+      "Read Access Module",
+      "Remote Application Mode"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-tech-005",
+    "category": "Technik",
+    "text": "Welche Zahlensystembasis verwendet Binärcode?",
+    "options": [
+      "10",
+      "2",
+      "8",
+      "16"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-tech-006",
+    "category": "Technik",
+    "text": "Welches Gerät verbindet verschiedene Netzwerke?",
+    "options": [
+      "Monitor",
+      "Scanner",
+      "Switch",
+      "Router"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-tech-007",
+    "category": "Technik",
+    "text": "Was bedeutet „Open Source“?",
+    "options": [
+      "Software läuft nur online",
+      "Software ist immer kostenlos",
+      "Quellcode ist öffentlich einsehbar und nutzbar",
+      "Software besitzt keinen Urheber"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-008",
+    "category": "Technik",
+    "text": "Welche Dateiendung ist typisch für ein PDF-Dokument?",
+    "options": [
+      ".jpg",
+      ".csv",
+      ".pdf",
+      ".exe"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-009",
+    "category": "Technik",
+    "text": "Wofür steht „URL“?",
+    "options": [
+      "Uniform Resource Locator",
+      "Unified Remote Login",
+      "User Reference List",
+      "Universal Routing Link"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-010",
+    "category": "Technik",
+    "text": "Welche Komponente speichert Daten dauerhaft ohne Strom?",
+    "options": [
+      "Register",
+      "SSD",
+      "RAM",
+      "CPU-Cache"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-tech-011",
+    "category": "Technik",
+    "text": "Was ist Phishing?",
+    "options": [
+      "Täuschungsversuch zum Stehlen von Zugangsdaten",
+      "Messung der Netzwerkgeschwindigkeit",
+      "Verschlüsselung eines Backups",
+      "Optimierung einer Festplatte"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-012",
+    "category": "Technik",
+    "text": "Welcher Port ist standardmäßig HTTPS zugeordnet?",
+    "options": [
+      "80",
+      "25",
+      "21",
+      "443"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-tech-013",
+    "category": "Technik",
+    "text": "Wie viele Bits hat ein Byte?",
+    "options": [
+      "16",
+      "10",
+      "4",
+      "8"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-tech-014",
+    "category": "Technik",
+    "text": "Welches Betriebssystem basiert auf einem Linux-Kernel?",
+    "options": [
+      "Android",
+      "Windows",
+      "iOS",
+      "macOS Classic"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-015",
+    "category": "Technik",
+    "text": "Was ist eine IP-Adresse?",
+    "options": [
+      "Adresse eines Geräts in einem Netzwerk",
+      "Seriennummer eines Prozessors",
+      "Passwort für WLAN",
+      "Dateiformat für Bilder"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-016",
+    "category": "Technik",
+    "text": "Wofür steht „DNS“?",
+    "options": [
+      "Domain Name System",
+      "Digital Network Security",
+      "Distributed Number Storage",
+      "Data Node Service"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-017",
+    "category": "Technik",
+    "text": "Welcher Anschluss überträgt typischerweise digitales Bild und Ton?",
+    "options": [
+      "PS/2",
+      "RJ11",
+      "HDMI",
+      "VGA"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-018",
+    "category": "Technik",
+    "text": "Was macht ein Compiler?",
+    "options": [
+      "Misst den Arbeitsspeicher",
+      "Schützt Dateien mit Passwort",
+      "Komprimiert ausschließlich Bilder",
+      "Übersetzt Quellcode in ausführbaren Code"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-tech-019",
+    "category": "Technik",
+    "text": "Welches Zeichen leitet in vielen Programmiersprachen einen Kommentar mit zwei Zeichen ein?",
+    "options": [
+      "%%",
+      "@@",
+      "//",
+      "##"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-020",
+    "category": "Technik",
+    "text": "Was ist eine Firewall?",
+    "options": [
+      "Format für Audiodateien",
+      "System zur Kontrolle von Netzwerkverkehr",
+      "Mechanischer Schutz der Festplatte",
+      "Programm zur Textverarbeitung"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-tech-021",
+    "category": "Technik",
+    "text": "Welche Einheit wird für Prozessortakt verwendet?",
+    "options": [
+      "Hertz",
+      "Ohm",
+      "Byte",
+      "Pixel"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-022",
+    "category": "Technik",
+    "text": "Was ist ein Backup?",
+    "options": [
+      "Sicherheitskopie von Daten",
+      "Softwarelizenz",
+      "Online-Werbung",
+      "Temporäre Browserdatei"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-023",
+    "category": "Technik",
+    "text": "Welches Protokoll dient häufig zum Versenden von E-Mails?",
+    "options": [
+      "SSH",
+      "NTP",
+      "SMTP",
+      "HTTP"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-024",
+    "category": "Technik",
+    "text": "Was bezeichnet „Cloud Computing“?",
+    "options": [
+      "Rechnen mit Wetterdaten",
+      "Nutzung externer Rechen- und Speicherdienste über ein Netzwerk",
+      "Drucken ohne Kabel",
+      "Nur lokale Datenspeicherung"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-tech-025",
+    "category": "Technik",
+    "text": "Welches Format ist typischerweise verlustfrei komprimiert?",
+    "options": [
+      "MPEG",
+      "JPEG",
+      "PNG",
+      "MP3"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-026",
+    "category": "Technik",
+    "text": "Was ist Zwei-Faktor-Authentifizierung?",
+    "options": [
+      "Anmeldung an zwei Geräten gleichzeitig",
+      "Doppelte Verschlüsselung einer Datei",
+      "Zwei Benutzer teilen ein Passwort",
+      "Anmeldung mit zwei unabhängigen Nachweisen"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-tech-027",
+    "category": "Technik",
+    "text": "Wofür steht „VPN“?",
+    "options": [
+      "Variable Protocol Number",
+      "Visual Processing Network",
+      "Verified Public Node",
+      "Virtual Private Network"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-tech-028",
+    "category": "Technik",
+    "text": "Was ist eine relationale Datenbank?",
+    "options": [
+      "Datenbank mit Tabellen und Beziehungen",
+      "Hardware zur Datensicherung",
+      "Unverschlüsseltes Textprotokoll",
+      "Sammlung nur aus Bilddateien"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-029",
+    "category": "Technik",
+    "text": "Welche Sprache wird direkt im Browser für Interaktivität verwendet?",
+    "options": [
+      "Bash",
+      "JavaScript",
+      "C",
+      "SQL"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-tech-030",
+    "category": "Technik",
+    "text": "Was ist Latenz in einem Netzwerk?",
+    "options": [
+      "Zeitverzögerung bei der Datenübertragung",
+      "Farbe eines Netzwerkkabels",
+      "Maximale Speicherkapazität",
+      "Anzahl der Benutzerkonten"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-031",
+    "category": "Technik",
+    "text": "Welche Technologie ermöglicht kontaktloses Bezahlen über kurze Distanz?",
+    "options": [
+      "NFC",
+      "GPS",
+      "VGA",
+      "DSL"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-tech-032",
+    "category": "Technik",
+    "text": "Was ist ein Hashwert?",
+    "options": [
+      "Vollständige Sicherungskopie",
+      "Grafische Benutzeroberfläche",
+      "Fester Prüfwert aus Daten",
+      "Physischer Netzwerkschalter"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-tech-033",
+    "category": "Technik",
+    "text": "Welche Einheit beschreibt die Auflösung eines Bildes?",
+    "options": [
+      "Pixel",
+      "Dezibel",
+      "Kelvin",
+      "Ampere"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-001",
+    "category": "Essen & Trinken",
+    "text": "Aus welchem Land stammt Paella?",
+    "options": [
+      "Spanien",
+      "Italien",
+      "Portugal",
+      "Griechenland"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-002",
+    "category": "Essen & Trinken",
+    "text": "Welche Hülsenfrucht ist Hauptzutat von Hummus?",
+    "options": [
+      "Kichererbse",
+      "Linse",
+      "Erbse",
+      "Sojabohne"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-003",
+    "category": "Essen & Trinken",
+    "text": "Woraus wird traditionell Tofu hergestellt?",
+    "options": [
+      "Reis",
+      "Weizen",
+      "Sojabohnen",
+      "Kichererbsen"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-004",
+    "category": "Essen & Trinken",
+    "text": "Welche Spirituose ist Bestandteil eines klassischen Mojito?",
+    "options": [
+      "Tequila",
+      "Wodka",
+      "Rum",
+      "Gin"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-005",
+    "category": "Essen & Trinken",
+    "text": "Was ist „al dente“?",
+    "options": [
+      "Rohes Gemüse",
+      "Sehr weich gekochter Reis",
+      "Bissfest gegarte Pasta",
+      "Stark geröstetes Brot"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-006",
+    "category": "Essen & Trinken",
+    "text": "Welche Käsesorte gehört klassisch auf eine Pizza Margherita?",
+    "options": [
+      "Gouda",
+      "Cheddar",
+      "Mozzarella",
+      "Roquefort"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-007",
+    "category": "Essen & Trinken",
+    "text": "Aus welchem Land stammt Sushi?",
+    "options": [
+      "Südkorea",
+      "Thailand",
+      "China",
+      "Japan"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-food-008",
+    "category": "Essen & Trinken",
+    "text": "Welche Nuss ist Hauptbestandteil von Marzipan?",
+    "options": [
+      "Mandel",
+      "Haselnuss",
+      "Walnuss",
+      "Pistazie"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-009",
+    "category": "Essen & Trinken",
+    "text": "Was ist die Hauptzutat von Guacamole?",
+    "options": [
+      "Avocado",
+      "Gurke",
+      "Paprika",
+      "Tomate"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-010",
+    "category": "Essen & Trinken",
+    "text": "Welche Frucht wird zu Cidre vergoren?",
+    "options": [
+      "Traube",
+      "Apfel",
+      "Birne",
+      "Kirsche"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-food-011",
+    "category": "Essen & Trinken",
+    "text": "Was bezeichnet „Espresso“?",
+    "options": [
+      "Kalten Kaffee mit Eis",
+      "Kaffee ohne Koffein",
+      "Kaffee mit Kakao",
+      "Konzentrierten Kaffee aus hohem Druck"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-food-012",
+    "category": "Essen & Trinken",
+    "text": "Welche Zutat lässt Hefeteig aufgehen?",
+    "options": [
+      "Hefe",
+      "Öl",
+      "Salz",
+      "Kakao"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-013",
+    "category": "Essen & Trinken",
+    "text": "Aus welchem Getreide wird klassisches Risotto zubereitet?",
+    "options": [
+      "Hafer",
+      "Gerste",
+      "Reis",
+      "Roggen"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-014",
+    "category": "Essen & Trinken",
+    "text": "Welche Sauce besteht klassisch aus Eigelb und Butter?",
+    "options": [
+      "Hollandaise",
+      "Béchamel",
+      "Tomatensauce",
+      "Pesto"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-015",
+    "category": "Essen & Trinken",
+    "text": "Was ist ein „Soufflé“?",
+    "options": [
+      "Eingelegte Gurke",
+      "Dünne Suppe",
+      "Luftige Ofenspeise",
+      "Geräucherter Fisch"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-016",
+    "category": "Essen & Trinken",
+    "text": "Welche Pflanze liefert Vanille?",
+    "options": [
+      "Palme",
+      "Kaktus",
+      "Rose",
+      "Orchidee"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-food-017",
+    "category": "Essen & Trinken",
+    "text": "Was ist „Kimchi“?",
+    "options": [
+      "Indisches Fladenbrot",
+      "Japanische Nudelsuppe",
+      "Mexikanische Salsa",
+      "Fermentiertes koreanisches Gemüse"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-food-018",
+    "category": "Essen & Trinken",
+    "text": "Welches Gewürz färbt viele Currys gelb?",
+    "options": [
+      "Zimt",
+      "Kümmel",
+      "Kurkuma",
+      "Muskat"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-019",
+    "category": "Essen & Trinken",
+    "text": "Welche Frucht ist Hauptbestandteil von Cider in Großbritannien?",
+    "options": [
+      "Pflaume",
+      "Pfirsich",
+      "Orange",
+      "Apfel"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-food-020",
+    "category": "Essen & Trinken",
+    "text": "Was ist „Bruschetta“?",
+    "options": [
+      "Gefüllte Teigtasche",
+      "Geröstetes Brot mit Belag",
+      "Süße Creme",
+      "Reisgericht"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-food-021",
+    "category": "Essen & Trinken",
+    "text": "Welche Bohne wird für Schokolade verwendet?",
+    "options": [
+      "Vanillebohne",
+      "Kakaobohne",
+      "Sojabohne",
+      "Kaffeebohne"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-food-022",
+    "category": "Essen & Trinken",
+    "text": "Was ist „Bulgur“?",
+    "options": [
+      "Geräucherter Käse",
+      "Getrocknete Feige",
+      "Vorgegarter Hartweizen",
+      "Fermentierter Fisch"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-023",
+    "category": "Essen & Trinken",
+    "text": "Welche Zutat ist typisch für Pesto Genovese?",
+    "options": [
+      "Minze",
+      "Petersilie",
+      "Basilikum",
+      "Dill"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-024",
+    "category": "Essen & Trinken",
+    "text": "Aus welchem Land stammt Feta traditionell?",
+    "options": [
+      "Schweiz",
+      "Griechenland",
+      "Frankreich",
+      "Niederlande"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-food-025",
+    "category": "Essen & Trinken",
+    "text": "Was ist „Umami“?",
+    "options": [
+      "Eine grundlegende Geschmacksrichtung",
+      "Ein Küchenmesser",
+      "Eine japanische Gartechnik",
+      "Eine Reissorte"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-026",
+    "category": "Essen & Trinken",
+    "text": "Welche Frucht gehört botanisch zu den Beeren?",
+    "options": [
+      "Kirsche",
+      "Banane",
+      "Erdbeere",
+      "Himbeere"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "id": "adult-food-027",
+    "category": "Essen & Trinken",
+    "text": "Welche Temperatur hat Wasser beim Sieden auf Meereshöhe ungefähr?",
+    "options": [
+      "100 °C",
+      "80 °C",
+      "120 °C",
+      "90 °C"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-028",
+    "category": "Essen & Trinken",
+    "text": "Was ist „Roux“ in der Küche?",
+    "options": [
+      "Rohkostsalat",
+      "Süßer Sirup",
+      "Fleischmarinade",
+      "Mehlschwitze"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-food-029",
+    "category": "Essen & Trinken",
+    "text": "Welche Zutat bildet die Basis von Polenta?",
+    "options": [
+      "Maisgrieß",
+      "Reis",
+      "Hafer",
+      "Kartoffeln"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-030",
+    "category": "Essen & Trinken",
+    "text": "Wie heißt der Prozess, bei dem Zucker durch Hitze braun wird?",
+    "options": [
+      "Blanchieren",
+      "Fermentieren",
+      "Karamellisieren",
+      "Pochieren"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "id": "adult-food-031",
+    "category": "Essen & Trinken",
+    "text": "Welche Bohnenart ist Grundlage klassischer Falafel?",
+    "options": [
+      "Kidneybohnen",
+      "Mungbohnen",
+      "Weiße Bohnen",
+      "Kichererbsen"
+    ],
+    "correctIndex": 3
+  },
+  {
+    "id": "adult-food-032",
+    "category": "Essen & Trinken",
+    "text": "Was ist „Miso“?",
+    "options": [
+      "Fermentierte Sojabohnenpaste",
+      "Fischsauce",
+      "Reisessig",
+      "Algenblatt"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "id": "adult-food-033",
+    "category": "Essen & Trinken",
+    "text": "Welche Zitrusfrucht ist typischer Bestandteil von Lemon Curd?",
+    "options": [
+      "Orange",
+      "Zitrone",
+      "Limette",
+      "Grapefruit"
+    ],
+    "correctIndex": 1
+  }
+]
