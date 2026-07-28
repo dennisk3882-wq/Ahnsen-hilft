@@ -1,0 +1,54 @@
+name: Apply Quiz v7
+
+on:
+  push:
+    branches:
+      - quiz-v70-learning-profiles-admin
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: quiz-v70-learning-profiles-admin
+          fetch-depth: 0
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: quiz-app/package-lock.json
+
+      - name: QR-Bibliothek lokal speichern
+        run: |
+          mkdir -p quiz-app/public/vendor
+          curl --fail --silent --show-error --location \
+            https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js \
+            --output quiz-app/public/vendor/qrcode.min.js
+          test -s quiz-app/public/vendor/qrcode.min.js
+
+      - name: Version 7 anwenden
+        run: node tools/apply-v70.js
+
+      - name: Abhängigkeiten installieren
+        working-directory: quiz-app
+        run: npm ci
+
+      - name: Vollständige Prüfung
+        working-directory: quiz-app
+        run: npm run test:all
+
+      - name: Geprüften Stand speichern
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Build version 7 learning profiles and live controls"
+          git push origin HEAD:quiz-v70-learning-profiles-admin
