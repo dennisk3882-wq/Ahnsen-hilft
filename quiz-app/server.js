@@ -8,6 +8,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const { Server } = require('socket.io');
 const { calculateAnswerScore } = require('./lib/scoring');
+const { installSoloRoutes } = require('./solo-routes');
 const {
   initDatabase,
   saveQuestionSet,
@@ -81,6 +82,13 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] })
 
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/screen', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'screen.html')));
+
+installSoloRoutes(app, {
+  getQuestionSets: () => questionSets,
+  chooseQuestions,
+  questionSeconds: QUESTION_SECONDS,
+  now,
+});
 
 function now() { return Date.now(); }
 function randomToken(bytes = 24) { return crypto.randomBytes(bytes).toString('base64url'); }
@@ -521,7 +529,7 @@ function acceptCommand(commandId) {
 app.get('/health', async (_req, res) => {
   let database = false;
   try { database = await pingDatabase(); } catch { database = false; }
-  res.json({ ok: true, database, phase: state.phase, version: '6.0.0' });
+  res.json({ ok: true, database, phase: state.phase, version: '6.3.0' });
 });
 
 app.get('/api/config', (_req, res) => res.json({ title: QUIZ_TITLE, questionSeconds: QUESTION_SECONDS }));
