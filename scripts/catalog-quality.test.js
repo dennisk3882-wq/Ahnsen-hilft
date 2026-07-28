@@ -9,29 +9,36 @@ const appRoot = fs.existsSync(path.join(localCandidate, 'package.json'))
   ? localCandidate
   : repositoryCandidate;
 
+const catalogs = [
+  {
+    name: 'Erwachsene',
+    key: 'adult',
+    file: path.join(appRoot, 'data', 'adult-questions.json'),
+    expectedCount: 300,
+    categories: new Set([
+      'Allgemeinwissen', 'Geografie', 'Geschichte', 'Natur & Wissenschaft',
+      'Musik', 'Sport', 'Film & Fernsehen', 'Technik', 'Essen & Trinken'
+    ])
+  },
+  {
+    name: 'Kinder',
+    key: 'child',
+    file: path.join(appRoot, 'data', 'child-questions.json'),
+    expectedCount: 200,
+    categories: new Set([
+      'Allgemeinwissen', 'Natur & Tiere', 'Geografie', 'Geschichte',
+      'Musik', 'Sport', 'Film & Fernsehen'
+    ])
+  }
+];
+
 const errors = [];
 const warnings = [];
-const questions = [];
-const loadedModules = new Set();
-const visitedObjects = new WeakSet();
+const allQuestions = [];
+const globalIds = new Map();
+const globalTexts = new Map();
 
-const textKeys = ['question', 'text', 'prompt', 'frage', 'title'];
-const answerKeys = ['answers', 'options', 'choices', 'antworten'];
-const correctKeys = [
-  'correctIndex', 'correct', 'answer', 'correctAnswer',
-  'correctOption', 'richtigeAntwort', 'richtig'
-];
-const categoryKeys = ['category', 'kategorie', 'topic', 'bereich'];
-const idKeys = ['id', 'questionId', 'frageId'];
-
-function firstValue(object, keys) {
-  for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(object, key)) return object[key];
-  }
-  return undefined;
-}
-
-function normalize(value) {
+function normalizeText(value) {
   return String(value ?? '')
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -41,165 +48,13 @@ function normalize(value) {
     .replace(/\s+/g, ' ');
 }
 
-function looksLikeQuestion(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return typeof firstValue(value, textKeys) === 'string'
-    && Array.isArray(firstValue(value, answerKeys));
+function normalizeAnswer(value) {
+  return String(value ?? '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
 }
-
-function collect(value, source, trail = 'root') {
-  if (!value || typeof value !== 'object') return;
-  if (visitedObjects.has(value)) return;
-  visitedObjects.add(value);
-
-  if (looksLikeQuestion(value)) {
-    questions.push({ raw: value, source, trail });
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) => collect(entry, source, `${trail}[${index}]`));
-    return;
-  }
-
-  for (const [key, entry] of Object.entries(value)) {
-    collect(entry, source, `${trail}.${key}`);
-  }
-}
-
-function requireAndCollect(filePath) {
-  const absolute = path.resolve(filePath);
-  if (loadedModules.has(absolute) || !fs.existsSync(absolute)) return;
-  loadedModules.add(absolute);
-
-  try {
-    if (absolute.endsWith('.json')) {
-      collect(JSON.parse(fs.readFileSync(absolute, 'utf8')), absolute);
-    } else {
-      collect(require(absolute), absolute);
-    }
-  } catch (error) {
-    warnings.push(
-      `Modul konnte nicht automatisch geprüft werden: ${path.relative(appRoot, absolute)} (${error.message})`
-    );
-  }
-}
-
-function walk(directory) {
-  if (!fs.existsSync(directory)) return [];
-  const result = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (['node_modules', '.git', 'public'].includes(entry.name)) continue;
-    const fullPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) result.push(...walk(fullPath));
-    else result.push(fullPath);
-  }
-  return result;
-}
-
-const coreTestPaths = [
-  path.join(appRoot, 'tests', 'scoring.test.js'),
-  path.join(appRoot, 'test', 'core.test.js')
-];
-
-for (const coreTestPath of coreTestPaths) {
-  if (!fs.existsSync(coreTestPath)) continue;
-  const coreSource = fs.readFileSync(coreTestPath, 'utf8');
-  const requirePattern = /require\(\s*['"](\.\.\/[^'"]+)['"]\s*\)/g;
-  for (const match of coreSource.matchAll(requirePattern)) {
-    const requested = path.resolve(path.dirname(coreTestPath), match[1]);
-    [requested, `${requested}.js`, `${requested}.json`, path.join(requested, 'index.js')]
-      .forEach(requireAndCollect);
-  }
-}
-
-for (const filePath of walk(appRoot)) {
-  const relative = path.relative(appRoot, filePath);
-  if (!/\.(js|cjs|json)$/i.test(filePath)) continue;
-  if (relative === 'server.js') continue;
-  if (relative.startsWith(`tests${path.sep}`) || relative.startsWith(`test${path.sep}`)) continue;
-  if (!/(question|fragen|catalog|katalog|bank|quiz|data)/i.test(relative)) continue;
-  requireAndCollect(filePath);
-}
-
-if (questions.length === 0) errors.push('Es konnten keine Fragenobjekte im Projekt gefunden werden.');
-
-const textMap = new Map();
-const idMap = new Map();
-const normalizedQuestions = [];
-
-questions.forEach((entry) => {
-  const question = entry.raw;
-  const label = `${path.relative(appRoot, entry.source)}:${entry.trail}`;
-  const text = firstValue(question, textKeys);
-  const answers = firstValue(question, answerKeys);
-  const correct = firstValue(question, correctKeys);
-  const category = firstValue(question, categoryKeys);
-  const id = firstValue(question, idKeys);
-  const normalizedText = normalize(text);
-
-  if (!normalizedText) errors.push(`${label}: Fragetext fehlt.`);
-  if (!Array.isArray(answers) || answers.length !== 4) {
-    errors.push(`${label}: Es müssen genau vier Antwortmöglichkeiten vorhanden sein.`);
-    return;
-  }
-
-  const normalizedAnswers = answers.map(normalize);
-  if (normalizedAnswers.some((answer) => !answer)) {
-    errors.push(`${label}: Mindestens eine Antwort ist leer.`);
-  }
-  if (new Set(normalizedAnswers).size !== normalizedAnswers.length) {
-    errors.push(`${label}: Antwortmöglichkeiten sind innerhalb der Frage doppelt.`);
-  }
-
-  let validCorrect = false;
-  if (Number.isInteger(correct)) {
-    validCorrect = (correct >= 0 && correct < answers.length)
-      || (correct >= 1 && correct <= answers.length);
-  } else if (typeof correct === 'string') {
-    validCorrect = /^[a-d]$/i.test(correct.trim())
-      || normalizedAnswers.includes(normalize(correct));
-  }
-  if (!validCorrect) {
-    errors.push(`${label}: Die richtige Antwort fehlt oder passt nicht eindeutig zu einer Antwort.`);
-  }
-
-  if (normalizedText) {
-    if (textMap.has(normalizedText)) {
-      errors.push(`${label}: Exaktes Fragenduplikat zu ${textMap.get(normalizedText)}.`);
-    } else {
-      textMap.set(normalizedText, label);
-    }
-    normalizedQuestions.push({ text: normalizedText, label });
-  }
-
-  if (id !== undefined && id !== null && String(id).trim()) {
-    const normalizedId = String(id).trim().toLowerCase();
-    if (idMap.has(normalizedId)) {
-      errors.push(`${label}: Doppelte Frage-ID, bereits verwendet bei ${idMap.get(normalizedId)}.`);
-    } else {
-      idMap.set(normalizedId, label);
-    }
-  } else {
-    warnings.push(`${label}: Keine feste Frage-ID vorhanden.`);
-  }
-
-  if (!category || !String(category).trim()) warnings.push(`${label}: Kategorie fehlt.`);
-  if (String(text).trim().length < 10) {
-    warnings.push(`${label}: Sehr kurzer Fragetext – bitte auf Verständlichkeit prüfen.`);
-  }
-  if (String(text).trim().length > 220) {
-    warnings.push(`${label}: Sehr langer Fragetext – auf Handy und Beamer prüfen.`);
-  }
-  if (!/[?？]$/.test(String(text).trim())) {
-    warnings.push(`${label}: Fragetext endet nicht mit einem Fragezeichen.`);
-  }
-  answers.forEach((answer, index) => {
-    if (String(answer).trim().length > 100) {
-      warnings.push(`${label}: Antwort ${index + 1} ist ungewöhnlich lang.`);
-    }
-  });
-});
 
 function tokenSet(text) {
   return new Set(text.split(' ').filter((token) => token.length > 2));
@@ -214,48 +69,148 @@ function similarity(left, right) {
   return intersection / (a.size + b.size - intersection);
 }
 
-const nearDuplicates = [];
-for (let left = 0; left < normalizedQuestions.length; left += 1) {
-  for (let right = left + 1; right < normalizedQuestions.length; right += 1) {
-    const score = similarity(normalizedQuestions[left].text, normalizedQuestions[right].text);
-    if (score >= 0.86 && normalizedQuestions[left].text !== normalizedQuestions[right].text) {
-      nearDuplicates.push({
-        score,
-        left: normalizedQuestions[left].label,
-        right: normalizedQuestions[right].label
+for (const catalog of catalogs) {
+  if (!fs.existsSync(catalog.file)) {
+    errors.push(`${catalog.name}: Katalogdatei fehlt: ${catalog.file}`);
+    continue;
+  }
+
+  let questions;
+  try {
+    questions = JSON.parse(fs.readFileSync(catalog.file, 'utf8'));
+  } catch (error) {
+    errors.push(`${catalog.name}: Katalog ist kein gültiges JSON (${error.message}).`);
+    continue;
+  }
+
+  if (!Array.isArray(questions)) {
+    errors.push(`${catalog.name}: Der Katalog muss ein Array sein.`);
+    continue;
+  }
+
+  if (questions.length !== catalog.expectedCount) {
+    errors.push(
+      `${catalog.name}: Erwartet werden ${catalog.expectedCount} Fragen, gefunden wurden ${questions.length}.`
+    );
+  }
+
+  const catalogTexts = new Map();
+
+  questions.forEach((question, index) => {
+    const label = `${catalog.name}[${index}]`;
+    if (!question || typeof question !== 'object' || Array.isArray(question)) {
+      errors.push(`${label}: Frage ist kein gültiges Objekt.`);
+      return;
+    }
+
+    const id = String(question.id ?? '').trim();
+    const text = String(question.text ?? '').trim();
+    const category = String(question.category ?? '').trim();
+    const options = question.options;
+    const correctIndex = question.correctIndex;
+
+    if (!id) {
+      errors.push(`${label}: Feste Frage-ID fehlt.`);
+    } else if (globalIds.has(id.toLowerCase())) {
+      errors.push(`${label}: Doppelte Frage-ID, bereits verwendet bei ${globalIds.get(id.toLowerCase())}.`);
+    } else {
+      globalIds.set(id.toLowerCase(), label);
+    }
+
+    const normalizedText = normalizeText(text);
+    if (!normalizedText) {
+      errors.push(`${label}: Fragetext fehlt.`);
+    } else {
+      if (catalogTexts.has(normalizedText)) {
+        errors.push(`${label}: Exaktes Duplikat im selben Katalog zu ${catalogTexts.get(normalizedText)}.`);
+      } else {
+        catalogTexts.set(normalizedText, label);
+      }
+
+      if (globalTexts.has(normalizedText)) {
+        const previous = globalTexts.get(normalizedText);
+        if (previous.catalogKey !== catalog.key) {
+          warnings.push(`${label}: Gleicher Fragetext auch in ${previous.label}.`);
+        }
+      } else {
+        globalTexts.set(normalizedText, { catalogKey: catalog.key, label });
+      }
+    }
+
+    if (!category) {
+      errors.push(`${label}: Kategorie fehlt.`);
+    } else if (!catalog.categories.has(category)) {
+      errors.push(`${label}: Unzulässige Kategorie „${category}“.`);
+    }
+
+    if (!Array.isArray(options) || options.length !== 4) {
+      errors.push(`${label}: Es müssen genau vier Antwortmöglichkeiten vorhanden sein.`);
+    } else {
+      const rawOptions = options.map((option) => String(option ?? '').trim());
+      if (rawOptions.some((option) => option.length === 0)) {
+        errors.push(`${label}: Mindestens eine Antwort ist leer.`);
+      }
+
+      const normalizedOptions = rawOptions.map(normalizeAnswer);
+      if (new Set(normalizedOptions).size !== normalizedOptions.length) {
+        errors.push(`${label}: Antwortmöglichkeiten sind innerhalb der Frage doppelt.`);
+      }
+
+      options.forEach((option, optionIndex) => {
+        if (typeof option !== 'string') {
+          errors.push(`${label}: Antwort ${optionIndex + 1} muss Text sein.`);
+        }
+        if (String(option ?? '').trim().length > 100) {
+          warnings.push(`${label}: Antwort ${optionIndex + 1} ist ungewöhnlich lang.`);
+        }
       });
+    }
+
+    if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex > 3) {
+      errors.push(`${label}: correctIndex muss eine Ganzzahl von 0 bis 3 sein.`);
+    }
+
+    if (text.length < 10) warnings.push(`${label}: Sehr kurzer Fragetext.`);
+    if (text.length > 220) warnings.push(`${label}: Sehr langer Fragetext für Handy oder Beamer.`);
+    if (text && !/[?？]$/.test(text)) warnings.push(`${label}: Fragetext endet nicht mit einem Fragezeichen.`);
+
+    allQuestions.push({ catalogKey: catalog.key, label, text: normalizedText });
+  });
+}
+
+for (let left = 0; left < allQuestions.length; left += 1) {
+  for (let right = left + 1; right < allQuestions.length; right += 1) {
+    const a = allQuestions[left];
+    const b = allQuestions[right];
+    if (!a.text || !b.text || a.text === b.text) continue;
+    if (a.catalogKey !== b.catalogKey) continue;
+    const score = similarity(a.text, b.text);
+    if (score >= 0.86) {
+      warnings.push(
+        `Mögliches ähnliches Fragenpaar (${Math.round(score * 100)} %): ${a.label} ↔ ${b.label}`
+      );
     }
   }
 }
 
-nearDuplicates
-  .sort((a, b) => b.score - a.score)
-  .slice(0, 50)
-  .forEach((duplicate) => {
-    warnings.push(
-      `Mögliches ähnliches Fragenpaar (${Math.round(duplicate.score * 100)} %): ${duplicate.left} ↔ ${duplicate.right}`
-    );
-  });
-
 const reportLines = [
   '# Automatische Qualitätsprüfung des Fragenkatalogs',
   '',
-  `Geprüfte Fragenobjekte: **${questions.length}**`,
+  `Geprüfte Fragen: **${allQuestions.length}**`,
   `Strukturelle Fehler: **${errors.length}**`,
   `Prüfhinweise: **${warnings.length}**`,
   '',
-  '## Geprüfte Punkte',
+  '## Automatisch geprüft',
   '',
-  '- genau vier Antwortmöglichkeiten',
-  '- vorhandene und gültige richtige Antwort',
-  '- leere sowie doppelte Antworten',
-  '- exakte doppelte Fragetexte',
-  '- doppelte Frage-IDs',
-  '- fehlende Kategorien und IDs',
-  '- auffällig kurze oder lange Texte',
-  '- mögliche sehr ähnliche Fragen',
+  '- 300 Erwachsenenfragen und 200 Kinderfragen',
+  '- eindeutige feste Frage-IDs',
+  '- zulässige Kategorien',
+  '- genau vier nicht leere und unterschiedliche Antworten',
+  '- gültiger correctIndex von 0 bis 3',
+  '- exakte Duplikate und auffällig ähnliche Fragen',
+  '- ungewöhnlich kurze oder lange Texte',
   '',
-  '> Sachliche Richtigkeit, Aktualität und sprachliche Eindeutigkeit können nicht vollständig automatisiert garantiert werden und benötigen weiterhin Stichproben durch einen Menschen.',
+  '> Sachliche Richtigkeit, Aktualität und sprachliche Eindeutigkeit benötigen weiterhin menschliche Stichproben; sie lassen sich nicht vollständig automatisieren.',
   ''
 ];
 
@@ -268,7 +223,7 @@ fs.writeFileSync(
 );
 
 console.log(
-  `Catalog quality check: ${questions.length} questions, ${errors.length} errors, ${warnings.length} warnings.`
+  `Catalog quality check: ${allQuestions.length} questions, ${errors.length} errors, ${warnings.length} warnings.`
 );
 if (errors.length) {
   console.error(errors.join('\n'));
