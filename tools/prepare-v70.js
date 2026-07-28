@@ -34,8 +34,12 @@ function repairMigrationSource() {
 \`);
 `;
     source = `${source.slice(0, start)}${fixed}${source.slice(end)}`;
-    fs.writeFileSync(patch, source);
   }
+  source = source.replace(
+    "assert(client.includes('result-${type}-'));",
+    "assert(client.includes('result-\\${type}-'));",
+  );
+  fs.writeFileSync(patch, source);
   execFileSync(process.execPath, ['--check', patch], { cwd: root, stdio: 'inherit' });
 }
 
