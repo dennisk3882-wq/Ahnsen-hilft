@@ -32,30 +32,6 @@ function normalizeQuestion(question, type, index) {
   };
 }
 
-const WEAK_EXPLANATION_PATTERNS = [
-  /beantwortet diese frage richtig/i,
-  /hat beziehungsweise haben/i,
-  /ist die richtige (anzahl|zeitangabe|höhenangabe|größenangabe|bezeichnung|auswahl|farbe|form)/i,
-  /ist die gesuchte (person|figur|ort|pflanze|sprache|tier)/i,
-  /ist die richtige lösung aus/i,
-  /diese frage gehört zur kategorie/i,
-  /^die richtige antwort ist\b/i,
-];
-
-const DEFAULT_CONTENT_MIGRATIONS = new Map([
-  ['adult-sport-018', 'Wie heißt der Wurfkreis beim Darts?'],
-  ['adult-history-023', 'Welche Stadt wurde im Mittelalter als „ewige Stadt“ bezeichnet?'],
-  ['child-geo-017', 'Wie heißt die Hauptstadt von Großbritannien?'],
-  ['child-geo-020', 'Welcher Fluss ist der längste in Deutschland?'],
-  ['child-nature-012', 'Wie heißt der männliche Löwe meist wegen seines Fells am Kopf?'],
-  ['child-sport-028', 'Wie nennt man eine Mannschaft ohne Gegentor?'],
-]);
-
-function isWeakExplanation(value) {
-  const text = String(value || '').trim();
-  return !text || WEAK_EXPLANATION_PATTERNS.some(pattern => pattern.test(text));
-}
-
 function normalizeMatchText(value) {
   return String(value || '')
     .normalize('NFKC')
@@ -73,48 +49,42 @@ function questionIdentityKey(question) {
   return `${normalizeMatchText(question?.text)}\u0000${normalizeMatchText(correctAnswer)}`;
 }
 
+function isExplicitCustomQuestion(question, type) {
+  return String(question?.id || '').startsWith(`${type}-custom-`);
+}
+
 function mergeCatalog(existing, defaults, type) {
-  const existingList = Array.isArray(existing) ? existing : [];
-  const defaultList = (Array.isArray(defaults) ? defaults : []).map((q, i) => normalizeQuestion(q, type, i));
-  const defaultsById = new Map(defaultList.map(question => [question.id, question]));
-  const defaultsByIdentity = new Map(defaultList.map(question => [questionIdentityKey(question), question]));
+  const defaultList = (Array.isArray(defaults) ? defaults : [])
+    .map((question, index) => normalizeQuestion(question, type, index))
+    .filter(question => question.text);
 
-  const normalized = existingList
-    .map((q, i) => normalizeQuestion(q, type, i))
-    .filter(q => q.text)
-    .map(question => {
-      const catalogDefaultById = defaultsById.get(question.id);
-      const merged = { ...question };
+  // Die Dateien unter data/ sind für sämtliche 500 Standardfragen verbindlich.
+  // Dadurch bleiben Fragetext, Antworten, richtige Lösung und Erklärung immer als
+  // zusammengehöriger Datensatz erhalten, auch wenn Neon noch ältere Fassungen enthält.
+  const merged = defaultList.map(question => ({
+    ...question,
+    options: [...question.options],
+  }));
 
-      const oldText = DEFAULT_CONTENT_MIGRATIONS.get(merged.id);
-      if (catalogDefaultById && oldText && merged.text === oldText) {
-        merged.text = catalogDefaultById.text;
-        merged.options = [...catalogDefaultById.options];
-        merged.correctIndex = catalogDefaultById.correctIndex;
-      }
+  const seenIds = new Set(merged.map(question => question.id));
+  const seenIdentities = new Set(merged.map(questionIdentityKey));
+  const existingList = (Array.isArray(existing) ? existing : [])
+    .map((question, index) => normalizeQuestion(question, type, index))
+    .filter(question => question.text);
 
-      const catalogDefaultByContent = defaultsByIdentity.get(questionIdentityKey(merged));
-      if (catalogDefaultByContent?.explanation) {
-        // Die Erklärung wird anhand von Fragetext und richtiger Antwort synchronisiert.
-        // So werden auch bereits gespeicherte, aber vertauschte Erklärungen zuverlässig repariert.
-        merged.explanation = catalogDefaultByContent.explanation;
-      } else if (catalogDefaultById && isWeakExplanation(merged.explanation) && catalogDefaultById.explanation) {
-        merged.explanation = catalogDefaultById.explanation;
-      }
-
-      return merged;
-    });
-
-  const ids = new Set(normalized.map(q => q.id));
-  const texts = new Set(normalized.map(q => q.text.toLocaleLowerCase('de')));
-  for (const candidate of defaultList) {
-    if (!ids.has(candidate.id) && !texts.has(candidate.text.toLocaleLowerCase('de'))) {
-      normalized.push(candidate);
-      ids.add(candidate.id);
-      texts.add(candidate.text.toLocaleLowerCase('de'));
-    }
+  // Ausschließlich ausdrücklich über den Frageneditor erstellte Zusatzfragen bleiben
+  // neben dem verbindlichen Standardkatalog erhalten. Alte Standard- und Legacy-Fassungen
+  // werden nicht erneut angehängt, da sie genau die gemeldeten Zuordnungsfehler verursachen.
+  for (const question of existingList) {
+    if (!isExplicitCustomQuestion(question, type)) continue;
+    const identity = questionIdentityKey(question);
+    if (seenIds.has(question.id) || seenIdentities.has(identity)) continue;
+    merged.push(question);
+    seenIds.add(question.id);
+    seenIdentities.add(identity);
   }
-  return normalized;
+
+  return merged;
 }
 
 async function initDatabase(defaultSets) {
@@ -263,5 +233,6 @@ module.exports = {
   _test: {
     mergeCatalog,
     questionIdentityKey,
+    isExplicitCustomQuestion,
   },
 };
