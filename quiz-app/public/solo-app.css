@@ -1,0 +1,222 @@
+/* Zusätzliche App-Veredelung für den Solo-Modus */
+.solo-app-hero {
+  min-height: 320px;
+  border-radius: 28px;
+  border-color: rgba(156,92,255,.28);
+  background:
+    radial-gradient(circle at 85% 18%, rgba(65,124,255,.22), transparent 16rem),
+    radial-gradient(circle at 12% 110%, rgba(159,92,255,.25), transparent 24rem),
+    linear-gradient(145deg, rgba(31,28,75,.99), rgba(8,14,30,.99));
+  box-shadow: 0 28px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.solo-app-hero h1 {
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  line-height: .92;
+}
+
+.solo-app-hero h1 span {
+  color: transparent;
+  background: linear-gradient(95deg, #ceb0ff, #8292ff 48%, #4ce1db);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.solo-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.solo-app-hero .solo-orbit {
+  border-radius: 38%;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255,255,255,.18), transparent 10%),
+    radial-gradient(circle, rgba(156,92,255,.35), rgba(57,93,224,.2) 48%, rgba(7,13,28,.05) 49%);
+  transform: rotate(8deg);
+}
+
+.solo-app-hero .solo-orbit span {
+  color: #fff;
+  font-style: italic;
+  transform: rotate(-8deg);
+  text-shadow: 0 0 35px rgba(126,96,255,.65);
+}
+
+.solo-config-grid > .panel {
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(96,88,216,.07), transparent 15rem),
+    linear-gradient(145deg, rgba(20,28,51,.97), rgba(8,13,27,.98));
+}
+
+.solo-config-card,
+.solo-start-card {
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.solo-choice,
+.solo-mode-choice {
+  position: relative;
+  overflow: hidden;
+  min-height: 145px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.027);
+}
+
+.solo-choice::after,
+.solo-mode-choice::after {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  right: -50px;
+  top: -55px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 50%;
+}
+
+.solo-choice.active,
+.solo-mode-choice.active {
+  border-color: rgba(164,101,255,.68);
+  background:
+    radial-gradient(circle at 100% 0, rgba(97,123,255,.17), transparent 12rem),
+    linear-gradient(145deg, rgba(156,92,255,.22), rgba(61,78,150,.11));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.045), 0 16px 35px rgba(38,22,91,.16);
+}
+
+.solo-choice-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  background: rgba(255,255,255,.055);
+  font-size: 1.55rem;
+}
+
+.solo-count-choice {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.solo-count-choice.active {
+  background: linear-gradient(145deg, #a45cff, #5c45e9 58%, #3578e7);
+  box-shadow: 0 14px 34px rgba(105,70,226,.3);
+}
+
+.solo-toggle {
+  border-radius: 17px;
+  background: linear-gradient(145deg, rgba(67,223,148,.075), rgba(255,255,255,.02));
+}
+
+.solo-start-card {
+  border-color: rgba(156,92,255,.3) !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(156,92,255,.18), transparent 15rem),
+    linear-gradient(145deg, rgba(28,25,65,.98), rgba(9,14,29,.98)) !important;
+}
+
+.solo-record-card {
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,202,79,.1), rgba(255,202,79,.045));
+}
+
+.solo-game-topbar {
+  position: sticky;
+  z-index: 20;
+  top: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(7,11,24,.82);
+  box-shadow: 0 15px 40px rgba(0,0,0,.24);
+  backdrop-filter: blur(18px);
+}
+
+.solo-stage {
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(66,102,225,.08), transparent 18rem),
+    linear-gradient(145deg, rgba(18,26,49,.98), rgba(7,12,26,.99));
+}
+
+.solo-question-card {
+  background:
+    radial-gradient(circle at 100% 0, rgba(156,92,255,.08), transparent 19rem),
+    transparent;
+}
+
+.solo-question-title h2 {
+  max-width: 900px;
+  font-size: clamp(1.65rem, 4.2vw, 2.65rem);
+}
+
+.solo-question-card .answer-btn {
+  border-radius: 19px;
+  background: linear-gradient(145deg, rgba(29,39,70,.88), rgba(15,22,42,.94));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.solo-question-card .answer-btn:not(:disabled):hover {
+  border-color: rgba(168,127,255,.38);
+  transform: translateY(-2px);
+}
+
+.solo-explanation {
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(53,223,160,.09), transparent 13rem),
+    rgba(53,223,160,.065) !important;
+}
+
+.solo-explanation p {
+  margin: 8px 0 0;
+  font-size: clamp(1rem, 2.4vw, 1.16rem);
+  line-height: 1.58;
+}
+
+.solo-next-button {
+  min-height: 58px;
+  border-radius: 16px;
+  font-size: 1.04rem;
+}
+
+.solo-result-view {
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 50% 14%, rgba(255,202,79,.18), transparent 22rem),
+    radial-gradient(circle at 0 100%, rgba(156,92,255,.12), transparent 20rem);
+}
+
+body:has(#gameView:not(.hidden)) .app-bottom-nav {
+  display: none;
+}
+
+body:has(#gameView:not(.hidden)) {
+  padding-bottom: 0;
+}
+
+@media (min-width: 900px) {
+  .solo-start-card {
+    position: sticky;
+    top: 18px;
+  }
+}
+
+@media (max-width: 820px) {
+  .solo-app-hero { min-height: auto; }
+}
+
+@media (max-width: 520px) {
+  .solo-app-hero { padding: 22px 18px; border-radius: 22px; }
+  .solo-app-hero h1 { font-size: clamp(2.55rem, 14vw, 3.8rem); }
+  .solo-hero-badges { gap: 6px; }
+  .solo-choice, .solo-mode-choice { min-height: 130px; }
+  .solo-game-topbar { top: 4px; border-radius: 15px; }
+  .solo-stage { border-radius: 20px; }
+  .solo-question-card .answer-btn { border-radius: 17px; }
+}
