@@ -7,6 +7,7 @@
   <title>Solo-Quiz – Ahnsen Quizabend</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/solo.css">
+  <link rel="stylesheet" href="/solo-exit.css">
   <link rel="stylesheet" href="/elevenlabs-speech.css">
   <link rel="stylesheet" href="/solo-profiles.css">
 </head>
@@ -79,9 +80,10 @@
           <span id="soloCategory" class="category-chip">Gemischt</span>
           <span id="soloModePill" class="status-chip">Entspannt</span>
         </div>
-        <div class="row">
+        <div class="row solo-game-actions">
           <button id="speakButton" class="btn ghost small" type="button">🔊 Vorlesen</button>
           <span id="soloScore" class="score-chip">0 Punkte</span>
+          <button id="exitSoloButton" class="btn ghost small solo-exit-button" type="button">✕ Quiz beenden</button>
         </div>
       </div>
       <div class="quiz-progress-track"><span id="soloProgress"></span></div>
@@ -91,6 +93,7 @@
 
   <script src="/solo-profiles.js"></script>
   <script src="/solo.js"></script>
+  <script src="/solo-exit.js"></script>
   <script src="/elevenlabs-speech.js"></script>
 </body>
 </html>
