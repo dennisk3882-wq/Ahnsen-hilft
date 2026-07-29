@@ -1,0 +1,27 @@
+{
+  "name": "Ahnsen Quiz",
+  "short_name": "Ahnsen Quiz",
+  "description": "Solo-, Live- und Mehrspieler-Quiz für Kinder und Erwachsene.",
+  "lang": "de-DE",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070914",
+  "theme_color": "#090b16",
+  "categories": ["education", "games", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/ahnsen-quiz.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/ahnsen-quiz-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
