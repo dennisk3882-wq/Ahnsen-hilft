@@ -2,35 +2,49 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#090b16">
-  <title>Solo-Quiz – Ahnsen Quizabend</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Ahnsen Quiz Solo – Kinder- und Erwachsenenfragen mit Lern-Erklärungen.">
+  <title>Solo – Ahnsen Quiz</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/solo.css">
   <link rel="stylesheet" href="/solo-exit.css">
   <link rel="stylesheet" href="/elevenlabs-speech.css">
   <link rel="stylesheet" href="/solo-profiles.css">
+  <link rel="stylesheet" href="/app.css">
 </head>
-<body class="solo-body">
-  <main class="solo-shell">
-    <header class="solo-header">
-      <a class="sidebar-brand" href="/" aria-label="Zurück zur Startseite">
-        <div class="brand-mark small" aria-hidden="true">?</div>
-        <div><strong>AHNSEN</strong><span>SOLO-QUIZ</span></div>
+<body class="solo-body app-body">
+  <main class="solo-shell app-shell">
+    <header class="solo-header app-topbar">
+      <a class="app-brand" href="/" aria-label="Zurück zur Ahnsen-Quiz-Startseite">
+        <div class="app-logo" aria-hidden="true">A</div>
+        <div class="app-brand-copy"><strong>Ahnsen Quiz</strong><span>Solo-Modus</span></div>
       </a>
-      <a class="btn ghost small" href="/">← Zum Live-Quiz</a>
+      <div class="app-top-actions">
+        <button class="btn ghost small app-install-button" type="button" data-install-app>App installieren</button>
+        <a class="btn ghost small" href="/">← Startseite</a>
+      </div>
     </header>
 
     <section id="setupView" class="solo-setup">
-      <div class="solo-hero panel">
+      <div class="solo-hero panel solo-app-hero">
         <div>
-          <span class="eyebrow">Spielen ohne Quizmaster</span>
-          <h1>Dein Quiz. Dein Tempo.</h1>
+          <span class="app-kicker">Spielen ohne Quizmaster</span>
+          <h1>Dein Quiz.<br><span>Dein Tempo.</span></h1>
           <p class="muted">Wähle Kinder- oder Erwachsenenfragen und entscheide selbst, ob du mit Zeitbonus oder ganz entspannt spielen möchtest.</p>
+          <div class="solo-hero-badges">
+            <span class="app-badge">500 Fragen</span>
+            <span class="app-badge">💡 Mit Erklärung</span>
+            <span class="app-badge">🔊 Vorlesbar</span>
+          </div>
         </div>
         <div class="solo-mascot" aria-hidden="true">
-          <div class="solo-orbit"><span>?</span></div>
-          <strong>Los geht’s!</strong>
+          <div class="solo-orbit"><span>A</span></div>
+          <strong>Bereit zum Spielen</strong>
         </div>
       </div>
 
@@ -38,8 +52,8 @@
         <section class="panel solo-config-card">
           <div class="panel-heading compact"><div><span class="eyebrow">1. Fragen auswählen</span><h2>Welches Quiz möchtest du?</h2></div></div>
           <div class="solo-choice-grid two" role="radiogroup" aria-label="Quizart">
-            <button class="solo-choice active" type="button" data-quiz-type="child" aria-pressed="true"><span class="solo-choice-icon">🧒</span><strong>Kinderquiz</strong><small>Leicht bis knifflig</small></button>
-            <button class="solo-choice" type="button" data-quiz-type="adult" aria-pressed="false"><span class="solo-choice-icon">🧠</span><strong>Erwachsenenquiz</strong><small>Mehr Herausforderung</small></button>
+            <button class="solo-choice active" type="button" data-quiz-type="child" aria-pressed="true"><span class="solo-choice-icon">🧒</span><strong>Kinderquiz</strong><small>Altersgerechte Fragen und leicht verständliche Erklärungen</small></button>
+            <button class="solo-choice" type="button" data-quiz-type="adult" aria-pressed="false"><span class="solo-choice-icon">🧠</span><strong>Erwachsenenquiz</strong><small>Mehr Wissen, mehr Kategorien und mehr Herausforderung</small></button>
           </div>
           <label>Kategorie<select id="categorySelect"><option>Gemischt</option></select></label>
         </section>
@@ -57,14 +71,14 @@
               <span class="solo-choice-icon">⏱️</span><strong>Zeitmodus</strong><small>20 Sekunden, Zeitbonus und −5 Punkte bei einer falschen Antwort</small>
             </button>
             <button class="solo-mode-choice active" type="button" data-mode="relaxed" aria-pressed="true">
-              <span class="solo-choice-icon">🌿</span><strong>Entspannter Modus</strong><small>Keine Zeitbegrenzung und keine Minuspunkte</small>
+              <span class="solo-choice-icon">🌿</span><strong>Entspannter Modus</strong><small>Keine Zeitbegrenzung und keine Minuspunkte – ideal zum Lernen</small>
             </button>
           </div>
           <label class="solo-toggle"><input id="speechToggle" type="checkbox" checked><span><strong>Fragen automatisch vorlesen</strong><small>Die natürliche Stimme liest die Frage beim Start automatisch vor.</small></span></label>
         </section>
 
         <aside class="panel solo-start-card">
-          <span class="eyebrow">Deine Auswahl</span>
+          <span class="app-kicker">Deine Auswahl</span>
           <div id="selectionSummary" class="solo-selection-summary"></div>
           <div id="recordSummary" class="solo-record-card"><span>Persönlicher Rekord</span><strong>Noch keiner</strong></div>
           <button id="startSoloButton" class="btn primary wide-button" type="button" disabled>Solo-Quiz starten</button>
@@ -91,9 +105,17 @@
     </section>
   </main>
 
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation">
+    <a class="app-nav-item active" href="/"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/></svg><span>Start</span></a>
+    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Kategorien" data-upcoming-text="In der nächsten Ausbaustufe werden hier Lernfortschritt und persönliche Kategorien-Statistiken angezeigt."><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Kategorien</span></button>
+    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Bestenlisten" data-upcoming-text="Persönliche Bestwerte, Serien und später Online-Ranglisten werden hier zusammengeführt."><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg><span>Bestenliste</span></button>
+    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Spielerprofil" data-upcoming-text="Profile mit Avatar, Level, XP, Abzeichen und detaillierten Statistiken folgen als Nächstes."><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></button>
+  </nav>
+
   <script src="/solo-profiles.js"></script>
   <script src="/solo.js"></script>
   <script src="/solo-exit.js"></script>
   <script src="/elevenlabs-speech.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

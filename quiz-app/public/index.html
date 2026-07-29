@@ -2,60 +2,130 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#090b16">
-  <title>Ahnsen Quizabend</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Ahnsen Quiz – Solo, Live und künftig gemeinsam online oder offline spielen.">
+  <title>Ahnsen Quiz</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/solo.css">
+  <link rel="stylesheet" href="/app.css">
   <link rel="stylesheet" href="/start.css">
 </head>
-<body class="player-body">
-  <main class="player-shell">
-    <header class="player-brandbar">
-      <div class="sidebar-brand player-brand">
-        <div class="brand-mark small" aria-hidden="true">?</div>
-        <div><strong id="title">AHNSEN</strong><span>QUIZABEND</span></div>
+<body class="player-body app-body">
+  <main class="player-shell app-shell">
+    <header class="player-brandbar app-topbar">
+      <a class="app-brand" href="/" aria-label="Ahnsen Quiz Startseite">
+        <div class="app-logo" aria-hidden="true">A</div>
+        <div class="app-brand-copy"><strong id="title">Ahnsen Quiz</strong><span>Wissen · Spielen · Lernen</span></div>
+      </a>
+      <div class="app-top-actions">
+        <button class="btn ghost small app-install-button" type="button" data-install-app>App installieren</button>
+        <span id="topModeBadge" class="mode-badge"><i></i> Quiz-Auswahl</span>
       </div>
-      <span id="topModeBadge" class="mode-badge"><i></i> Quiz-Auswahl</span>
     </header>
 
     <section id="modeChooser" class="mode-chooser">
-      <div class="mode-chooser-heading">
-        <span class="eyebrow">Wie möchtest du spielen?</span>
-        <h1>Wähle deinen Quizmodus</h1>
-        <p class="muted">Spiele gemeinsam beim moderierten Quizabend oder starte jederzeit eine eigene Solo-Runde.</p>
+      <section class="app-hero">
+        <div class="app-hero-copy">
+          <span class="app-kicker">Das Quiz für Groß und Klein</span>
+          <h1>Dein Wissen.<span>Dein Spiel.</span></h1>
+          <p>Spiele allein, lerne mit verständlichen Erklärungen oder tritt beim moderierten Quizabend gegen andere an. Offline- und Online-Mehrspieler werden als nächste große Spielbereiche ergänzt.</p>
+          <div class="app-hero-actions">
+            <a class="btn primary" href="/solo">Solo-Quiz starten</a>
+            <button id="heroLiveButton" class="btn ghost" type="button">Live-Quiz beitreten</button>
+          </div>
+        </div>
+        <div class="app-hero-visual" aria-hidden="true">
+          <div class="floating-stat one"><span class="mini-icon">🧠</span><div><strong>500 Fragen</strong><span>Kinder & Erwachsene</span></div></div>
+          <div class="quiz-core"><span class="quiz-core-mark">A</span></div>
+          <div class="floating-stat two"><span class="mini-icon">💡</span><div><strong>Mit Erklärung</strong><span>Nach jeder Antwort</span></div></div>
+        </div>
+      </section>
+
+      <div class="app-feature-strip" aria-label="Vorteile von Ahnsen Quiz">
+        <div class="app-feature"><span class="app-feature-icon">👨‍👩‍👧‍👦</span><div><strong>Für jedes Alter</strong><span>Eigene Fragenwelten für Kinder und Erwachsene.</span></div></div>
+        <div class="app-feature"><span class="app-feature-icon">📚</span><div><strong>Lernen beim Spielen</strong><span>Kurze Erklärungen machen aus Antworten neues Wissen.</span></div></div>
+        <div class="app-feature"><span class="app-feature-icon">🌐</span><div><strong>Web-App ohne Hürden</strong><span>Direkt im Browser und installierbar wie eine App.</span></div></div>
+      </div>
+
+      <div class="app-section-heading">
+        <div><span class="app-kicker">Spielmodus wählen</span><h2>Wie möchtest du spielen?</h2></div>
+        <p class="muted">Solo und Live sind einsatzbereit. Die Mehrspielerbereiche werden in den folgenden Ausbaustufen freigeschaltet.</p>
       </div>
 
       <div class="mode-card-grid">
+        <article class="mode-card solo-mode-card">
+          <div class="mode-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8 3h8l1 4 3 2-2 11H6L4 9l3-2 1-4Z"/><path d="M9 12h6M12 9v6"/></svg>
+          </div>
+          <span class="mode-card-status ready">Sofort spielbar</span>
+          <h2>Solo</h2>
+          <p class="muted">Kinder- oder Erwachsenenfragen, Kategorien, Vorlesefunktion und wahlweise mit Timer oder ganz ohne Zeitdruck.</p>
+          <div class="mode-card-actions"><a class="btn primary wide-button" href="/solo">Solo-Quiz starten</a></div>
+        </article>
+
+        <article class="mode-card offline-mode-card">
+          <div class="mode-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 18v-2a4 4 0 0 1 4-4h1M15 12h1a4 4 0 0 1 4 4v2"/><circle cx="9" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M8 19h8"/></svg>
+          </div>
+          <span class="mode-card-status">Ausbaustufe 3</span>
+          <h2>Offline-Mehrspieler</h2>
+          <p class="muted">Freunde und Familie spielen auf einem Gerät. Mit Spielerwechsel, Teams, Party-Runden und gemeinsamer Wertung.</p>
+          <div class="mode-card-actions"><button class="btn secondary wide-button" type="button" data-upcoming data-upcoming-stage="Ausbaustufe 3" data-upcoming-title="Offline-Mehrspieler" data-upcoming-text="Dieser Modus wird nach Profilen und Lernfortschritt umgesetzt. Zuerst startet die Variante für mehrere Spieler oder Teams auf einem Gerät.">Vorschau ansehen</button></div>
+        </article>
+
+        <article class="mode-card online-mode-card">
+          <div class="mode-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+          </div>
+          <span class="mode-card-status">Ausbaustufe 4</span>
+          <h2>Online-Mehrspieler</h2>
+          <p class="muted">Private Räume mit Spielcode, Lobby, Bereit-Status und Echtzeitduelle auf mehreren Handys oder Tablets.</p>
+          <div class="mode-card-actions"><button class="btn success wide-button" type="button" data-upcoming data-upcoming-stage="Ausbaustufe 4" data-upcoming-title="Online-Mehrspieler" data-upcoming-text="Geplant sind private Räume, Einzelspieler und Teams, Live-Punktestand sowie eine zuverlässige Wiederverbindung.">Vorschau ansehen</button></div>
+        </article>
+
         <article class="mode-card live-mode-card">
-          <div class="mode-card-icon" aria-hidden="true">🎤</div>
-          <span class="eyebrow">Gemeinsam mit Quizmaster</span>
+          <div class="mode-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8 4h8v7a4 4 0 0 1-8 0V4Z"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v3M8 21h8"/></svg>
+          </div>
+          <span class="mode-card-status live">Live mit Quizmaster</span>
           <h2>Live-Quiz</h2>
-          <p class="muted">Melde dich mit deinem Namen und dem Passwort des Quizabends an. Der Quizmaster steuert die Fragen.</p>
+          <p class="muted">Tritt dem moderierten Quizabend mit deinem Namen und dem Veranstaltungspasswort bei. Der Quizmaster steuert die Runde.</p>
           <div class="mode-card-actions">
             <button id="resumeLiveButton" class="btn primary wide-button hidden" type="button">Live-Quiz fortsetzen</button>
-            <button id="openLiveLoginButton" class="btn secondary wide-button" type="button">Live-Quiz beitreten</button>
+            <button id="openLiveLoginButton" class="btn warning wide-button" type="button">Live-Quiz beitreten</button>
             <button id="forgetLiveButton" class="btn ghost small hidden" type="button">Gespeicherte Live-Anmeldung löschen</button>
           </div>
         </article>
-
-        <article class="mode-card solo-mode-card">
-          <div class="mode-card-icon" aria-hidden="true">🧠</div>
-          <span class="eyebrow">Jederzeit ohne Quizmaster</span>
-          <h2>Solo-Quiz</h2>
-          <p class="muted">Kinder- oder Erwachsenenfragen, verschiedene Kategorien und wahlweise mit Timer oder ganz ohne Zeitdruck.</p>
-          <div class="mode-card-actions">
-            <a class="btn primary wide-button" href="/solo">Solo-Quiz starten</a>
-          </div>
-        </article>
       </div>
+
+      <section class="app-profile-preview" aria-label="Vorschau auf Profile und Lernfortschritt">
+        <div class="app-avatar" aria-hidden="true">🤖</div>
+        <div>
+          <h3>Profile, XP und Abzeichen folgen als Nächstes</h3>
+          <p>In Ausbaustufe 2 erhält jeder Spieler Fortschritt, Kategorien-Statistiken, Serien und einen Übungsmodus für falsche Antworten.</p>
+          <div class="app-xp-bar" aria-hidden="true"><span></span></div>
+        </div>
+        <span class="app-badge app-upcoming">Ausbaustufe 2</span>
+      </section>
+
+      <section>
+        <div class="app-section-heading"><div><span class="app-kicker">Projektplan</span><h2>Der Ausbau erfolgt kontrolliert</h2></div></div>
+        <div class="stage-roadmap">
+          <div class="roadmap-step active"><span class="roadmap-number">1</span><strong>Design & PWA</strong><span>Neue Oberfläche, Navigation und installierbare Web-App.</span></div>
+          <div class="roadmap-step"><span class="roadmap-number">2</span><strong>Profile & Lernen</strong><span>XP, Abzeichen, Fortschritt und falsche Fragen üben.</span></div>
+          <div class="roadmap-step"><span class="roadmap-number">3</span><strong>Offline gemeinsam</strong><span>Mehrere Spieler und Teams auf einem Gerät.</span></div>
+          <div class="roadmap-step"><span class="roadmap-number">4</span><strong>Online gemeinsam</strong><span>Räume, Spielcodes, Lobby und Echtzeitspiele.</span></div>
+        </div>
+      </section>
     </section>
 
     <section id="loginCard" class="player-login-panel hidden">
-      <div class="login-visual" aria-hidden="true">
-        <div class="question-orbit"><span>?</span></div>
-        <p>Wissen. Schnelligkeit. Ruhm.</p>
-      </div>
+      <div class="login-visual" aria-hidden="true"><div class="question-orbit"><span>?</span></div><p>Wissen. Schnelligkeit. Ruhm.</p></div>
       <div class="login-form-panel">
         <button id="backToModesButton" class="btn ghost small login-back-button" type="button">← Zur Quiz-Auswahl</button>
         <span class="eyebrow">Live-Quiz beitreten</span>
@@ -70,23 +140,27 @@
 
     <section id="game" class="hidden player-game">
       <div class="player-statusbar">
-        <div class="row">
-          <span id="connectionPill" class="status-chip offline"><i></i>Verbindung</span>
-          <span id="playerPill" class="status-chip"></span>
-        </div>
-        <div class="row live-view-actions">
-          <button id="exitLiveViewButton" class="btn ghost small" type="button">← Quiz-Auswahl</button>
-          <button id="logoutLiveButton" class="btn ghost small" type="button">Abmelden</button>
-          <span id="scorePill" class="score-chip">0 Punkte</span>
-        </div>
+        <div class="row"><span id="connectionPill" class="status-chip offline"><i></i>Verbindung</span><span id="playerPill" class="status-chip"></span></div>
+        <div class="row live-view-actions"><button id="exitLiveViewButton" class="btn ghost small" type="button">← Quiz-Auswahl</button><button id="logoutLiveButton" class="btn ghost small" type="button">Abmelden</button><span id="scorePill" class="score-chip">0 Punkte</span></div>
       </div>
       <div class="quiz-progress-track"><span id="quizProgress"></span></div>
       <section id="view" class="player-stage"></section>
     </section>
   </main>
 
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation">
+    <a class="app-nav-item active" href="/" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/></svg><span>Start</span></a>
+    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Kategorien" data-upcoming-text="Hier entstehen persönliche Kategorienübersichten, Lernfortschritt und der Übungsmodus."><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Kategorien</span></button>
+    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Bestenlisten" data-upcoming-text="Persönliche Bestwerte, Serien und später Online-Ranglisten werden hier zusammengeführt."><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg><span>Bestenliste</span></button>
+    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Spielerprofil" data-upcoming-text="Profile mit Avatar, Level, XP, Abzeichen und detaillierten Statistiken folgen in der nächsten Ausbaustufe."><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></button>
+  </nav>
+
   <div id="overlay" class="overlay-modal hidden"><div id="overlayInner" class="overlay-inner"></div></div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/player.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    document.querySelector('#heroLiveButton')?.addEventListener('click', () => document.querySelector('#openLiveLoginButton')?.click());
+  </script>
 </body>
 </html>

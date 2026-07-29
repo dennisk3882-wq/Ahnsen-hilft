@@ -8,6 +8,7 @@ const tests = [
   'test/core.test.js',
   'test/solo.test.js',
   'test/start-page.test.js',
+  'test/stage1-webapp.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',
