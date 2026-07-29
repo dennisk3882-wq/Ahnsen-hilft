@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check db.js && node --check solo-routes.js && node --check elevenlabs.js && node --check extended-storage.js && node --check solo-profile-auth.js && node --check question-explanations.js && node --check public/player.js && node --check public/admin.js && node --check public/screen.js && node --check public/solo.js && node --check public/elevenlabs-speech.js && node --check public/solo-profiles.js && node --check test/run-isolated.js",
+    "check": "node --check server.js && node --check db.js && node --check solo-routes.js && node --check elevenlabs.js && node --check extended-storage.js && node --check solo-profile-auth.js && node --check question-explanations.js && node --check public/player.js && node --check public/admin.js && node --check public/screen.js && node --check public/solo.js && node --check public/solo-exit.js && node --check public/elevenlabs-speech.js && node --check public/solo-profiles.js && node --check test/run-isolated.js",
     "test:core": "node test/run-isolated.js",
     "test:catalog": "node tests/catalog-quality.test.js",
     "test:all": "npm run check && npm run test:core && npm run test:catalog"
