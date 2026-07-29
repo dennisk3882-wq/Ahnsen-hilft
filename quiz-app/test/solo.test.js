@@ -105,7 +105,20 @@ async function request(baseUrl, path, options = {}) {
     assert.strictEqual(timeout.body.result.delta, 0);
     assert.strictEqual(timeout.body.summary.unanswered, 1);
 
-    console.log('Solo scoring and API tests passed.');
+    const abortStart = await request(baseUrl, '/api/solo/start', {
+      method: 'POST',
+      body: JSON.stringify({ quizType: 'child', category: 'Gemischt', questionCount: 5, mode: 'relaxed' }),
+    });
+    const aborted = await request(baseUrl, `/api/solo/session/${encodeURIComponent(abortStart.body.sessionId)}`, {
+      method: 'DELETE',
+    });
+    assert.strictEqual(aborted.response.status, 200);
+    assert.strictEqual(aborted.body.ok, true);
+
+    const deletedState = await request(baseUrl, `/api/solo/state/${encodeURIComponent(abortStart.body.sessionId)}`);
+    assert.strictEqual(deletedState.response.status, 404);
+
+    console.log('Solo scoring, API and early-exit tests passed.');
   } finally {
     await new Promise(resolve => server.close(resolve));
   }

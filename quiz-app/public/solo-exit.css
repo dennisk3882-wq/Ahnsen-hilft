@@ -1,0 +1,37 @@
+.solo-game-actions { align-items: center; }
+
+.solo-exit-button {
+  border-color: rgba(255, 92, 122, .42);
+  color: #ffb3c1;
+  background: rgba(255, 72, 108, .08);
+}
+
+.solo-exit-button:hover {
+  border-color: rgba(255, 92, 122, .78);
+  color: #ffd4dc;
+  background: rgba(255, 72, 108, .15);
+}
+
+.solo-exit-button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+@media (max-width: 620px) {
+  .solo-game-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 9px;
+  }
+
+  .solo-game-actions .score-chip {
+    justify-self: end;
+  }
+
+  .solo-exit-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+  }
+}
