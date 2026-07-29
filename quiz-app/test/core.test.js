@@ -31,33 +31,49 @@ assert.strictEqual(children.length, 200);
 for (const [type, catalog] of [['adult', adults], ['child', children]]) {
   const deliberatelyCorrupted = catalog.map((question, index) => ({
     ...question,
+    category: 'Veraltete Kategorie',
+    text: `Veraltete Fassung ${index + 1}?`,
+    options: ['Alt A', 'Alt B', 'Alt C', 'Alt D'],
+    correctIndex: 3,
     explanation: catalog[(index + 1) % catalog.length].explanation,
   }));
-  const repaired = mergeCatalog(deliberatelyCorrupted, catalog, type);
-  assert.strictEqual(repaired.length, catalog.length);
-  repaired.forEach((question, index) => {
-    assert.strictEqual(
-      question.explanation,
-      catalog[index].explanation,
-      `${type} ${question.id}: Vertauschte Erklärung wurde nicht anhand von Frage und richtiger Antwort repariert.`,
-    );
-  });
+
+  const customQuestion = {
+    id: `${type}-custom-testfrage`,
+    category: 'Allgemeinwissen',
+    text: 'Welche Zusatzfrage wurde im Editor erstellt?',
+    options: ['Diese hier', 'Eine andere', 'Keine', 'Alle'],
+    correctIndex: 0,
+    explanation: 'Diese Frage wurde ausdrücklich im Frageneditor ergänzt.',
+  };
+  const legacyQuestion = {
+    id: `${type}-legacy-999`,
+    category: 'Altbestand',
+    text: 'Diese alte Standardfrage darf nicht erneut angehängt werden?',
+    options: ['Ja', 'Nein', 'Vielleicht', 'Unbekannt'],
+    correctIndex: 0,
+    explanation: 'Diese alte Fassung darf nicht mehr verwendet werden.',
+  };
+
+  const repaired = mergeCatalog([...deliberatelyCorrupted, customQuestion, legacyQuestion], catalog, type);
+  assert.strictEqual(repaired.length, catalog.length + 1);
+  assert.deepStrictEqual(repaired.slice(0, catalog.length), catalog, `${type}: Der Standardkatalog wurde nicht vollständig wiederhergestellt.`);
+  assert.deepStrictEqual(repaired.at(-1), customQuestion, `${type}: Eine ausdrücklich erstellte Zusatzfrage ging verloren.`);
+  assert.strictEqual(repaired.some(question => question.id === legacyQuestion.id), false, `${type}: Eine alte Legacy-Fassung wurde erneut übernommen.`);
 }
 
-const madrid = children.find(question => {
-  const answer = question.options[question.correctIndex];
-  return answer === 'Madrid' && /Hauptstadt/.test(question.text) && /Spanien/.test(question.text);
-});
-assert(madrid);
-assert.strictEqual(madrid.explanation, 'Madrid ist die Hauptstadt von Spanien.');
+const chameleon = children.find(question => question.id === 'child-nature-017');
+assert(chameleon);
+assert.strictEqual(chameleon.text, 'Welches Tier kann seine Farbe wechseln?');
+assert.strictEqual(chameleon.options[chameleon.correctIndex], 'Chamäleon');
+assert.strictEqual(chameleon.explanation, 'Ein Chamäleon kann seine Hautfarbe verändern.');
 
-const drums = children.find(question => {
-  const answer = question.options[question.correctIndex];
-  return answer === 'Schlagzeug' && /Stöcken/.test(question.text);
-});
+const drums = children.find(question => question.id === 'child-music-026');
 assert(drums);
+assert.strictEqual(drums.text, 'Welches Instrument wird mit zwei Stöcken auf Felle und Becken gespielt?');
+assert.strictEqual(drums.options[drums.correctIndex], 'Schlagzeug');
 assert.strictEqual(drums.explanation, 'Beim Schlagzeug spielt man mit Stöcken auf Trommelfelle und Becken.');
 
 console.log('Scoring tests passed.');
 console.log('Catalog tests passed.');
-console.log('Explanation mapping tests passed for all 500 questions.');
+console.log('Canonical catalog restoration tests passed for all 500 standard questions.');
