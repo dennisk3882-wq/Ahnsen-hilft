@@ -2,6 +2,15 @@
 
 let deferredInstallPrompt = null;
 
+function loadPageSpecificStyles() {
+  if (!document.body.classList.contains('solo-body')) return;
+  if (document.querySelector('link[href="/solo-app.css"]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = '/solo-app.css';
+  document.head.appendChild(link);
+}
+
 function openInfoModal(title, text, stage = '') {
   const existing = document.querySelector('#appInfoModal');
   if (existing) existing.remove();
@@ -15,7 +24,7 @@ function openInfoModal(title, text, stage = '') {
   modal.innerHTML = `
     <section class="app-modal-card">
       <div class="app-modal-icon" aria-hidden="true">✦</div>
-      ${stage ? `<span class="app-badge app-upcoming">${stage}</span>` : ''}
+      ${stage ? `<span class="app-badge app-upcoming">${escapeAppHtml(stage)}</span>` : ''}
       <h2 id="appInfoTitle">${escapeAppHtml(title)}</h2>
       <p class="muted">${escapeAppHtml(text)}</p>
       <button id="closeAppInfo" class="btn primary wide-button" type="button">Verstanden</button>
@@ -87,6 +96,12 @@ function installPwaHandling() {
   });
 }
 
+function connectAppShortcuts() {
+  document.querySelector('#heroLiveButton')?.addEventListener('click', () => {
+    document.querySelector('#openLiveLoginButton')?.click();
+  });
+}
+
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
@@ -96,6 +111,8 @@ function registerServiceWorker() {
   });
 }
 
+loadPageSpecificStyles();
 installUpcomingHandlers();
 installPwaHandling();
+connectAppShortcuts();
 registerServiceWorker();
