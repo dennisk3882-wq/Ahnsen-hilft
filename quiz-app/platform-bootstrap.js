@@ -13,6 +13,7 @@ const phase10Progression = require('./phase10-progression-bridge');
 const phase10Stability = require('./phase10-stability');
 const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
+const onlineCatalogStability = require('./online-catalog-stability');
 const { installOnlineCompletionRoutes } = require('./online-completion');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
@@ -24,6 +25,7 @@ phase10Stability.validateProductionSecrets();
 soloSessionStability.patchSoloRoutes();
 phase10Bridge.patchOnlineStorage();
 phase10Stability.patchPhase10();
+onlineCatalogStability.patchEventCatalog();
 platformCompletion.patchHistory();
 phase10Stability.patchOnlineStorage();
 phase10Progression.patchProgression();
@@ -122,6 +124,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
     phase10Stability.installRequestHardening(app);
     phase10Bridge.installRequestCapture(app);
     phase10Stability.installOnlineProfileBinding(app, profileAuth.profileForRequest);
+    onlineCatalogStability.installOnlineCatalogMiddleware(app);
 
     const NativeMap = global.Map;
     const capturedMaps = [];
