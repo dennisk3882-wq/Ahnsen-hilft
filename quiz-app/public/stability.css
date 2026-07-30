@@ -1,0 +1,9 @@
+.skip-link{position:fixed;z-index:1000;left:12px;top:12px;transform:translateY(-160%);padding:10px 14px;border-radius:10px;background:#fff;color:#050712;font-weight:900;transition:transform .15s}.skip-link:focus{transform:translateY(0)}
+:focus-visible{outline:3px solid #69d9ff!important;outline-offset:3px!important}
+.offline-profile-save{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end;margin:20px 0;padding:16px;border:1px solid rgba(126,105,225,.25);border-radius:16px;background:#0b1329}.offline-profile-save label{display:grid;gap:7px;color:#b5bed8;font-weight:800}.offline-profile-save select{padding:12px;border-radius:12px;border:1px solid rgba(135,118,230,.3);background:#080f22;color:#fff}.offline-profile-save .message{grid-column:1/-1;margin:0}
+.live-history-note{margin-top:14px!important;padding:10px 12px;border-radius:12px;background:rgba(66,209,159,.1);border:1px solid rgba(66,209,159,.25)}
+#arenaVerificationNotice{border-color:rgba(255,189,77,.35);background:linear-gradient(145deg,rgba(65,46,18,.8),rgba(13,19,38,.95));margin-bottom:18px}
+#adminStabilityPanel{margin-top:18px;border-color:rgba(90,215,255,.28)}
+.app-bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.arena-status.upcoming{background:rgba(255,182,71,.14);color:#ffc675}
+@media(max-width:620px){.offline-profile-save{grid-template-columns:1fr}.offline-profile-save .btn{width:100%}}
