@@ -24,7 +24,18 @@ for (const id of [
 
 assert(html.includes('href="/solo"'), 'Direkter Einstieg in das Solo-Quiz fehlt.');
 assert(html.includes('href="/start.css"'), 'Startseiten-Stylesheet ist nicht eingebunden.');
-assert(css.includes('.mode-card-grid'), 'Layout der Modusauswahl fehlt.');
+assert(css.includes('.home-mode-grid'), 'Neues Layout der Modusauswahl fehlt.');
+assert(css.includes('.home-mode-card'), 'Neon-Spielmoduskarten fehlen im Stylesheet.');
+
+for (const modeClass of [
+  'home-mode-solo',
+  'home-mode-offline',
+  'home-mode-online',
+  'home-mode-live',
+]) {
+  assert(html.includes(modeClass), `Spielmodus-Karte fehlt: ${modeClass}`);
+}
+
 assert(script.includes('showModeChooser();'), 'Die Hauptseite startet nicht in der Modusauswahl.');
 assert(!script.includes('if (response.ok) { renderState(await response.json()); connectSocket(); }'), 'Alte automatische Live-Anmeldung ist noch enthalten.');
 
