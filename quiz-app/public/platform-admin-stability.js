@@ -4,6 +4,7 @@
   const $ = selector => document.querySelector(selector);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let loading = false;
+  let scheduled = null;
 
   async function api(url, options = {}) {
     const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
@@ -16,9 +17,18 @@
     return Object.fromEntries(rows.map(row => [row.source_type, Number(row.count || 0)]));
   }
 
+  function scheduleLoad(delay = 30) {
+    clearTimeout(scheduled);
+    scheduled = setTimeout(() => {
+      scheduled = null;
+      load();
+    }, delay);
+  }
+
   async function load() {
     const root = $('#adminPhase10Content');
-    if (!root || $('#adminDashboard')?.classList.contains('hidden') || loading) return;
+    const view = document.querySelector('[data-admin-view="phase10"]');
+    if (!root || !view || view.classList.contains('hidden') || $('#adminDashboard')?.classList.contains('hidden') || loading) return;
     loading = true;
     try {
       const [summary, preview] = await Promise.all([
@@ -50,14 +60,14 @@
         <section class="admin-item"><div class="admin-item-head"><div><strong>Manuelle Korrektur</strong><small>Jede Änderung wird mit Begründung protokolliert.</small></div></div><form id="stabilityAdjustmentForm" class="admin-phase10-form"><div class="admin-phase10-form-grid"><label>Profil-ID<input id="stabilityProfileId" required placeholder="UUID des Profils"></label><label>XP-Änderung<input id="stabilityXpDelta" type="number" value="0" min="-10000" max="10000"></label><label>Saisonpunkte-Änderung<input id="stabilitySeasonDelta" type="number" value="0" min="-5000" max="5000"></label><label>Begründung<input id="stabilityReason" maxlength="300" required placeholder="z. B. fehlgeschlagene Belohnung nachtragen"></label></div><button class="btn danger" type="submit">Korrektur protokolliert ausführen</button><div id="stabilityAdjustmentMessage" class="message" aria-live="polite"></div></form></section>
         <section class="admin-item"><div class="admin-item-head"><div><strong>Zentraler Fragenkatalog</strong><small>${esc(summary.catalog?.policy || '')}</small></div><span class="admin-status ${summary.catalog?.consistent ? 'active' : 'cancelled'}">${summary.catalog?.consistent ? 'Konsistent' : 'Abweichung'}</span></div><p>Standardversion ${esc(summary.catalog?.canonicalVersion || '–')} · Veröffentlichte Version ${esc(summary.catalog?.publishedVersion || '–')} · Zusatzfragen: ${Number(summary.catalog?.byType?.adult?.custom || 0) + Number(summary.catalog?.byType?.child?.custom || 0)}</p></section>
         <p class="muted">Installierte Migrationen: ${(summary.migrations || []).map(item => esc(item.version)).join(', ') || 'keine'}. Manuelle Korrekturen insgesamt: ${summary.adjustments || 0}.</p>`;
-      $('#refreshStabilityAdmin').onclick = load;
+      $('#refreshStabilityAdmin').onclick = () => scheduleLoad(0);
       $('#reconcileStability').onclick = async () => {
         const button = $('#reconcileStability');
         button.disabled = true;
         try {
           const result = await api('/api/platform/admin/stability/reconcile', { method: 'POST', body: '{}' });
           $('#reconcileMessage').textContent = `${result.repairedRooms} Räume repariert, ${result.abandonedSessions} abgelaufene Eventrunden geschlossen.`;
-          await load();
+          scheduleLoad(0);
         } catch (error) { $('#reconcileMessage').textContent = error.message; }
         finally { button.disabled = false; }
       };
@@ -89,10 +99,10 @@
     }
   }
 
-  document.querySelector('[data-admin-tab="phase10"]')?.addEventListener('click', () => setTimeout(load, 80));
-  document.addEventListener('quiztime-admin-refresh', load);
+  document.querySelector('[data-admin-tab="phase10"]')?.addEventListener('click', () => scheduleLoad(180));
+  document.addEventListener('quiztime-admin-refresh', () => scheduleLoad(0));
   new MutationObserver(() => {
     const view = document.querySelector('[data-admin-view="phase10"]');
-    if (view && !view.classList.contains('hidden')) load();
-  }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    if (view && !view.classList.contains('hidden') && !$('#adminStabilityPanel')) scheduleLoad(20);
+  }).observe(document.documentElement, { attributes: true, childList: true, subtree: true, attributeFilter: ['class'] });
 })();
