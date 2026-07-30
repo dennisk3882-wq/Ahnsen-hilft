@@ -1,14 +1,6 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { enrichQuestion } = require('./question-explanations');
-
-const catalogs = {
-  adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion),
-  child: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')).map(enrichQuestion),
-};
+const catalogService = require('./question-catalog-service');
 
 function publicQuestion(question) {
   return {
@@ -23,13 +15,10 @@ function publicQuestion(question) {
 }
 
 function catalogVersion() {
-  const hash = crypto.createHash('sha256');
-  for (const type of ['adult', 'child']) {
-    for (const question of catalogs[type]) {
-      hash.update(`${type}:${question.id}:${question.text}:${question.correctIndex}`);
-    }
-  }
-  return hash.digest('hex').slice(0, 16);
+  return catalogService.versionFor({
+    adult: catalogService.canonicalCatalog('adult'),
+    child: catalogService.canonicalCatalog('child'),
+  });
 }
 
 function installOfflineRoutes(app) {
@@ -39,8 +28,8 @@ function installOfflineRoutes(app) {
       version: catalogVersion(),
       generatedAt: Date.now(),
       catalogs: {
-        adult: catalogs.adult.map(publicQuestion),
-        child: catalogs.child.map(publicQuestion),
+        adult: catalogService.canonicalCatalog('adult').map(publicQuestion),
+        child: catalogService.canonicalCatalog('child').map(publicQuestion),
       },
     });
   });
