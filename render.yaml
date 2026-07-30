@@ -10,6 +10,8 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: NODE_VERSION
         value: "20"
       - key: QUIZ_TITLE
@@ -23,6 +25,8 @@ services:
       - key: PROFILE_SESSION_SECRET
         generateValue: true
       - key: PLATFORM_SECURITY_SECRET
+        generateValue: true
+      - key: PLATFORM_INTERNAL_SECRET
         generateValue: true
       - key: MAIL_FROM_NAME
         value: QuizTime
