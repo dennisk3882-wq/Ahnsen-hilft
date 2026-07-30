@@ -1,8 +1,15 @@
 'use strict';
 
 const { Pool } = require('pg');
+const {
+  progressionSummary,
+  streakSummary,
+  achievementList,
+  dayKey,
+} = require('./progression');
 
 const rawUrl = String(process.env.DATABASE_URL || '').trim();
+const AVATAR_IDS = Object.freeze(['robot', 'fox', 'owl', 'rocket', 'crown', 'crystal']);
 let pool = null;
 let readyPromise = null;
 
@@ -11,6 +18,15 @@ function strictConnectionString(value) {
   const parsed = new URL(value);
   parsed.searchParams.set('sslmode', 'verify-full');
   return parsed.toString();
+}
+
+function normalizeAvatarId(value) {
+  const id = String(value || '').trim().toLowerCase();
+  return AVATAR_IDS.includes(id) ? id : 'robot';
+}
+
+function isAvatarId(value) {
+  return AVATAR_IDS.includes(String(value || '').trim().toLowerCase());
 }
 
 if (rawUrl) {
@@ -32,10 +48,14 @@ async function ensureReady() {
         name_key TEXT NOT NULL UNIQUE,
         password_salt TEXT NOT NULL,
         password_hash TEXT NOT NULL,
+        avatar_id TEXT NOT NULL DEFAULT 'robot',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         last_login_at TIMESTAMPTZ
       );
+
+      ALTER TABLE quiz_solo_profiles
+        ADD COLUMN IF NOT EXISTS avatar_id TEXT NOT NULL DEFAULT 'robot';
 
       CREATE TABLE IF NOT EXISTS quiz_solo_attempts (
         id BIGSERIAL PRIMARY KEY,
@@ -58,6 +78,9 @@ async function ensureReady() {
 
       CREATE INDEX IF NOT EXISTS quiz_solo_attempts_profile_time
         ON quiz_solo_attempts(profile_id, answered_at DESC);
+
+      CREATE INDEX IF NOT EXISTS quiz_solo_attempts_profile_question
+        ON quiz_solo_attempts(profile_id, quiz_type, question_id, answered_at DESC);
 
       CREATE TABLE IF NOT EXISTS quiz_speech_cache (
         cache_key TEXT PRIMARY KEY,
@@ -84,7 +107,7 @@ function enabled() {
 async function listProfiles() {
   if (!await ensureReady()) return [];
   const { rows } = await pool.query(`
-    SELECT p.id, p.name, p.created_at, p.last_login_at,
+    SELECT p.id, p.name, p.avatar_id, p.created_at, p.last_login_at,
            MAX(a.answered_at) AS last_played_at,
            COUNT(DISTINCT a.session_id)::int AS games
       FROM quiz_solo_profiles p
@@ -95,6 +118,7 @@ async function listProfiles() {
   return rows.map(row => ({
     id: row.id,
     name: row.name,
+    avatarId: normalizeAvatarId(row.avatar_id),
     createdAt: row.created_at,
     lastLoginAt: row.last_login_at,
     lastPlayedAt: row.last_played_at,
@@ -105,7 +129,7 @@ async function listProfiles() {
 async function findProfileByNameKey(nameKey) {
   if (!await ensureReady()) return null;
   const { rows } = await pool.query(
-    'SELECT id, name, name_key, password_salt, password_hash, created_at, last_login_at FROM quiz_solo_profiles WHERE name_key = $1',
+    'SELECT id, name, name_key, password_salt, password_hash, avatar_id, created_at, last_login_at FROM quiz_solo_profiles WHERE name_key = $1',
     [nameKey],
   );
   return rows[0] || null;
@@ -114,19 +138,19 @@ async function findProfileByNameKey(nameKey) {
 async function getProfileById(id) {
   if (!id || !await ensureReady()) return null;
   const { rows } = await pool.query(
-    'SELECT id, name, name_key, created_at, last_login_at FROM quiz_solo_profiles WHERE id = $1',
+    'SELECT id, name, name_key, avatar_id, created_at, last_login_at FROM quiz_solo_profiles WHERE id = $1',
     [id],
   );
   return rows[0] || null;
 }
 
-async function createProfile({ id, name, nameKey, passwordSalt, passwordHash }) {
+async function createProfile({ id, name, nameKey, passwordSalt, passwordHash, avatarId = 'robot' }) {
   if (!await ensureReady()) throw new Error('Die Datenbank ist nicht verbunden.');
   const { rows } = await pool.query(`
-    INSERT INTO quiz_solo_profiles (id, name, name_key, password_salt, password_hash, last_login_at)
-    VALUES ($1, $2, $3, $4, $5, NOW())
-    RETURNING id, name, created_at, last_login_at
-  `, [id, name, nameKey, passwordSalt, passwordHash]);
+    INSERT INTO quiz_solo_profiles (id, name, name_key, password_salt, password_hash, avatar_id, last_login_at)
+    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    RETURNING id, name, avatar_id, created_at, last_login_at
+  `, [id, name, nameKey, passwordSalt, passwordHash, normalizeAvatarId(avatarId)]);
   return rows[0];
 }
 
@@ -134,6 +158,18 @@ async function touchProfileLogin(id) {
   if (!await ensureReady()) return false;
   await pool.query('UPDATE quiz_solo_profiles SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1', [id]);
   return true;
+}
+
+async function updateProfileAvatar(id, avatarId) {
+  if (!await ensureReady()) return null;
+  const normalized = normalizeAvatarId(avatarId);
+  const { rows } = await pool.query(`
+    UPDATE quiz_solo_profiles
+       SET avatar_id = $2, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, name, avatar_id, created_at, last_login_at
+  `, [id, normalized]);
+  return rows[0] || null;
 }
 
 async function saveSoloAttempt(attempt) {
@@ -162,31 +198,7 @@ async function saveSoloAttempt(attempt) {
   return result.rowCount > 0;
 }
 
-function achievementList(stats) {
-  const result = [];
-  if (stats.games >= 1) result.push({ id: 'first-game', icon: '🎮', title: 'Erste Runde', text: 'Das erste Solo-Quiz wurde beendet.' });
-  if (stats.correct >= 10) result.push({ id: 'ten-correct', icon: '⭐', title: 'Zehn Treffer', text: 'Mindestens zehn Fragen wurden richtig beantwortet.' });
-  if (stats.correct >= 50) result.push({ id: 'fifty-correct', icon: '🏅', title: 'Quiz-Profi', text: 'Mindestens 50 richtige Antworten.' });
-  if (stats.correct >= 100) result.push({ id: 'hundred-correct', icon: '🏆', title: 'Wissens-Champion', text: 'Mindestens 100 richtige Antworten.' });
-  if (stats.answers >= 20 && stats.accuracy >= 80) result.push({ id: 'accuracy-80', icon: '🎯', title: 'Treffsicher', text: 'Mindestens 80 Prozent Trefferquote bei 20 Antworten.' });
-  if (stats.bestScore >= 200) result.push({ id: 'score-200', icon: '🚀', title: 'Punkterakete', text: 'In einer Runde mindestens 200 Punkte erreicht.' });
-  const strongCategory = stats.categories.find(category => category.correct >= 10 && category.accuracy >= 80);
-  if (strongCategory) result.push({ id: `category-${strongCategory.category}`, icon: '🧠', title: `${strongCategory.category}-Kenner`, text: `Starke Leistungen in „${strongCategory.category}“.` });
-  return result;
-}
-
-async function getProfileStats(profileId) {
-  if (!await ensureReady()) return null;
-  const profile = await getProfileById(profileId);
-  if (!profile) return null;
-  const { rows } = await pool.query(`
-    SELECT session_id, question_index, quiz_type, category, mode, question_id, question_text,
-           answer_index, correct_index, correct, timed_out, delta, answered_at
-      FROM quiz_solo_attempts
-     WHERE profile_id = $1
-     ORDER BY answered_at DESC, id DESC
-  `, [profileId]);
-
+function sessionAndCategoryStats(rows) {
   const sessions = new Map();
   const categories = new Map();
   let correct = 0;
@@ -231,29 +243,152 @@ async function getProfileStats(profileId) {
     else category.wrong += 1;
   }
 
-  const recentGames = [...sessions.values()]
+  const games = [...sessions.values()]
     .map(session => ({ ...session, accuracy: session.questions ? Math.round(session.correct / session.questions * 100) : 0 }))
     .sort((a, b) => new Date(b.finishedAt) - new Date(a.finishedAt));
   const categoryStats = [...categories.values()]
     .map(category => ({ ...category, accuracy: category.answers ? Math.round(category.correct / category.answers * 100) : 0 }))
     .sort((a, b) => b.answers - a.answers || a.category.localeCompare(b.category, 'de'));
-  const answers = correct + wrong + unanswered;
+
+  return { sessions, games, categories: categoryStats, correct, wrong, unanswered, points };
+}
+
+function latestWeakQuestions(rows) {
+  const latest = new Map();
+  for (const row of rows) {
+    if (!latest.has(row.question_id)) latest.set(row.question_id, row);
+  }
+  return [...latest.values()]
+    .filter(row => !row.correct)
+    .sort((a, b) => new Date(b.answered_at) - new Date(a.answered_at))
+    .map(row => ({
+      id: row.question_id,
+      quizType: row.quiz_type,
+      category: row.category,
+      text: row.question_text,
+      timedOut: Boolean(row.timed_out),
+      lastAnsweredAt: row.answered_at,
+    }));
+}
+
+async function getProfileStats(profileId) {
+  if (!await ensureReady()) return null;
+  const profile = await getProfileById(profileId);
+  if (!profile) return null;
+  const { rows } = await pool.query(`
+    SELECT session_id, question_index, quiz_type, category, mode, question_id, question_text,
+           answer_index, correct_index, correct, timed_out, delta, answered_at
+      FROM quiz_solo_attempts
+     WHERE profile_id = $1
+     ORDER BY answered_at DESC, id DESC
+  `, [profileId]);
+
+  const calculated = sessionAndCategoryStats(rows);
+  const answers = calculated.correct + calculated.wrong + calculated.unanswered;
+  const bestScore = calculated.games.reduce((max, game) => Math.max(max, game.score), 0);
+  const bestAccuracy = calculated.games.reduce((max, game) => Math.max(max, game.accuracy), 0);
+  const progression = progressionSummary({ games: calculated.sessions.size, correct: calculated.correct, points: calculated.points });
+  const streak = streakSummary(calculated.games.map(game => game.finishedAt));
+  const weakQuestions = latestWeakQuestions(rows);
+  const today = dayKey(new Date());
+  const todayRows = rows.filter(row => dayKey(row.answered_at) === today);
+  const weakQuestionCounts = {
+    adult: weakQuestions.filter(question => question.quizType === 'adult').length,
+    child: weakQuestions.filter(question => question.quizType === 'child').length,
+    total: weakQuestions.length,
+  };
+
   const stats = {
-    profile: { id: profile.id, name: profile.name, createdAt: profile.created_at, lastLoginAt: profile.last_login_at },
-    games: sessions.size,
+    profile: {
+      id: profile.id,
+      name: profile.name,
+      avatarId: normalizeAvatarId(profile.avatar_id),
+      createdAt: profile.created_at,
+      lastLoginAt: profile.last_login_at,
+    },
+    games: calculated.sessions.size,
     answers,
-    correct,
-    wrong,
-    unanswered,
-    points,
-    accuracy: answers ? Math.round(correct / answers * 100) : 0,
-    bestScore: recentGames.reduce((max, game) => Math.max(max, game.score), 0),
-    bestAccuracy: recentGames.reduce((max, game) => Math.max(max, game.accuracy), 0),
-    categories: categoryStats,
-    recentGames: recentGames.slice(0, 12),
+    correct: calculated.correct,
+    wrong: calculated.wrong,
+    unanswered: calculated.unanswered,
+    points: calculated.points,
+    accuracy: answers ? Math.round(calculated.correct / answers * 100) : 0,
+    bestScore,
+    bestAccuracy,
+    categories: calculated.categories,
+    recentGames: calculated.games.slice(0, 12),
+    weakQuestions: weakQuestions.slice(0, 50),
+    weakQuestionCounts,
+    currentStreak: streak.current,
+    bestStreak: streak.best,
+    playedToday: streak.playedToday,
+    dailyTask: {
+      label: '10 Fragen beantworten',
+      target: 10,
+      progress: Math.min(10, todayRows.length),
+      completed: todayRows.length >= 10,
+      correctToday: todayRows.filter(row => row.correct).length,
+    },
+    ...progression,
   };
   stats.achievements = achievementList(stats);
   return stats;
+}
+
+async function getLeaderboard(limit = 50) {
+  if (!await ensureReady()) return [];
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 50));
+  const { rows } = await pool.query(`
+    SELECT p.id, p.name, p.avatar_id,
+           COUNT(DISTINCT a.session_id)::int AS games,
+           COUNT(a.id)::int AS answers,
+           COUNT(a.id) FILTER (WHERE a.correct)::int AS correct,
+           COALESCE(SUM(a.delta), 0)::int AS points,
+           MAX(a.answered_at) AS last_played_at
+      FROM quiz_solo_profiles p
+      LEFT JOIN quiz_solo_attempts a ON a.profile_id = p.id
+     GROUP BY p.id
+  `);
+  return rows.map(row => {
+    const games = Number(row.games || 0);
+    const answers = Number(row.answers || 0);
+    const correct = Number(row.correct || 0);
+    const points = Number(row.points || 0);
+    return {
+      id: row.id,
+      name: row.name,
+      avatarId: normalizeAvatarId(row.avatar_id),
+      games,
+      answers,
+      correct,
+      points,
+      accuracy: answers ? Math.round(correct / answers * 100) : 0,
+      lastPlayedAt: row.last_played_at,
+      ...progressionSummary({ games, correct, points }),
+    };
+  }).sort((a, b) => b.xp - a.xp || b.points - a.points || b.accuracy - a.accuracy || a.name.localeCompare(b.name, 'de'))
+    .slice(0, safeLimit)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
+async function getWeakQuestionIds(profileId, quizType, limit = 50) {
+  if (!profileId || !await ensureReady()) return [];
+  const safeType = quizType === 'adult' ? 'adult' : 'child';
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 50));
+  const { rows } = await pool.query(`
+    SELECT question_id, answered_at
+      FROM (
+        SELECT DISTINCT ON (question_id)
+               question_id, correct, answered_at, id
+          FROM quiz_solo_attempts
+         WHERE profile_id = $1 AND quiz_type = $2
+         ORDER BY question_id, answered_at DESC, id DESC
+      ) latest
+     WHERE NOT correct
+     ORDER BY answered_at DESC
+     LIMIT $3
+  `, [profileId, safeType, safeLimit]);
+  return rows.map(row => row.question_id);
 }
 
 async function getSpeechAudio(cacheKey) {
@@ -283,6 +418,9 @@ async function speechCacheStats() {
 }
 
 module.exports = {
+  AVATAR_IDS,
+  normalizeAvatarId,
+  isAvatarId,
   enabled,
   ensureReady,
   listProfiles,
@@ -290,8 +428,11 @@ module.exports = {
   getProfileById,
   createProfile,
   touchProfileLogin,
+  updateProfileAvatar,
   saveSoloAttempt,
   getProfileStats,
+  getLeaderboard,
+  getWeakQuestionIds,
   getSpeechAudio,
   saveSpeechAudio,
   speechCacheStats,

@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="/solo-exit.css">
   <link rel="stylesheet" href="/elevenlabs-speech.css">
   <link rel="stylesheet" href="/solo-profiles.css">
+  <link rel="stylesheet" href="/profile-phase2.css">
+  <link rel="stylesheet" href="/profile-phase2-extras.css">
   <link rel="stylesheet" href="/app.css">
 </head>
 <body class="solo-body app-body">
@@ -107,13 +109,14 @@
 
   <nav class="app-bottom-nav" aria-label="Hauptnavigation">
     <a class="app-nav-item active" href="/"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/></svg><span>Start</span></a>
-    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Kategorien" data-upcoming-text="In der nächsten Ausbaustufe werden hier Lernfortschritt und persönliche Kategorien-Statistiken angezeigt."><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Kategorien</span></button>
-    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Bestenlisten" data-upcoming-text="Persönliche Bestwerte, Serien und später Online-Ranglisten werden hier zusammengeführt."><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg><span>Bestenliste</span></button>
-    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Ausbaustufe 2" data-upcoming-title="Spielerprofil" data-upcoming-text="Profile mit Avatar, Level, XP, Abzeichen und detaillierten Statistiken folgen als Nächstes."><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></button>
+    <button class="app-nav-item" type="button" data-profile-view="categories"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Kategorien</span></button>
+    <button class="app-nav-item" type="button" data-profile-view="leaderboard"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg><span>Bestenliste</span></button>
+    <button class="app-nav-item" type="button" data-profile-view="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></button>
   </nav>
 
   <script src="/solo-profiles.js"></script>
   <script src="/solo.js"></script>
+  <script src="/wrong-practice.js"></script>
   <script src="/solo-exit.js"></script>
   <script src="/elevenlabs-speech.js"></script>
   <script src="/app.js"></script>
