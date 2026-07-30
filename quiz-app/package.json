@@ -2,7 +2,7 @@
   "name": "ahnsen-live-quiz",
   "version": "7.3.0",
   "private": true,
-  "description": "Live-, Solo- und Mehrspieler-Web-App für Ahnsen Quiz",
+  "description": "Live-, Solo- und Mehrspieler-Web-App für QuizTime",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
