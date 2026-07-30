@@ -26,6 +26,7 @@
     script.defer = true;
     document.body.appendChild(script);
   }
+  if (location.pathname === '/online') loadScript('/online-enhancements.js');
   if (location.pathname === '/community') loadScript('/community-enhancements.js');
   if (location.pathname === '/arena') loadScript('/history-enhancements.js');
   if (location.pathname === '/platform-admin') loadScript('/admin-event-enhancements.js');
