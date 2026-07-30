@@ -10,6 +10,7 @@ const storage = require('./platform-storage');
 const testMailbox = require('./test-mailbox');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
+const { installPhase10Routes } = require('./phase10-routes');
 const { installBrowserTestStatusRoute } = require('./browser-test-status');
 const { installE2ETestSupport } = require('./e2e-test-support');
 
@@ -128,6 +129,10 @@ if (!profileAuth.__quiztimePlatformWrapped) {
     installPlatformRoutes(app, {
       requireProfile: profileAuth.requireProfile,
       profileForRequest: profileAuth.profileForRequest,
+    });
+    installPhase10Routes(app, {
+      requireProfile: profileAuth.requireProfile,
+      requireAdmin: requirePlatformAdmin,
     });
     installBrowserTestStatusRoute(app, requirePlatformAdmin);
   };
