@@ -8,6 +8,12 @@ const APP_BASE_URL = String(
 const FROM_EMAIL = String(process.env.MAIL_FROM_EMAIL || 'noreply@quiztime.app').trim();
 const FROM_NAME = String(process.env.MAIL_FROM_NAME || 'QuizTime').trim();
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[char]));
+}
+
 function configuredProvider() {
   if (process.env.BREVO_API_KEY) return 'brevo';
   if (process.env.RESEND_API_KEY) return 'resend';
@@ -81,7 +87,12 @@ async function sendEmail(message) {
 }
 
 function layout(title, intro, actionLabel, actionUrl, footer) {
-  return `<!doctype html><html lang="de"><body style="margin:0;background:#070914;color:#f7f7ff;font-family:Arial,sans-serif"><div style="max-width:620px;margin:auto;padding:34px 18px"><div style="background:linear-gradient(145deg,#161a38,#0a1022);border:1px solid #6e4bd0;border-radius:24px;padding:32px"><div style="font-size:28px;font-weight:800;margin-bottom:22px">QuizTime</div><h1 style="font-size:27px;margin:0 0 15px">${title}</h1><p style="color:#c2c8df;line-height:1.65">${intro}</p><p style="margin:28px 0"><a href="${actionUrl}" style="display:inline-block;background:linear-gradient(135deg,#8b3dff,#6047eb);color:white;text-decoration:none;font-weight:800;border-radius:13px;padding:14px 22px">${actionLabel}</a></p><p style="color:#8994b4;font-size:13px;line-height:1.5">${footer}</p><p style="color:#727d9d;font-size:12px;word-break:break-all">${actionUrl}</p></div></div></body></html>`;
+  const safeTitle = escapeHtml(title);
+  const safeIntro = escapeHtml(intro);
+  const safeActionLabel = escapeHtml(actionLabel);
+  const safeActionUrl = escapeHtml(actionUrl);
+  const safeFooter = escapeHtml(footer);
+  return `<!doctype html><html lang="de"><body style="margin:0;background:#070914;color:#f7f7ff;font-family:Arial,sans-serif"><div style="max-width:620px;margin:auto;padding:34px 18px"><div style="background:linear-gradient(145deg,#161a38,#0a1022);border:1px solid #6e4bd0;border-radius:24px;padding:32px"><div style="font-size:28px;font-weight:800;margin-bottom:22px">QuizTime</div><h1 style="font-size:27px;margin:0 0 15px">${safeTitle}</h1><p style="color:#c2c8df;line-height:1.65">${safeIntro}</p><p style="margin:28px 0"><a href="${safeActionUrl}" style="display:inline-block;background:linear-gradient(135deg,#8b3dff,#6047eb);color:white;text-decoration:none;font-weight:800;border-radius:13px;padding:14px 22px">${safeActionLabel}</a></p><p style="color:#8994b4;font-size:13px;line-height:1.5">${safeFooter}</p><p style="color:#727d9d;font-size:12px;word-break:break-all">${safeActionUrl}</p></div></div></body></html>`;
 }
 
 async function sendVerificationEmail({ to, name, token }) {
@@ -126,4 +137,5 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   APP_BASE_URL,
+  _test: { escapeHtml },
 };
