@@ -35,10 +35,10 @@ async function listProfiles({ search = '', status = 'all', limit = 100 } = {}) {
       LEFT JOIN quiz_account_preferences pref ON pref.profile_id=p.id
       LEFT JOIN attempts a ON a.profile_id=p.id
       LEFT JOIN reports r ON r.profile_id=p.id
-     WHERE ($1='' OR p.name ILIKE $2 OR COALESCE(p.email,'') ILIKE $2)
-       AND ($3='all' OR p.account_status=$3)
+     WHERE ($1::text='' OR p.name ILIKE $2::text OR COALESCE(p.email,'') ILIKE $2::text)
+       AND ($3::text='all' OR p.account_status=$3::text)
      ORDER BY COALESCE(a.last_played_at,p.last_login_at,p.created_at) DESC,p.name
-     LIMIT $4
+     LIMIT $4::int
   `, [term, `%${term}%`, safeStatus, safeLimit]);
   return rows;
 }
