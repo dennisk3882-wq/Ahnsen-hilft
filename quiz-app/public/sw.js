@@ -8,7 +8,7 @@ const STATIC_ASSETS = [
   '/profile-phase2.css', '/profile-phase2-extras.css', '/elevenlabs-speech.css', '/offline.css', '/online.css',
   '/community.css', '/pack.css', '/platform-admin.css', '/app.css',
   '/app.js', '/player.js', '/solo.js', '/wrong-practice.js', '/solo-exit.js', '/solo-profiles.js',
-  '/elevenlabs-speech.js', '/offline.js', '/secure-eventsource.js', '/online.js', '/community.js', '/community-core.js', '/community-social.js', '/community-games.js', '/pack.js', '/platform-admin.js',
+  '/elevenlabs-speech.js', '/offline.js', '/secure-eventsource.js', '/online-moderation.js', '/online.js', '/community.js', '/community-core.js', '/community-social.js', '/community-games.js', '/pack.js', '/platform-admin.js',
   '/manifest.webmanifest', '/icons/ahnsen-quiz.svg', '/icons/ahnsen-quiz-maskable.svg'
 ];
 
