@@ -41,6 +41,14 @@ Erwartet werden `version: 10.1.0`, `databaseReachable: true` und die Migrationen
 
 Community, Arena, Duelle, Matchmaking, Turniere und Belohnungen erfordern eine bestätigte E-Mail-Adresse. Unbestätigte und vollständig ungenutzte Profile werden nach sieben Tagen entfernt.
 
+## Freunde und Benachrichtigungen
+
+- Stummschaltung und Benachrichtigungseinstellung werden je bestätigtem Freund getrennt gespeichert.
+- Raum-, Duell- und Turnierhinweise werden serverseitig anhand dieser Einstellungen gefiltert.
+- Eine ausgeschaltete Benachrichtigung verhindert nicht die eigentliche Einladung; sie bleibt im Einladungsbereich abrufbar.
+- Unterdrückte In-App-Hinweise lösen auch keinen leeren Push-Impuls aus.
+- Ein Zwei-Konten-Browsertest prüft „stumm“, „Benachrichtigungen aus“ und erneutes Aktivieren.
+
 ## Events
 
 - Ein Versuch wird bereits beim Start reserviert.
@@ -71,6 +79,10 @@ Community, Arena, Duelle, Matchmaking, Turniere und Belohnungen erfordern eine b
 ## Fragenkatalog
 
 Die 500 Dateien unter `data/` bilden den verbindlichen redaktionellen Standardkatalog für Solo, Offline, Online, Duelle, Turniere und offizielle Events. Zusätzliche Adminfragen bleiben bis zur redaktionellen Veröffentlichung im Live-Quiz. Der Stabilitätsstatus vergleicht Standard- und Datenbankversion und zeigt Abweichungen im Adminbereich.
+
+## Abhängigkeitssicherheit
+
+Express ist auf `4.22.2` aktualisiert. Damit werden die im Sicherheitsscan erkannten DoS-Schwachstellen in `body-parser`, `path-to-regexp` und `qs` über einen reproduzierbar erneuerten Lockfile behoben. Der Pull Request wird zusätzlich mit `npm audit` und CodeQL geprüft.
 
 ## Backup
 
