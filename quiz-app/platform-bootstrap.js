@@ -15,6 +15,7 @@ const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
 const onlineCatalogStability = require('./online-catalog-stability');
 const { installOnlineCompletionRoutes } = require('./online-completion');
+const { installEventRuntimeRoutes } = require('./event-runtime-routes');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installPhase10Routes } = require('./phase10-routes');
@@ -171,6 +172,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       requireAdmin: requirePlatformAdmin,
       requireVerified,
     });
+    installEventRuntimeRoutes(app, { requireProfile: profileAuth.requireProfile });
     installPhase10Routes(app, {
       requireProfile: profileAuth.requireProfile,
       requireAdmin: requirePlatformAdmin,
