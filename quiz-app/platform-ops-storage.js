@@ -41,9 +41,27 @@ async function dashboardSummary(){
     safeQuery(`SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE status IN ('open','running'))::int AS active FROM quiz_platform_tournaments`,[{total:0,active:0}]),
     safeQuery('SELECT COUNT(*)::int AS total,COALESCE(SUM(plays),0)::int AS plays FROM quiz_platform_packs',[{total:0,plays:0}]),
     safeQuery('SELECT COUNT(*)::int AS waiting FROM quiz_platform_matchmaking_queue',[{waiting:0}]),
-    safeQuery('SELECT * FROM quiz_platform_audit ORDER BY created_at DESC LIMIT 50',[]),
+    safeQuery('SELECT actor_type,actor_id,action,target,details,created_at FROM quiz_platform_audit ORDER BY created_at DESC LIMIT 50',[]),
   ]);
   return{profiles:profiles[0],rooms:rooms[0],reports:reports[0],activity:activity[0],errors,push:push[0],tournaments:tournaments[0],packs:packs[0],queue:queue[0],audit:auditRows};
 }
-async function exportData(){const tables=['quiz_solo_profiles','quiz_platform_friendships','quiz_platform_blocks','quiz_platform_invites','quiz_platform_reports','quiz_platform_seasons','quiz_platform_match_results','quiz_platform_tournaments','quiz_platform_tournament_players','quiz_platform_packs','quiz_platform_notifications'];const data={exportedAt:new Date().toISOString(),tables:{}};for(const table of tables){try{data.tables[table]=(await q(`SELECT * FROM ${table}`)).rows;}catch{data.tables[table]=[];}}return data;}
+async function exportData(){
+  const queries={
+    quiz_solo_profiles:`SELECT id,name,email,email_verified_at,avatar_id,account_status,status_reason,status_until,created_at,updated_at,last_login_at FROM quiz_solo_profiles`,
+    quiz_account_preferences:`SELECT profile_id,leaderboard_visible,public_profile,allow_friend_requests,invite_policy,email_notifications,push_notifications,updated_at FROM quiz_account_preferences`,
+    quiz_platform_friendships:`SELECT * FROM quiz_platform_friendships`,
+    quiz_platform_blocks:`SELECT * FROM quiz_platform_blocks`,
+    quiz_platform_invites:`SELECT * FROM quiz_platform_invites`,
+    quiz_platform_reports:`SELECT * FROM quiz_platform_reports`,
+    quiz_platform_seasons:`SELECT * FROM quiz_platform_seasons`,
+    quiz_platform_match_results:`SELECT * FROM quiz_platform_match_results`,
+    quiz_platform_tournaments:`SELECT * FROM quiz_platform_tournaments`,
+    quiz_platform_tournament_players:`SELECT * FROM quiz_platform_tournament_players`,
+    quiz_platform_legacy_packs:`SELECT id,code,owner_id,title,description,visibility,plays,created_at,updated_at FROM quiz_platform_packs`,
+    quiz_platform_notifications:`SELECT * FROM quiz_platform_notifications`,
+  };
+  const data={exportedAt:new Date().toISOString(),securityNote:'Passwort-Hashes, Salts, Reset-Tokens, Verifizierungstokens, private Push-Schlüssel und Sitzungs-Cookies sind ausgeschlossen.',tables:{}};
+  for(const[table,text]of Object.entries(queries)){try{data.tables[table]=(await q(text)).rows;}catch{data.tables[table]=[];}}
+  return data;
+}
 module.exports={ensureReady,getPushKeys,savePushSubscription,removePushSubscription,listPushSubscriptions,addNotification,listNotifications,markNotificationsRead,recordMetric,audit,banKey,activeBan,dashboardSummary,exportData};
