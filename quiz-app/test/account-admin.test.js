@@ -6,6 +6,7 @@ const path = require('path');
 const accountStorage = require('../account-storage');
 const auth = require('../solo-profile-auth');
 const email = require('../email-service');
+const runtimeRoomAdmin = require('../runtime-room-admin');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -28,6 +29,39 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
   assert.strictEqual(parsed.sessionVersion, 7, 'Sitzungsversion fehlt im Profil-Cookie.');
   assert.strictEqual(email.status().configured, false, 'Isolierter Test darf keinen echten E-Mail-Dienst verwenden.');
 
+  const removedEvents = [];
+  function response() {
+    return {
+      writableEnded: false,
+      write(value) { removedEvents.push(value); },
+      end() { this.writableEnded = true; },
+    };
+  }
+  const hostToken = 'h'.repeat(32);
+  const guestToken = 'g'.repeat(32);
+  const rooms = new Map([['ABC123', {
+    code: 'ABC123',
+    hostPlayerId: 'host',
+    players: {
+      host: { id: 'host', name: 'Host', tokenHash: runtimeRoomAdmin._test.hashToken(hostToken), joinedAt: 1, ready: true },
+      guest: { id: 'guest', name: 'Gast', tokenHash: runtimeRoomAdmin._test.hashToken(guestToken), joinedAt: 2, ready: false },
+    },
+    responses: { guest: { answerIndex: 1 } },
+  }]]);
+  const streams = new Map([['ABC123', new Set([
+    { token: hostToken, res: response() },
+    { token: guestToken, res: response() },
+  ])]]);
+  const questionTimers = new Map([['ABC123', setTimeout(() => {}, 10000)]]);
+  runtimeRoomAdmin.configure({ rooms, streams, questionTimers });
+  const kicked = runtimeRoomAdmin.kickPlayer('ABC123', 'guest', 'Moderationstest');
+  assert.strictEqual(kicked.name, 'Gast', 'Laufender Spieler kann nicht administrativ entfernt werden.');
+  assert(!rooms.get('ABC123').players.guest, 'Entfernter Spieler bleibt im laufenden Raum.');
+  assert(removedEvents.some(value => value.includes('event: removed') && value.includes('Moderationstest')), 'Entfernter Spieler erhält keine unmittelbare Echtzeitmeldung.');
+  assert(runtimeRoomAdmin.closeRoom('ABC123', 'Raum geschlossen'), 'Laufender Raum kann nicht unmittelbar geschlossen werden.');
+  assert(!rooms.has('ABC123'), 'Geschlossener Raum bleibt im Arbeitsspeicher.');
+  assert(!questionTimers.has('ABC123'), 'Fragentimer des geschlossenen Raums läuft weiter.');
+
   const accountSource = read('account-storage.js');
   const authSource = read('solo-profile-auth.js');
   const routes = read('platform-routes.js');
@@ -39,6 +73,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
   const adminHtml = read('public/platform-admin.html');
   const adminClient = read('public/platform-admin.js');
   const ops = read('platform-ops-storage.js');
+  const exportSource = ops.slice(ops.indexOf('async function exportData'));
 
   for (const table of ['quiz_account_preferences','quiz_account_email_verifications','quiz_account_password_resets']) {
     assert(accountSource.includes(table), `Kontotabelle fehlt: ${table}`);
@@ -82,10 +117,12 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
     assert(adminClient.includes(`function ${feature}`) || adminClient.includes(`async function ${feature}`), `Admin-Clientfunktion fehlt: ${feature}`);
   }
 
-  assert(!ops.includes('password_hash'), 'Plattformexport enthält Passwort-Hashes.');
-  assert(!ops.includes('password_salt'), 'Plattformexport enthält Passwort-Salts.');
-  assert(!ops.includes('private_jwk'), 'Plattformexport enthält private Push-Schlüssel.');
-  assert(ops.includes('Sicherheitsfelder und Passwort-Hashes'), 'Export dokumentiert ausgeschlossene Sicherheitsfelder nicht.');
+  assert(!exportSource.includes('password_hash'), 'Plattformexport enthält Passwort-Hashes.');
+  assert(!exportSource.includes('password_salt'), 'Plattformexport enthält Passwort-Salts.');
+  assert(!exportSource.includes('private_jwk'), 'Plattformexport enthält private Push-Schlüssel.');
+  assert(!exportSource.includes('quiz_account_password_resets'), 'Plattformexport enthält Passwort-Reset-Tokens.');
+  assert(!exportSource.includes('quiz_account_email_verifications'), 'Plattformexport enthält E-Mail-Verifizierungstokens.');
+  assert(exportSource.includes('Sicherheitsfelder und Passwort-Hashes'), 'Export dokumentiert ausgeschlossene Sicherheitsfelder nicht.');
 
   console.log('QuizTime account recovery, privacy and complete admin tests passed.');
 })().catch(error => {
