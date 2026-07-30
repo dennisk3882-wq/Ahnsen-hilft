@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#070a17">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Ahnsen Quiz Online-Mehrspieler – private Räume, Spielcodes und Echtzeitduelle.">
-  <title>Online-Mehrspieler – Ahnsen Quiz</title>
+  <meta name="description" content="QuizTime Online-Mehrspieler – private Räume, Spielcodes und Echtzeitduelle.">
+  <title>Online-Mehrspieler – QuizTime</title>
   <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
@@ -17,9 +17,9 @@
 <body class="app-body online-body">
   <main class="app-shell online-shell">
     <header class="app-topbar online-topbar">
-      <a class="app-brand" href="/" aria-label="Zur Ahnsen-Quiz-Startseite">
-        <div class="app-logo" aria-hidden="true">A</div>
-        <div class="app-brand-copy"><strong>Ahnsen Quiz</strong><span>Online-Mehrspieler</span></div>
+      <a class="app-brand" href="/" aria-label="Zur QuizTime-Startseite">
+        <div class="app-logo" aria-hidden="true">Q</div>
+        <div class="app-brand-copy"><strong>QuizTime</strong><span>Online-Mehrspieler</span></div>
       </a>
       <div class="app-top-actions">
         <span id="onlineConnection" class="online-connection idle"><i></i><span>Bereit</span></span>
@@ -33,7 +33,7 @@
           <span class="app-kicker">Gemeinsam. Gleichzeitig. Überall.</span>
           <h1>Ein Raumcode.<br><span>Ein echtes Quizduell.</span></h1>
           <p>Erstelle einen privaten oder öffentlichen Raum, lade Freunde ein und beantwortet dieselben Fragen in Echtzeit – auf jedem Handy, Tablet oder PC.</p>
-          <div class="online-hero-pills"><span>Live-Fragen</span><span>Einzelspieler & Teams</span><span>Automatischer Reconnect</span><span>Integrierter Chat</span></div>
+          <div class="online-hero-pills"><span>Live-Fragen</span><span>Einzelspieler & Teams</span><span>Automatischer Reconnect</span><span>Geschützter Chat</span></div>
         </div>
         <div class="online-globe-art" aria-hidden="true">
           <div class="online-orbit orbit-one"></div><div class="online-orbit orbit-two"></div>
@@ -75,7 +75,7 @@
           <section id="onlineJoinPanel" class="panel online-entry-card hidden">
             <div class="panel-heading compact"><div><span class="eyebrow">Mit Spielcode verbinden</span><h2>Raum beitreten</h2></div><span class="online-card-icon">→</span></div>
             <form id="onlineJoinForm" class="online-form">
-              <label>Sechsstelliger Raumcode<input id="onlineJoinCode" class="online-code-input" maxlength="6" autocomplete="off" inputmode="text" placeholder="AHNSEN" required></label>
+              <label>Sechsstelliger Raumcode<input id="onlineJoinCode" class="online-code-input" maxlength="6" autocomplete="off" inputmode="text" placeholder="QUIZ24" required></label>
               <div id="onlineRoomPreview" class="online-room-preview hidden"></div>
               <label>Dein Spielername<input id="onlineJoinName" maxlength="30" autocomplete="nickname" placeholder="Zum Beispiel Lena_Quizzy" required></label>
               <label id="onlineJoinTeamLabel" class="hidden">Team auswählen<select id="onlineJoinTeam"><option value="violet">Team Violett</option><option value="blue">Team Blau</option></select></label>
@@ -102,7 +102,7 @@
 
     <section id="onlineRoomView" class="online-room-view hidden">
       <div class="online-room-header">
-        <div class="online-room-identity"><span id="onlineRoomPhase" class="online-live-chip"><i></i>Lobby</span><div><span class="eyebrow">Raumcode</span><strong id="onlineRoomCode">AHNSEN</strong></div><button id="copyOnlineCode" class="online-copy-button" type="button" aria-label="Raumcode kopieren"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></div>
+        <div class="online-room-identity"><span id="onlineRoomPhase" class="online-live-chip"><i></i>Lobby</span><div><span class="eyebrow">Raumcode</span><strong id="onlineRoomCode">QUIZ24</strong></div><button id="copyOnlineCode" class="online-copy-button" type="button" aria-label="Raumcode kopieren"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></div>
         <div class="online-room-title"><strong id="onlineRoomTitleView">Online-Quiz</strong><span id="onlineRoomMeta">10 Fragen · Gemischt</span></div>
         <div class="row"><button id="shareOnlineRoom" class="btn secondary small" type="button">Code teilen</button><button id="leaveOnlineRoom" class="btn ghost small" type="button">Raum verlassen</button></div>
       </div>
@@ -130,10 +130,11 @@
   <nav class="app-bottom-nav" aria-label="Hauptnavigation">
     <a class="app-nav-item" href="/"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/></svg><span>Start</span></a>
     <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m10 8 6 4-6 4Z"/></svg><span>Solo</span></a>
-    <a class="app-nav-item" href="/offline"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/></svg><span>Offline</span></a>
     <a class="app-nav-item active" href="/online" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span>Online</span></a>
+    <a class="app-nav-item" href="/community"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/></svg><span>Community</span></a>
   </nav>
 
+  <script src="/secure-eventsource.js"></script>
   <script src="/online.js"></script>
   <script src="/app.js"></script>
 </body>

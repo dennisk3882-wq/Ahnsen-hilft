@@ -174,6 +174,31 @@ function connectAppShortcuts() {
   });
 }
 
+function installCommunityEntry() {
+  const nav = document.querySelector('.app-bottom-nav');
+  if (nav && !nav.querySelector('a[href="/community"]')) {
+    const link = document.createElement('a');
+    link.className = 'app-nav-item';
+    link.href = '/community';
+    link.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/></svg><span>Community</span>';
+    nav.appendChild(link);
+  }
+
+  const banner = document.querySelector('.phase-banner');
+  if (banner && !banner.dataset.communityReady) {
+    banner.dataset.communityReady = 'true';
+    const strong = banner.querySelector('strong');
+    const detail = banner.querySelector('strong + span');
+    const action = banner.querySelector('a');
+    if (strong) strong.textContent = 'QuizTime Plattform und Community sind integriert';
+    if (detail) detail.textContent = 'Freunde, Einladungen, Schnellspiel, Turniere, Saisonrangliste, eigene Quizpakete und Push-Mitteilungen sind verfügbar.';
+    if (action) {
+      action.href = '/community';
+      action.textContent = 'Community öffnen';
+    }
+  }
+}
+
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
@@ -188,4 +213,5 @@ loadPageSpecificStyles();
 installUpcomingHandlers();
 installPwaHandling();
 connectAppShortcuts();
+installCommunityEntry();
 registerServiceWorker();
