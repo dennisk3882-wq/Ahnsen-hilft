@@ -1,5 +1,7 @@
 'use strict';
 
+const testMailbox = require('./test-mailbox');
+
 const APP_BASE_URL = String(
   process.env.APP_BASE_URL
   || (process.env.RENDER_EXTERNAL_HOSTNAME ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}` : '')
@@ -7,9 +9,6 @@ const APP_BASE_URL = String(
 ).replace(/\/$/, '');
 const FROM_EMAIL = String(process.env.MAIL_FROM_EMAIL || 'noreply@quiztime.app').trim();
 const FROM_NAME = String(process.env.MAIL_FROM_NAME || 'QuizTime').trim();
-const TEST_OUTBOX_KEY = Symbol.for('quiztime.test.email.outbox');
-const TEST_OUTBOX = globalThis[TEST_OUTBOX_KEY] || [];
-globalThis[TEST_OUTBOX_KEY] = TEST_OUTBOX;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -80,11 +79,7 @@ async function sendWithResend({ to, subject, html, text }) {
 async function sendEmail(message) {
   const provider = configuredProvider();
   if (!provider) {
-    if (process.env.NODE_ENV === 'test') {
-      TEST_OUTBOX.push({ ...message, createdAt: new Date().toISOString() });
-      if (TEST_OUTBOX.length > 100) TEST_OUTBOX.splice(0, TEST_OUTBOX.length - 100);
-      return true;
-    }
+    if (process.env.NODE_ENV === 'test') return testMailbox.add(message);
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[QuizTime Mail-Vorschau] ${message.subject} -> ${message.to}\n${message.text}`);
     }
@@ -147,7 +142,7 @@ module.exports = {
   APP_BASE_URL,
   _test: {
     escapeHtml,
-    listMessages: () => TEST_OUTBOX.map(message => ({ ...message })),
-    clearMessages: () => { TEST_OUTBOX.length = 0; },
+    listMessages: testMailbox.list,
+    clearMessages: testMailbox.clear,
   },
 };
