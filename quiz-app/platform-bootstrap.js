@@ -7,6 +7,7 @@ const adminStorage = require('./platform-admin-storage');
 const runtimeRoomAdmin = require('./runtime-room-admin');
 const platformDb = require('./platform-db');
 const storage = require('./platform-storage');
+const testMailbox = require('./test-mailbox');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installBrowserTestStatusRoute } = require('./browser-test-status');
@@ -19,6 +20,30 @@ for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
     await accountStorage.ensureReady();
     return original(...args);
   };
+}
+
+if (process.env.NODE_ENV === 'test' && !accountStorage.__quiztimeE2ELinksWrapped) {
+  const requestVerification = accountStorage.requestEmailVerification;
+  accountStorage.requestEmailVerification = async (...args) => {
+    const result = await requestVerification(...args);
+    testMailbox.add({
+      to: result.email,
+      subject: 'E-Mail-Adresse für QuizTime bestätigen',
+      text: `Bestätigungslink: ${process.env.APP_BASE_URL || 'http://127.0.0.1:3000'}/recover?verify=${encodeURIComponent(result.token)}`,
+    });
+    return result;
+  };
+  const createReset = accountStorage.createPasswordReset;
+  accountStorage.createPasswordReset = async (...args) => {
+    const result = await createReset(...args);
+    if (result) testMailbox.add({
+      to: result.email,
+      subject: 'QuizTime-Passwort zurücksetzen',
+      text: `Passwortlink: ${process.env.APP_BASE_URL || 'http://127.0.0.1:3000'}/recover?reset=${encodeURIComponent(result.token)}`,
+    });
+    return result;
+  };
+  accountStorage.__quiztimeE2ELinksWrapped = true;
 }
 
 const loadBaseAccount = accountStorage.getAccount;
