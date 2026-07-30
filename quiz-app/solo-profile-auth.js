@@ -97,16 +97,30 @@ function clearProfileCookie(res) {
   res.clearCookie(COOKIE_NAME, { path: '/' });
 }
 
+function publicProfile(row) {
+  return row ? {
+    id: row.id,
+    name: row.name,
+    avatarId: storage.normalizeAvatarId(row.avatarId || row.avatar_id),
+    createdAt: row.createdAt || row.created_at,
+    lastPlayedAt: row.lastPlayedAt,
+    games: Number(row.games || 0),
+  } : null;
+}
+
 async function profileForRequest(req) {
   const parsed = readToken(req.cookies?.[COOKIE_NAME]);
   if (!parsed) return null;
   const profile = await storage.getProfileById(parsed.profileId);
-  return profile ? { id: profile.id, name: profile.name, createdAt: profile.created_at } : null;
+  return profile ? publicProfile(profile) : null;
 }
 
 async function requireProfile(req, res, next) {
   try {
-    if (!storage.enabled()) { req.soloProfile = { id: '00000000-0000-0000-0000-000000000000', name: 'Gast' }; return next(); }
+    if (!storage.enabled()) {
+      req.soloProfile = { id: '00000000-0000-0000-0000-000000000000', name: 'Gast', avatarId: 'robot' };
+      return next();
+    }
     const profile = await profileForRequest(req);
     if (!profile) return res.status(401).json({ error: 'Bitte zuerst ein Solo-Profil auswählen und das Passwort eingeben.' });
     req.soloProfile = profile;
@@ -116,20 +130,14 @@ async function requireProfile(req, res, next) {
   }
 }
 
-function publicProfile(row) {
-  return row ? {
-    id: row.id,
-    name: row.name,
-    createdAt: row.createdAt || row.created_at,
-    lastPlayedAt: row.lastPlayedAt,
-    games: Number(row.games || 0),
-  } : null;
-}
-
 function installProfileRoutes(app) {
   app.get('/api/solo/profiles', async (_req, res) => {
     try {
-      res.json({ enabled: storage.enabled(), profiles: (await storage.listProfiles()).map(publicProfile) });
+      res.json({
+        enabled: storage.enabled(),
+        avatars: storage.AVATAR_IDS,
+        profiles: (await storage.listProfiles()).map(publicProfile),
+      });
     } catch (error) {
       res.status(503).json({ error: `Profile konnten nicht geladen werden: ${error.message}` });
     }
@@ -143,12 +151,25 @@ function installProfileRoutes(app) {
     }
   });
 
+  app.get('/api/solo/leaderboard', async (req, res) => {
+    try {
+      const current = await profileForRequest(req);
+      res.json({
+        currentProfileId: current?.id || null,
+        leaderboard: await storage.getLeaderboard(50),
+      });
+    } catch (error) {
+      res.status(503).json({ error: `Bestenliste konnte nicht geladen werden: ${error.message}` });
+    }
+  });
+
   app.post('/api/solo/profiles/register', async (req, res) => {
     const ip = ipOf(req);
     if (!consumeAttempt(ip)) return res.status(429).json({ error: 'Zu viele Versuche. Bitte in einigen Minuten erneut probieren.' });
     const name = safeName(req.body?.name);
     const password = String(req.body?.password || '');
     const confirmation = String(req.body?.passwordConfirmation || '');
+    const avatarId = storage.isAvatarId(req.body?.avatarId) ? req.body.avatarId : 'robot';
     if (name.length < 2) return res.status(400).json({ error: 'Der Profilname muss mindestens zwei Zeichen haben.' });
     if (password.length < 4 || password.length > 72) return res.status(400).json({ error: 'Das Passwort muss zwischen 4 und 72 Zeichen lang sein.' });
     if (password !== confirmation) return res.status(400).json({ error: 'Die beiden Passwörter stimmen nicht überein.' });
@@ -160,6 +181,7 @@ function installProfileRoutes(app) {
         nameKey: nameKey(name),
         passwordSalt: secured.salt,
         passwordHash: secured.hash,
+        avatarId,
       });
       clearAttempts(ip);
       setProfileCookie(res, profile.id);
@@ -183,7 +205,7 @@ function installProfileRoutes(app) {
       await storage.touchProfileLogin(stored.id);
       clearAttempts(ip);
       setProfileCookie(res, stored.id);
-      res.json({ profile: { id: stored.id, name: stored.name, createdAt: stored.created_at } });
+      res.json({ profile: publicProfile(stored) });
     } catch (error) {
       res.status(503).json({ error: `Anmeldung ist derzeit nicht möglich: ${error.message}` });
     }
@@ -192,6 +214,18 @@ function installProfileRoutes(app) {
   app.post('/api/solo/profiles/logout', (_req, res) => {
     clearProfileCookie(res);
     res.json({ ok: true });
+  });
+
+  app.patch('/api/solo/profiles/me/avatar', requireProfile, async (req, res) => {
+    const avatarId = String(req.body?.avatarId || '');
+    if (!storage.isAvatarId(avatarId)) return res.status(400).json({ error: 'Bitte einen gültigen Avatar auswählen.' });
+    try {
+      const profile = await storage.updateProfileAvatar(req.soloProfile.id, avatarId);
+      if (!profile) return res.status(404).json({ error: 'Profil wurde nicht gefunden.' });
+      res.json({ profile: publicProfile(profile) });
+    } catch (error) {
+      res.status(503).json({ error: `Avatar konnte nicht gespeichert werden: ${error.message}` });
+    }
   });
 
   app.get('/api/solo/profiles/stats', requireProfile, async (req, res) => {
