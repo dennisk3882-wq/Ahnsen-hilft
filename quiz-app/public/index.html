@@ -27,7 +27,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg>
           <span>Installieren</span>
         </button>
-        <span id="topModeBadge" class="mode-badge"><i></i> Phase 1</span>
+        <span id="topModeBadge" class="mode-badge"><i></i> Phase 3</span>
       </div>
     </header>
 
@@ -62,7 +62,7 @@
       <section class="home-mode-section" aria-labelledby="modeTitle">
         <div class="home-section-title">
           <div><span class="app-kicker">Spielmodi</span><h2 id="modeTitle">Wähle deine Herausforderung</h2></div>
-          <span class="phase-one-chip">Neues Neon-Design</span>
+          <span class="phase-one-chip">Neon-Plattform</span>
         </div>
 
         <div class="home-mode-grid">
@@ -81,11 +81,11 @@
 
           <article class="home-mode-card home-mode-offline">
             <div class="home-mode-copy">
-              <span class="home-mode-status"><i></i>Phase 3</span>
+              <span class="home-mode-status ready"><i></i>Sofort spielbar</span>
               <h2>Offline-Mehrspieler</h2>
               <p>Lokal auf einem Gerät mit Freunden, Familie oder mehreren Teams spielen.</p>
-              <ul class="home-mode-meta"><li>Spieler & Teams</li><li>Party-Modus</li></ul>
-              <button class="home-mode-action" type="button" data-upcoming data-upcoming-stage="Phase 3" data-upcoming-title="Offline-Mehrspieler" data-upcoming-text="Nach Profilen und Lernfortschritt folgt der Mehrspieler-Modus auf einem gemeinsamen Gerät – inklusive Teams, Spielerwechsel und gemeinsamer Wertung."><span>Vorschau ansehen</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+              <ul class="home-mode-meta"><li>Bis 8 Spieler oder 4 Teams</li><li>Familien- & Party-Modus</li></ul>
+              <a class="home-mode-action" href="/offline"><span>Offline-Spiel starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a>
             </div>
             <div class="mode-art mode-art-sofa" aria-hidden="true">
               <div class="art-glow"></div><div class="sofa-back"></div><div class="sofa-seat"></div><div class="sofa-person p1"></div><div class="sofa-person p2"></div><div class="sofa-person p3"></div>
@@ -141,9 +141,9 @@
       </section>
 
       <section class="phase-banner" aria-label="Aktueller Projektstand">
-        <div class="phase-banner-icon" aria-hidden="true">1</div>
-        <div><strong>Phase 1 läuft: Design, Solo-Modus und PWA</strong><span>Die neue Oberfläche wird zuerst vollständig stabilisiert. Danach folgen Profile, Offline- und Online-Mehrspieler.</span></div>
-        <button class="btn ghost small app-install-button" type="button" data-install-app>Web-App installieren</button>
+        <div class="phase-banner-icon" aria-hidden="true">3</div>
+        <div><strong>Phase 3 aktiv: Gemeinsam auf einem Gerät spielen</strong><span>Solo, Profile, Fortschritt und Offline-Mehrspieler sind integriert. Als Nächstes folgt der Online-Mehrspieler mit Räumen und Spielcodes.</span></div>
+        <a class="btn ghost small" href="/offline">Offline-Spiel öffnen</a>
       </section>
     </section>
 
@@ -173,9 +173,9 @@
 
   <nav class="app-bottom-nav" aria-label="Hauptnavigation">
     <a class="app-nav-item active" href="/" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/></svg><span>Start</span></a>
-    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Phase 2" data-upcoming-title="Kategorien" data-upcoming-text="Hier entstehen persönliche Kategorienübersichten, Lernfortschritt und der Übungsmodus."><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Kategorien</span></button>
-    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Phase 2" data-upcoming-title="Bestenlisten" data-upcoming-text="Persönliche Bestwerte, Serien und später Online-Ranglisten werden hier zusammengeführt."><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg><span>Bestenliste</span></button>
-    <button class="app-nav-item" type="button" aria-disabled="true" data-upcoming data-upcoming-stage="Phase 2" data-upcoming-title="Spielerprofil" data-upcoming-text="Profile mit Avatar, Level, XP, Abzeichen und detaillierten Statistiken folgen in der nächsten Phase."><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></button>
+    <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Kategorien</span></a>
+    <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg><span>Bestenliste</span></a>
+    <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></a>
   </nav>
 
   <div id="overlay" class="overlay-modal hidden"><div id="overlayInner" class="overlay-inner"></div></div>
