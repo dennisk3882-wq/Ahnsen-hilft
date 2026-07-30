@@ -84,6 +84,8 @@ assert(profiles.includes("api('/api/solo/leaderboard')"), 'Profil-Dashboard läd
 assert(profiles.includes("method: 'PATCH'"), 'Avatar wird nicht dauerhaft gespeichert.');
 assert(practiceClient.includes('window.startWrongAnswerPractice'), 'Fehlertraining ist nicht aus dem Profil startbar.');
 assert(practiceClient.includes("'/api/solo/practice/start'"), 'Fehlertraining ruft die Start-API nicht auf.');
+assert(practiceClient.includes('settings.questionCount = 10'), 'Nach kurzen Trainingslisten bleibt keine gültige Fragenzahl ausgewählt.');
+assert(!practiceClient.includes('settings.questionCount = practiceState.totalQuestions'), 'Kurze Trainingslisten machen die normale Solo-Auswahl ungültig.');
 
 assert(sw.includes("'ahnsen-quiz-phase2-v1'"), 'PWA-Cache wurde nicht auf Phase 2 erhöht.');
 for (const asset of ['/profile-phase2.css', '/profile-phase2-extras.css', '/wrong-practice.js']) {
