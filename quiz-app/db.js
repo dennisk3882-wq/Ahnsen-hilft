@@ -1,6 +1,7 @@
 'use strict';
 
 const { Pool } = require('pg');
+const catalogService = require('./question-catalog-service');
 
 const rawUrl = String(process.env.DATABASE_URL || '').trim();
 
@@ -57,24 +58,12 @@ function mergeCatalog(existing, defaults, type) {
   const defaultList = (Array.isArray(defaults) ? defaults : [])
     .map((question, index) => normalizeQuestion(question, type, index))
     .filter(question => question.text);
-
-  // Die Dateien unter data/ sind für sämtliche 500 Standardfragen verbindlich.
-  // Dadurch bleiben Fragetext, Antworten, richtige Lösung und Erklärung immer als
-  // zusammengehöriger Datensatz erhalten, auch wenn Neon noch ältere Fassungen enthält.
-  const merged = defaultList.map(question => ({
-    ...question,
-    options: [...question.options],
-  }));
-
+  const merged = defaultList.map(question => ({ ...question, options: [...question.options] }));
   const seenIds = new Set(merged.map(question => question.id));
   const seenIdentities = new Set(merged.map(questionIdentityKey));
   const existingList = (Array.isArray(existing) ? existing : [])
     .map((question, index) => normalizeQuestion(question, type, index))
     .filter(question => question.text);
-
-  // Ausschließlich ausdrücklich über den Frageneditor erstellte Zusatzfragen bleiben
-  // neben dem verbindlichen Standardkatalog erhalten. Alte Standard- und Legacy-Fassungen
-  // werden nicht erneut angehängt, da sie genau die gemeldeten Zuordnungsfehler verursachen.
   for (const question of existingList) {
     if (!isExplicitCustomQuestion(question, type)) continue;
     const identity = questionIdentityKey(question);
@@ -83,12 +72,12 @@ function mergeCatalog(existing, defaults, type) {
     seenIds.add(question.id);
     seenIdentities.add(identity);
   }
-
   return merged;
 }
 
 async function initDatabase(defaultSets) {
   if (!pool) {
+    catalogService.setPublishedCatalogs(defaultSets);
     return { enabled: false, questionSets: defaultSets, liveState: null };
   }
 
@@ -98,13 +87,11 @@ async function initDatabase(defaultSets) {
       questions JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-
     CREATE TABLE IF NOT EXISTS quiz_live_state (
       id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
       state JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-
     CREATE TABLE IF NOT EXISTS quiz_runs (
       id BIGSERIAL PRIMARY KEY,
       quiz_type TEXT NOT NULL,
@@ -114,13 +101,12 @@ async function initDatabase(defaultSets) {
       answer_history JSONB NOT NULL
     );
   `);
-
-  await pool.query(`ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS run_uuid TEXT`);
-  await pool.query(`ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS category TEXT`);
-  await pool.query(`ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS question_count INTEGER`);
-  await pool.query(`ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ`);
-  await pool.query(`ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS settings JSONB`);
-  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS quiz_runs_run_uuid_unique ON quiz_runs(run_uuid) WHERE run_uuid IS NOT NULL`);
+  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS run_uuid TEXT');
+  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS category TEXT');
+  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS question_count INTEGER');
+  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ');
+  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS settings JSONB');
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS quiz_runs_run_uuid_unique ON quiz_runs(run_uuid) WHERE run_uuid IS NOT NULL');
 
   const questionSets = {};
   for (const type of ['adult', 'child']) {
@@ -135,18 +121,21 @@ async function initDatabase(defaultSets) {
     );
     questionSets[type] = merged;
   }
+  catalogService.setPublishedCatalogs(questionSets);
 
   const liveResult = await pool.query('SELECT state FROM quiz_live_state WHERE id = 1');
   return { enabled: true, questionSets, liveState: liveResult.rows[0]?.state || null };
 }
 
 async function saveQuestionSet(type, questions) {
-  if (!pool) return false;
+  const key = type === 'child' ? 'child' : 'adult';
+  const normalized = catalogService.setPublishedCatalog(key, questions);
+  if (!pool) return true;
   await pool.query(
     `INSERT INTO quiz_question_sets (quiz_type, questions, updated_at)
      VALUES ($1, $2::jsonb, NOW())
      ON CONFLICT (quiz_type) DO UPDATE SET questions = EXCLUDED.questions, updated_at = NOW()`,
-    [type, JSON.stringify(questions)],
+    [key, JSON.stringify(normalized)],
   );
   return true;
 }
@@ -169,17 +158,8 @@ async function saveQuizRun(run) {
       (run_uuid, quiz_type, title, category, question_count, started_at, finished_at, leaderboard, answer_history, settings)
      VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7::jsonb, $8::jsonb, $9::jsonb)
      ON CONFLICT (run_uuid) DO NOTHING`,
-    [
-      run.runUuid,
-      run.quizType,
-      run.title,
-      run.category,
-      run.questionCount,
-      run.startedAt ? new Date(run.startedAt) : null,
-      JSON.stringify(run.leaderboard),
-      JSON.stringify(run.answerHistory),
-      JSON.stringify(run.settings || {}),
-    ],
+    [run.runUuid, run.quizType, run.title, run.category, run.questionCount, run.startedAt ? new Date(run.startedAt) : null,
+      JSON.stringify(run.leaderboard), JSON.stringify(run.answerHistory), JSON.stringify(run.settings || {})],
   );
   return true;
 }
@@ -189,9 +169,7 @@ async function listQuizRuns(limit = 100) {
   const { rows } = await pool.query(
     `SELECT id, run_uuid, quiz_type, title, category, question_count, started_at, finished_at,
             leaderboard, answer_history, settings
-       FROM quiz_runs
-      ORDER BY finished_at DESC
-      LIMIT $1`,
+       FROM quiz_runs ORDER BY finished_at DESC LIMIT $1`,
     [Math.max(1, Math.min(500, Number(limit) || 100))],
   );
   return rows;
@@ -230,9 +208,5 @@ module.exports = {
   deleteQuizRun,
   pingDatabase,
   databaseEnabled: Boolean(pool),
-  _test: {
-    mergeCatalog,
-    questionIdentityKey,
-    isExplicitCustomQuestion,
-  },
+  _test: { mergeCatalog, questionIdentityKey, isExplicitCustomQuestion },
 };
