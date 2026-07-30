@@ -7,6 +7,7 @@ const APP_BASE_URL = String(
 ).replace(/\/$/, '');
 const FROM_EMAIL = String(process.env.MAIL_FROM_EMAIL || 'noreply@quiztime.app').trim();
 const FROM_NAME = String(process.env.MAIL_FROM_NAME || 'QuizTime').trim();
+const TEST_OUTBOX = [];
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -77,6 +78,11 @@ async function sendWithResend({ to, subject, html, text }) {
 async function sendEmail(message) {
   const provider = configuredProvider();
   if (!provider) {
+    if (process.env.NODE_ENV === 'test') {
+      TEST_OUTBOX.push({ ...message, createdAt: new Date().toISOString() });
+      if (TEST_OUTBOX.length > 100) TEST_OUTBOX.splice(0, TEST_OUTBOX.length - 100);
+      return true;
+    }
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[QuizTime Mail-Vorschau] ${message.subject} -> ${message.to}\n${message.text}`);
     }
@@ -137,5 +143,9 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   APP_BASE_URL,
-  _test: { escapeHtml },
+  _test: {
+    escapeHtml,
+    listMessages: () => TEST_OUTBOX.map(message => ({ ...message })),
+    clearMessages: () => { TEST_OUTBOX.length = 0; },
+  },
 };
