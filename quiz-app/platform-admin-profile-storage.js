@@ -2,9 +2,10 @@
 
 const db = require('./platform-db');
 const accountStorage = require('./account-storage');
+const socialStorage = require('./platform-social-storage');
 
 async function listProfiles({ search = '', status = 'all', limit = 100 } = {}) {
-  await accountStorage.ensureReady();
+  await Promise.all([accountStorage.ensureReady(), socialStorage.ensureReady()]);
   const term = db.safeText(search, 80);
   const safeStatus = ['active', 'suspended', 'banned'].includes(status) ? status : 'all';
   const safeLimit = Math.max(1, Math.min(300, Number(limit) || 100));
