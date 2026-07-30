@@ -7,7 +7,9 @@ const APP_BASE_URL = String(
 ).replace(/\/$/, '');
 const FROM_EMAIL = String(process.env.MAIL_FROM_EMAIL || 'noreply@quiztime.app').trim();
 const FROM_NAME = String(process.env.MAIL_FROM_NAME || 'QuizTime').trim();
-const TEST_OUTBOX = [];
+const TEST_OUTBOX_KEY = Symbol.for('quiztime.test.email.outbox');
+const TEST_OUTBOX = globalThis[TEST_OUTBOX_KEY] || [];
+globalThis[TEST_OUTBOX_KEY] = TEST_OUTBOX;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
