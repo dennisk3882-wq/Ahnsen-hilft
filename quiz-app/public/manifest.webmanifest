@@ -1,6 +1,6 @@
 {
-  "name": "Ahnsen Quiz",
-  "short_name": "Ahnsen Quiz",
+  "name": "QuizTime",
+  "short_name": "QuizTime",
   "description": "Solo-, Offline-, Online- und Live-Quiz für Kinder und Erwachsene.",
   "lang": "de-DE",
   "start_url": "/",

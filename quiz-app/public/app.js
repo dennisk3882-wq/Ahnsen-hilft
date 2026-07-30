@@ -2,6 +2,78 @@
 
 let deferredInstallPrompt = null;
 
+const BRAND_REPLACEMENTS = [
+  ['Ahnsen Quizabend', 'QuizTime'],
+  ['Ahnsen Quiz', 'QuizTime'],
+  ['Ahnsen-Quiz', 'QuizTime'],
+];
+
+function replaceBrandText(value) {
+  let result = String(value ?? '');
+  for (const [from, to] of BRAND_REPLACEMENTS) result = result.split(from).join(to);
+  return result;
+}
+
+function applyQuizTimeBranding(root = document) {
+  const scope = root.nodeType === Node.DOCUMENT_NODE ? root : root.ownerDocument || document;
+  const target = root.nodeType === Node.DOCUMENT_NODE ? root.documentElement : root;
+
+  const nextTitle = replaceBrandText(scope.title);
+  if (nextTitle !== scope.title) scope.title = nextTitle;
+
+  target.querySelectorAll?.('meta[content], [aria-label], [title], [alt]').forEach(element => {
+    for (const attribute of ['content', 'aria-label', 'title', 'alt']) {
+      if (!element.hasAttribute(attribute)) continue;
+      const current = element.getAttribute(attribute);
+      const next = replaceBrandText(current);
+      if (next !== current) element.setAttribute(attribute, next);
+    }
+  });
+
+  const walker = scope.createTreeWalker(target, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (!parent || ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
+      return BRAND_REPLACEMENTS.some(([from]) => node.nodeValue?.includes(from))
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_REJECT;
+    },
+  });
+
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+  for (const node of textNodes) {
+    const next = replaceBrandText(node.nodeValue);
+    if (next !== node.nodeValue) node.nodeValue = next;
+  }
+
+  scope.querySelectorAll('.app-logo span, .app-logo').forEach(logo => {
+    if (logo.children.length === 0 && ['A', 'AQ'].includes(logo.textContent.trim())) logo.textContent = 'Q';
+  });
+}
+
+function watchQuizTimeBranding() {
+  applyQuizTimeBranding(document);
+  const observer = new MutationObserver(mutations => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'characterData') {
+        const next = replaceBrandText(mutation.target.nodeValue);
+        if (next !== mutation.target.nodeValue) mutation.target.nodeValue = next;
+        continue;
+      }
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const next = replaceBrandText(node.nodeValue);
+          if (next !== node.nodeValue) node.nodeValue = next;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          applyQuizTimeBranding(node);
+        }
+      });
+    }
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+}
+
 function loadPageSpecificStyles() {
   if (!document.body.classList.contains('solo-body')) return;
   if (document.querySelector('link[href="/solo-app.css"]')) return;
@@ -80,7 +152,7 @@ function installPwaHandling() {
     if (!deferredInstallPrompt) {
       openInfoModal(
         'Web-App installieren',
-        'Öffne im Browsermenü „Zum Startbildschirm hinzufügen“ oder „App installieren“. Danach startet Ahnsen Quiz wie eine normale App im Vollbild.',
+        'Öffne im Browsermenü „Zum Startbildschirm hinzufügen“ oder „App installieren“. Danach startet QuizTime wie eine normale App im Vollbild.',
       );
       return;
     }
@@ -111,6 +183,7 @@ function registerServiceWorker() {
   });
 }
 
+watchQuizTimeBranding();
 loadPageSpecificStyles();
 installUpcomingHandlers();
 installPwaHandling();

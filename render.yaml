@@ -13,7 +13,7 @@ services:
       - key: NODE_VERSION
         value: "20"
       - key: QUIZ_TITLE
-        value: Ahnsen Quizabend
+        value: QuizTime
       - key: QUESTION_SECONDS
         value: "20"
       - key: EVENT_PASSWORD
