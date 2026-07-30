@@ -129,6 +129,35 @@ function hostOptions(code, token) {
   };
 }
 
+function shuffleQuestions(values) {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = crypto.randomInt(0, index + 1);
+    [result[index], result[target]] = [result[target], result[index]];
+  }
+  return result;
+}
+
+function replaceQuestions(code, catalog, category = 'Gemischt') {
+  const room = roomForCode(code);
+  if (!room) throw new Error('Dieser Online-Raum wurde nicht gefunden.');
+  const source = category === 'Gemischt' ? catalog : catalog.filter(question => question.category === category);
+  const pool = source.length ? source : catalog;
+  if (!pool.length) throw new Error('Der veröffentlichte Fragenkatalog enthält keine passenden Fragen.');
+  const questions = [];
+  let batch = shuffleQuestions(pool);
+  while (questions.length < Number(room.questionCount || 10)) {
+    if (!batch.length) batch = shuffleQuestions(pool);
+    questions.push(structuredClone(batch.pop()));
+  }
+  room.category = category;
+  room.questions = questions;
+  room.currentIndex = 0;
+  room.updatedAt = Date.now();
+  forceReconnect(room.code);
+  return room;
+}
+
 function spectatorState(code) {
   const room = roomForCode(code);
   if (!room) return null;
@@ -184,8 +213,10 @@ module.exports = {
   kickPlayer,
   transferHost,
   hostOptions,
+  replaceQuestions,
   spectatorState,
   roomForCode,
+  forceReconnect,
   status,
-  _test: { hashToken, normalizeCode },
+  _test: { hashToken, normalizeCode, shuffleQuestions },
 };
