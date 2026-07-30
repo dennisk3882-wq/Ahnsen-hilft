@@ -6,7 +6,8 @@ const { uniqueIdentity, registerProfile } = require('./helpers');
 test('Admin-Dashboard zeigt Systemtests und verwaltet Profile', async ({ page }) => {
   const identity = uniqueIdentity('AdminTest');
   await registerProfile(page, identity);
-  await page.evaluate(() => fetch('/api/solo/profiles/logout', { method: 'POST' }));
+  const logoutStatus = await page.evaluate(async () => (await fetch('/api/solo/profiles/logout', { method: 'POST' })).status);
+  expect(logoutStatus).toBe(200);
 
   await page.goto('/platform-admin');
   await page.fill('#adminPassword', process.env.ADMIN_PASSWORD || 'e2e-admin-password');
@@ -19,7 +20,7 @@ test('Admin-Dashboard zeigt Systemtests und verwaltet Profile', async ({ page })
   await page.fill('#adminProfileQuery', identity.name);
   await page.locator('#adminProfileSearch button[type="submit"]').click();
   await expect(page.locator('#adminProfiles')).toContainText(identity.name);
-  await page.locator(`[data-profile-open]`).first().click();
+  await page.locator('[data-profile-open]').first().click();
   await expect(page.locator('#adminProfileDetails')).toContainText(identity.name);
 
   const dialogs = [];
