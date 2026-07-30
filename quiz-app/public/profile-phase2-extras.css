@@ -1,0 +1,51 @@
+.profile-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-choice .phase2-mini-avatar,
+.profile-game-chip .phase2-mini-avatar {
+  flex: 0 0 auto;
+}
+
+.profile-choice .phase2-mini-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+.profile-game-chip .phase2-mini-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+}
+
+.profile-game-chip .phase2-mini-avatar svg {
+  width: 21px;
+  height: 21px;
+}
+
+.phase2-badge-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.phase2-dashboard-card .wide-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  filter: saturate(.45);
+}
+
+.phase2-weak-row strong,
+.phase2-weak-row small {
+  display: block;
+}
+
+.phase2-weak-row strong {
+  line-height: 1.35;
+}
+
+.phase2-weak-row small {
+  margin-top: 3px;
+}
