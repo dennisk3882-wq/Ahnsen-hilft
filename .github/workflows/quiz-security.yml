@@ -1,0 +1,50 @@
+name: QuizTime Security
+
+on:
+  push:
+    branches:
+      - ahnsen-live-quiz-online
+    paths:
+      - 'quiz-app/**'
+      - '.github/workflows/quiz-security.yml'
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
+    paths:
+      - 'quiz-app/**'
+      - '.github/workflows/quiz-security.yml'
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: read
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: quiz-app/package-lock.json
+      - name: Abhängigkeiten reproduzierbar installieren
+        working-directory: quiz-app
+        run: npm ci
+      - name: Bekannte Schwachstellen ab hoher Kritikalität blockieren
+        working-directory: quiz-app
+        run: npm audit --audit-level=high
+
+  codeql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: CodeQL initialisieren
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - name: CodeQL analysieren
+        uses: github/codeql-action/analyze@v3
