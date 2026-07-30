@@ -45,13 +45,17 @@ async function activeSeason(){
   ({rows}=await q(`INSERT INTO quiz_platform_seasons(id,name,starts_at,ends_at,active) VALUES($1,$2,$3,$4,TRUE) RETURNING *`,[id,name,start,end]));return rows[0];
 }
 async function seasonLeaderboard(limit=100){
-  const season=await activeSeason();const{rows}=await q(`SELECT p.id,p.name,p.avatar_id,
-    COALESCE(SUM(a.delta) FILTER(WHERE a.answered_at BETWEEN $1 AND $2),0)::int + COALESCE(SUM(m.score) FILTER(WHERE m.finished_at BETWEEN $1 AND $2),0)::int AS score,
-    COUNT(a.id) FILTER(WHERE a.correct AND a.answered_at BETWEEN $1 AND $2)::int + COALESCE(SUM(m.correct) FILTER(WHERE m.finished_at BETWEEN $1 AND $2),0)::int AS correct,
-    COUNT(DISTINCT a.session_id) FILTER(WHERE a.answered_at BETWEEN $1 AND $2)::int + COUNT(DISTINCT m.room_code) FILTER(WHERE m.finished_at BETWEEN $1 AND $2)::int AS games,
-    COUNT(m.id) FILTER(WHERE m.won AND m.finished_at BETWEEN $1 AND $2)::int AS wins
-    FROM quiz_solo_profiles p LEFT JOIN quiz_solo_attempts a ON a.profile_id=p.id LEFT JOIN quiz_platform_match_results m ON m.profile_id=p.id
-    GROUP BY p.id ORDER BY score DESC,correct DESC,p.name LIMIT $3`,[season.starts_at,season.ends_at,Math.max(1,Math.min(200,Number(limit)||100))]);
+  const season=await activeSeason();const{rows}=await q(`WITH solo AS (
+      SELECT profile_id,COALESCE(SUM(delta),0)::int AS score,COUNT(*) FILTER(WHERE correct)::int AS correct,COUNT(DISTINCT session_id)::int AS games
+      FROM quiz_solo_attempts WHERE answered_at BETWEEN $1 AND $2 GROUP BY profile_id
+    ), online AS (
+      SELECT profile_id,COALESCE(SUM(score),0)::int AS score,COALESCE(SUM(correct),0)::int AS correct,COUNT(DISTINCT room_code)::int AS games,COUNT(*) FILTER(WHERE won)::int AS wins
+      FROM quiz_platform_match_results WHERE finished_at BETWEEN $1 AND $2 GROUP BY profile_id
+    )
+    SELECT p.id,p.name,p.avatar_id,(COALESCE(s.score,0)+COALESCE(o.score,0))::int AS score,
+      (COALESCE(s.correct,0)+COALESCE(o.correct,0))::int AS correct,(COALESCE(s.games,0)+COALESCE(o.games,0))::int AS games,COALESCE(o.wins,0)::int AS wins
+    FROM quiz_solo_profiles p LEFT JOIN solo s ON s.profile_id=p.id LEFT JOIN online o ON o.profile_id=p.id
+    ORDER BY score DESC,correct DESC,p.name LIMIT $3`,[season.starts_at,season.ends_at,Math.max(1,Math.min(200,Number(limit)||100))]);
   return {season,leaderboard:rows.map((row,index)=>({...row,rank:index+1}))};
 }
 async function createTournament(ownerId,data){const id=db.crypto.randomUUID();const code=db.randomCode(8);const name=db.safeText(data.name,100);if(name.length<3)throw new Error('Turniername ist zu kurz.');const{rows}=await q(`INSERT INTO quiz_platform_tournaments(id,code,owner_id,name,description,format,starts_at,settings) VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb) RETURNING *`,[id,code,ownerId,name,db.safeText(data.description,500)||null,data.format==='knockout'?'knockout':'leaderboard',data.startsAt?new Date(data.startsAt):null,JSON.stringify(data.settings||{})]);await q('INSERT INTO quiz_platform_tournament_players(tournament_id,profile_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,ownerId]);return rows[0];}
