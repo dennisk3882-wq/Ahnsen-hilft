@@ -7,6 +7,7 @@ const {
   calculateOnlineScore,
   normalizeRoomCode,
   TEAM_NAMES,
+  _test,
 } = require('../online-multiplayer');
 
 const root = path.join(__dirname, '..');
@@ -19,12 +20,15 @@ assert.strictEqual(calculateOnlineScore({ correct: false, timedOut: true }), 0, 
 assert.strictEqual(normalizeRoomCode(' ahn-sen! '), 'AHNSEN', 'Raumcode wird nicht zuverlässig normalisiert.');
 assert.strictEqual(TEAM_NAMES.violet, 'Team Violett', 'Violettes Team fehlt.');
 assert.strictEqual(TEAM_NAMES.blue, 'Team Blau', 'Blaues Team fehlt.');
+assert(_test.secureHashEqual(_test.hashToken('geheim'), _test.hashToken('geheim')), 'Spielertokens werden nicht sicher verglichen.');
+assert(!_test.secureHashEqual(_test.hashToken('geheim'), _test.hashToken('anders')), 'Verschiedene Spielertokens werden fälschlich akzeptiert.');
 
 const index = read('public/index.html');
 const html = read('public/online.html');
 const css = read('public/online.css');
 const client = read('public/online.js');
 const server = read('online-multiplayer.js');
+const roomStorage = read('online-room-storage.js');
 const auth = read('solo-profile-auth.js');
 const sw = read('public/sw.js');
 
@@ -33,6 +37,7 @@ assert(onlineCard.includes('href="/online"'), 'Online-Mehrspieler ist auf der St
 assert(onlineCard.includes('Sofort spielbar'), 'Online-Mehrspieler ist nicht als spielbar markiert.');
 assert(!onlineCard.includes('data-upcoming'), 'Online-Mehrspieler ist weiterhin nur eine Vorschau.');
 assert(index.includes('Alle vier Plattformphasen sind integriert'), 'Abschluss der vier Plattformphasen wird nicht angezeigt.');
+assert(index.includes('PostgreSQL-Reconnect'), 'Dauerhafter Reconnect wird auf der Startseite nicht angezeigt.');
 
 for (const asset of ['/online.css', '/online.js']) {
   assert(html.includes(asset), `Online-Seite lädt das Asset nicht: ${asset}`);
@@ -56,6 +61,7 @@ assert(html.includes('value="public"'), 'Öffentliche Räume fehlen.');
 
 for (const route of [
   "app.get('/api/online/config'",
+  "app.get('/api/online/status'",
   "app.get('/api/online/rooms/public'",
   "app.post('/api/online/rooms'",
   "app.post('/api/online/rooms/:code/join'",
@@ -75,11 +81,21 @@ assert(server.includes("'Content-Type': 'text/event-stream'"), 'Echtzeit-SSE feh
 assert(server.includes("'X-Accel-Buffering': 'no'"), 'SSE-Pufferung wird für den Proxy nicht deaktiviert.');
 assert(server.includes('scheduleQuestionTimer(room)'), 'Serverseitiger Fragentimer fehlt.');
 assert(server.includes('allPlayersAnswered(room)'), 'Vorzeitige Auflösung nach allen Antworten fehlt.');
-assert(server.includes('room.phase === \'revealed\''), 'Lösungen werden nicht auf die Auflösungsphase begrenzt.');
+assert(server.includes("room.phase === 'revealed'"), 'Lösungen werden nicht auf die Auflösungsphase begrenzt.');
 assert(server.includes('randomToken()'), 'Sichere, zufällige Spielertokens fehlen.');
+assert(server.includes('tokenHash: hashToken(token)'), 'Spielertokens werden nicht gehasht gespeichert.');
 assert(server.includes('ROOM_CODE_LENGTH = 6'), 'Sechsstellige Raumcodes fehlen.');
 assert(server.includes('teamLeaderboard(room)'), 'Team-Rangliste fehlt.');
 assert(server.includes('getPlayerByToken'), 'Spieleraktionen werden nicht mit einem Raumtoken geschützt.');
+assert(server.includes('restoreRooms()'), 'Online-Räume werden nach einem Serverneustart nicht wiederhergestellt.');
+assert(server.includes('storage.saveRoom'), 'Online-Spielstände werden nicht in PostgreSQL gespeichert.');
+assert(server.includes('storage.deleteRoom'), 'Gelöschte Online-Räume bleiben in PostgreSQL bestehen.');
+
+assert(roomStorage.includes('CREATE TABLE IF NOT EXISTS quiz_online_rooms'), 'PostgreSQL-Tabelle für Online-Räume fehlt.');
+assert(roomStorage.includes('room JSONB NOT NULL'), 'Online-Raumzustand wird nicht als JSONB gespeichert.');
+assert(roomStorage.includes('ON CONFLICT (code) DO UPDATE'), 'Online-Räume werden nicht zuverlässig aktualisiert.');
+assert(roomStorage.includes('expires_at'), 'Automatische Ablaufzeit für Online-Räume fehlt.');
+assert(roomStorage.includes('sslmode'), 'TLS-gesicherte PostgreSQL-Verbindung fehlt.');
 
 for (const feature of [
   'new EventSource(',
@@ -113,9 +129,9 @@ for (const selector of [
   assert(css.includes(selector), `Online-Neon-Designbereich fehlt: ${selector}`);
 }
 
-assert(sw.includes("'ahnsen-quiz-phase4-v1'"), 'PWA-Cache wurde nicht auf Phase 4 erhöht.');
+assert(sw.includes("'ahnsen-quiz-phase4-v2'"), 'PWA-Cache wurde nicht auf die korrigierte Phase-4-Version erhöht.');
 for (const asset of ['/online', '/online.css', '/online.js']) {
   assert(sw.includes(`'${asset}'`), `Online-PWA-Asset fehlt: ${asset}`);
 }
 
-console.log('Phase 4 online multiplayer tests passed.');
+console.log('Phase 4 online multiplayer and PostgreSQL persistence tests passed.');
