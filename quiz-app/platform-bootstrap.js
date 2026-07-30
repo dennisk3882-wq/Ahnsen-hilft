@@ -14,6 +14,7 @@ const phase10Stability = require('./phase10-stability');
 const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
 const onlineCatalogStability = require('./online-catalog-stability');
+const friendNotificationControl = require('./friend-notification-control');
 const { installOnlineCompletionRoutes } = require('./online-completion');
 const { installEventRuntimeRoutes } = require('./event-runtime-routes');
 const { installPlatformSecurity } = require('./platform-security');
@@ -30,6 +31,7 @@ onlineCatalogStability.patchEventCatalog();
 platformCompletion.patchHistory();
 phase10Stability.patchOnlineStorage();
 phase10Progression.patchProgression();
+friendNotificationControl.patchStorage(storage);
 
 accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
 for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
@@ -107,6 +109,9 @@ if (!adminStorage.__quiztimeRuntimeWrapped) {
 storage.ensureReady().catch(error => {
   console.error('QuizTime-Plattformtabellen konnten nicht vorbereitet werden:', error.message);
 });
+friendNotificationControl.ensureReady().catch(error => {
+  console.error('Freundes-Benachrichtigungseinstellungen konnten nicht vorbereitet werden:', error.message);
+});
 phase10Stability.installScheduler();
 platformCompletion.startMaintenance();
 
@@ -158,23 +163,29 @@ if (!profileAuth.__quiztimePlatformWrapped) {
         res.status(503).json({ error: `QuizTime Community wird vorbereitet: ${error.message}` });
       }
     });
-    phase10Stability.installPlatformGuards(app, profileAuth.requireProfile);
+
+    const requireProfileWithActor = friendNotificationControl.withActor(profileAuth.requireProfile);
+    phase10Stability.installPlatformGuards(app, requireProfileWithActor);
     installPlatformRoutes(app, {
-      requireProfile: profileAuth.requireProfile,
+      requireProfile: requireProfileWithActor,
       profileForRequest: profileAuth.profileForRequest,
     });
     phase10Stability.installAdditionalRoutes(app, {
-      requireProfile: profileAuth.requireProfile,
+      requireProfile: requireProfileWithActor,
       requireAdmin: requirePlatformAdmin,
     });
+    friendNotificationControl.installPreferenceRoute(app, {
+      requireProfile: requireProfileWithActor,
+      requireVerified,
+    });
     platformCompletion.installCompletionRoutes(app, {
-      requireProfile: profileAuth.requireProfile,
+      requireProfile: requireProfileWithActor,
       requireAdmin: requirePlatformAdmin,
       requireVerified,
     });
-    installEventRuntimeRoutes(app, { requireProfile: profileAuth.requireProfile });
+    installEventRuntimeRoutes(app, { requireProfile: requireProfileWithActor });
     installPhase10Routes(app, {
-      requireProfile: profileAuth.requireProfile,
+      requireProfile: requireProfileWithActor,
       requireAdmin: requirePlatformAdmin,
     });
     app.use((error, req, res, next) => {
