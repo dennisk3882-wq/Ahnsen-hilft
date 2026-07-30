@@ -86,7 +86,7 @@ function contentProblem(message) {
   return null;
 }
 
-function ruleFor(req) {
+function onlineRuleFor(req) {
   const path = req.path || '';
   if (req.method === 'POST' && path === '/rooms') return { max: 5, windowMs: 60 * 60 * 1000, label: 'Raumerstellung' };
   if (path.endsWith('/join') || path.endsWith('/preview')) return { max: 40, windowMs: 10 * 60 * 1000, label: 'Raumcode-Prüfung' };
@@ -94,6 +94,38 @@ function ruleFor(req) {
   if (path.endsWith('/answer')) return { max: 35, windowMs: 60 * 1000, label: 'Antworten' };
   if (path.endsWith('/stream-ticket')) return { max: 20, windowMs: 60 * 1000, label: 'Echtzeit-Ticket' };
   return { max: 180, windowMs: 60 * 1000, label: 'Online-API' };
+}
+
+function platformRuleFor(req) {
+  const path = req.path || '';
+  if (path === '/admin/login' && req.method === 'POST') return { max: 8, windowMs: 15 * 60 * 1000, label: 'Admin-Anmeldung' };
+  if (path === '/client-error' && req.method === 'POST') return { max: 30, windowMs: 60 * 1000, label: 'Client-Fehler' };
+  if (path.includes('/reports') && req.method === 'POST') return { max: 8, windowMs: 60 * 60 * 1000, label: 'Meldungen' };
+  if (path.includes('/invites') && req.method === 'POST') return { max: 30, windowMs: 60 * 60 * 1000, label: 'Einladungen' };
+  if (path.includes('/friends/request') && req.method === 'POST') return { max: 25, windowMs: 60 * 60 * 1000, label: 'Freundschaftsanfragen' };
+  if (path.includes('/matchmaking/join') && req.method === 'POST') return { max: 12, windowMs: 10 * 60 * 1000, label: 'Matchmaking' };
+  if (path.includes('/packs') && req.method === 'POST') return { max: 12, windowMs: 60 * 60 * 1000, label: 'Quizpakete' };
+  return { max: 150, windowMs: 60 * 1000, label: 'Plattform-API' };
+}
+
+async function enforceRule(req, res, next, rule) {
+  if (req.quiztimeInternal) return next();
+  const hash = ipHash(req);
+  try {
+    if (storage.enabled()) {
+      const ban = await storage.activeBan(hash);
+      if (ban) return res.status(429).json({ error: `Vorübergehend gesperrt: ${ban.reason}`, retryAfter: ban.expires_at });
+    }
+    const limit = rateLimit(`${hash}:${rule.label}`, rule.max, rule.windowMs);
+    if (!limit.allowed) {
+      await addStrike(hash, rule.label);
+      res.set('Retry-After', String(Math.max(1, Math.ceil(limit.retryAfterMs / 1000))));
+      return res.status(429).json({ error: `Zu viele Anfragen (${rule.label}). Bitte kurz warten.`, retryAfterMs: limit.retryAfterMs });
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 function installPlatformSecurity(app) {
@@ -127,32 +159,19 @@ function installPlatformSecurity(app) {
     next();
   });
 
-  app.use('/api/online', async (req, res, next) => {
-    if (req.quiztimeInternal) return next();
-    const hash = ipHash(req);
-    try {
-      if (storage.enabled()) {
-        const ban = await storage.activeBan(hash);
-        if (ban) return res.status(429).json({ error: `Vorübergehend gesperrt: ${ban.reason}`, retryAfter: ban.expires_at });
+  app.use('/api/online', (req, res, next) => enforceRule(req, res, next, onlineRuleFor(req)));
+  app.use('/api/platform', (req, res, next) => enforceRule(req, res, next, platformRuleFor(req)));
+
+  app.use('/api/online', (req, res, next) => {
+    if (req.path.endsWith('/chat') && req.method === 'POST') {
+      const problem = contentProblem(req.body?.message);
+      if (problem) {
+        const hash = ipHash(req);
+        addStrike(hash, 'Chatinhalt').catch(() => false);
+        return res.status(400).json({ error: problem });
       }
-      const rule = ruleFor(req);
-      const limit = rateLimit(`${hash}:${rule.label}`, rule.max, rule.windowMs);
-      if (!limit.allowed) {
-        await addStrike(hash, rule.label);
-        res.set('Retry-After', String(Math.max(1, Math.ceil(limit.retryAfterMs / 1000))));
-        return res.status(429).json({ error: `Zu viele Anfragen (${rule.label}). Bitte kurz warten.`, retryAfterMs: limit.retryAfterMs });
-      }
-      if (req.path.endsWith('/chat') && req.method === 'POST') {
-        const problem = contentProblem(req.body?.message);
-        if (problem) {
-          await addStrike(hash, 'Chatinhalt');
-          return res.status(400).json({ error: problem });
-        }
-      }
-      next();
-    } catch (error) {
-      next(error);
     }
+    next();
   });
 
   app.post('/api/online/rooms/:code/stream-ticket', (req, res) => {
@@ -184,6 +203,15 @@ function installPlatformSecurity(app) {
     });
     res.status(202).json({ ok: true });
   });
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, bucket] of buckets) if (bucket.resetAt <= now) buckets.delete(key);
+    for (const [key, values] of strikes) {
+      const active = values.filter(timestamp => now - timestamp < 30 * 60 * 1000);
+      if (active.length) strikes.set(key, active); else strikes.delete(key);
+    }
+  }, 10 * 60 * 1000).unref?.();
 }
 
 module.exports = {
@@ -192,5 +220,5 @@ module.exports = {
   seal,
   unseal,
   ipHash,
-  _test: { rateLimit },
+  _test: { rateLimit, onlineRuleFor, platformRuleFor },
 };
