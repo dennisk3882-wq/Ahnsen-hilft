@@ -53,13 +53,16 @@ test('Normales Online-Spiel wird Profilen, Zuschaueransicht, Gastgeberwechsel, H
     await host.fill('#onlineRoomTitle', 'Profilgebundener Test');
     await host.selectOption('#onlineQuestionCount', '5');
     await host.locator('#onlineCreateForm button[type="submit"]').click();
+    await expect(host.locator('#onlineRoomView')).toBeVisible();
     const code = (await host.locator('#onlineRoomCode').textContent()).trim();
+    expect(code).toMatch(/^[A-Z0-9]{6}$/u);
 
     await guest.goto('/online');
     await guest.locator('[data-online-tab="join"]').click();
     await guest.fill('#onlineJoinCode', code);
     await guest.fill('#onlineJoinName', 'Wird serverseitig ersetzt');
     await guest.locator('#onlineJoinForm button[type="submit"]').click();
+    await expect(guest.locator('#onlineRoomView')).toBeVisible();
     await expect(host.locator('#onlinePlayerList')).toContainText(guestIdentity.name);
     await expect(host.locator('#onlinePlayerList')).toContainText(hostIdentity.name);
 
