@@ -2,6 +2,7 @@
 
 const onlineStorage = require('./online-room-storage');
 const phase10 = require('./phase10-storage');
+const profileStore = require('./extended-storage');
 
 const INTERNAL_SECRET = String(process.env.PLATFORM_INTERNAL_SECRET || process.env.ADMIN_PASSWORD || process.env.EVENT_PASSWORD || 'quiztime-internal');
 const competitions = new Map();
@@ -13,7 +14,7 @@ function internalRequest(req) {
 
 function metadataFor(code) {
   const key = String(code || '').toUpperCase();
-  if (!competitions.has(key)) competitions.set(key, { profiles: {} });
+  if (!competitions.has(key)) competitions.set(key, { profiles: {}, profileNames: {} });
   return competitions.get(key);
 }
 
@@ -25,7 +26,12 @@ function captureResponse(req, payload) {
     meta.tournamentMatchId = req.body?.tournamentMatchId || null;
     meta.competitionType = req.body?.competitionType || (meta.duelId ? 'duel' : meta.tournamentMatchId ? 'tournament' : 'online');
   }
-  if (req.body?.profileId) meta.profiles[String(payload.playerId)] = String(req.body.profileId);
+  const playerId = String(payload.playerId);
+  if (req.body?.profileId) meta.profiles[playerId] = String(req.body.profileId);
+  else {
+    const name = String(req.body?.hostName || req.body?.name || '').trim();
+    if (name) meta.profileNames[playerId] = name;
+  }
 }
 
 function installRequestCapture(app) {
@@ -38,6 +44,16 @@ function installRequestCapture(app) {
     };
     next();
   });
+}
+
+async function resolveProfiles(code) {
+  const meta = competitions.get(String(code || '').toUpperCase());
+  if (!meta) return;
+  for (const [playerId, name] of Object.entries(meta.profileNames || {})) {
+    if (meta.profiles[playerId]) continue;
+    const profile = await profileStore.findProfileByNameKey(String(name).trim().toLocaleLowerCase('de-DE')).catch(() => null);
+    if (profile?.id) meta.profiles[playerId] = profile.id;
+  }
 }
 
 function enrichRoom(room) {
@@ -76,6 +92,7 @@ function patchOnlineStorage() {
 
   onlineStorage.saveRoom = async (room, ttl) => {
     rememberRoom(room);
+    await resolveProfiles(room?.code);
     const enriched = enrichRoom(room);
     const saved = await originalSave(enriched, ttl);
     if (enriched?.phase === 'finished' && !enriched.competitionRecordedAt && (enriched.duelId || enriched.tournamentMatchId || Object.values(enriched.players || {}).some(player => player.profileId))) {
