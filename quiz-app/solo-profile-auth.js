@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { promisify } = require('util');
 const storage = require('./extended-storage');
+const { installWeakPracticeRoutes } = require('./weak-practice');
 
 const scrypt = promisify(crypto.scrypt);
 const COOKIE_NAME = 'solo_profile';
@@ -131,6 +132,8 @@ async function requireProfile(req, res, next) {
 }
 
 function installProfileRoutes(app) {
+  installWeakPracticeRoutes(app, requireProfile);
+
   app.get('/api/solo/profiles', async (_req, res) => {
     try {
       res.json({
