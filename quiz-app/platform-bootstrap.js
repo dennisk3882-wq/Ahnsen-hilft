@@ -1,9 +1,20 @@
 'use strict';
 
 const profileAuth = require('./solo-profile-auth');
+const accountStorage = require('./account-storage');
+const adminProfileStorage = require('./platform-admin-profile-storage');
 const storage = require('./platform-storage');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes } = require('./platform-routes');
+
+accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
+for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
+  const original = accountStorage[method];
+  accountStorage[method] = async (...args) => {
+    await accountStorage.ensureReady();
+    return original(...args);
+  };
+}
 
 storage.ensureReady().catch(error => {
   console.error('QuizTime-Plattformtabellen konnten nicht vorbereitet werden:', error.message);
