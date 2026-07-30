@@ -11,6 +11,7 @@ const testMailbox = require('./test-mailbox');
 const phase10Bridge = require('./phase10-online-bridge');
 const phase10Progression = require('./phase10-progression-bridge');
 const phase10Stability = require('./phase10-stability');
+const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
@@ -22,6 +23,7 @@ phase10Stability.validateProductionSecrets();
 soloSessionStability.patchSoloRoutes();
 phase10Bridge.patchOnlineStorage();
 phase10Stability.patchPhase10();
+platformCompletion.patchHistory();
 phase10Stability.patchOnlineStorage();
 phase10Progression.patchProgression();
 
@@ -102,6 +104,15 @@ storage.ensureReady().catch(error => {
   console.error('QuizTime-Plattformtabellen konnten nicht vorbereitet werden:', error.message);
 });
 phase10Stability.installScheduler();
+platformCompletion.startMaintenance();
+
+function requireVerified(req, res, next) {
+  if (req.soloAccount?.emailVerified) return next();
+  return res.status(403).json({
+    error: 'Bitte bestätige zuerst deine E-Mail-Adresse.',
+    reason: 'email_unverified',
+  });
+}
 
 if (!profileAuth.__quiztimePlatformWrapped) {
   const originalInstall = profileAuth.installProfileRoutes;
@@ -150,6 +161,11 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       requireProfile: profileAuth.requireProfile,
       requireAdmin: requirePlatformAdmin,
     });
+    platformCompletion.installCompletionRoutes(app, {
+      requireProfile: profileAuth.requireProfile,
+      requireAdmin: requirePlatformAdmin,
+      requireVerified,
+    });
     installPhase10Routes(app, {
       requireProfile: profileAuth.requireProfile,
       requireAdmin: requirePlatformAdmin,
@@ -158,10 +174,11 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       if (res.headersSent) return next(error);
       console.error(`Plattform-Anfrage ${req.method} ${req.originalUrl} fehlgeschlagen:`, error.message);
       const status = error.code === '23505' || error.code === '23503' || error.code === 'SEASON_SETTLEMENT_REQUIRED' ? 409
-        : /nicht gefunden/iu.test(error.message || '') ? 404
-          : /keine Berechtigung|bestätige zuerst/iu.test(error.message || '') ? 403
-            : /noch nicht|bereits|maximale|läuft noch|erst nach/iu.test(error.message || '') ? 409
-              : 500;
+        : error.code === 'NOT_FRIENDS' ? 403
+          : /nicht gefunden/iu.test(error.message || '') ? 404
+            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat/iu.test(error.message || '') ? 403
+              : /noch nicht|bereits|maximale|läuft noch|erst nach/iu.test(error.message || '') ? 409
+                : 500;
       res.status(status).json({ error: status === 500 ? 'Die Anfrage konnte nicht verarbeitet werden.' : error.message });
     });
     installBrowserTestStatusRoute(app, requirePlatformAdmin);
