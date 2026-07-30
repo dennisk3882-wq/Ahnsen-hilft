@@ -9,6 +9,7 @@ const platformDb = require('./platform-db');
 const storage = require('./platform-storage');
 const testMailbox = require('./test-mailbox');
 const phase10Bridge = require('./phase10-online-bridge');
+const phase10Progression = require('./phase10-progression-bridge');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installPhase10Routes } = require('./phase10-routes');
@@ -16,6 +17,7 @@ const { installBrowserTestStatusRoute } = require('./browser-test-status');
 const { installE2ETestSupport } = require('./e2e-test-support');
 
 phase10Bridge.patchOnlineStorage();
+phase10Progression.patchProgression();
 
 accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
 for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
