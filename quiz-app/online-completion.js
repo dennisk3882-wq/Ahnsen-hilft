@@ -3,6 +3,15 @@
 const runtimeRoomAdmin = require('./runtime-room-admin');
 const onlineStorage = require('./online-room-storage');
 
+function persistentSnapshot(room) {
+  const snapshot = structuredClone(room);
+  for (const player of Object.values(snapshot.players || {})) {
+    player.connected = false;
+    delete player.token;
+  }
+  return snapshot;
+}
+
 function installOnlineCompletionRoutes(app) {
   app.get('/api/online/rooms/:code/spectate', (req, res) => {
     const state = runtimeRoomAdmin.spectatorState(req.params.code);
@@ -21,7 +30,7 @@ function installOnlineCompletionRoutes(app) {
   app.post('/api/online/rooms/:code/transfer-host', async (req, res, next) => {
     try {
       const result = runtimeRoomAdmin.transferHost(req.params.code, req.body?.token, String(req.body?.playerId || ''));
-      if (onlineStorage.enabled) await onlineStorage.saveRoom(result.room).catch(error => {
+      if (onlineStorage.enabled) await onlineStorage.saveRoom(persistentSnapshot(result.room)).catch(error => {
         console.error('Gastgeberwechsel konnte nicht sofort persistiert werden:', error.message);
       });
       res.json({ ok: true, previousHost: result.previousHost, host: result.host });
@@ -29,4 +38,4 @@ function installOnlineCompletionRoutes(app) {
   });
 }
 
-module.exports = { installOnlineCompletionRoutes };
+module.exports = { installOnlineCompletionRoutes, _test: { persistentSnapshot } };
