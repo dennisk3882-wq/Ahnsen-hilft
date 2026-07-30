@@ -1,0 +1,76 @@
+name: QuizTime Production Smoke
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quiztime-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      QUIZTIME_PRODUCTION_SMOKE: '1'
+      PLAYWRIGHT_BASE_URL: ${{ vars.QUIZTIME_PRODUCTION_URL || 'https://ahnsen-live-quiz.onrender.com' }}
+    steps:
+      - name: QuizTime-Produktionsbranch auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: ahnsen-live-quiz-online
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: quiz-app/package-lock.json
+
+      - name: Anwendung installieren
+        working-directory: quiz-app
+        run: npm ci
+
+      - name: Playwright temporär installieren
+        working-directory: quiz-app
+        run: npm install --no-save --package-lock=false @playwright/test@1.54.1
+
+      - name: Chromium installieren
+        working-directory: quiz-app
+        run: npx playwright install --with-deps chromium
+
+      - name: Render-Service aufwecken und Deployment abwarten
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Prüfe ${PLAYWRIGHT_BASE_URL}/health"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 20 "${PLAYWRIGHT_BASE_URL}/health" >/dev/null; then
+              echo "QuizTime ist erreichbar."
+              exit 0
+            fi
+            echo "Versuch ${attempt}/30 fehlgeschlagen; nächster Versuch in 20 Sekunden."
+            sleep 20
+          done
+          echo "QuizTime war nach zehn Minuten nicht erreichbar."
+          exit 1
+
+      - name: Produktionsseite mit echtem Browser prüfen
+        working-directory: quiz-app
+        run: npx playwright test e2e/production-smoke.spec.js
+
+      - name: Produktionsbericht sichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiztime-production-report-${{ github.run_number }}
+          path: |
+            quiz-app/playwright-report
+            quiz-app/test-results
+          retention-days: 14
+          if-no-files-found: ignore
