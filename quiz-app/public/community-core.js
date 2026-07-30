@@ -22,5 +22,5 @@
     const requested=new URLSearchParams(location.search).get('tab');app.setTab(['friends','matchmaking','tournaments','packs','season','notifications'].includes(requested)?requested:'friends');
     app.social?.notifications?.(false);
   }
-  window.QTCommunity=app;window.addEventListener('DOMContentLoaded',init);
+  app.init=init;window.QTCommunity=app;
 })();
