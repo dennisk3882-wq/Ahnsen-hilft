@@ -190,8 +190,8 @@ function installCommunityEntry() {
     const strong = banner.querySelector('strong');
     const detail = banner.querySelector('strong + span');
     const action = banner.querySelector('a');
-    if (strong) strong.textContent = 'QuizTime Plattform und Community sind integriert';
-    if (detail) detail.textContent = 'Freunde, Einladungen, Schnellspiel, Turniere, Saisonrangliste, eigene Quizpakete und Push-Mitteilungen sind verfügbar.';
+    if (strong) strong.textContent = 'QuizTime Plattform, Kontocenter und Community sind integriert';
+    if (detail) detail.textContent = 'Freunde, Einladungen, Schnellspiel, Turniere, Saisonrangliste, sichere E-Mail-Wiederherstellung und Push-Mitteilungen sind verfügbar.';
     if (action) {
       action.href = '/community';
       action.textContent = 'Community öffnen';
