@@ -1,0 +1,96 @@
+name: QuizTime Browser Tests
+
+on:
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
+    paths:
+      - 'quiz-app/**'
+      - '.github/workflows/quiz-browser-tests.yml'
+  push:
+    branches:
+      - ahnsen-live-quiz-online
+    paths:
+      - 'quiz-app/**'
+      - '.github/workflows/quiz-browser-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quiztime-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: quiztime
+          POSTGRES_PASSWORD: quiztime
+          POSTGRES_DB: quiztime_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quiztime -d quiztime_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      NODE_ENV: test
+      PORT: '3000'
+      APP_BASE_URL: http://127.0.0.1:3000
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://quiztime:quiztime@127.0.0.1:5432/quiztime_e2e
+      PROFILE_SESSION_SECRET: browser-test-profile-secret
+      PLATFORM_SECURITY_SECRET: browser-test-platform-secret
+      PLATFORM_ADMIN_SECRET: browser-test-admin-secret
+      PLATFORM_INTERNAL_SECRET: browser-test-internal-secret
+      ADMIN_PASSWORD: e2e-admin-password
+      EVENT_PASSWORD: e2e-event-password
+      QUIZTIME_E2E_SECRET: quiztime-e2e-secret
+      QUIZTIME_E2E_BROWSER_STATUS: success
+      ELEVENLABS_API_KEY: ''
+      BREVO_API_KEY: ''
+      RESEND_API_KEY: ''
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: quiz-app/package-lock.json
+
+      - name: Anwendung installieren
+        working-directory: quiz-app
+        run: npm ci
+
+      - name: Playwright temporär installieren
+        working-directory: quiz-app
+        run: npm install --no-save --package-lock=false @playwright/test@1.54.1
+
+      - name: Chromium installieren
+        working-directory: quiz-app
+        run: npx playwright install --with-deps chromium
+
+      - name: Vollständige Browserabläufe prüfen
+        working-directory: quiz-app
+        run: npx playwright test
+
+      - name: Testberichte sichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiztime-browser-report-${{ github.run_number }}
+          path: |
+            quiz-app/playwright-report
+            quiz-app/test-results
+          retention-days: 14
+          if-no-files-found: ignore

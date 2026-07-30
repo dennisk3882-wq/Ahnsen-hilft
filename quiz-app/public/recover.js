@@ -24,7 +24,7 @@
   }
 
   function busy(form, value) {
-    form.querySelectorAll('input,button').forEach(node => { node.disabled = value; });
+    form?.querySelectorAll('input,button').forEach(node => { node.disabled = value; });
   }
 
   if (resetToken) {
@@ -45,19 +45,32 @@
   }
 
   $('#forgotForm').addEventListener('submit', async event => {
-    event.preventDefault(); busy(event.currentTarget, true); message('#forgotMessage', 'Anfrage wird verarbeitet …');
+    event.preventDefault();
+    const form = event.currentTarget;
+    busy(form, true);
+    message('#forgotMessage', 'Anfrage wird verarbeitet …');
     try {
       const data = await api('/api/account/password/forgot', { method: 'POST', body: JSON.stringify({ email: $('#forgotEmail').value }) });
-      event.currentTarget.reset(); message('#forgotMessage', data.message || 'Falls ein bestätigtes Profil existiert, wurde eine E-Mail versendet.');
-    } catch (error) { message('#forgotMessage', error.message, true); }
-    finally { busy(event.currentTarget, false); }
+      form.reset();
+      message('#forgotMessage', data.message || 'Falls ein bestätigtes Profil existiert, wurde eine E-Mail versendet.');
+    } catch (error) {
+      message('#forgotMessage', error.message, true);
+    } finally {
+      busy(form, false);
+    }
   });
 
   $('#resetForm').addEventListener('submit', async event => {
-    event.preventDefault(); busy(event.currentTarget, true); message('#resetMessage', 'Neues Passwort wird gespeichert …');
+    event.preventDefault();
+    const form = event.currentTarget;
+    busy(form, true);
+    message('#resetMessage', 'Neues Passwort wird gespeichert …');
     try {
       await api('/api/account/password/reset', { method: 'POST', body: JSON.stringify({ token: resetToken, password: $('#resetPassword').value, confirmation: $('#resetConfirmation').value }) });
       $('#resetPanel').innerHTML = '<div class="panel-heading"><div><span class="eyebrow">Erfolgreich</span><h2>Passwort wurde geändert</h2></div></div><p class="muted">Alle bisherigen Anmeldungen wurden beendet. Du kannst dich jetzt mit dem neuen Passwort anmelden.</p><a class="btn primary" href="/solo">Zur Profilanmeldung</a>';
-    } catch (error) { message('#resetMessage', error.message, true); busy(event.currentTarget, false); }
+    } catch (error) {
+      message('#resetMessage', error.message, true);
+      busy(form, false);
+    }
   });
 })();

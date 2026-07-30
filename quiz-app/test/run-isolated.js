@@ -14,6 +14,7 @@ const tests = [
   'test/phase4-online.test.js',
   'test/platform-features.test.js',
   'test/account-admin.test.js',
+  'test/browser-automation.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',

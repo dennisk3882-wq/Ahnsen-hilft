@@ -1,5 +1,7 @@
 'use strict';
 
+const testMailbox = require('./test-mailbox');
+
 const APP_BASE_URL = String(
   process.env.APP_BASE_URL
   || (process.env.RENDER_EXTERNAL_HOSTNAME ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}` : '')
@@ -77,6 +79,7 @@ async function sendWithResend({ to, subject, html, text }) {
 async function sendEmail(message) {
   const provider = configuredProvider();
   if (!provider) {
+    if (process.env.NODE_ENV === 'test') return testMailbox.add(message);
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[QuizTime Mail-Vorschau] ${message.subject} -> ${message.to}\n${message.text}`);
     }
@@ -137,5 +140,9 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   APP_BASE_URL,
-  _test: { escapeHtml },
+  _test: {
+    escapeHtml,
+    listMessages: testMailbox.list,
+    clearMessages: testMailbox.clear,
+  },
 };

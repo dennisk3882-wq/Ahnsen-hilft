@@ -37,6 +37,7 @@
 
       <section data-admin-view="overview">
         <div id="adminMetrics" class="admin-metric-grid"></div>
+        <section class="panel admin-browser-panel"><div class="panel-heading"><div><span class="eyebrow">Vollautomatische Qualitätssicherung</span><h2>Browser- und Produktionsprüfungen</h2><p>Bei Änderungen sowie alle sechs Stunden werden echte Chromium-Browser gestartet. Fehlerberichte, Screenshots, Videos und Traces liegen geschützt bei GitHub Actions.</p></div><span class="info-chip">Kein manueller Start nötig</span></div><div id="adminBrowserTests" class="admin-browser-tests"><div class="admin-empty">Teststatus wird geladen …</div></div></section>
         <div class="admin-main-grid">
           <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Betriebszustand</span><h2>Dienste & Konfiguration</h2></div></div><div id="adminServiceChecks" class="admin-checks"></div></section>
           <section class="panel"><div class="panel-heading"><div><span class="eyebrow">24 Stunden</span><h2>API-Aktivität</h2></div></div><div id="adminMetricTimeline" class="admin-timeline"></div></section>
@@ -74,5 +75,6 @@
     </section>
   </main>
   <script src="/platform-admin.js"></script>
+  <script src="/platform-admin-browser-tests.js"></script>
 </body>
 </html>

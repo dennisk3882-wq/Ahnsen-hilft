@@ -1,7 +1,7 @@
 'use strict';
 
-const CACHE_NAME = 'quiztime-account-admin-v2';
-// Frühere Cachekennungen als Regressionstest-Marker: 'ahnsen-quiz-phase4-v2' 'quiztime-platform-v1'
+const CACHE_NAME = 'quiztime-browser-tests-v1';
+// Frühere Cachekennungen als Regressionstest-Marker: 'ahnsen-quiz-phase4-v2' 'quiztime-platform-v1' 'quiztime-account-admin-v2'
 const STATIC_ASSETS = [
   '/', '/solo', '/offline', '/online', '/community', '/account', '/recover', '/platform-admin',
   '/styles.css', '/start.css', '/solo.css', '/solo-app.css', '/solo-exit.css', '/solo-profiles.css',
@@ -9,7 +9,8 @@ const STATIC_ASSETS = [
   '/community.css', '/account.css', '/platform-admin.css', '/app.css',
   '/app.js', '/player.js', '/solo.js', '/wrong-practice.js', '/solo-exit.js', '/solo-profiles.js', '/account-entry.js',
   '/elevenlabs-speech.js', '/offline.js', '/secure-eventsource.js', '/online-moderation.js', '/online.js',
-  '/community.js', '/community-core.js', '/community-social.js', '/community-games.js', '/account.js', '/recover.js', '/platform-admin.js',
+  '/community.js', '/community-core.js', '/community-social.js', '/community-games.js', '/account.js', '/recover.js',
+  '/platform-admin.js', '/platform-admin-browser-tests.js',
   '/manifest.webmanifest', '/icons/ahnsen-quiz.svg', '/icons/ahnsen-quiz-maskable.svg'
 ];
 
