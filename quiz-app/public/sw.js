@@ -1,10 +1,11 @@
 'use strict';
 
-const CACHE_NAME = 'ahnsen-quiz-phase3-v1';
+const CACHE_NAME = 'ahnsen-quiz-phase4-v2';
 const STATIC_ASSETS = [
   '/',
   '/solo',
   '/offline',
+  '/online',
   '/styles.css',
   '/start.css',
   '/solo.css',
@@ -15,6 +16,7 @@ const STATIC_ASSETS = [
   '/profile-phase2-extras.css',
   '/elevenlabs-speech.css',
   '/offline.css',
+  '/online.css',
   '/app.css',
   '/app.js',
   '/player.js',
@@ -24,6 +26,7 @@ const STATIC_ASSETS = [
   '/solo-profiles.js',
   '/elevenlabs-speech.js',
   '/offline.js',
+  '/online.js',
   '/manifest.webmanifest',
   '/icons/ahnsen-quiz.svg',
   '/icons/ahnsen-quiz-maskable.svg'
