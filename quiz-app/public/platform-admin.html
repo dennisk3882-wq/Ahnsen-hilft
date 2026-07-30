@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/app.css">
   <link rel="stylesheet" href="/platform-admin.css">
+  <link rel="stylesheet" href="/platform-admin-phase10.css">
 </head>
 <body class="app-body platform-admin-body">
   <main class="platform-admin-shell">
@@ -18,7 +19,7 @@
     </header>
 
     <section id="adminLogin" class="admin-login-card">
-      <span class="app-kicker">Geschützter Bereich</span><h1>Plattform-Dashboard</h1><p>Spieler, Räume, Turniere, Moderation, Sicherheit, Fehlerdiagnose und Datenschutz.</p>
+      <span class="app-kicker">Geschützter Bereich</span><h1>Plattform-Dashboard</h1><p>Spieler, Räume, Turniere, Arena, offizielle Events, Moderation, Sicherheit, Fehlerdiagnose und Datenschutz.</p>
       <form id="adminLoginForm"><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Admin-Passwort" required><button class="btn primary" type="submit">Anmelden</button></form>
       <div id="adminLoginMessage" class="message"></div>
     </section>
@@ -31,6 +32,7 @@
         <button data-admin-tab="rooms" type="button">Räume</button>
         <button data-admin-tab="reports" type="button">Moderation</button>
         <button data-admin-tab="tournaments" type="button">Turniere</button>
+        <button data-admin-tab="phase10" type="button">Arena & Events</button>
         <button data-admin-tab="packs" type="button">Alte Quizpakete</button>
         <button data-admin-tab="security" type="button">Sicherheit & Fehler</button>
       </nav>
@@ -49,32 +51,16 @@
         <section id="adminProfileDetails" class="panel hidden"></section>
       </section>
 
-      <section class="hidden" data-admin-view="rooms">
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Echtzeitbetrieb</span><h2>Aktive Online-Räume</h2></div><button id="refreshRooms" class="btn ghost small" type="button">Aktualisieren</button></div><p class="muted">Geschlossene Räume werden sofort für neue Aktionen und Wiederverbindungen gesperrt. Entfernte Spieler können dem Raum mit ihrer bisherigen Verbindung nicht erneut beitreten.</p><div id="adminRooms" class="admin-list"></div></section>
-      </section>
-
-      <section class="hidden" data-admin-view="reports">
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Moderation</span><h2>Spieler- und Raummeldungen</h2></div><select id="reportFilter"><option value="open">Offen</option><option value="all">Alle</option><option value="reviewing">In Prüfung</option><option value="resolved">Erledigt</option><option value="dismissed">Verworfen</option></select></div><div id="adminReports" class="admin-list"></div></section>
-      </section>
-
-      <section class="hidden" data-admin-view="tournaments">
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Wettbewerb</span><h2>Alle Turniere</h2></div><button id="refreshTournamentsAdmin" class="btn ghost small" type="button">Aktualisieren</button></div><div id="adminTournaments" class="admin-list"></div></section>
-      </section>
-
-      <section class="hidden" data-admin-view="packs">
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Deaktivierte Funktion</span><h2>Bestehende Nutzer-Quizpakete</h2></div><button id="refreshPacksAdmin" class="btn ghost small" type="button">Aktualisieren</button></div><p class="muted">Die Erstellung und Veröffentlichung eigener Fragenpakete ist für Nutzer deaktiviert. Hier können bereits vorhandene Datensätze geprüft und endgültig gelöscht werden.</p><div id="adminPacks" class="admin-list"></div></section>
-      </section>
-
-      <section class="hidden" data-admin-view="security">
-        <div class="admin-main-grid">
-          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Netzsperren</span><h2>Aktive automatische Sperren</h2></div></div><div id="adminBans" class="admin-list"></div></section>
-          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Fehlerdiagnose</span><h2>Letzte Fehler</h2></div></div><div id="adminErrors" class="admin-list"></div></section>
-        </div>
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Nachvollziehbarkeit</span><h2>Audit-Protokoll</h2></div></div><div id="adminAudit" class="admin-list audit-wide"></div></section>
-      </section>
+      <section class="hidden" data-admin-view="rooms"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Echtzeitbetrieb</span><h2>Aktive Online-Räume</h2></div><button id="refreshRooms" class="btn ghost small" type="button">Aktualisieren</button></div><p class="muted">Geschlossene Räume werden sofort für neue Aktionen und Wiederverbindungen gesperrt. Entfernte Spieler können dem Raum mit ihrer bisherigen Verbindung nicht erneut beitreten.</p><div id="adminRooms" class="admin-list"></div></section></section>
+      <section class="hidden" data-admin-view="reports"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Moderation</span><h2>Spieler- und Raummeldungen</h2></div><select id="reportFilter"><option value="open">Offen</option><option value="all">Alle</option><option value="reviewing">In Prüfung</option><option value="resolved">Erledigt</option><option value="dismissed">Verworfen</option></select></div><div id="adminReports" class="admin-list"></div></section></section>
+      <section class="hidden" data-admin-view="tournaments"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Wettbewerb</span><h2>Alle Turniere</h2></div><button id="refreshTournamentsAdmin" class="btn ghost small" type="button">Aktualisieren</button></div><div id="adminTournaments" class="admin-list"></div></section></section>
+      <section class="hidden" data-admin-view="phase10"><div id="adminPhase10Content"><div class="admin-empty">Arena- und Eventverwaltung wird geladen …</div></div></section>
+      <section class="hidden" data-admin-view="packs"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Deaktivierte Funktion</span><h2>Bestehende Nutzer-Quizpakete</h2></div><button id="refreshPacksAdmin" class="btn ghost small" type="button">Aktualisieren</button></div><p class="muted">Die Erstellung und Veröffentlichung eigener Fragenpakete ist für Nutzer deaktiviert. Hier können bereits vorhandene Datensätze geprüft und endgültig gelöscht werden.</p><div id="adminPacks" class="admin-list"></div></section></section>
+      <section class="hidden" data-admin-view="security"><div class="admin-main-grid"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Netzsperren</span><h2>Aktive automatische Sperren</h2></div></div><div id="adminBans" class="admin-list"></div></section><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Fehlerdiagnose</span><h2>Letzte Fehler</h2></div></div><div id="adminErrors" class="admin-list"></div></section></div><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Nachvollziehbarkeit</span><h2>Audit-Protokoll</h2></div></div><div id="adminAudit" class="admin-list audit-wide"></div></section></section>
     </section>
   </main>
   <script src="/platform-admin.js"></script>
   <script src="/platform-admin-browser-tests.js"></script>
+  <script src="/platform-admin-phase10.js"></script>
 </body>
 </html>

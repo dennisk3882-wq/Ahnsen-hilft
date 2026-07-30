@@ -1,7 +1,7 @@
 {
   "name": "QuizTime",
   "short_name": "QuizTime",
-  "description": "Solo-, Offline-, Online-, Live- und Community-Quiz mit sicheren Profilen für Kinder und Erwachsene.",
+  "description": "Solo-, Offline-, Online-, Live- und Community-Quiz mit Arena, Freundesduellen, Saisonligen und offiziellen Events.",
   "lang": "de-DE",
   "start_url": "/",
   "scope": "/",
@@ -16,6 +16,20 @@
       "short_name": "Solo",
       "description": "Direkt ein Solo-Quiz starten",
       "url": "/solo",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "QuizTime Arena",
+      "short_name": "Arena",
+      "description": "Freundesduelle, Missionen, Ligen und offizielle Events öffnen",
+      "url": "/arena",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Quiz der Woche",
+      "short_name": "Wochenquiz",
+      "description": "Das aktuelle offizielle Quiz der Woche spielen",
+      "url": "/arena?tab=events",
       "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
@@ -35,7 +49,7 @@
     {
       "name": "QuizTime Community",
       "short_name": "Community",
-      "description": "Freunde, Schnellspiel, Turniere und Saisonrangliste",
+      "description": "Freunde, Schnellspiel und Turniere",
       "url": "/community",
       "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
@@ -44,13 +58,6 @@
       "short_name": "Konto",
       "description": "E-Mail, Passwort, Privatsphäre und eigene Daten verwalten",
       "url": "/account",
-      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
-    },
-    {
-      "name": "Live-Quiz öffnen",
-      "short_name": "Live-Quiz",
-      "description": "Zum moderierten Live-Quiz wechseln",
-      "url": "/",
       "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ],

@@ -8,10 +8,16 @@ const runtimeRoomAdmin = require('./runtime-room-admin');
 const platformDb = require('./platform-db');
 const storage = require('./platform-storage');
 const testMailbox = require('./test-mailbox');
+const phase10Bridge = require('./phase10-online-bridge');
+const phase10Progression = require('./phase10-progression-bridge');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
+const { installPhase10Routes } = require('./phase10-routes');
 const { installBrowserTestStatusRoute } = require('./browser-test-status');
 const { installE2ETestSupport } = require('./e2e-test-support');
+
+phase10Bridge.patchOnlineStorage();
+phase10Progression.patchProgression();
 
 accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
 for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
@@ -94,6 +100,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
   const originalInstall = profileAuth.installProfileRoutes;
   profileAuth.installProfileRoutes = function installProfileRoutesWithPlatform(app) {
     installPlatformSecurity(app);
+    phase10Bridge.installRequestCapture(app);
 
     const NativeMap = global.Map;
     const capturedMaps = [];
@@ -128,6 +135,16 @@ if (!profileAuth.__quiztimePlatformWrapped) {
     installPlatformRoutes(app, {
       requireProfile: profileAuth.requireProfile,
       profileForRequest: profileAuth.profileForRequest,
+    });
+    installPhase10Routes(app, {
+      requireProfile: profileAuth.requireProfile,
+      requireAdmin: requirePlatformAdmin,
+    });
+    app.use((error, req, res, next) => {
+      if (res.headersSent) return next(error);
+      console.error(`Phase-10-Anfrage ${req.method} ${req.originalUrl} fehlgeschlagen:`, error.message);
+      const status = error.code === '23505' ? 409 : error.code === '23503' ? 409 : 500;
+      res.status(status).json({ error: status === 500 ? 'Die Arena-Anfrage konnte nicht verarbeitet werden.' : 'Dieser Vorgang steht im Konflikt mit bestehenden Daten.' });
     });
     installBrowserTestStatusRoute(app, requirePlatformAdmin);
   };
