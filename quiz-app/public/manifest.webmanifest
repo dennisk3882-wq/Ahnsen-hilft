@@ -1,7 +1,7 @@
 {
   "name": "QuizTime",
   "short_name": "QuizTime",
-  "description": "Solo-, Offline-, Online- und Live-Quiz für Kinder und Erwachsene.",
+  "description": "Solo-, Offline-, Online-, Live- und Community-Quiz für Kinder und Erwachsene.",
   "lang": "de-DE",
   "start_url": "/",
   "scope": "/",
@@ -9,7 +9,7 @@
   "orientation": "any",
   "background_color": "#070914",
   "theme_color": "#070914",
-  "categories": ["education", "games", "entertainment"],
+  "categories": ["education", "games", "entertainment", "social"],
   "shortcuts": [
     {
       "name": "Solo-Quiz starten",
@@ -30,6 +30,13 @@
       "short_name": "Online",
       "description": "Online-Raum erstellen oder beitreten",
       "url": "/online",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "QuizTime Community",
+      "short_name": "Community",
+      "description": "Freunde, Schnellspiel, Turniere, Quizpakete und Saisonrangliste",
+      "url": "/community",
       "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
