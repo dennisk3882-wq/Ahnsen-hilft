@@ -47,6 +47,19 @@ async function registerProfile(page, identity) {
   await expect(page.locator('#profileCurrent')).toContainText(identity.name);
 }
 
+async function verifyProfileEmail(page, request, identity) {
+  const verification = await latestMail(request, identity.email, 'bestätigen');
+  await page.goto(extractRecoverUrl(verification, 'verify'));
+  await expect(page.locator('#verifyPanel')).toContainText(/E-Mail-Adresse bestätigt|Erfolgreich/i);
+}
+
+async function registerAndVerifyProfile(page, request, identity) {
+  await registerProfile(page, identity);
+  await verifyProfileEmail(page, request, identity);
+  await page.goto('/solo');
+  await expect(page.locator('#profileCurrent')).toContainText(identity.name);
+}
+
 async function loginProfile(page, identity, password = identity.password) {
   await page.goto('/solo');
   await page.locator('#profileLoginForm').waitFor();
@@ -56,4 +69,13 @@ async function loginProfile(page, identity, password = identity.password) {
   await expect(page.locator('#profileCurrent')).toContainText(identity.name);
 }
 
-module.exports = { E2E_SECRET, uniqueIdentity, latestMail, extractRecoverUrl, registerProfile, loginProfile };
+module.exports = {
+  E2E_SECRET,
+  uniqueIdentity,
+  latestMail,
+  extractRecoverUrl,
+  registerProfile,
+  verifyProfileEmail,
+  registerAndVerifyProfile,
+  loginProfile,
+};
