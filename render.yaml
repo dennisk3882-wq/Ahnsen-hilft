@@ -20,3 +20,13 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: PROFILE_SESSION_SECRET
+        generateValue: true
+      - key: PLATFORM_SECURITY_SECRET
+        generateValue: true
+      - key: MAIL_FROM_NAME
+        value: QuizTime
+      - key: MAIL_FROM_EMAIL
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
