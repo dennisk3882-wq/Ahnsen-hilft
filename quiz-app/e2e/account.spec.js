@@ -21,7 +21,8 @@ test('Registrierung, E-Mail-Bestätigung, Kontocenter und Passwort-Reset funktio
   await page.locator('#preferencesForm button[type="submit"]').click();
   await expect(page.locator('#preferencesMessage')).toContainText(/gespeichert/i);
 
-  await page.evaluate(() => fetch('/api/solo/profiles/logout', { method: 'POST' }));
+  const logoutStatus = await page.evaluate(async () => (await fetch('/api/solo/profiles/logout', { method: 'POST' })).status);
+  expect(logoutStatus).toBe(200);
   await page.goto('/recover');
   await page.fill('#forgotEmail', identity.email);
   await page.locator('#forgotForm button[type="submit"]').click();
