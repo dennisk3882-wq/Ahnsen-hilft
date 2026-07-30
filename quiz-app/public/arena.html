@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#070914">
-  <meta name="description" content="QuizTime Arena mit Freundesduellen, Missionen, Turnierbäumen, Ligen und offiziellen Events.">
+  <meta name="description" content="QuizTime Arena mit Freundesduellen, Missionen, Turnierbäumen, echten Saisonligen und offiziellen Events.">
   <title>Arena & Events – QuizTime</title>
   <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -13,78 +13,36 @@
   <link rel="stylesheet" href="/arena.css">
 </head>
 <body class="app-body arena-body">
-  <main class="app-shell arena-shell">
-    <header class="app-topbar arena-topbar">
-      <a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Arena & offizielle Events</span></div></a>
-      <div class="app-top-actions"><span id="arenaProfile" class="status-chip">Profil wird geladen</span><a class="btn ghost small" href="/community">Community</a><a class="btn ghost small" href="/account">Konto</a></div>
-    </header>
-
-    <section class="arena-hero">
-      <div class="arena-hero-copy"><span class="app-kicker">Phase 10 · Wettbewerb & Motivation</span><h1>Fordere Freunde heraus.<br><span>Steig in der Liga auf.</span></h1><p>Best-of-Duelle, tägliche Missionen, automatische K.-o.-Turniere, Saisonligen und das offizielle Quiz der Woche – vollständig mit deinem Profil verbunden.</p><div class="arena-hero-chips"><span>⚔️ Freundesduelle</span><span>🏆 Turnierbaum</span><span>👑 Meister-Liga</span><span>⭐ Offizielle Events</span></div></div>
-      <div class="arena-trophy" aria-hidden="true"><div class="arena-orbit"></div><span>🏆</span><strong>QUIZTIME</strong></div>
-    </section>
-
-    <section id="arenaLoginRequired" class="panel arena-login hidden"><h2>Profil erforderlich</h2><p>Die Arena speichert Ergebnisse, Missionen und Ligapunkte dauerhaft in deinem QuizTime-Profil.</p><a class="btn primary" href="/solo">Profil öffnen oder erstellen</a></section>
+  <main class="app-shell arena-shell" id="mainContent">
+    <header class="app-topbar arena-topbar"><a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Arena & offizielle Events</span></div></a><div class="app-top-actions"><span id="arenaProfile" class="status-chip">Profil wird geladen</span><a class="btn ghost small" href="/community">Community</a><a class="btn ghost small" href="/account">Konto</a></div></header>
+    <section class="arena-hero"><div class="arena-hero-copy"><span class="app-kicker">Version 10.1 · Wettbewerb & Motivation</span><h1>Fordere Freunde heraus.<br><span>Steig in der Liga auf.</span></h1><p>Best-of-Duelle, tägliche Missionen, automatische K.-o.-Turniere, echte Saisonligen und das offizielle Quiz der Woche – transaktionssicher mit deinem bestätigten Profil verbunden.</p><div class="arena-hero-chips"><span>⚔️ Freundesduelle</span><span>🏆 Turnierbaum</span><span>👑 Saisonaufstieg</span><span>⭐ Offizielle Events</span></div></div><div class="arena-trophy" aria-hidden="true"><div class="arena-orbit"></div><span>🏆</span><strong>QUIZTIME</strong></div></section>
+    <section id="arenaLoginRequired" class="panel arena-login hidden"><h2>Bestätigtes Profil erforderlich</h2><p>Die Arena speichert Ergebnisse, Missionen und Ligapunkte dauerhaft und benötigt dafür ein bestätigtes QuizTime-Profil.</p><a class="btn primary" href="/solo">Profil öffnen oder erstellen</a></section>
 
     <div id="arenaApp" class="hidden">
       <section id="arenaSummary" class="arena-summary"></section>
-      <nav class="arena-tabs" aria-label="Arena-Bereiche">
-        <button class="active" data-arena-tab="duels" type="button">⚔️ Duelle</button>
-        <button data-arena-tab="missions" type="button">🎯 Missionen</button>
-        <button data-arena-tab="history" type="button">📜 Historie</button>
-        <button data-arena-tab="tournaments" type="button">🏆 Turnierbaum</button>
-        <button data-arena-tab="league" type="button">👑 Liga</button>
-        <button data-arena-tab="events" type="button">⭐ Events</button>
-      </nav>
+      <nav class="arena-tabs" aria-label="Arena-Bereiche"><button class="active" data-arena-tab="duels" type="button">⚔️ Duelle</button><button data-arena-tab="missions" type="button">🎯 Missionen</button><button data-arena-tab="history" type="button">📜 Historie</button><button data-arena-tab="tournaments" type="button">🏆 Turnierbaum</button><button data-arena-tab="league" type="button">👑 Liga</button><button data-arena-tab="events" type="button">⭐ Events</button></nav>
 
       <section class="arena-view" data-arena-view="duels">
-        <div class="arena-grid two">
-          <section class="panel arena-focus-card">
-            <div class="panel-heading"><div><span class="eyebrow">Neue Herausforderung</span><h2>Freund zum Duell fordern</h2></div><span class="arena-card-icon">⚔️</span></div>
-            <form id="duelCreateForm" class="arena-form">
-              <label>Gegner<select id="duelOpponent" required><option value="">Freund auswählen</option></select></label>
-              <div class="arena-form-grid"><label>Serie<select id="duelBestOf"><option value="1">Best of 1</option><option value="3" selected>Best of 3</option><option value="5">Best of 5</option></select></label><label>Fragenwelt<select id="duelQuizType"><option value="adult">Erwachsene</option><option value="child">Kinder</option></select></label></div>
-              <label>Kategorie<input id="duelCategory" maxlength="50" value="Gemischt" placeholder="Gemischt"></label>
-              <button class="btn primary wide-button" type="submit">Duellanfrage senden</button>
-            </form><div id="duelMessage" class="message"></div>
-          </section>
-          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Regeln</span><h2>So funktionieren Serien</h2></div></div><div class="arena-rule-list"><div><span>1</span><p>Nur bestätigte Freunde können sich herausfordern.</p></div><div><span>2</span><p>Jede Runde wird in einem geschützten Zwei-Spieler-Raum ausgetragen.</p></div><div><span>3</span><p>Bei Best of 3 gewinnt, wer zuerst zwei Runden entscheidet.</p></div><div><span>4</span><p>Ergebnisse, Siege und Rückspiele landen automatisch in der Historie.</p></div></div></section>
-        </div>
+        <div class="arena-grid two"><section class="panel arena-focus-card"><div class="panel-heading"><div><span class="eyebrow">Neue Herausforderung</span><h2>Freund zum Duell fordern</h2></div><span class="arena-card-icon">⚔️</span></div><form id="duelCreateForm" class="arena-form"><label>Gegner<select id="duelOpponent" required><option value="">Freund auswählen</option></select></label><div class="arena-form-grid"><label>Serie<select id="duelBestOf"><option value="1">Best of 1</option><option value="3" selected>Best of 3</option><option value="5">Best of 5</option></select></label><label>Fragenwelt<select id="duelQuizType"><option value="adult">Erwachsene</option><option value="child">Kinder</option></select></label></div><label>Kategorie<input id="duelCategory" maxlength="50" value="Gemischt" placeholder="Gemischt"></label><button class="btn primary wide-button" type="submit">Duellanfrage senden</button></form><div id="duelMessage" class="message"></div></section><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Regeln</span><h2>So funktionieren Serien</h2></div></div><div class="arena-rule-list"><div><span>1</span><p>Nur bestätigte Freunde können sich herausfordern.</p></div><div><span>2</span><p>Jede Runde wird in einem geschützten Zwei-Spieler-Raum ausgetragen.</p></div><div><span>3</span><p>Bei Best of 3 gewinnt, wer zuerst zwei Runden entscheidet.</p></div><div><span>4</span><p>Ergebnisse und Belohnungen werden exakt einmal verbucht.</p></div></div></section></div>
         <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Deine Serien</span><h2>Offene und abgeschlossene Duelle</h2></div><button id="refreshDuels" class="btn ghost small" type="button">Aktualisieren</button></div><div id="duelList" class="arena-card-grid"></div></section>
       </section>
 
-      <section class="arena-view hidden" data-arena-view="missions">
-        <div class="arena-section-heading"><div><span class="app-kicker">Jeden Tag ein neues Ziel</span><h2>Missionen & Belohnungen</h2><p>Belohnungen bestehen ausschließlich aus XP, Saisonpunkten und Abzeichen. Es gibt keine käuflichen Spielvorteile.</p></div><button id="refreshMissions" class="btn ghost" type="button">Aktualisieren</button></div>
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Heute</span><h2>Tagesmissionen</h2></div><span id="dailyMissionKey" class="info-chip"></span></div><div id="dailyMissions" class="mission-grid"></div></section>
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Diese Woche</span><h2>Wochenmissionen</h2></div><span id="weeklyMissionKey" class="info-chip"></span></div><div id="weeklyMissions" class="mission-grid"></div></section>
-      </section>
+      <section class="arena-view hidden" data-arena-view="missions"><div class="arena-section-heading"><div><span class="app-kicker">Jeden Tag ein neues Ziel</span><h2>Missionen & Belohnungen</h2><p>XP, Saisonpunkte und Abzeichen werden gemeinsam in einer Datenbanktransaktion gutgeschrieben.</p></div><button id="refreshMissions" class="btn ghost" type="button">Aktualisieren</button></div><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Heute</span><h2>Tagesmissionen</h2></div><span id="dailyMissionKey" class="info-chip"></span></div><div id="dailyMissions" class="mission-grid"></div></section><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Diese Woche</span><h2>Wochenmissionen</h2></div><span id="weeklyMissionKey" class="info-chip"></span></div><div id="weeklyMissions" class="mission-grid"></div></section></section>
 
-      <section class="arena-view hidden" data-arena-view="history">
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Alle Ergebnisse</span><h2>Persönliche Match-Historie</h2></div></div><form id="historyFilters" class="arena-filter-row"><select id="historyType"><option value="all">Alle Modi</option><option value="solo">Solo</option><option value="online">Online</option><option value="duel">Duelle</option><option value="tournament">Turniere</option></select><select id="historyDays"><option value="30">30 Tage</option><option value="90">90 Tage</option><option value="365" selected>1 Jahr</option><option value="3650">Gesamte Zeit</option></select><button class="btn primary" type="submit">Filtern</button></form><div id="historyStats" class="history-stats"></div><div id="historyList" class="history-list"></div></section>
-      </section>
+      <section class="arena-view hidden" data-arena-view="history"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Alle Ergebnisse</span><h2>Persönliche Match-Historie</h2></div></div><form id="historyFilters" class="arena-filter-row"><select id="historyType"><option value="all">Alle Modi</option><option value="solo">Solo</option><option value="online">Online</option><option value="duel">Duelle</option><option value="tournament">Turniere</option><option value="offline">Offline</option><option value="live">Live</option></select><select id="historyDays"><option value="30">30 Tage</option><option value="90">90 Tage</option><option value="365" selected>1 Jahr</option><option value="3650">Gesamte Zeit</option></select><button class="btn primary" type="submit">Filtern</button></form><div id="historyStats" class="history-stats"></div><div id="historyList" class="history-list"></div></section></section>
 
-      <section class="arena-view hidden" data-arena-view="tournaments">
-        <div class="arena-grid tournament-layout"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Wettbewerbe</span><h2>K.-o.-Turniere</h2></div><a class="btn ghost small" href="/community?tab=tournaments">Turnier erstellen</a></div><p class="muted">Teilnehmer treten automatisch in Viertelfinale, Halbfinale und Finale gegeneinander an. Freilose werden selbstständig weitergeführt.</p><div id="arenaTournamentList" class="arena-card-grid compact"></div></section><section id="bracketPanel" class="panel bracket-panel"><div class="arena-empty">Wähle ein K.-o.-Turnier aus.</div></section></div>
-      </section>
+      <section class="arena-view hidden" data-arena-view="tournaments"><div class="arena-grid tournament-layout"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Wettbewerbe</span><h2>K.-o.-Turniere</h2></div><a class="btn ghost small" href="/community?tab=tournaments">Turnier erstellen</a></div><p class="muted">Turniere verwenden ihre gespeicherte Fragenwelt, Kategorie und Fragenzahl. Bei vollständigem Gleichstand wird automatisch eine Entscheidungsrunde vorbereitet.</p><div id="arenaTournamentList" class="arena-card-grid compact"></div></section><section id="bracketPanel" class="panel bracket-panel"><div class="arena-empty">Wähle ein K.-o.-Turnier aus.</div></section></div></section>
 
-      <section class="arena-view hidden" data-arena-view="league">
-        <section class="league-hero panel"><div><span class="app-kicker">Saisonaufstieg</span><h2 id="leagueName">Bronze-Liga</h2><p id="leaguePeriod" class="muted"></p><div id="leagueProgress" class="league-progress"></div></div><div id="leagueEmblem" class="league-emblem">🥉</div></section>
-        <div class="league-legend"><span>🥉 Bronze ab 0</span><span>🥈 Silber ab 500</span><span>🥇 Gold ab 1.200</span><span>👑 Meister ab 2.500 Punkten</span></div>
-        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Aktuelle Saison</span><h2>Ligatabelle</h2></div><button id="refreshLeague" class="btn ghost small" type="button">Aktualisieren</button></div><div id="leagueBoard" class="league-board"></div></section>
-      </section>
+      <section class="arena-view hidden" data-arena-view="league"><section class="league-hero panel"><div><span class="app-kicker">Saisonaufstieg</span><h2 id="leagueName">Bronze-Liga</h2><p id="leaguePeriod" class="muted"></p><div id="leagueProgress" class="league-progress"></div></div><div id="leagueEmblem" class="league-emblem">🥉</div></section><div class="league-legend"><span>🥉 Bronze</span><span>🥈 Silber</span><span>🥇 Gold</span><span>👑 Meister</span><span>Auf- und Abstieg nach Saisonplatzierung</span></div><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Aktuelle Saison</span><h2>Ligatabelle</h2></div><button id="refreshLeague" class="btn ghost small" type="button">Aktualisieren</button></div><div id="leagueBoard" class="league-board"></div></section></section>
 
-      <section class="arena-view hidden" data-arena-view="events">
-        <div class="arena-section-heading"><div><span class="app-kicker">Von QuizTime kuratiert</span><h2>Quiz der Woche & offizielle Events</h2><p>Alle Fragen stammen aus den redaktionell gepflegten QuizTime-Katalogen. Nutzer können keine eigenen Fragen veröffentlichen.</p></div><button id="refreshEvents" class="btn ghost" type="button">Aktualisieren</button></div>
-        <div id="eventList" class="event-grid"></div>
-        <section id="eventLeaderboardPanel" class="panel hidden"></section>
-      </section>
+      <section class="arena-view hidden" data-arena-view="events"><div class="arena-section-heading"><div><span class="app-kicker">Von QuizTime kuratiert</span><h2>Quiz der Woche & offizielle Events</h2><p>Zukünftige Events zeigen einen Countdown. Ein gestarteter Versuch wird reserviert und kann bis zum Ablauf fortgesetzt werden.</p></div><button id="refreshEvents" class="btn ghost" type="button">Aktualisieren</button></div><div id="eventList" class="event-grid"></div><section id="eventLeaderboardPanel" class="panel hidden"></section></section>
     </div>
   </main>
 
-  <div id="eventPlayer" class="event-player hidden" role="dialog" aria-modal="true"><div class="event-player-card"><button id="closeEventPlayer" class="event-close" type="button">×</button><div id="eventPlayerContent"></div></div></div>
-
-  <nav class="app-bottom-nav" aria-label="Hauptnavigation"><a class="app-nav-item" href="/"><span>⌂</span><span>Start</span></a><a class="app-nav-item" href="/solo"><span>▶</span><span>Solo</span></a><a class="app-nav-item" href="/online"><span>◎</span><span>Online</span></a><a class="app-nav-item active" href="/arena" aria-current="page"><span>🏆</span><span>Arena</span></a></nav>
+  <div id="eventPlayer" class="event-player hidden" role="dialog" aria-modal="true"><div class="event-player-card"><button id="closeEventPlayer" class="event-close" type="button" aria-label="Event schließen">×</button><div id="eventPlayerContent"></div></div></div>
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation"></nav>
   <script src="/arena.js"></script>
+  <script src="/arena-stability.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
