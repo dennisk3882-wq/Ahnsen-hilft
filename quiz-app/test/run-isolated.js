@@ -16,11 +16,13 @@ const tests = [
   'test/account-admin.test.js',
   'test/browser-automation.test.js',
   'test/phase10.test.js',
+  'test/stability-v101.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',
 ];
 
+const isolatedSecret = `isolated-${'x'.repeat(40)}`;
 const isolatedEnvironment = {
   ...process.env,
   NODE_ENV: 'test',
@@ -29,8 +31,9 @@ const isolatedEnvironment = {
   ELEVENLABS_VOICE_ID: '',
   BREVO_API_KEY: '',
   RESEND_API_KEY: '',
-  PROFILE_SESSION_SECRET: 'isolated-test-session-secret',
-  PLATFORM_SECURITY_SECRET: 'isolated-platform-security-secret',
+  PROFILE_SESSION_SECRET: isolatedSecret,
+  PLATFORM_SECURITY_SECRET: isolatedSecret,
+  PLATFORM_INTERNAL_SECRET: isolatedSecret,
 };
 
 for (const testFile of tests) {
