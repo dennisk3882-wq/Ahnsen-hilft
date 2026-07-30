@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'ahnsen-quiz-phase4-v2';
+const CACHE_NAME = 'quiztime-phase4-v3';
 const STATIC_ASSETS = [
   '/',
   '/solo',
