@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const storage = require('./platform-storage');
+const adminStorage = require('./platform-admin-storage');
 
 const SECRET = crypto.createHash('sha256').update(String(
   process.env.PLATFORM_SECURITY_SECRET
@@ -26,7 +27,12 @@ function safeIp(req) {
     .split(',')[0].trim().slice(0, 120);
 }
 function ipHash(req) { return crypto.createHmac('sha256', SECRET).update(safeIp(req)).digest('base64url'); }
-function roomCode(req) { return String(req.params?.code || req.body?.code || req.query?.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); }
+function roomCode(req) {
+  const direct = String(req.params?.code || req.body?.code || req.query?.code || '');
+  const pathMatch = String(req.path || req.url || '').match(/\/rooms\/([A-Z0-9]{6})(?:\/|$)/iu);
+  return String(direct || pathMatch?.[1] || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+}
+function playerToken(req) { return String(req.body?.token || req.query?.token || req.headers['x-player-token'] || '').trim(); }
 function routeKey(req) { return `${req.method}:${req.baseUrl || ''}${req.path || req.url}`.slice(0, 240); }
 
 function rateLimit(key, max, windowMs) {
@@ -104,8 +110,16 @@ function platformRuleFor(req) {
   if (path.includes('/invites') && req.method === 'POST') return { max: 30, windowMs: 60 * 60 * 1000, label: 'Einladungen' };
   if (path.includes('/friends/request') && req.method === 'POST') return { max: 25, windowMs: 60 * 60 * 1000, label: 'Freundschaftsanfragen' };
   if (path.includes('/matchmaking/join') && req.method === 'POST') return { max: 12, windowMs: 10 * 60 * 1000, label: 'Matchmaking' };
-  if (path.includes('/packs') && req.method === 'POST') return { max: 12, windowMs: 60 * 60 * 1000, label: 'Quizpakete' };
   return { max: 150, windowMs: 60 * 1000, label: 'Plattform-API' };
+}
+
+function accountRuleFor(req) {
+  const path = req.path || '';
+  if (path === '/password/forgot' && req.method === 'POST') return { max: 6, windowMs: 30 * 60 * 1000, label: 'Passwort-Link' };
+  if (path === '/password/reset' && req.method === 'POST') return { max: 8, windowMs: 30 * 60 * 1000, label: 'Passwort-Reset' };
+  if (path === '/email/verify') return { max: 20, windowMs: 30 * 60 * 1000, label: 'E-Mail-Bestätigung' };
+  if (path === '/email' || path === '/email/resend') return { max: 6, windowMs: 60 * 60 * 1000, label: 'E-Mail-Änderung' };
+  return { max: 100, windowMs: 60 * 1000, label: 'Konto-API' };
 }
 
 async function enforceRule(req, res, next, rule) {
@@ -131,9 +145,7 @@ async function enforceRule(req, res, next, rule) {
 function installPlatformSecurity(app) {
   app.use((req, _res, next) => {
     const supplied = String(req.headers['x-quiztime-internal'] || '');
-    if (supplied && supplied.length === INTERNAL_SECRET.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(INTERNAL_SECRET))) {
-      req.quiztimeInternal = true;
-    }
+    if (supplied && supplied.length === INTERNAL_SECRET.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(INTERNAL_SECRET))) req.quiztimeInternal = true;
     next();
   });
   app.use((req, res, next) => {
@@ -161,31 +173,50 @@ function installPlatformSecurity(app) {
 
   app.use('/api/online', (req, res, next) => enforceRule(req, res, next, onlineRuleFor(req)));
   app.use('/api/platform', (req, res, next) => enforceRule(req, res, next, platformRuleFor(req)));
+  app.use('/api/account', (req, res, next) => enforceRule(req, res, next, accountRuleFor(req)));
 
-  app.use('/api/online', (req, res, next) => {
-    if (req.path.endsWith('/chat') && req.method === 'POST') {
-      const problem = contentProblem(req.body?.message);
-      if (problem) {
-        const hash = ipHash(req);
-        addStrike(hash, 'Chatinhalt').catch(() => false);
-        return res.status(400).json({ error: problem });
+  app.use('/api/online', async (req, res, next) => {
+    if (req.quiztimeInternal) return next();
+    try {
+      const code = roomCode(req);
+      if (code) {
+        const closed = await adminStorage.isRoomClosed(code);
+        if (closed) return res.status(410).json({ error: closed.reason || 'Dieser Raum wurde durch die Plattform-Moderation geschlossen.' });
+        const token = playerToken(req);
+        if (token) {
+          const banned = await adminStorage.isRoomPlayerBanned(code, token);
+          if (banned) return res.status(403).json({ error: banned.reason || 'Du wurdest durch die Plattform-Moderation aus diesem Raum entfernt.' });
+        }
       }
+      if (req.path.endsWith('/chat') && req.method === 'POST') {
+        const problem = contentProblem(req.body?.message);
+        if (problem) {
+          addStrike(ipHash(req), 'Chatinhalt').catch(() => false);
+          return res.status(400).json({ error: problem });
+        }
+      }
+      next();
+    } catch (error) {
+      next(error);
     }
-    next();
   });
 
-  app.post('/api/online/rooms/:code/stream-ticket', (req, res) => {
+  app.post('/api/online/rooms/:code/stream-ticket', async (req, res) => {
     const token = String(req.body?.token || '').trim();
     const code = roomCode(req);
     if (code.length !== 6 || token.length < 20) return res.status(400).json({ error: 'Ungültige Raumverbindung.' });
+    const banned = await adminStorage.isRoomPlayerBanned(code, token).catch(() => false);
+    if (banned) return res.status(403).json({ error: banned.reason || 'Diese Raumverbindung wurde gesperrt.' });
     const expiresAt = Date.now() + TICKET_TTL_MS;
     res.json({ ticket: seal({ code, token, expiresAt, nonce: crypto.randomUUID() }), expiresAt });
   });
 
-  app.use('/api/online/rooms/:code/events', (req, res, next) => {
+  app.use('/api/online/rooms/:code/events', async (req, res, next) => {
     const payload = unseal(req.query?.ticket);
     const code = roomCode(req);
     if (!payload || payload.code !== code) return res.status(401).json({ error: 'Echtzeit-Ticket ist ungültig oder abgelaufen.' });
+    const banned = await adminStorage.isRoomPlayerBanned(code, payload.token).catch(() => false);
+    if (banned) return res.status(403).json({ error: banned.reason || 'Du wurdest aus diesem Raum entfernt.' });
     req.query.token = payload.token;
     delete req.query.ticket;
     next();
@@ -211,6 +242,7 @@ function installPlatformSecurity(app) {
       const active = values.filter(timestamp => now - timestamp < 30 * 60 * 1000);
       if (active.length) strikes.set(key, active); else strikes.delete(key);
     }
+    adminStorage.prune().catch(() => false);
   }, 10 * 60 * 1000).unref?.();
 }
 
@@ -220,5 +252,5 @@ module.exports = {
   seal,
   unseal,
   ipHash,
-  _test: { rateLimit, onlineRuleFor, platformRuleFor },
+  _test: { rateLimit, onlineRuleFor, platformRuleFor, accountRuleFor },
 };

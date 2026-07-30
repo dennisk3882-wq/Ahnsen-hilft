@@ -1,7 +1,7 @@
 {
   "name": "QuizTime",
   "short_name": "QuizTime",
-  "description": "Solo-, Offline-, Online-, Live- und Community-Quiz für Kinder und Erwachsene.",
+  "description": "Solo-, Offline-, Online-, Live- und Community-Quiz mit sicheren Profilen für Kinder und Erwachsene.",
   "lang": "de-DE",
   "start_url": "/",
   "scope": "/",
@@ -35,8 +35,15 @@
     {
       "name": "QuizTime Community",
       "short_name": "Community",
-      "description": "Freunde, Schnellspiel, Turniere, Quizpakete und Saisonrangliste",
+      "description": "Freunde, Schnellspiel, Turniere und Saisonrangliste",
       "url": "/community",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "QuizTime Kontocenter",
+      "short_name": "Konto",
+      "description": "E-Mail, Passwort, Privatsphäre und eigene Daten verwalten",
+      "url": "/account",
       "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {

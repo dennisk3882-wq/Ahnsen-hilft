@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#090b16">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Ahnsen Quiz Solo – Kinder- und Erwachsenenfragen mit Lern-Erklärungen.">
-  <title>Solo – Ahnsen Quiz</title>
+  <meta name="description" content="QuizTime Solo – Kinder- und Erwachsenenfragen mit Lern-Erklärungen.">
+  <title>Solo – QuizTime</title>
   <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
@@ -22,11 +22,12 @@
 <body class="solo-body app-body">
   <main class="solo-shell app-shell">
     <header class="solo-header app-topbar">
-      <a class="app-brand" href="/" aria-label="Zurück zur Ahnsen-Quiz-Startseite">
-        <div class="app-logo" aria-hidden="true">A</div>
-        <div class="app-brand-copy"><strong>Ahnsen Quiz</strong><span>Solo-Modus</span></div>
+      <a class="app-brand" href="/" aria-label="Zurück zur QuizTime-Startseite">
+        <div class="app-logo" aria-hidden="true">Q</div>
+        <div class="app-brand-copy"><strong>QuizTime</strong><span>Solo-Modus</span></div>
       </a>
       <div class="app-top-actions">
+        <a class="btn ghost small" href="/account">Kontocenter</a>
         <button class="btn ghost small app-install-button" type="button" data-install-app>App installieren</button>
         <a class="btn ghost small" href="/">← Startseite</a>
       </div>
@@ -45,7 +46,7 @@
           </div>
         </div>
         <div class="solo-mascot" aria-hidden="true">
-          <div class="solo-orbit"><span>A</span></div>
+          <div class="solo-orbit"><span>Q</span></div>
           <strong>Bereit zum Spielen</strong>
         </div>
       </div>
@@ -114,6 +115,7 @@
     <button class="app-nav-item" type="button" data-profile-view="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></button>
   </nav>
 
+  <script src="/account-entry.js"></script>
   <script src="/solo-profiles.js"></script>
   <script src="/solo.js"></script>
   <script src="/wrong-practice.js"></script>

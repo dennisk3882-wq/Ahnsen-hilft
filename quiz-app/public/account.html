@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070914">
+  <meta name="description" content="QuizTime Kontocenter für Profil, E-Mail, Sicherheit und Datenschutz.">
+  <title>Kontocenter – QuizTime</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/account.css">
+</head>
+<body class="app-body account-body">
+  <main class="app-shell account-shell">
+    <header class="app-topbar account-topbar">
+      <a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Kontocenter</span></div></a>
+      <div class="app-top-actions"><a class="btn ghost small" href="/solo">Zum Profil</a><a class="btn ghost small" href="/community">Community</a></div>
+    </header>
+
+    <section id="accountLoading" class="panel account-loading">Kontodaten werden sicher geladen …</section>
+    <section id="accountLoginRequired" class="panel account-login hidden"><h1>Profil erforderlich</h1><p>Öffne zunächst dein QuizTime-Profil.</p><a class="btn primary" href="/solo">Profil öffnen</a></section>
+
+    <div id="accountApp" class="hidden">
+      <section class="account-hero">
+        <div><span class="app-kicker">Dein Konto. Deine Kontrolle.</span><h1 id="accountTitle">Kontocenter</h1><p>Verwalte Anmeldedaten, Privatsphäre, Einladungen, Benachrichtigungen und deine gespeicherten Daten.</p></div>
+        <div class="account-security-card"><span id="accountStatusDot"></span><div><strong id="accountStatusLabel">Aktiv</strong><small id="accountEmailSummary">E-Mail wird geladen</small></div></div>
+      </section>
+
+      <div class="account-grid">
+        <section class="panel account-card">
+          <div class="panel-heading"><div><span class="eyebrow">Identität</span><h2>Profilname ändern</h2></div></div>
+          <form id="nameForm" class="account-form">
+            <label>Neuer Profilname<input id="accountName" maxlength="30" autocomplete="nickname" required></label>
+            <label>Aktuelles Passwort<input id="namePassword" type="password" autocomplete="current-password" required></label>
+            <button class="btn primary" type="submit">Profilname speichern</button>
+          </form><div id="nameMessage" class="message"></div>
+        </section>
+
+        <section class="panel account-card">
+          <div class="panel-heading"><div><span class="eyebrow">Wiederherstellung</span><h2>E-Mail-Adresse</h2></div><span id="emailBadge" class="info-chip">Nicht bestätigt</span></div>
+          <p id="emailDescription" class="muted">Eine bestätigte Adresse ermöglicht sichere Passwort-Links.</p>
+          <form id="emailForm" class="account-form">
+            <label>Neue E-Mail-Adresse<input id="accountEmail" type="email" autocomplete="email" maxlength="254" required></label>
+            <label>Aktuelles Passwort<input id="emailPassword" type="password" autocomplete="current-password" required></label>
+            <button class="btn primary" type="submit">Bestätigungslink senden</button>
+          </form>
+          <button id="resendEmail" class="btn ghost small hidden" type="button">Bestätigungslink erneut senden</button>
+          <div id="emailMessage" class="message"></div>
+        </section>
+
+        <section class="panel account-card">
+          <div class="panel-heading"><div><span class="eyebrow">Sicherheit</span><h2>Passwort ändern</h2></div></div>
+          <form id="passwordForm" class="account-form">
+            <label>Aktuelles Passwort<input id="currentPassword" type="password" autocomplete="current-password" required></label>
+            <label>Neues Passwort<input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required><small>Mindestens 8 Zeichen, ein Buchstabe und eine Zahl.</small></label>
+            <label>Neues Passwort wiederholen<input id="passwordConfirmation" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></label>
+            <button class="btn primary" type="submit">Passwort ändern</button>
+          </form><div id="passwordMessage" class="message"></div>
+        </section>
+
+        <section class="panel account-card account-preferences">
+          <div class="panel-heading"><div><span class="eyebrow">Privatsphäre</span><h2>Sichtbarkeit & Kontakte</h2></div></div>
+          <form id="preferencesForm" class="account-form">
+            <label class="account-toggle"><input id="leaderboardVisible" type="checkbox"><span><strong>In Bestenlisten anzeigen</strong><small>Dein Profil erscheint in globalen und saisonalen Ranglisten.</small></span></label>
+            <label class="account-toggle"><input id="publicProfile" type="checkbox"><span><strong>Profil auffindbar</strong><small>Andere Spieler können dich über die Profilsuche finden.</small></span></label>
+            <label class="account-toggle"><input id="allowFriendRequests" type="checkbox"><span><strong>Freundschaftsanfragen erlauben</strong><small>Deaktivieren verhindert neue Anfragen.</small></span></label>
+            <label>Wer darf dich einladen?<select id="invitePolicy"><option value="all">Alle Spieler</option><option value="friends">Nur Freunde</option><option value="none">Niemand</option></select></label>
+            <label class="account-toggle"><input id="emailNotifications" type="checkbox"><span><strong>Kontohinweise per E-Mail</strong><small>Sicherheits- und wichtige Kontonachrichten.</small></span></label>
+            <label class="account-toggle"><input id="pushNotifications" type="checkbox"><span><strong>Push-Mitteilungen</strong><small>Einladungen und Matchmaking-Hinweise im Browser.</small></span></label>
+            <button class="btn primary" type="submit">Einstellungen speichern</button>
+          </form><div id="preferencesMessage" class="message"></div>
+        </section>
+      </div>
+
+      <div class="account-grid lower">
+        <section class="panel account-card">
+          <div class="panel-heading"><div><span class="eyebrow">Zugriffsschutz</span><h2>Alle Geräte abmelden</h2></div></div>
+          <p class="muted">Beendet alle anderen QuizTime-Anmeldungen. Dieses Gerät bleibt angemeldet.</p>
+          <form id="sessionsForm" class="account-form inline-form"><input id="sessionsPassword" type="password" autocomplete="current-password" placeholder="Aktuelles Passwort" required><button class="btn secondary" type="submit">Sitzungen beenden</button></form>
+          <div id="sessionsMessage" class="message"></div>
+        </section>
+
+        <section class="panel account-card">
+          <div class="panel-heading"><div><span class="eyebrow">Community</span><h2>Blockierte Profile</h2></div><button id="refreshBlocks" class="btn ghost small" type="button">Aktualisieren</button></div>
+          <div id="accountBlockList" class="account-list"></div>
+        </section>
+
+        <section class="panel account-card">
+          <div class="panel-heading"><div><span class="eyebrow">Wettbewerb</span><h2>Deine Turniere</h2></div><a class="btn ghost small" href="/community?tab=tournaments">Verwalten</a></div>
+          <div id="accountTournamentList" class="account-list"></div>
+        </section>
+
+        <section class="panel account-card">
+          <div class="panel-heading"><div><span class="eyebrow">Datenschutz</span><h2>Deine Daten</h2></div></div>
+          <p class="muted">Lade eine maschinenlesbare Kopie deiner Profil-, Spiel-, Freundschafts- und Turnierdaten herunter.</p>
+          <a class="btn secondary" href="/api/account/export">Meine Daten herunterladen</a>
+        </section>
+      </div>
+
+      <section class="panel account-danger">
+        <div><span class="eyebrow">Gefahrenbereich</span><h2>Profil dauerhaft löschen</h2><p>Alle Profil-, Fortschritts-, Freundschafts- und Communitydaten werden unwiderruflich entfernt.</p></div>
+        <form id="deleteForm" class="account-delete-form"><input id="deleteConfirmation" placeholder="Profilname exakt eingeben" required><input id="deletePassword" type="password" autocomplete="current-password" placeholder="Aktuelles Passwort" required><button class="btn danger" type="submit">Profil endgültig löschen</button></form>
+        <div id="deleteMessage" class="message"></div>
+      </section>
+    </div>
+  </main>
+  <script src="/account.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

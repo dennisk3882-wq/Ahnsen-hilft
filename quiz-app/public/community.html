@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#070914">
-  <meta name="description" content="QuizTime Community mit Freunden, Matchmaking, Turnieren, Quizpaketen und Saisonrangliste.">
+  <meta name="description" content="QuizTime Community mit Freunden, Matchmaking, Turnieren und Saisonrangliste.">
   <title>Community – QuizTime</title>
   <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -19,11 +19,11 @@
         <div class="app-logo" aria-hidden="true">Q</div>
         <div class="app-brand-copy"><strong>QuizTime</strong><span>Community & Wettbewerb</span></div>
       </a>
-      <div class="app-top-actions"><span id="communityProfile" class="status-chip">Profil wird geladen</span><button id="enablePush" class="btn ghost small" type="button">Benachrichtigungen</button></div>
+      <div class="app-top-actions"><span id="communityProfile" class="status-chip">Profil wird geladen</span><a class="btn ghost small" href="/account">Konto</a><button id="enablePush" class="btn ghost small" type="button">Benachrichtigungen</button></div>
     </header>
 
     <section class="community-hero">
-      <div><span class="app-kicker">Gemeinsam mehr erleben</span><h1>Freunde finden. Antreten. Eigene Quizwelten bauen.</h1><p>Direkte Einladungen, Schnellspiel, Turniere, Saisonrangliste und teilbare Quizpakete an einem Ort.</p></div>
+      <div><span class="app-kicker">Gemeinsam mehr erleben</span><h1>Freunde finden. Antreten. Wissen vergleichen.</h1><p>Direkte Einladungen, sicheres Schnellspiel, Turniere, Saisonrangliste und Mitteilungen an einem Ort.</p></div>
       <div class="community-hero-art" aria-hidden="true"><span>Q</span><i></i><i></i><i></i></div>
     </section>
 
@@ -31,7 +31,6 @@
       <button class="active" data-community-tab="friends" type="button">Freunde</button>
       <button data-community-tab="matchmaking" type="button">Schnellspiel</button>
       <button data-community-tab="tournaments" type="button">Turniere</button>
-      <button data-community-tab="packs" type="button">Quizpakete</button>
       <button data-community-tab="season" type="button">Saison</button>
       <button data-community-tab="notifications" type="button">Mitteilungen <span id="notificationBadge" class="community-badge hidden">0</span></button>
     </nav>
@@ -64,13 +63,6 @@
         </div>
         <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Übersicht</span><h2>Deine und offene Turniere</h2></div><button id="refreshTournaments" class="btn ghost small" type="button">Aktualisieren</button></div><div id="tournamentList" class="community-card-grid"></div></section>
         <section id="tournamentDetails" class="panel hidden"></section>
-      </section>
-
-      <section class="community-view hidden" data-community-view="packs">
-        <div class="community-grid pack-grid">
-          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Quizwerkstatt</span><h2>Eigenes Quizpaket erstellen</h2></div></div><form id="packCreateForm" class="community-form"><label>Titel<input id="packTitle" maxlength="80" required></label><label>Beschreibung<textarea id="packDescription" maxlength="300"></textarea></label><label>Sichtbarkeit<select id="packVisibility"><option value="private">Privat – nur über Code</option><option value="friends">Nur Freunde</option><option value="public">Öffentlich</option></select></label><div class="panel-heading compact"><div><span class="eyebrow">Fragen</span><h3>Mindestens drei Fragen</h3></div><button id="addPackQuestion" class="btn ghost small" type="button">+ Frage</button></div><div id="packQuestionEditor" class="pack-question-editor"></div><button class="btn primary wide-button" type="submit">Quizpaket speichern</button><div id="packMessage" class="message"></div></form></section>
-          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Bibliothek</span><h2>Eigene und geteilte Pakete</h2></div><button id="refreshPacks" class="btn ghost small" type="button">Aktualisieren</button></div><div id="packList" class="community-list"></div></section>
-        </div>
       </section>
 
       <section class="community-view hidden" data-community-view="season">

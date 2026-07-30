@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-  const app={profile:null,tab:'friends',matchTimer:null,questionCount:0};
+  const app={profile:null,tab:'friends',matchTimer:null};
   app.esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   app.initials=n=>String(n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
   app.date=v=>v?new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'—';
@@ -19,7 +19,7 @@
   async function init(){
     $$('[data-community-tab]').forEach(b=>b.onclick=()=>app.setTab(b.dataset.communityTab));
     if(!await loadMe())return;
-    const requested=new URLSearchParams(location.search).get('tab');app.setTab(['friends','matchmaking','tournaments','packs','season','notifications'].includes(requested)?requested:'friends');
+    const requested=new URLSearchParams(location.search).get('tab');app.setTab(['friends','matchmaking','tournaments','season','notifications'].includes(requested)?requested:'friends');
     app.social?.notifications?.(false);
   }
   app.init=init;window.QTCommunity=app;

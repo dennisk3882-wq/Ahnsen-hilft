@@ -13,6 +13,7 @@ const tests = [
   'test/phase3-offline.test.js',
   'test/phase4-online.test.js',
   'test/platform-features.test.js',
+  'test/account-admin.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',
@@ -24,6 +25,8 @@ const isolatedEnvironment = {
   DATABASE_URL: '',
   ELEVENLABS_API_KEY: '',
   ELEVENLABS_VOICE_ID: '',
+  BREVO_API_KEY: '',
+  RESEND_API_KEY: '',
   PROFILE_SESSION_SECRET: 'isolated-test-session-secret',
   PLATFORM_SECURITY_SECRET: 'isolated-platform-security-secret',
 };
