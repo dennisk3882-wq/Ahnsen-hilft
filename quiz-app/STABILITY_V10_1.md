@@ -82,7 +82,7 @@ Die 500 Dateien unter `data/` bilden den verbindlichen redaktionellen Standardka
 
 ## Abhängigkeitssicherheit
 
-Express ist auf `4.22.2` aktualisiert. Damit werden die im Sicherheitsscan erkannten DoS-Schwachstellen in `body-parser`, `path-to-regexp` und `qs` über einen reproduzierbar erneuerten Lockfile behoben. Der Pull Request wird zusätzlich mit `npm audit` und CodeQL geprüft.
+Express ist auf `4.22.2` aktualisiert. Der Lockfile verwendet zusätzlich `path-to-regexp 0.1.13`. Damit werden die im Sicherheitsscan erkannten DoS-Schwachstellen in `body-parser`, `path-to-regexp` und `qs` behoben. Der Pull Request wird zusätzlich mit `npm audit` und CodeQL geprüft.
 
 ## Backup
 
