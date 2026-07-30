@@ -95,6 +95,11 @@ test('Normales Online-Spiel wird Profilen, Zuschaueransicht, Gastgeberwechsel, H
       return options.body.isHost;
     }).toBe(true);
 
+    await expect.poll(async () => {
+      const options = await jsonFetch(guest, `/api/online/rooms/${code}/host-options?token=${encodeURIComponent(guestCredentials.token)}`);
+      return Boolean(options.body.players?.find(player => player.id === originalHost.id)?.connected);
+    }).toBe(true);
+
     const transferBack = await jsonFetch(guest, `/api/online/rooms/${code}/transfer-host`, {
       method: 'POST',
       body: JSON.stringify({ token: guestCredentials.token, playerId: originalHost.id }),
