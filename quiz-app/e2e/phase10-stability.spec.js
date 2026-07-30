@@ -18,6 +18,10 @@ async function jsonFetch(page, url, options = {}) {
   }, { target: url, init: options });
 }
 
+async function onlineCredentials(page) {
+  return page.evaluate(() => JSON.parse(localStorage.getItem('ahnsen_online_credentials_v1') || 'null'));
+}
+
 test('Arena sperrt unbestätigte Konten und wird nach E-Mail-Bestätigung freigeschaltet', async ({ page, request }) => {
   const identity = uniqueIdentity('VerifyGuard');
   await registerProfile(page, identity);
@@ -32,7 +36,7 @@ test('Arena sperrt unbestätigte Konten und wird nach E-Mail-Bestätigung freige
   expect(allowed.body.missions.daily).toHaveLength(4);
 });
 
-test('Normales Online-Spiel wird Profilen, Historie und Saisonliga zugeordnet', async ({ browser, request }) => {
+test('Normales Online-Spiel wird Profilen, Zuschaueransicht, Gastgeberwechsel, Historie und Saisonliga zugeordnet', async ({ browser, request }) => {
   const hostIdentity = uniqueIdentity('ProfilHost');
   const guestIdentity = uniqueIdentity('ProfilGast');
   const hostContext = await browser.newContext();
@@ -59,6 +63,49 @@ test('Normales Online-Spiel wird Profilen, Historie und Saisonliga zugeordnet', 
     await expect(host.locator('#onlinePlayerList')).toContainText(guestIdentity.name);
     await expect(host.locator('#onlinePlayerList')).toContainText(hostIdentity.name);
 
+    const hostCredentials = await onlineCredentials(host);
+    const guestCredentials = await onlineCredentials(guest);
+    expect(hostCredentials.code).toBe(code);
+    expect(guestCredentials.code).toBe(code);
+
+    const spectator = await jsonFetch(host, `/api/online/rooms/${code}/spectate`);
+    expect(spectator.status).toBe(200);
+    expect(spectator.body.state.players.map(player => player.name)).toEqual(expect.arrayContaining([hostIdentity.name, guestIdentity.name]));
+
+    const hostOptions = await jsonFetch(host, `/api/online/rooms/${code}/host-options?token=${encodeURIComponent(hostCredentials.token)}`);
+    expect(hostOptions.status).toBe(200);
+    expect(hostOptions.body.isHost).toBe(true);
+    const guestPlayer = hostOptions.body.players.find(player => player.name === guestIdentity.name);
+    const originalHost = hostOptions.body.players.find(player => player.name === hostIdentity.name);
+    expect(guestPlayer).toBeTruthy();
+    expect(originalHost).toBeTruthy();
+
+    const transferToGuest = await jsonFetch(host, `/api/online/rooms/${code}/transfer-host`, {
+      method: 'POST',
+      body: JSON.stringify({ token: hostCredentials.token, playerId: guestPlayer.id }),
+    });
+    expect(transferToGuest.status).toBe(200);
+    expect(transferToGuest.body.host.name).toBe(guestIdentity.name);
+
+    await expect.poll(async () => {
+      const options = await jsonFetch(guest, `/api/online/rooms/${code}/host-options?token=${encodeURIComponent(guestCredentials.token)}`);
+      return options.body.isHost;
+    }).toBe(true);
+
+    const transferBack = await jsonFetch(guest, `/api/online/rooms/${code}/transfer-host`, {
+      method: 'POST',
+      body: JSON.stringify({ token: guestCredentials.token, playerId: originalHost.id }),
+    });
+    expect(transferBack.status).toBe(200);
+    expect(transferBack.body.host.name).toBe(hostIdentity.name);
+
+    await expect.poll(async () => {
+      const options = await jsonFetch(host, `/api/online/rooms/${code}/host-options?token=${encodeURIComponent(hostCredentials.token)}`);
+      return options.body.isHost;
+    }).toBe(true);
+
+    await expect(host.locator('#onlineRoomView')).toBeVisible();
+    await expect(guest.locator('#onlineRoomView')).toBeVisible();
     await guest.locator('#toggleOnlineReady').click();
     await expect(host.locator('#startOnlineGame')).toBeEnabled();
     await host.locator('#startOnlineGame').click();
@@ -116,4 +163,5 @@ test('Stabilitätsstatus meldet Migration, Zeitzone und erreichbare Datenbank', 
   expect(status.databaseReachable).toBe(true);
   expect(status.timezone).toBe('Europe/Berlin');
   expect(status.migrations.some(item => item.version === '010_phase10_stability.sql')).toBe(true);
+  expect(status.migrations.some(item => item.version === '012_social_history_events.sql')).toBe(true);
 });
