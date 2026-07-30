@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080b18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Ahnsen Quiz Offline-Mehrspieler – gemeinsam auf einem Handy oder Tablet spielen.">
+  <title>Offline-Mehrspieler – Ahnsen Quiz</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/offline.css">
+</head>
+<body class="app-body offline-body">
+  <main class="app-shell offline-shell">
+    <header class="app-topbar offline-topbar">
+      <a class="app-brand" href="/" aria-label="Zur Ahnsen-Quiz-Startseite">
+        <div class="app-logo" aria-hidden="true">A</div>
+        <div class="app-brand-copy"><strong>Ahnsen Quiz</strong><span>Offline-Mehrspieler</span></div>
+      </a>
+      <div class="app-top-actions">
+        <span id="catalogStatus" class="offline-status"><i></i>Fragen werden geladen</span>
+        <button class="btn ghost small app-install-button" type="button" data-install-app>Installieren</button>
+      </div>
+    </header>
+
+    <section id="offlineSetup" class="offline-setup-view">
+      <section class="offline-hero">
+        <div class="offline-hero-copy">
+          <span class="app-kicker">Ein Gerät. Mehrere Köpfe.</span>
+          <h1>Gemeinsam spielen.<br><span>Ganz ohne Lobby.</span></h1>
+          <p>Richte Spieler oder Teams ein, reiche das Gerät weiter und sammelt Runde für Runde Punkte. Nach dem ersten Laden bleibt der Fragenkatalog auf diesem Gerät verfügbar.</p>
+          <div class="offline-hero-badges"><span>Spieler & Teams</span><span>Familien- und Party-Modus</span><span>Automatisch gespeichert</span></div>
+        </div>
+        <div class="offline-hero-art" aria-hidden="true">
+          <div class="offline-device"><div class="offline-device-screen"><span class="offline-question-mark">?</span><div class="offline-answer-lines"><i></i><i></i><i></i><i></i></div></div></div>
+          <span class="offline-person person-one"></span><span class="offline-person person-two"></span><span class="offline-person person-three"></span>
+        </div>
+      </section>
+
+      <section id="resumeOfflineCard" class="offline-resume-card hidden">
+        <div><span class="eyebrow">Gespeicherte Runde</span><h2 id="resumeOfflineTitle">Spiel fortsetzen</h2><p id="resumeOfflineText" class="muted"></p></div>
+        <div class="row"><button id="resumeOfflineButton" class="btn primary" type="button">Fortsetzen</button><button id="discardOfflineButton" class="btn ghost" type="button">Verwerfen</button></div>
+      </section>
+
+      <div class="offline-setup-grid">
+        <section class="panel offline-config-panel">
+          <div class="panel-heading compact"><div><span class="eyebrow">1. Mitspieler</span><h2>Wer spielt mit?</h2></div><span id="participantLimit" class="info-chip">2 von 8</span></div>
+          <div class="offline-kind-tabs" role="tablist" aria-label="Spieler oder Teams">
+            <button class="active" type="button" data-offline-kind="players" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/></svg><span>Spieler</span></button>
+            <button type="button" data-offline-kind="teams" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 20V9l4-5 4 5v11M12 20V7l4-4 4 4v13M2 20h20"/></svg><span>Teams</span></button>
+          </div>
+          <div id="offlineParticipants" class="offline-participant-list"></div>
+          <button id="addOfflineParticipant" class="offline-add-participant" type="button"><span>+</span><strong>Weiteren Spieler hinzufügen</strong></button>
+        </section>
+
+        <section class="panel offline-config-panel">
+          <div class="panel-heading compact"><div><span class="eyebrow">2. Fragenwelt</span><h2>Was wird gespielt?</h2></div></div>
+          <div class="offline-field-grid">
+            <label>Quizbereich<select id="offlineQuizType"><option value="child">Kinderquiz</option><option value="adult">Erwachsenenquiz</option></select></label>
+            <label>Kategorie<select id="offlineCategory"><option value="Gemischt">Gemischt</option></select></label>
+            <label>Runden pro Teilnehmer<select id="offlineRounds"><option value="3">3 Runden</option><option value="5" selected>5 Runden</option><option value="8">8 Runden</option><option value="10">10 Runden</option></select></label>
+          </div>
+          <div id="offlineCatalogHint" class="offline-catalog-hint">Der Fragenkatalog wird vorbereitet …</div>
+        </section>
+
+        <section class="panel offline-config-panel offline-mode-panel">
+          <div class="panel-heading compact"><div><span class="eyebrow">3. Spielstil</span><h2>Familie oder Party?</h2></div></div>
+          <div class="offline-mode-grid">
+            <button class="offline-mode-card active" type="button" data-offline-mode="family" aria-pressed="true"><span class="offline-mode-symbol"><svg viewBox="0 0 24 24"><path d="M5 21v-8m14 8v-8M3 13h18M7 13V8a5 5 0 0 1 10 0v5M9 21v-4m6 4v-4"/></svg></span><strong>Familien-Modus</strong><small>Ohne Zeitdruck und ohne Minuspunkte. Ideal für Kinder und gemischte Gruppen.</small></button>
+            <button class="offline-mode-card" type="button" data-offline-mode="party" aria-pressed="false"><span class="offline-mode-symbol"><svg viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.9 4.9l2.8 2.8m8.6 8.6 2.8 2.8M2 12h4m12 0h4M4.9 19.1l2.8-2.8m8.6-8.6 2.8-2.8"/><circle cx="12" cy="12" r="5"/></svg></span><strong>Party-Modus</strong><small>20 Sekunden, Zeitbonus und −5 Punkte bei einer falschen Antwort.</small></button>
+          </div>
+        </section>
+
+        <aside class="panel offline-summary-panel">
+          <span class="app-kicker">Spielübersicht</span>
+          <div id="offlineSetupSummary" class="offline-setup-summary"></div>
+          <button id="startOfflineButton" class="btn primary wide-button" type="button" disabled>Offline-Spiel starten</button>
+          <div id="offlineSetupMessage" class="message" aria-live="polite"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="offlineGame" class="offline-game-view hidden">
+      <div class="offline-game-header">
+        <div><span id="offlineRoundChip" class="info-chip">Runde 1 von 5</span><span id="offlineTurnChip" class="category-chip">Spieler 1</span></div>
+        <div class="row"><span id="offlineModeChip" class="status-chip">Familien-Modus</span><button id="leaveOfflineGame" class="btn ghost small" type="button">Spiel verlassen</button></div>
+      </div>
+      <div class="quiz-progress-track"><span id="offlineProgress"></span></div>
+      <div class="offline-game-grid">
+        <section id="offlineStage" class="offline-stage"></section>
+        <aside class="offline-score-panel"><div class="offline-score-heading"><span class="eyebrow">Aktueller Stand</span><h2>Rangliste</h2></div><div id="offlineScoreboard" class="offline-scoreboard"></div></aside>
+      </div>
+    </section>
+  </main>
+
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation">
+    <a class="app-nav-item" href="/"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/></svg><span>Start</span></a>
+    <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m10 8 6 4-6 4Z"/></svg><span>Solo</span></a>
+    <a class="app-nav-item active" href="/offline" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/></svg><span>Gemeinsam</span></a>
+    <a class="app-nav-item" href="/#live"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4Z"/><path d="m10 9 5 3-5 3Z"/></svg><span>Live</span></a>
+  </nav>
+
+  <script src="/offline.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
