@@ -3,6 +3,20 @@
 (() => {
   let activeQuizType = localStorage.getItem('ahnsen_wrong_practice_type') === 'adult' ? 'adult' : 'child';
   let starting = false;
+  const originalRenderState = renderState;
+
+  renderState = nextState => {
+    if (nextState?.practiceWrong) {
+      activeQuizType = nextState.quizType === 'adult' ? 'adult' : 'child';
+      localStorage.setItem('ahnsen_wrong_practice_type', activeQuizType);
+      settings.quizType = activeQuizType;
+      settings.category = 'Gemischt';
+      settings.mode = 'relaxed';
+      settings.questionCount = 10;
+      persistSettings();
+    }
+    return originalRenderState(nextState);
+  };
 
   async function requestStart(quizType) {
     const response = await fetch('/api/solo/practice/start', {
@@ -24,11 +38,6 @@
     if (message) message.textContent = 'Fehlertraining wird vorbereitet …';
     try {
       const practiceState = await requestStart(activeQuizType);
-      settings.quizType = activeQuizType;
-      settings.category = 'Gemischt';
-      settings.mode = 'relaxed';
-      settings.questionCount = practiceState.totalQuestions;
-      persistSettings();
       recordStoredForSession = '';
       renderState(practiceState);
       if (message) message.textContent = '';
