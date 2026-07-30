@@ -12,7 +12,11 @@
   load('/community-core.js')
     .then(() => load('/community-social.js'))
     .then(() => load('/community-games.js'))
-    .then(() => window.QTCommunity?.init?.())
+    .then(() => {
+      const privateOption = document.querySelector('#packVisibility option[value="private"]');
+      if (privateOption) privateOption.textContent = 'Privat – nur du';
+      window.QTCommunity?.init?.();
+    })
     .catch(error => {
       console.error(error);
       const target = document.querySelector('#communityLoginRequired');
