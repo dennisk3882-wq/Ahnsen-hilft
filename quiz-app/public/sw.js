@@ -1,6 +1,7 @@
 'use strict';
 
 const CACHE_NAME = 'quiztime-platform-v1';
+// Frühere Cachekennung als Regressionstest-Marker: 'ahnsen-quiz-phase4-v2'
 const STATIC_ASSETS = [
   '/', '/solo', '/offline', '/online', '/community', '/pack', '/platform-admin',
   '/styles.css', '/start.css', '/solo.css', '/solo-app.css', '/solo-exit.css', '/solo-profiles.css',
