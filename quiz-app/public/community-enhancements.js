@@ -1,7 +1,6 @@
 'use strict';
 
 (() => {
-  const $ = selector => document.querySelector(selector);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const date = value => value ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '–';
   let busy = false;
@@ -55,6 +54,10 @@
     alert(`Einladung für Raum ${room.code} wurde versendet.`);
   }
 
+  function siblingPreferenceButton(button, selector) {
+    return button.closest('.app-modal-card')?.querySelector(selector) || null;
+  }
+
   document.addEventListener('click', async event => {
     const profile = event.target.closest('[data-friend-profile]');
     const direct = event.target.closest('[data-direct-friend-invite]');
@@ -70,13 +73,17 @@
       if (direct) await directInvite(direct.dataset.directFriendInvite);
       if (mute) {
         const next = mute.dataset.muted !== 'true';
-        await api(`/api/platform/friends/${mute.dataset.toggleFriendMute}/preferences`, { method: 'PATCH', body: JSON.stringify({ muted: next, notificationsEnabled: true }) });
+        const notificationButton = siblingPreferenceButton(mute, '[data-toggle-friend-notifications]');
+        const notificationsEnabled = notificationButton?.dataset.enabled !== 'false';
+        await api(`/api/platform/friends/${mute.dataset.toggleFriendMute}/preferences`, { method: 'PATCH', body: JSON.stringify({ muted: next, notificationsEnabled }) });
         mute.dataset.muted = String(next);
         mute.textContent = next ? 'Stummschaltung aufheben' : 'Stummschalten';
       }
       if (notifications) {
         const next = notifications.dataset.enabled !== 'true';
-        await api(`/api/platform/friends/${notifications.dataset.toggleFriendNotifications}/preferences`, { method: 'PATCH', body: JSON.stringify({ muted: false, notificationsEnabled: next }) });
+        const muteButton = siblingPreferenceButton(notifications, '[data-toggle-friend-mute]');
+        const muted = muteButton?.dataset.muted === 'true';
+        await api(`/api/platform/friends/${notifications.dataset.toggleFriendNotifications}/preferences`, { method: 'PATCH', body: JSON.stringify({ muted, notificationsEnabled: next }) });
         notifications.dataset.enabled = String(next);
         notifications.textContent = next ? 'Benachrichtigungen aus' : 'Benachrichtigungen an';
       }
