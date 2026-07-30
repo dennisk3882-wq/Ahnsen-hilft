@@ -174,29 +174,54 @@ function connectAppShortcuts() {
   });
 }
 
+function navLink(href, label, svg) {
+  const link = document.createElement('a');
+  link.className = 'app-nav-item';
+  link.href = href;
+  link.innerHTML = `${svg}<span>${label}</span>`;
+  return link;
+}
+
 function installCommunityEntry() {
   const nav = document.querySelector('.app-bottom-nav');
   if (nav && !nav.querySelector('a[href="/community"]')) {
-    const link = document.createElement('a');
-    link.className = 'app-nav-item';
-    link.href = '/community';
-    link.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/></svg><span>Community</span>';
-    nav.appendChild(link);
+    nav.appendChild(navLink('/community', 'Community', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/></svg>'));
+  }
+}
+
+function installArenaEntry() {
+  const nav = document.querySelector('.app-bottom-nav');
+  if (nav && !nav.querySelector('a[href="/arena"]')) {
+    nav.appendChild(navLink('/arena', 'Arena', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v6a5 5 0 0 1-10 0V3Z"/><path d="M7 6H3v2a5 5 0 0 0 5 5m9-7h4v2a5 5 0 0 1-5 5M12 14v7m-4 0h8"/></svg>'));
   }
 
   const banner = document.querySelector('.phase-banner');
-  if (banner && !banner.dataset.communityReady) {
-    banner.dataset.communityReady = 'true';
+  if (banner && !banner.dataset.phase10Ready) {
+    banner.dataset.phase10Ready = 'true';
+    const icon = banner.querySelector('.phase-banner-icon');
     const strong = banner.querySelector('strong');
     const detail = banner.querySelector('strong + span');
     const action = banner.querySelector('a');
-    if (strong) strong.textContent = 'QuizTime Plattform, Kontocenter und Community sind integriert';
-    if (detail) detail.textContent = 'Freunde, Einladungen, Schnellspiel, Turniere, Saisonrangliste, sichere E-Mail-Wiederherstellung und Push-Mitteilungen sind verfügbar.';
+    if (icon) icon.textContent = '10';
+    if (strong) strong.textContent = 'QuizTime Phase 10: Arena, Ligen und offizielle Events';
+    if (detail) detail.textContent = 'Freundesduelle, Missionen, Match-Historie, K.-o.-Turnierbäume, Saisonligen, Quiz der Woche und Monats-Challenges sind vollständig integriert.';
     if (action) {
-      action.href = '/community';
-      action.textContent = 'Community öffnen';
+      action.href = '/arena';
+      action.textContent = 'Arena öffnen';
     }
   }
+
+  const modeGrid = document.querySelector('.home-mode-grid');
+  if (modeGrid && !modeGrid.querySelector('[data-phase10-card]')) {
+    const card = document.createElement('article');
+    card.className = 'home-mode-card home-mode-online';
+    card.dataset.phase10Card = 'true';
+    card.innerHTML = `<div class="home-mode-copy"><span class="home-mode-status ready"><i></i>Neu & spielbar</span><h2>Arena & Events</h2><p>Freunde herausfordern, Missionen abschließen, in Ligen aufsteigen und beim Quiz der Woche antreten.</p><ul class="home-mode-meta"><li>Best-of-Duelle & Turnierbaum</li><li>Quiz der Woche & Saisonligen</li></ul><a class="home-mode-action" href="/arena"><span>Arena öffnen</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a></div><div class="mode-art mode-art-trophy" aria-hidden="true"><div class="art-glow"></div><div class="trophy-cup"><span>Q</span></div><div class="trophy-stem"></div><div class="trophy-base"></div></div>`;
+    modeGrid.appendChild(card);
+  }
+
+  const topBadge = document.querySelector('#topModeBadge');
+  if (topBadge) topBadge.innerHTML = '<i></i> Phase 10';
 }
 
 function registerServiceWorker() {
@@ -214,4 +239,5 @@ installUpcomingHandlers();
 installPwaHandling();
 connectAppShortcuts();
 installCommunityEntry();
+installArenaEntry();
 registerServiceWorker();
