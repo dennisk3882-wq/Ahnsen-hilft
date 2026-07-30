@@ -13,6 +13,7 @@ const phase10Progression = require('./phase10-progression-bridge');
 const phase10Stability = require('./phase10-stability');
 const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
+const { installOnlineCompletionRoutes } = require('./online-completion');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installPhase10Routes } = require('./phase10-routes');
@@ -142,6 +143,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       streams: capturedMaps[1],
       questionTimers: capturedMaps[2],
     });
+    installOnlineCompletionRoutes(app);
 
     app.use('/api/platform', async (_req, res, next) => {
       try {
@@ -176,8 +178,8 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       const status = error.code === '23505' || error.code === '23503' || error.code === 'SEASON_SETTLEMENT_REQUIRED' ? 409
         : error.code === 'NOT_FRIENDS' ? 403
           : /nicht gefunden/iu.test(error.message || '') ? 404
-            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat/iu.test(error.message || '') ? 403
-              : /noch nicht|bereits|maximale|läuft noch|erst nach/iu.test(error.message || '') ? 409
+            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat|Gastgeber/iu.test(error.message || '') ? 403
+              : /noch nicht|bereits|maximale|läuft noch|erst nach|verbunden/iu.test(error.message || '') ? 409
                 : 500;
       res.status(status).json({ error: status === 500 ? 'Die Anfrage konnte nicht verarbeitet werden.' : error.message });
     });
