@@ -10,14 +10,28 @@ const storage = require('./platform-storage');
 const testMailbox = require('./test-mailbox');
 const phase10Bridge = require('./phase10-online-bridge');
 const phase10Progression = require('./phase10-progression-bridge');
+const phase10Stability = require('./phase10-stability');
+const platformCompletion = require('./platform-completion');
+const soloSessionStability = require('./solo-session-stability');
+const onlineCatalogStability = require('./online-catalog-stability');
+const friendNotificationControl = require('./friend-notification-control');
+const { installOnlineCompletionRoutes } = require('./online-completion');
+const { installEventRuntimeRoutes } = require('./event-runtime-routes');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installPhase10Routes } = require('./phase10-routes');
 const { installBrowserTestStatusRoute } = require('./browser-test-status');
 const { installE2ETestSupport } = require('./e2e-test-support');
 
+phase10Stability.validateProductionSecrets();
+soloSessionStability.patchSoloRoutes();
 phase10Bridge.patchOnlineStorage();
+phase10Stability.patchPhase10();
+onlineCatalogStability.patchEventCatalog();
+platformCompletion.patchHistory();
+phase10Stability.patchOnlineStorage();
 phase10Progression.patchProgression();
+friendNotificationControl.patchStorage(storage);
 
 accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
 for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
@@ -95,12 +109,28 @@ if (!adminStorage.__quiztimeRuntimeWrapped) {
 storage.ensureReady().catch(error => {
   console.error('QuizTime-Plattformtabellen konnten nicht vorbereitet werden:', error.message);
 });
+friendNotificationControl.ensureReady().catch(error => {
+  console.error('Freundes-Benachrichtigungseinstellungen konnten nicht vorbereitet werden:', error.message);
+});
+phase10Stability.installScheduler();
+platformCompletion.startMaintenance();
+
+function requireVerified(req, res, next) {
+  if (req.soloAccount?.emailVerified) return next();
+  return res.status(403).json({
+    error: 'Bitte bestätige zuerst deine E-Mail-Adresse.',
+    reason: 'email_unverified',
+  });
+}
 
 if (!profileAuth.__quiztimePlatformWrapped) {
   const originalInstall = profileAuth.installProfileRoutes;
   profileAuth.installProfileRoutes = function installProfileRoutesWithPlatform(app) {
     installPlatformSecurity(app);
+    phase10Stability.installRequestHardening(app);
     phase10Bridge.installRequestCapture(app);
+    phase10Stability.installOnlineProfileBinding(app, profileAuth.profileForRequest);
+    onlineCatalogStability.installOnlineCatalogMiddleware(app);
 
     const NativeMap = global.Map;
     const capturedMaps = [];
@@ -122,6 +152,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       streams: capturedMaps[1],
       questionTimers: capturedMaps[2],
     });
+    installOnlineCompletionRoutes(app);
 
     app.use('/api/platform', async (_req, res, next) => {
       try {
@@ -132,19 +163,41 @@ if (!profileAuth.__quiztimePlatformWrapped) {
         res.status(503).json({ error: `QuizTime Community wird vorbereitet: ${error.message}` });
       }
     });
+
+    const requireProfileWithActor = friendNotificationControl.withActor(profileAuth.requireProfile);
+    phase10Stability.installPlatformGuards(app, requireProfileWithActor);
     installPlatformRoutes(app, {
-      requireProfile: profileAuth.requireProfile,
+      requireProfile: requireProfileWithActor,
       profileForRequest: profileAuth.profileForRequest,
     });
+    phase10Stability.installAdditionalRoutes(app, {
+      requireProfile: requireProfileWithActor,
+      requireAdmin: requirePlatformAdmin,
+    });
+    friendNotificationControl.installPreferenceRoute(app, {
+      requireProfile: requireProfileWithActor,
+      requireVerified,
+    });
+    platformCompletion.installCompletionRoutes(app, {
+      requireProfile: requireProfileWithActor,
+      requireAdmin: requirePlatformAdmin,
+      requireVerified,
+    });
+    installEventRuntimeRoutes(app, { requireProfile: requireProfileWithActor });
     installPhase10Routes(app, {
-      requireProfile: profileAuth.requireProfile,
+      requireProfile: requireProfileWithActor,
       requireAdmin: requirePlatformAdmin,
     });
     app.use((error, req, res, next) => {
       if (res.headersSent) return next(error);
-      console.error(`Phase-10-Anfrage ${req.method} ${req.originalUrl} fehlgeschlagen:`, error.message);
-      const status = error.code === '23505' ? 409 : error.code === '23503' ? 409 : 500;
-      res.status(status).json({ error: status === 500 ? 'Die Arena-Anfrage konnte nicht verarbeitet werden.' : 'Dieser Vorgang steht im Konflikt mit bestehenden Daten.' });
+      console.error(`Plattform-Anfrage ${req.method} ${req.originalUrl} fehlgeschlagen:`, error.message);
+      const status = error.code === '23505' || error.code === '23503' || error.code === 'SEASON_SETTLEMENT_REQUIRED' ? 409
+        : error.code === 'NOT_FRIENDS' ? 403
+          : /nicht gefunden/iu.test(error.message || '') ? 404
+            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat|Gastgeber/iu.test(error.message || '') ? 403
+              : /noch nicht|bereits|maximale|läuft noch|erst nach|verbunden/iu.test(error.message || '') ? 409
+                : 500;
+      res.status(status).json({ error: status === 500 ? 'Die Anfrage konnte nicht verarbeitet werden.' : error.message });
     });
     installBrowserTestStatusRoute(app, requirePlatformAdmin);
   };

@@ -15,6 +15,7 @@ const buckets = new Map();
 const strikes = new Map();
 const TICKET_TTL_MS = 2 * 60 * 1000;
 const INTERNAL_SECRET = String(process.env.PLATFORM_INTERNAL_SECRET || process.env.ADMIN_PASSWORD || process.env.EVENT_PASSWORD || 'quiztime-internal');
+const TEST_MODE = process.env.NODE_ENV === 'test';
 
 const blockedTerms = [
   /\b(?:nazi|hitlergruß|heil\s+hitler)\b/iu,
@@ -126,13 +127,17 @@ async function enforceRule(req, res, next, rule) {
   if (req.quiztimeInternal) return next();
   const hash = ipHash(req);
   try {
-    if (storage.enabled()) {
+    // Browser-E2E-Tests teilen sich technisch eine einzige Loopback-IP. Sie sollen
+    // weiterhin durch die Regelpfade laufen, dürfen sich aber nicht gegenseitig
+    // dauerhaft sperren. Produktionswerte und Sperrlogik bleiben unverändert.
+    if (!TEST_MODE && storage.enabled()) {
       const ban = await storage.activeBan(hash);
       if (ban) return res.status(429).json({ error: `Vorübergehend gesperrt: ${ban.reason}`, retryAfter: ban.expires_at });
     }
-    const limit = rateLimit(`${hash}:${rule.label}`, rule.max, rule.windowMs);
+    const effectiveMax = TEST_MODE ? Math.max(rule.max * 100, 1000) : rule.max;
+    const limit = rateLimit(`${hash}:${rule.label}`, effectiveMax, rule.windowMs);
     if (!limit.allowed) {
-      await addStrike(hash, rule.label);
+      if (!TEST_MODE) await addStrike(hash, rule.label);
       res.set('Retry-After', String(Math.max(1, Math.ceil(limit.retryAfterMs / 1000))));
       return res.status(429).json({ error: `Zu viele Anfragen (${rule.label}). Bitte kurz warten.`, retryAfterMs: limit.retryAfterMs });
     }

@@ -2,7 +2,7 @@
 
 const { test, expect } = require('@playwright/test');
 
-test('Produktionsseite, PostgreSQL, E-Mail-Konfiguration und Raumlebenszyklus funktionieren', async ({ page, request }) => {
+test('Produktionsseite, PostgreSQL, Migrationen, E-Mail und Raumlebenszyklus funktionieren', async ({ page, request }) => {
   const health = await request.get('/health');
   expect(health.ok()).toBeTruthy();
 
@@ -12,6 +12,14 @@ test('Produktionsseite, PostgreSQL, E-Mail-Konfiguration und Raumlebenszyklus fu
   expect(onlineStatus.online).toBe(true);
   expect(onlineStatus.persistence).toBe('postgresql');
 
+  const stability = await request.get('/api/platform/stability/status');
+  expect(stability.ok()).toBeTruthy();
+  const stabilityStatus = await stability.json();
+  expect(stabilityStatus.version).toBe('10.1.0');
+  expect(stabilityStatus.databaseReachable).toBe(true);
+  expect(stabilityStatus.timezone).toBe('Europe/Berlin');
+  expect(stabilityStatus.migrations?.some(item => item.version === '010_phase10_stability.sql')).toBe(true);
+
   const account = await request.get('/api/account/status');
   expect(account.ok()).toBeTruthy();
   const accountStatus = await account.json();
@@ -20,6 +28,12 @@ test('Produktionsseite, PostgreSQL, E-Mail-Konfiguration und Raumlebenszyklus fu
   await page.goto('/');
   await expect(page).toHaveTitle(/QuizTime/i);
   await expect(page.locator('body')).toContainText('QuizTime');
+  await expect(page.locator('body')).toContainText(/10\.1|Arena/);
+  await expect(page.locator('.app-bottom-nav .app-nav-item')).toHaveCount(4);
+
+  await page.goto('/arena');
+  await expect(page).toHaveTitle(/Arena.*QuizTime/i);
+  await expect(page.locator('body')).toContainText(/Arena|E-Mail-Bestätigung/);
 
   await page.goto('/online');
   await page.fill('#onlineHostName', `Smoke${Date.now()}`.slice(0, 30));

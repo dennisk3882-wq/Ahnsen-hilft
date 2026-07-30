@@ -1,11 +1,11 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { uniqueIdentity, registerProfile } = require('./helpers');
+const { uniqueIdentity, registerAndVerifyProfile } = require('./helpers');
 
-test('Arena lädt Missionen, Liga und offizielles Quiz der Woche', async ({ page }) => {
+test('Arena lädt Missionen, Liga und offizielles Quiz der Woche', async ({ page, request }) => {
   const identity = uniqueIdentity('Arena');
-  await registerProfile(page, identity);
+  await registerAndVerifyProfile(page, request, identity);
 
   await page.goto('/arena');
   await expect(page.locator('#arenaApp')).toBeVisible();
@@ -22,14 +22,14 @@ test('Arena lädt Missionen, Liga und offizielles Quiz der Woche', async ({ page
 
   await page.locator('[data-arena-tab="events"]').click();
   await expect(page.locator('#eventList')).toContainText(/Quiz der Woche|Monats-Challenge/);
-  await page.locator('[data-event-start]').first().click();
+  await page.locator('[data-event-start]:not([disabled])').first().click();
   await expect(page.locator('#eventPlayer')).toBeVisible();
   await expect(page.locator('#eventPlayerContent')).toContainText(/Frage 1 von/);
   await page.locator('[data-event-answer]').first().click();
   await expect(page.locator('#eventPlayerContent')).toContainText(/Richtig|Leider falsch/);
 });
 
-test('Phase-10-Admin zeigt Event- und Ligaverwaltung', async ({ page }) => {
+test('Phase-10-Admin zeigt Event-, Liga- und Stabilitätsverwaltung', async ({ page }) => {
   await page.goto('/platform-admin');
   await page.fill('#adminPassword', process.env.ADMIN_PASSWORD || 'e2e-admin-password');
   await page.locator('#adminLoginForm button[type="submit"]').click();
@@ -37,4 +37,5 @@ test('Phase-10-Admin zeigt Event- und Ligaverwaltung', async ({ page }) => {
   await page.locator('[data-admin-tab="phase10"]').click();
   await expect(page.locator('#adminPhase10Content')).toContainText(/Offizielle Events|Ligen & Saisonabschluss/);
   await expect(page.locator('#adminOfficialEvents .admin-item')).toHaveCount(2);
+  await expect(page.locator('#adminStabilityPanel')).toContainText(/Stabilität|Migration|Abgleich/i);
 });

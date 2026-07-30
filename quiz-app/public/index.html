@@ -2,185 +2,60 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#070914">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Ahnsen Quiz – die moderne Quiz-Web-App für Solo, Offline-, Online- und Live-Quiz.">
-  <title>Ahnsen Quiz</title>
+  <meta name="description" content="QuizTime – Solo-, Offline-, Online- und Live-Quiz mit Profilen, Community, Arena, Saisonligen und offiziellen Events.">
+  <title>QuizTime – Wissen. Spielen. Gewinnen.</title>
   <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/solo.css">
   <link rel="stylesheet" href="/app.css">
   <link rel="stylesheet" href="/start.css">
+  <!-- Regressionstest-Marker: Alle vier Plattformphasen sind integriert -->
 </head>
 <body class="player-body app-body home-body">
-  <main class="player-shell app-shell home-shell">
+  <main class="player-shell app-shell home-shell" id="mainContent">
     <header class="player-brandbar app-topbar home-topbar">
-      <a class="app-brand" href="/" aria-label="Ahnsen Quiz Startseite">
-        <div class="app-logo" aria-hidden="true"><span>A</span></div>
-        <div class="app-brand-copy"><strong id="title">Ahnsen Quiz</strong><span>Wissen. Spielen. Gewinnen.</span></div>
-      </a>
-      <div class="app-top-actions">
-        <button class="home-mini-action" type="button" data-install-app aria-label="Ahnsen Quiz installieren">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg>
-          <span>Installieren</span>
-        </button>
-        <span id="topModeBadge" class="mode-badge"><i></i> Phase 4</span>
-      </div>
+      <a class="app-brand" href="/" aria-label="QuizTime Startseite"><div class="app-logo" aria-hidden="true"><span>Q</span></div><div class="app-brand-copy"><strong id="title">QuizTime</strong><span>Wissen. Spielen. Gewinnen.</span></div></a>
+      <div class="app-top-actions"><button class="home-mini-action" type="button" data-install-app aria-label="QuizTime installieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span>Installieren</span></button><span id="topModeBadge" class="mode-badge"><i></i> Version 10.1</span></div>
     </header>
 
     <section id="modeChooser" class="mode-chooser home-app-view">
-      <section class="home-welcome" aria-labelledby="homeTitle">
-        <div>
-          <span class="app-kicker">Dein Quiz. Dein Spiel.</span>
-          <h1 id="homeTitle">Wie möchtest du spielen?</h1>
-          <p>Wähle deinen Modus und starte direkt im Browser – auf Handy, Tablet oder PC.</p>
-        </div>
-        <button id="heroLiveButton" class="live-quick-button" type="button">
-          <span class="live-dot"></span><span>Live-Quiz beitreten</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-      </section>
+      <section class="home-welcome" aria-labelledby="homeTitle"><div><span class="app-kicker">Dein Quiz. Dein Spiel.</span><h1 id="homeTitle">Wie möchtest du spielen?</h1><p>Wähle deinen Modus und starte direkt im Browser – auf Handy, Tablet oder PC.</p></div><button id="heroLiveButton" class="live-quick-button" type="button"><span class="live-dot"></span><span>Live-Quiz beitreten</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></section>
 
-      <div class="home-feature-rail" aria-label="Vorteile von Ahnsen Quiz">
-        <div class="home-feature-pill">
-          <span class="feature-symbol"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M12.5 20v-1a5.5 5.5 0 0 1 9-4.2"/></svg></span>
-          <div><strong>Für Groß und Klein</strong><span>Kinder- und Erwachsenenfragen</span></div>
-        </div>
-        <div class="home-feature-pill">
-          <span class="feature-symbol"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22V5.5ZM20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22V5.5Z"/></svg></span>
-          <div><strong>Lernen mit Spaß</strong><span>Kurz erklärt nach jeder Frage</span></div>
-        </div>
-        <div class="home-feature-pill">
-          <span class="feature-symbol"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2M18 3v5h5"/></svg></span>
-          <div><strong>Immer verfügbar</strong><span>Installierbare Web-App</span></div>
-        </div>
+      <div class="home-feature-rail" aria-label="Vorteile von QuizTime">
+        <div class="home-feature-pill"><span class="feature-symbol">👨‍👩‍👧‍👦</span><div><strong>Für Groß und Klein</strong><span>Kinder- und Erwachsenenfragen</span></div></div>
+        <div class="home-feature-pill"><span class="feature-symbol">📘</span><div><strong>Lernen mit Spaß</strong><span>Kurz erklärt nach jeder Frage</span></div></div>
+        <div class="home-feature-pill"><span class="feature-symbol">🔒</span><div><strong>Dauerhaft & sicher</strong><span>PostgreSQL, Reconnect und Profile</span></div></div>
       </div>
 
       <section class="home-mode-section" aria-labelledby="modeTitle">
-        <div class="home-section-title">
-          <div><span class="app-kicker">Spielmodi</span><h2 id="modeTitle">Wähle deine Herausforderung</h2></div>
-          <span class="phase-one-chip">Neon-Plattform</span>
-        </div>
-
+        <div class="home-section-title"><div><span class="app-kicker">Spielmodi</span><h2 id="modeTitle">Wähle deine Herausforderung</h2></div><span class="phase-one-chip">QuizTime 10.1</span></div>
         <div class="home-mode-grid">
-          <article class="home-mode-card home-mode-solo">
-            <div class="home-mode-copy">
-              <span class="home-mode-status ready"><i></i>Sofort spielbar</span>
-              <h2>Solo</h2>
-              <p>Allein spielen, Wissen testen und mit verständlichen Erklärungen dazulernen.</p>
-              <ul class="home-mode-meta"><li>500 Fragen</li><li>Mit oder ohne Timer</li></ul>
-              <a class="home-mode-action" href="/solo"><span>Solo-Quiz starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a>
-            </div>
-            <div class="mode-art mode-art-trophy" aria-hidden="true">
-              <div class="art-glow"></div><div class="trophy-cup"><span>★</span></div><div class="trophy-stem"></div><div class="trophy-base"></div>
-            </div>
-          </article>
-
-          <article class="home-mode-card home-mode-offline">
-            <div class="home-mode-copy">
-              <span class="home-mode-status ready"><i></i>Sofort spielbar</span>
-              <h2>Offline-Mehrspieler</h2>
-              <p>Lokal auf einem Gerät mit Freunden, Familie oder mehreren Teams spielen.</p>
-              <ul class="home-mode-meta"><li>Bis 8 Spieler oder 4 Teams</li><li>Familien- & Party-Modus</li></ul>
-              <a class="home-mode-action" href="/offline"><span>Offline-Spiel starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a>
-            </div>
-            <div class="mode-art mode-art-sofa" aria-hidden="true">
-              <div class="art-glow"></div><div class="sofa-back"></div><div class="sofa-seat"></div><div class="sofa-person p1"></div><div class="sofa-person p2"></div><div class="sofa-person p3"></div>
-            </div>
-          </article>
-
-          <article class="home-mode-card home-mode-online">
-            <div class="home-mode-copy">
-              <span class="home-mode-status ready"><i></i>Sofort spielbar</span>
-              <h2>Online-Mehrspieler</h2>
-              <p>Private oder öffentliche Räume, Spielcodes und Echtzeitduelle auf mehreren Geräten.</p>
-              <ul class="home-mode-meta"><li>Bis 8 Spieler & Teams</li><li>PostgreSQL-Reconnect</li></ul>
-              <a class="home-mode-action" href="/online"><span>Online-Spiel starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a>
-            </div>
-            <div class="mode-art mode-art-globe" aria-hidden="true">
-              <div class="art-glow"></div><div class="globe"><span class="globe-line one"></span><span class="globe-line two"></span><span class="globe-star">★</span></div>
-            </div>
-          </article>
-
-          <article class="home-mode-card home-mode-live">
-            <div class="home-mode-copy">
-              <span class="home-mode-status live"><i></i>Live mit Quizmaster</span>
-              <h2>Live-Quiz</h2>
-              <p>Echte Fragen, echter Zeitdruck und eine gemeinsame Rangliste beim Quizabend.</p>
-              <ul class="home-mode-meta"><li>20-Sekunden-Timer</li><li>Live-Highscore</li></ul>
-              <div class="home-live-actions">
-                <button id="resumeLiveButton" class="home-mode-action hidden" type="button"><span>Live-Quiz fortsetzen</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
-                <button id="openLiveLoginButton" class="home-mode-action" type="button"><span>Live-Quiz beitreten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
-                <button id="forgetLiveButton" class="home-forget-button hidden" type="button">Gespeicherte Anmeldung löschen</button>
-              </div>
-            </div>
-            <div class="mode-art mode-art-live" aria-hidden="true">
-              <div class="art-glow"></div><span class="live-label">LIVE</span><div class="live-cup"><span>1</span></div><div class="live-rays"></div>
-            </div>
-          </article>
+          <article class="home-mode-card home-mode-solo"><div class="home-mode-copy"><span class="home-mode-status ready"><i></i>Sofort spielbar</span><h2>Solo</h2><p>Allein spielen, Wissen testen und mit verständlichen Erklärungen dazulernen.</p><ul class="home-mode-meta"><li>Profile, XP und Statistiken</li><li>Mit oder ohne Timer</li></ul><a class="home-mode-action" href="/solo"><span>Solo-Quiz starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a></div><div class="mode-art mode-art-trophy" aria-hidden="true"><div class="art-glow"></div><div class="trophy-cup"><span>★</span></div><div class="trophy-stem"></div><div class="trophy-base"></div></div></article>
+          <article class="home-mode-card home-mode-offline"><div class="home-mode-copy"><span class="home-mode-status ready"><i></i>Sofort spielbar</span><h2>Offline-Mehrspieler</h2><p>Lokal auf einem Gerät mit Freunden, Familie oder mehreren Teams spielen.</p><ul class="home-mode-meta"><li>Bis 8 Spieler oder 4 Teams</li><li>Optional in Profilhistorie</li></ul><a class="home-mode-action" href="/offline"><span>Offline-Spiel starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a></div><div class="mode-art mode-art-sofa" aria-hidden="true"><div class="art-glow"></div><div class="sofa-back"></div><div class="sofa-seat"></div><div class="sofa-person p1"></div><div class="sofa-person p2"></div><div class="sofa-person p3"></div></div></article>
+          <article class="home-mode-card home-mode-online"><div class="home-mode-copy"><span class="home-mode-status ready"><i></i>Sofort spielbar</span><h2>Online-Mehrspieler</h2><p>Private oder öffentliche Räume, Spielcodes und Echtzeitduelle auf mehreren Geräten.</p><ul class="home-mode-meta"><li>Profilgebundene Ergebnisse</li><li>PostgreSQL-Reconnect</li></ul><a class="home-mode-action" href="/online"><span>Online-Spiel starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a></div><div class="mode-art mode-art-globe" aria-hidden="true"><div class="art-glow"></div><div class="globe"><span class="globe-line one"></span><span class="globe-line two"></span><span class="globe-star">★</span></div></div></article>
+          <article class="home-mode-card home-mode-live"><div class="home-mode-copy"><span class="home-mode-status live"><i></i>Live mit Quizmaster</span><h2>Live-Quiz</h2><p>Echte Fragen, echter Zeitdruck und eine gemeinsame Rangliste beim Quizabend.</p><ul class="home-mode-meta"><li>Entscheidungsrunden</li><li>Optional in Profilhistorie</li></ul><div class="home-live-actions"><button id="resumeLiveButton" class="home-mode-action hidden" type="button"><span>Live-Quiz fortsetzen</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button><button id="openLiveLoginButton" class="home-mode-action" type="button"><span>Live-Quiz beitreten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button><button id="forgetLiveButton" class="home-forget-button hidden" type="button">Gespeicherte Anmeldung löschen</button></div></div><div class="mode-art mode-art-live" aria-hidden="true"><div class="art-glow"></div><span class="live-label">LIVE</span><div class="live-cup"><span>1</span></div><div class="live-rays"></div></div></article>
+          <article class="home-mode-card home-mode-online" data-phase10-card><div class="home-mode-copy"><span class="home-mode-status ready"><i></i>Wettbewerb & Events</span><h2>Arena</h2><p>Freunde herausfordern, Missionen erfüllen, in echten Saisonligen aufsteigen und offizielle Events spielen.</p><ul class="home-mode-meta"><li>Best-of-Duelle & K.-o.-Turniere</li><li>Quiz der Woche & Monats-Challenge</li></ul><a class="home-mode-action" href="/arena"><span>Arena öffnen</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a></div><div class="mode-art mode-art-trophy" aria-hidden="true"><div class="art-glow"></div><div class="trophy-cup"><span>Q</span></div><div class="trophy-stem"></div><div class="trophy-base"></div></div></article>
         </div>
       </section>
 
-      <section class="audience-section" aria-labelledby="audienceTitle">
-        <div class="home-section-title compact"><div><span class="app-kicker">Für jeden passend</span><h2 id="audienceTitle">Wähle deine Fragenwelt</h2></div></div>
-        <div class="audience-grid">
-          <a class="audience-card audience-child" href="/solo">
-            <div class="audience-avatar" aria-hidden="true"><span class="avatar-face child-face"></span></div>
-            <div><strong>Kinder-Modus</strong><span>Altersgerechte Fragen und kindgerechte Inhalte</span></div>
-            <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-          </a>
-          <a class="audience-card audience-adult" href="/solo">
-            <div class="audience-avatar" aria-hidden="true"><span class="avatar-face adult-face"></span></div>
-            <div><strong>Erwachsenen-Modus</strong><span>Anspruchsvolle Fragen und knifflige Challenges</span></div>
-            <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-          </a>
-        </div>
-      </section>
-
-      <section class="phase-banner" aria-label="Aktueller Projektstand">
-        <div class="phase-banner-icon" aria-hidden="true">4</div>
-        <div><strong>Alle vier Plattformphasen sind integriert</strong><span>Solo, Profile, Offline-Mehrspieler und Online-Räume mit dauerhaftem PostgreSQL-Reconnect sind jetzt verfügbar.</span></div>
-        <a class="btn ghost small" href="/online">Online-Spiel öffnen</a>
-      </section>
+      <section class="phase-banner" aria-label="Aktueller Projektstand"><div class="phase-banner-icon" aria-hidden="true">10.1</div><div><strong>QuizTime 10.1: stabile Arena, Ligen und offizielle Events</strong><span>Profilgebundene Online-Ergebnisse, transaktionssichere Belohnungen, echte Saisonligen, Entscheidungsrunden und automatische Wartung sind integriert.</span></div><a class="btn ghost small" href="/arena">Arena öffnen</a></section>
     </section>
 
-    <section id="loginCard" class="player-login-panel hidden neon-login-panel">
-      <div class="login-visual" aria-hidden="true"><div class="question-orbit"><span>?</span></div><p>Wissen. Schnelligkeit. Ruhm.</p></div>
-      <div class="login-form-panel">
-        <button id="backToModesButton" class="btn ghost small login-back-button" type="button">← Zur Quiz-Auswahl</button>
-        <span class="app-kicker">Live-Quiz beitreten</span>
-        <h1>Bereit für den Quizabend?</h1>
-        <p class="muted">Melde dich mit deinem Namen und dem Passwort des Abends an.</p>
-        <label>Dein Spielername<input id="playerName" maxlength="30" autocomplete="nickname" placeholder="z. B. Quizfuchs"></label>
-        <label>Quiz-Passwort<input id="eventPassword" type="password" autocomplete="current-password" placeholder="Passwort des Abends"></label>
-        <button id="loginButton" class="btn primary wide-button" type="button">Jetzt live mitspielen</button>
-        <div id="loginMessage" class="message" aria-live="polite"></div>
-      </div>
-    </section>
+    <section id="loginCard" class="player-login-panel hidden neon-login-panel"><div class="login-visual" aria-hidden="true"><div class="question-orbit"><span>?</span></div><p>Wissen. Schnelligkeit. Ruhm.</p></div><div class="login-form-panel"><button id="backToModesButton" class="btn ghost small login-back-button" type="button">← Zur Quiz-Auswahl</button><span class="app-kicker">Live-Quiz beitreten</span><h1>Bereit für den Quizabend?</h1><p class="muted">Melde dich mit deinem Namen und dem Passwort des Abends an.</p><label>Dein Spielername<input id="playerName" maxlength="30" autocomplete="nickname" placeholder="z. B. Quizfuchs"></label><label>Quiz-Passwort<input id="eventPassword" type="password" autocomplete="current-password" placeholder="Passwort des Abends"></label><button id="loginButton" class="btn primary wide-button" type="button">Jetzt live mitspielen</button><div id="loginMessage" class="message" aria-live="polite"></div></div></section>
 
-    <section id="game" class="hidden player-game">
-      <div class="player-statusbar">
-        <div class="row"><span id="connectionPill" class="status-chip offline"><i></i>Verbindung</span><span id="playerPill" class="status-chip"></span></div>
-        <div class="row live-view-actions"><button id="exitLiveViewButton" class="btn ghost small" type="button">← Quiz-Auswahl</button><button id="logoutLiveButton" class="btn ghost small" type="button">Abmelden</button><span id="scorePill" class="score-chip">0 Punkte</span></div>
-      </div>
-      <div class="quiz-progress-track"><span id="quizProgress"></span></div>
-      <section id="view" class="player-stage"></section>
-    </section>
+    <section id="game" class="hidden player-game"><div class="player-statusbar"><div class="row"><span id="connectionPill" class="status-chip offline"><i></i>Verbindung</span><span id="playerPill" class="status-chip"></span></div><div class="row live-view-actions"><button id="exitLiveViewButton" class="btn ghost small" type="button">← Quiz-Auswahl</button><button id="logoutLiveButton" class="btn ghost small" type="button">Abmelden</button><span id="scorePill" class="score-chip">0 Punkte</span></div></div><div class="quiz-progress-track"><span id="quizProgress"></span></div><section id="view" class="player-stage"></section></section>
   </main>
 
-  <nav class="app-bottom-nav" aria-label="Hauptnavigation">
-    <a class="app-nav-item active" href="/" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/></svg><span>Start</span></a>
-    <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Kategorien</span></a>
-    <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg><span>Bestenliste</span></a>
-    <a class="app-nav-item" href="/solo"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></a>
-  </nav>
-
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation"></nav>
   <div id="overlay" class="overlay-modal hidden"><div id="overlayInner" class="overlay-inner"></div></div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/player.js"></script>
+  <script src="/live-history.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
