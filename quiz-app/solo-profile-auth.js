@@ -5,6 +5,7 @@ const { promisify } = require('util');
 const storage = require('./extended-storage');
 const { installWeakPracticeRoutes } = require('./weak-practice');
 const { installOfflineRoutes } = require('./offline-routes');
+const { installOnlineMultiplayerRoutes } = require('./online-multiplayer');
 
 const scrypt = promisify(crypto.scrypt);
 const COOKIE_NAME = 'solo_profile';
@@ -134,6 +135,7 @@ async function requireProfile(req, res, next) {
 
 function installProfileRoutes(app) {
   installOfflineRoutes(app);
+  installOnlineMultiplayerRoutes(app);
   installWeakPracticeRoutes(app, requireProfile);
 
   app.get('/api/solo/profiles', async (_req, res) => {
