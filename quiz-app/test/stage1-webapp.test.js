@@ -28,10 +28,21 @@ assert(index.includes('/app.js'), 'Gemeinsame App-Logik fehlt auf der Startseite
 assert(solo.includes('/app.js'), 'Gemeinsame App-Logik fehlt im Solo-Bereich.');
 
 assert(appCss.includes('.app-bottom-nav'), 'App-Navigation ist nicht gestaltet.');
-assert(startCss.includes('.mode-card-grid'), 'Vier Spielmodus-Karten sind nicht gestaltet.');
-assert(startCss.includes('.app-hero'), 'Professioneller Startseiten-Hero fehlt.');
+assert(startCss.includes('.home-mode-grid'), 'Vier Spielmodus-Karten sind nicht gestaltet.');
+assert(startCss.includes('.home-mode-card'), 'Neon-Spielmoduskarten fehlen.');
+assert(startCss.includes('.home-welcome'), 'Professioneller Startseiten-Einstieg fehlt.');
+assert(startCss.includes('.home-feature-rail'), 'Vorteilsleiste der Startseite fehlt.');
 assert(soloAppCss.includes('.solo-app-hero'), 'Solo-App-Design fehlt.');
 assert(soloAppCss.includes('.solo-explanation'), 'Erklärungskarte ist nicht veredelt.');
+
+for (const modeClass of [
+  'home-mode-solo',
+  'home-mode-offline',
+  'home-mode-online',
+  'home-mode-live',
+]) {
+  assert(index.includes(modeClass), `Spielmodus-Karte fehlt: ${modeClass}`);
+}
 
 assert(appJs.includes("navigator.serviceWorker.register('/sw.js')"), 'Service Worker wird nicht registriert.');
 assert(appJs.includes('beforeinstallprompt'), 'PWA-Installationshinweis fehlt.');

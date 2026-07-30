@@ -1,18 +1,19 @@
-/* Zusätzliche App-Veredelung für den Solo-Modus */
+/* Phase 1 – zusätzliche App-Veredelung für den Solo-Modus */
 .solo-app-hero {
-  min-height: 320px;
-  border-radius: 28px;
-  border-color: rgba(156,92,255,.28);
+  min-height: 300px;
+  border-radius: 25px;
+  border-color: rgba(156,92,255,.3);
   background:
-    radial-gradient(circle at 85% 18%, rgba(65,124,255,.22), transparent 16rem),
-    radial-gradient(circle at 12% 110%, rgba(159,92,255,.25), transparent 24rem),
+    radial-gradient(circle at 86% 18%, rgba(65,124,255,.24), transparent 16rem),
+    radial-gradient(circle at 12% 110%, rgba(159,92,255,.27), transparent 24rem),
     linear-gradient(145deg, rgba(31,28,75,.99), rgba(8,14,30,.99));
-  box-shadow: 0 28px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.04);
+  box-shadow: 0 28px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.045), 0 0 45px rgba(120,67,255,.06);
 }
 
 .solo-app-hero h1 {
   font-size: clamp(2.6rem, 7vw, 5rem);
   line-height: .92;
+  letter-spacing: -.05em;
 }
 
 .solo-app-hero h1 span {
@@ -33,8 +34,14 @@
   border-radius: 38%;
   background:
     radial-gradient(circle at 34% 24%, rgba(255,255,255,.18), transparent 10%),
-    radial-gradient(circle, rgba(156,92,255,.35), rgba(57,93,224,.2) 48%, rgba(7,13,28,.05) 49%);
+    radial-gradient(circle, rgba(156,92,255,.39), rgba(57,93,224,.23) 48%, rgba(7,13,28,.05) 49%);
+  box-shadow: 0 0 65px rgba(111,70,255,.34), inset 0 0 26px rgba(255,255,255,.06);
   transform: rotate(8deg);
+}
+
+.solo-app-hero .solo-orbit::before,
+.solo-app-hero .solo-orbit::after {
+  border-color: rgba(143,131,255,.31);
 }
 
 .solo-app-hero .solo-orbit span {
@@ -44,25 +51,37 @@
   text-shadow: 0 0 35px rgba(126,96,255,.65);
 }
 
+.solo-config-grid {
+  gap: 14px;
+}
+
 .solo-config-grid > .panel {
-  border-radius: 22px;
+  border-radius: 21px;
+  border-color: rgba(144,162,218,.16);
   background:
-    radial-gradient(circle at 100% 0, rgba(96,88,216,.07), transparent 15rem),
+    radial-gradient(circle at 100% 0, rgba(96,88,216,.08), transparent 15rem),
     linear-gradient(145deg, rgba(20,28,51,.97), rgba(8,13,27,.98));
+  box-shadow: 0 20px 55px rgba(0,0,0,.23), inset 0 1px 0 rgba(255,255,255,.035);
 }
 
 .solo-config-card,
 .solo-start-card {
-  padding: clamp(20px, 3vw, 28px);
+  padding: clamp(20px, 3vw, 27px);
+}
+
+.solo-choice-grid {
+  gap: 10px;
 }
 
 .solo-choice,
 .solo-mode-choice {
   position: relative;
   overflow: hidden;
-  min-height: 145px;
-  border-radius: 20px;
-  background: rgba(255,255,255,.027);
+  min-height: 142px;
+  border-radius: 18px;
+  border-color: rgba(137,157,215,.15);
+  background: linear-gradient(145deg, rgba(26,35,63,.72), rgba(12,18,35,.82));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
 }
 
 .solo-choice::after,
@@ -75,15 +94,22 @@
   top: -55px;
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 50%;
+  box-shadow: 0 0 0 22px rgba(255,255,255,.012);
+}
+
+.solo-choice:hover,
+.solo-mode-choice:hover {
+  border-color: rgba(164,101,255,.36);
+  transform: translateY(-2px);
 }
 
 .solo-choice.active,
 .solo-mode-choice.active {
-  border-color: rgba(164,101,255,.68);
+  border-color: rgba(164,101,255,.7);
   background:
-    radial-gradient(circle at 100% 0, rgba(97,123,255,.17), transparent 12rem),
-    linear-gradient(145deg, rgba(156,92,255,.22), rgba(61,78,150,.11));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.045), 0 16px 35px rgba(38,22,91,.16);
+    radial-gradient(circle at 100% 0, rgba(97,123,255,.19), transparent 12rem),
+    linear-gradient(145deg, rgba(156,92,255,.25), rgba(61,78,150,.12));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.045), 0 17px 38px rgba(38,22,91,.18), 0 0 28px rgba(144,83,255,.08);
 }
 
 .solo-choice-icon {
@@ -93,103 +119,256 @@
   place-items: center;
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 14px;
-  background: rgba(255,255,255,.055);
-  font-size: 1.55rem;
+  background: linear-gradient(145deg, rgba(159,92,255,.17), rgba(54,86,195,.09));
+  font-size: 1.5rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
 }
 
 .solo-count-choice {
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
+  min-height: 46px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.03);
 }
 
 .solo-count-choice.active {
   background: linear-gradient(145deg, #a45cff, #5c45e9 58%, #3578e7);
-  box-shadow: 0 14px 34px rgba(105,70,226,.3);
+  box-shadow: 0 14px 34px rgba(105,70,226,.3), inset 0 1px 0 rgba(255,255,255,.18);
 }
 
 .solo-toggle {
-  border-radius: 17px;
-  background: linear-gradient(145deg, rgba(67,223,148,.075), rgba(255,255,255,.02));
+  border-radius: 16px;
+  border-color: rgba(61,223,158,.18);
+  background: linear-gradient(145deg, rgba(67,223,148,.08), rgba(255,255,255,.02));
 }
 
 .solo-start-card {
-  border-color: rgba(156,92,255,.3) !important;
+  border-color: rgba(156,92,255,.32) !important;
   background:
-    radial-gradient(circle at 100% 0, rgba(156,92,255,.18), transparent 15rem),
+    radial-gradient(circle at 100% 0, rgba(156,92,255,.2), transparent 15rem),
     linear-gradient(145deg, rgba(28,25,65,.98), rgba(9,14,29,.98)) !important;
 }
 
+.solo-selection-summary > div {
+  border-radius: 13px;
+  border-color: rgba(148,164,216,.13);
+  background: rgba(255,255,255,.028);
+}
+
 .solo-record-card {
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255,202,79,.1), rgba(255,202,79,.045));
+  border-radius: 17px;
+  border-color: rgba(255,202,79,.18);
+  background: linear-gradient(145deg, rgba(255,202,79,.1), rgba(255,202,79,.04));
+}
+
+.solo-start-card .btn.primary {
+  min-height: 54px;
+  border-radius: 15px;
+  box-shadow: 0 17px 38px rgba(110,61,228,.27), inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+.solo-game {
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .solo-game-topbar {
   position: sticky;
   z-index: 20;
   top: 8px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: rgba(7,11,24,.82);
-  box-shadow: 0 15px 40px rgba(0,0,0,.24);
-  backdrop-filter: blur(18px);
+  padding: 9px 10px;
+  border: 1px solid rgba(139,158,215,.17);
+  border-radius: 17px;
+  background: rgba(7,11,24,.87);
+  box-shadow: 0 15px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.035);
+  backdrop-filter: blur(20px);
+}
+
+.solo-game-topbar .info-chip,
+.solo-game-topbar .category-chip,
+.solo-game-topbar .status-chip {
+  min-height: 30px;
+  border-radius: 999px;
+  font-size: .68rem;
 }
 
 .solo-stage {
-  border-radius: 25px;
+  overflow: hidden;
+  border-radius: 23px;
+  border-color: rgba(139,158,215,.16);
   background:
-    radial-gradient(circle at 100% 0, rgba(66,102,225,.08), transparent 18rem),
+    radial-gradient(circle at 100% 0, rgba(66,102,225,.11), transparent 18rem),
+    radial-gradient(circle at 0 100%, rgba(156,92,255,.09), transparent 22rem),
     linear-gradient(145deg, rgba(18,26,49,.98), rgba(7,12,26,.99));
+  box-shadow: 0 28px 72px rgba(0,0,0,.33), inset 0 1px 0 rgba(255,255,255,.035);
 }
 
 .solo-question-card {
-  background:
-    radial-gradient(circle at 100% 0, rgba(156,92,255,.08), transparent 19rem),
-    transparent;
+  max-width: 100%;
+  padding: clamp(18px, 4vw, 32px);
+  background: transparent;
+}
+
+.solo-question-card .player-question-header {
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.solo-question-title {
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .solo-question-title h2 {
-  max-width: 900px;
-  font-size: clamp(1.65rem, 4.2vw, 2.65rem);
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(1.6rem, 4.2vw, 2.5rem);
+  line-height: 1.16;
+  letter-spacing: -.035em;
+}
+
+.solo-speak-inline {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  border-color: rgba(158,105,255,.27);
+  color: #d8c5ff;
+  background: rgba(156,92,255,.11);
+}
+
+.solo-timer-ring {
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  background:
+    linear-gradient(#0c1328,#0c1328) padding-box,
+    conic-gradient(#58d9e5 calc(var(--progress,1) * 1turn), rgba(255,255,255,.08) 0) border-box;
+  border: 3px solid transparent;
+  box-shadow: 0 0 28px rgba(73,201,225,.13), inset 0 0 22px rgba(70,111,210,.11);
+}
+
+.solo-timer-ring strong {
+  font-size: 1.23rem;
+}
+
+.solo-no-timer {
+  min-width: 72px;
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border: 1px solid rgba(95,223,170,.2);
+  border-radius: 17px;
+  color: #8bf0c1;
+  background: rgba(49,208,145,.07);
+  font-size: 1.35rem;
+}
+
+.solo-no-timer small { margin-top: -2px; color: #8ca49c; font-size: .52rem; }
+
+.solo-question-card .answers {
+  grid-template-columns: 1fr;
+  gap: 9px;
 }
 
 .solo-question-card .answer-btn {
-  border-radius: 19px;
-  background: linear-gradient(145deg, rgba(29,39,70,.88), rgba(15,22,42,.94));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  min-height: 59px;
+  border-radius: 16px;
+  border-color: rgba(139,158,215,.16);
+  background: linear-gradient(145deg, rgba(29,39,70,.9), rgba(15,22,42,.95));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.028);
+  transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
 }
 
 .solo-question-card .answer-btn:not(:disabled):hover {
-  border-color: rgba(168,127,255,.38);
+  border-color: rgba(168,127,255,.45);
+  background: linear-gradient(145deg, rgba(48,46,101,.92), rgba(20,28,54,.96));
   transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(36,22,83,.17), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.solo-question-card .answer-letter {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-color: rgba(156,116,255,.26);
+  color: #d9c8ff;
+  background: rgba(156,92,255,.1);
+}
+
+.solo-question-card .answer-btn.selected {
+  border-color: rgba(156,92,255,.6);
+  background: linear-gradient(145deg, rgba(126,76,239,.28), rgba(38,47,102,.26));
+}
+
+.solo-question-card .answer-btn.correct {
+  border-color: rgba(52,225,144,.66);
+  background: linear-gradient(145deg, rgba(31,157,97,.38), rgba(13,75,58,.42));
+  box-shadow: 0 0 30px rgba(44,209,134,.12);
+}
+
+.solo-question-card .answer-btn.wrong {
+  border-color: rgba(255,84,111,.64);
+  background: linear-gradient(145deg, rgba(165,45,74,.36), rgba(81,24,45,.38));
+}
+
+.solo-prompt,
+.solo-question-card .answer-feedback {
+  border-radius: 16px;
+  border-color: rgba(138,159,219,.14);
+  background: rgba(255,255,255,.025);
 }
 
 .solo-explanation {
-  border-radius: 18px;
+  border-radius: 17px;
+  border-color: rgba(64,218,162,.25) !important;
   background:
-    radial-gradient(circle at 100% 0, rgba(53,223,160,.09), transparent 13rem),
+    radial-gradient(circle at 100% 0, rgba(53,223,160,.1), transparent 13rem),
     rgba(53,223,160,.065) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
 }
 
-.solo-explanation p {
-  margin: 8px 0 0;
-  font-size: clamp(1rem, 2.4vw, 1.16rem);
-  line-height: 1.58;
-}
+.solo-explanation strong { color: #a9f9d4; }
+.solo-explanation p { margin: 8px 0 0; color: #c8d6d4; font-size: clamp(.96rem, 2.4vw, 1.1rem); line-height: 1.58; }
 
 .solo-next-button {
-  min-height: 58px;
-  border-radius: 16px;
-  font-size: 1.04rem;
+  min-height: 56px;
+  border-radius: 15px;
+  font-size: 1rem;
+  box-shadow: 0 17px 38px rgba(110,61,228,.25), inset 0 1px 0 rgba(255,255,255,.16);
 }
 
 .solo-result-view {
-  border-radius: 25px;
+  min-height: 530px;
+  border-radius: 23px;
   background:
-    radial-gradient(circle at 50% 14%, rgba(255,202,79,.18), transparent 22rem),
-    radial-gradient(circle at 0 100%, rgba(156,92,255,.12), transparent 20rem);
+    radial-gradient(circle at 50% 14%, rgba(255,202,79,.2), transparent 22rem),
+    radial-gradient(circle at 0 100%, rgba(156,92,255,.14), transparent 20rem);
+}
+
+.solo-result-trophy {
+  width: 90px;
+  height: 90px;
+  display: grid;
+  place-items: center;
+  margin-inline: auto;
+  border: 1px solid rgba(255,211,101,.3);
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(255,207,83,.2), rgba(151,77,255,.12));
+  box-shadow: 0 0 48px rgba(255,192,64,.18);
+}
+
+.solo-final-score {
+  text-shadow: 0 0 35px rgba(156,92,255,.28);
+}
+
+.solo-result-stats > div {
+  border-radius: 16px;
+  border-color: rgba(143,160,214,.14);
+  background: rgba(255,255,255,.027);
 }
 
 body:has(#gameView:not(.hidden)) .app-bottom-nav {
@@ -198,6 +377,15 @@ body:has(#gameView:not(.hidden)) .app-bottom-nav {
 
 body:has(#gameView:not(.hidden)) {
   padding-bottom: 0;
+}
+
+body:has(#gameView:not(.hidden)) .solo-header {
+  display: none;
+}
+
+body:has(#gameView:not(.hidden)) .solo-shell {
+  width: min(920px, calc(100% - 20px));
+  padding-top: 10px;
 }
 
 @media (min-width: 900px) {
@@ -209,14 +397,38 @@ body:has(#gameView:not(.hidden)) {
 
 @media (max-width: 820px) {
   .solo-app-hero { min-height: auto; }
+  .solo-game-topbar { align-items: stretch; }
+  .solo-game-topbar > .row { justify-content: space-between; }
+}
+
+@media (max-width: 620px) {
+  .solo-game-actions { display: grid; grid-template-columns: 1fr auto; width: 100%; }
+  .solo-game-actions #speakButton { display: none; }
+  .solo-game-actions .score-chip { grid-column: 1; justify-self: start; }
+  .solo-game-actions .solo-exit-button { grid-column: 2; }
+  .solo-question-card .player-question-header { align-items: flex-start; }
 }
 
 @media (max-width: 520px) {
-  .solo-app-hero { padding: 22px 18px; border-radius: 22px; }
+  .solo-app-hero { padding: 22px 18px; border-radius: 21px; }
   .solo-app-hero h1 { font-size: clamp(2.55rem, 14vw, 3.8rem); }
   .solo-hero-badges { gap: 6px; }
-  .solo-choice, .solo-mode-choice { min-height: 130px; }
-  .solo-game-topbar { top: 4px; border-radius: 15px; }
-  .solo-stage { border-radius: 20px; }
-  .solo-question-card .answer-btn { border-radius: 17px; }
+  .solo-choice, .solo-mode-choice { min-height: 128px; }
+  .solo-config-grid > .panel { border-radius: 19px; }
+  .solo-game-topbar { top: 4px; border-radius: 14px; padding: 8px; }
+  .solo-stage { border-radius: 19px; }
+  .solo-question-card { padding: 16px 14px 20px; }
+  .solo-question-title { gap: 9px; }
+  .solo-question-title h2 { font-size: clamp(1.42rem, 6.2vw, 1.9rem); }
+  .solo-speak-inline { width: 38px; height: 38px; border-radius: 12px; }
+  .solo-timer-ring { width: 56px; height: 56px; border-radius: 16px; }
+  .solo-question-card .answer-btn { min-height: 55px; border-radius: 15px; }
+  .solo-question-card .answer-letter { width: 33px; height: 33px; }
+  .solo-explanation p { font-size: .95rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .solo-choice,
+  .solo-mode-choice,
+  .solo-question-card .answer-btn { transition: none; }
 }

@@ -6,10 +6,26 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#070914",
-  "theme_color": "#090b16",
+  "theme_color": "#070914",
   "categories": ["education", "games", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Solo-Quiz starten",
+      "short_name": "Solo",
+      "description": "Direkt ein Solo-Quiz starten",
+      "url": "/solo",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Live-Quiz öffnen",
+      "short_name": "Live-Quiz",
+      "description": "Zum moderierten Live-Quiz wechseln",
+      "url": "/",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/ahnsen-quiz.svg",
