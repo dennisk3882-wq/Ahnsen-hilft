@@ -10,6 +10,7 @@ const tests = [
   'test/start-page.test.js',
   'test/stage1-webapp.test.js',
   'test/phase2-profiles.test.js',
+  'test/phase3-offline.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',
