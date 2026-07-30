@@ -14,6 +14,15 @@ if (!profileAuth.__quiztimePlatformWrapped) {
   profileAuth.installProfileRoutes = function installProfileRoutesWithPlatform(app) {
     installPlatformSecurity(app);
     originalInstall(app);
+    app.use('/api/platform', async (_req, res, next) => {
+      try {
+        if (!storage.enabled()) return res.status(503).json({ error: 'Für Community-Funktionen wird PostgreSQL benötigt.' });
+        await storage.ensureReady();
+        next();
+      } catch (error) {
+        res.status(503).json({ error: `QuizTime Community wird vorbereitet: ${error.message}` });
+      }
+    });
     installPlatformRoutes(app, {
       requireProfile: profileAuth.requireProfile,
       profileForRequest: profileAuth.profileForRequest,
