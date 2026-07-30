@@ -114,7 +114,6 @@ test('Normales Online-Spiel wird Profilen, Zuschaueransicht, Gastgeberwechsel, H
 
     await expect(host.locator('#onlineRoomView')).toBeVisible();
     await expect(guest.locator('#onlineRoomView')).toBeVisible();
-    await guest.locator('#toggleOnlineReady').click();
     await expect(host.locator('#startOnlineGame')).toBeEnabled();
     await host.locator('#startOnlineGame').click();
 
