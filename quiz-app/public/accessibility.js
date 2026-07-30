@@ -19,6 +19,17 @@
     if (!button.getAttribute('aria-label') && !button.textContent.trim()) button.setAttribute('aria-label', 'Aktion');
   });
 
+  function loadScript(src) {
+    if (document.querySelector(`script[src="${src}"]`)) return;
+    const script = document.createElement('script');
+    script.src = src;
+    script.defer = true;
+    document.body.appendChild(script);
+  }
+  if (location.pathname === '/community') loadScript('/community-enhancements.js');
+  if (location.pathname === '/arena') loadScript('/history-enhancements.js');
+  if (location.pathname === '/platform-admin') loadScript('/admin-event-enhancements.js');
+
   document.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
     const dialog = [...document.querySelectorAll('[role="dialog"],.app-modal,.event-player,.admin-phase10-modal')]
