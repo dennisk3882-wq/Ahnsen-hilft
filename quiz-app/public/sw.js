@@ -1,86 +1,78 @@
 'use strict';
 
-const CACHE_NAME = 'ahnsen-quiz-phase4-v2';
+const CACHE_NAME = 'quiztime-platform-v1';
 const STATIC_ASSETS = [
-  '/',
-  '/solo',
-  '/offline',
-  '/online',
-  '/styles.css',
-  '/start.css',
-  '/solo.css',
-  '/solo-app.css',
-  '/solo-exit.css',
-  '/solo-profiles.css',
-  '/profile-phase2.css',
-  '/profile-phase2-extras.css',
-  '/elevenlabs-speech.css',
-  '/offline.css',
-  '/online.css',
-  '/app.css',
-  '/app.js',
-  '/player.js',
-  '/solo.js',
-  '/wrong-practice.js',
-  '/solo-exit.js',
-  '/solo-profiles.js',
-  '/elevenlabs-speech.js',
-  '/offline.js',
-  '/online.js',
-  '/manifest.webmanifest',
-  '/icons/ahnsen-quiz.svg',
-  '/icons/ahnsen-quiz-maskable.svg'
+  '/', '/solo', '/offline', '/online', '/community', '/pack', '/platform-admin',
+  '/styles.css', '/start.css', '/solo.css', '/solo-app.css', '/solo-exit.css', '/solo-profiles.css',
+  '/profile-phase2.css', '/profile-phase2-extras.css', '/elevenlabs-speech.css', '/offline.css', '/online.css',
+  '/community.css', '/pack.css', '/platform-admin.css', '/app.css',
+  '/app.js', '/player.js', '/solo.js', '/wrong-practice.js', '/solo-exit.js', '/solo-profiles.js',
+  '/elevenlabs-speech.js', '/offline.js', '/secure-eventsource.js', '/online.js', '/community.js', '/community-core.js', '/community-social.js', '/community-games.js', '/pack.js', '/platform-admin.js',
+  '/manifest.webmanifest', '/icons/ahnsen-quiz.svg', '/icons/ahnsen-quiz-maskable.svg'
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) return;
-
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          return response;
-        })
-        .catch(async () => (await caches.match(request)) || caches.match('/'))
-    );
+    event.respondWith(fetch(request).then(response => {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      return response;
+    }).catch(async () => (await caches.match(request)) || caches.match('/')));
     return;
   }
+  event.respondWith(caches.match(request).then(cached => {
+    const network = fetch(request).then(response => {
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => cached);
+    return cached || network;
+  }));
+});
 
-  event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
-  );
+self.addEventListener('push', event => {
+  event.waitUntil((async () => {
+    let notification = { title: 'QuizTime', body: 'Du hast eine neue Mitteilung.', url: '/community?tab=notifications' };
+    try {
+      const response = await fetch('/api/platform/notifications', { credentials: 'include', cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        const latest = (data.notifications || []).find(item => !item.read_at) || data.notifications?.[0];
+        if (latest) notification = { title: latest.title || 'QuizTime', body: latest.body || notification.body, url: latest.url || notification.url };
+      }
+    } catch { /* generische Mitteilung anzeigen */ }
+    await self.registration.showNotification(notification.title, {
+      body: notification.body,
+      icon: '/icons/ahnsen-quiz.svg',
+      badge: '/icons/ahnsen-quiz-maskable.svg',
+      data: { url: notification.url },
+      tag: 'quiztime-notification',
+      renotify: true,
+    });
+  })());
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/community?tab=notifications', self.location.origin).href;
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+    const existing = windows.find(client => client.url.startsWith(self.location.origin));
+    if (existing) { existing.navigate(target); return existing.focus(); }
+    return clients.openWindow(target);
+  }));
 });
