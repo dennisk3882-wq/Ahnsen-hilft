@@ -60,7 +60,7 @@ async function exportData(){
     quiz_platform_legacy_packs:`SELECT id,code,owner_id,title,description,visibility,plays,created_at,updated_at FROM quiz_platform_packs`,
     quiz_platform_notifications:`SELECT * FROM quiz_platform_notifications`,
   };
-  const data={exportedAt:new Date().toISOString(),securityNote:'Passwort-Hashes, Salts, Reset-Tokens, Verifizierungstokens, private Push-Schlüssel und Sitzungs-Cookies sind ausgeschlossen.',tables:{}};
+  const data={exportedAt:new Date().toISOString(),securityNote:'Sicherheitsfelder und Passwort-Hashes, Salts, Reset-Tokens, Verifizierungstokens, private Push-Schlüssel und Sitzungs-Cookies sind ausgeschlossen.',tables:{}};
   for(const[table,text]of Object.entries(queries)){try{data.tables[table]=(await q(text)).rows;}catch{data.tables[table]=[];}}
   return data;
 }
