@@ -59,8 +59,8 @@ assert(client.includes("fetch('/api/offline/catalog'"), 'Client lädt den Offlin
 assert(client.includes("setupState.kind === 'teams' ? 4 : 8"), 'Teilnehmergrenzen für Spieler und Teams fehlen.');
 assert(client.includes("game.phase = 'handoff'"), 'Sicherer Gerätewechsel zwischen den Teilnehmern fehlt.');
 assert(client.includes('PARTY_SECONDS = 20'), '20-Sekunden-Partytimer fehlt.');
-assert(client.includes("correct ? 10 + remainingSeconds : -5"), 'Punkteberechnung des Partymodus ist falsch oder fehlt.');
-assert(client.includes("correct ? 10 : 0"), 'Punkteberechnung des Familienmodus ist falsch oder fehlt.');
+assert(client.includes('correct ? 10 + remainingSeconds : -5'), 'Punkteberechnung des Partymodus ist falsch oder fehlt.');
+assert(client.includes('correct ? 10 : 0'), 'Punkteberechnung des Familienmodus ist falsch oder fehlt.');
 assert(client.includes('timedOut ? 0'), 'Zeitüberschreitung wird nicht mit null Punkten behandelt.');
 assert(client.includes('renderScoreboard'), 'Laufende Rangliste fehlt.');
 assert(client.includes('renderResult'), 'Endrangliste fehlt.');
@@ -78,7 +78,7 @@ for (const selector of [
   assert(css.includes(selector), `Neon-Designbereich fehlt: ${selector}`);
 }
 
-assert(sw.includes("'ahnsen-quiz-phase3-v1'"), 'PWA-Cache wurde nicht auf Phase 3 erhöht.');
+assert(/'ahnsen-quiz-phase\d+-v\d+'/.test(sw), 'PWA-Cache besitzt keine gültige Phasenkennung.');
 for (const asset of ['/offline', '/offline.css', '/offline.js']) {
   assert(sw.includes(`'${asset}'`), `Offline-PWA-Asset fehlt: ${asset}`);
 }

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#070914">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Ahnsen Quiz – die moderne Quiz-Web-App für Solo, Live und gemeinsames Spielen.">
+  <meta name="description" content="Ahnsen Quiz – die moderne Quiz-Web-App für Solo, Offline-, Online- und Live-Quiz.">
   <title>Ahnsen Quiz</title>
   <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -27,7 +27,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg>
           <span>Installieren</span>
         </button>
-        <span id="topModeBadge" class="mode-badge"><i></i> Phase 3</span>
+        <span id="topModeBadge" class="mode-badge"><i></i> Phase 4</span>
       </div>
     </header>
 
@@ -94,11 +94,11 @@
 
           <article class="home-mode-card home-mode-online">
             <div class="home-mode-copy">
-              <span class="home-mode-status"><i></i>Phase 4</span>
+              <span class="home-mode-status ready"><i></i>Sofort spielbar</span>
               <h2>Online-Mehrspieler</h2>
-              <p>Private Räume, Spielcodes und Echtzeitduelle auf mehreren Geräten.</p>
-              <ul class="home-mode-meta"><li>Lobby & Bereit-Status</li><li>Reconnect</li></ul>
-              <button class="home-mode-action" type="button" data-upcoming data-upcoming-stage="Phase 4" data-upcoming-title="Online-Mehrspieler" data-upcoming-text="Geplant sind private Räume, Spielcodes, Lobby, Teams, Live-Punktestand und eine zuverlässige Wiederverbindung."><span>Vorschau ansehen</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+              <p>Private oder öffentliche Räume, Spielcodes und Echtzeitduelle auf mehreren Geräten.</p>
+              <ul class="home-mode-meta"><li>Bis 8 Spieler & Teams</li><li>PostgreSQL-Reconnect</li></ul>
+              <a class="home-mode-action" href="/online"><span>Online-Spiel starten</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a>
             </div>
             <div class="mode-art mode-art-globe" aria-hidden="true">
               <div class="art-glow"></div><div class="globe"><span class="globe-line one"></span><span class="globe-line two"></span><span class="globe-star">★</span></div>
@@ -141,9 +141,9 @@
       </section>
 
       <section class="phase-banner" aria-label="Aktueller Projektstand">
-        <div class="phase-banner-icon" aria-hidden="true">3</div>
-        <div><strong>Phase 3 aktiv: Gemeinsam auf einem Gerät spielen</strong><span>Solo, Profile, Fortschritt und Offline-Mehrspieler sind integriert. Als Nächstes folgt der Online-Mehrspieler mit Räumen und Spielcodes.</span></div>
-        <a class="btn ghost small" href="/offline">Offline-Spiel öffnen</a>
+        <div class="phase-banner-icon" aria-hidden="true">4</div>
+        <div><strong>Alle vier Plattformphasen sind integriert</strong><span>Solo, Profile, Offline-Mehrspieler und Online-Räume mit dauerhaftem PostgreSQL-Reconnect sind jetzt verfügbar.</span></div>
+        <a class="btn ghost small" href="/online">Online-Spiel öffnen</a>
       </section>
     </section>
 

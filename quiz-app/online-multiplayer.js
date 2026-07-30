@@ -4,15 +4,17 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { enrichQuestion } = require('./question-explanations');
+const storage = require('./online-room-storage');
 
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH = 6;
 const QUESTION_SECONDS = 20;
-const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
+const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ROOMS = 200;
 const ALLOWED_QUESTION_COUNTS = new Set([5, 10, 15, 25]);
 const ALLOWED_REACTIONS = new Set(['👍', '🎉', '😂', '🤯', '👏', '🔥']);
 const TEAM_NAMES = Object.freeze({ violet: 'Team Violett', blue: 'Team Blau' });
+const VALID_PHASES = new Set(['lobby', 'question', 'revealed', 'finished']);
 
 const catalogs = {
   adult: JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion),
@@ -40,6 +42,16 @@ function randomToken(bytes = 24) {
   return crypto.randomBytes(bytes).toString('base64url');
 }
 
+function hashToken(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('base64url');
+}
+
+function secureHashEqual(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function randomRoomCode() {
   let code = '';
   for (let index = 0; index < ROOM_CODE_LENGTH; index += 1) {
@@ -62,6 +74,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
   const streams = new Map();
   const questionTimers = new Map();
   const createAttempts = new Map();
+  const saveChains = new Map();
 
   function ipOf(req) {
     return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
@@ -113,8 +126,12 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     return selected;
   }
 
+  function roomPlayers(room) {
+    return Object.values(room.players || {});
+  }
+
   function publicQuestion(room) {
-    const question = room.questions[room.currentIndex];
+    const question = room.questions?.[room.currentIndex];
     if (!question || !['question', 'revealed'].includes(room.phase)) return null;
     return {
       id: question.id,
@@ -127,10 +144,6 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
         explanation: question.explanation,
       } : {}),
     };
-  }
-
-  function roomPlayers(room) {
-    return Object.values(room.players);
   }
 
   function playerLeaderboard(room) {
@@ -152,25 +165,25 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
 
   function teamLeaderboard(room) {
     if (room.gameMode !== 'teams') return [];
-    const teams = Object.keys(TEAM_NAMES).map(teamId => {
-      const members = roomPlayers(room).filter(player => player.team === teamId);
-      return {
-        id: teamId,
-        name: TEAM_NAMES[teamId],
-        members: members.map(player => player.name),
-        score: members.reduce((sum, player) => sum + Number(player.score || 0), 0),
-        correct: members.reduce((sum, player) => sum + Number(player.correct || 0), 0),
-        wrong: members.reduce((sum, player) => sum + Number(player.wrong || 0), 0),
-      };
-    });
-    return teams
+    return Object.keys(TEAM_NAMES)
+      .map(teamId => {
+        const members = roomPlayers(room).filter(player => player.team === teamId);
+        return {
+          id: teamId,
+          name: TEAM_NAMES[teamId],
+          members: members.map(player => player.name),
+          score: members.reduce((sum, player) => sum + Number(player.score || 0), 0),
+          correct: members.reduce((sum, player) => sum + Number(player.correct || 0), 0),
+          wrong: members.reduce((sum, player) => sum + Number(player.wrong || 0), 0),
+        };
+      })
       .sort((a, b) => b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name, 'de'))
       .map((team, index) => ({ ...team, rank: index + 1 }));
   }
 
   function getPlayerByToken(room, token) {
-    const normalized = String(token || '');
-    return roomPlayers(room).find(player => player.token === normalized) || null;
+    const candidate = hashToken(token);
+    return roomPlayers(room).find(player => secureHashEqual(player.tokenHash, candidate)) || null;
   }
 
   function streamEntries(code) {
@@ -182,7 +195,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
   }
 
   function publicState(room, player) {
-    const response = player ? room.responses[player.id] || null : null;
+    const response = player ? room.responses?.[player.id] || null : null;
     return {
       room: {
         code: room.code,
@@ -200,11 +213,11 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
         totalQuestions: room.questions.length || room.questionCount,
         questionStartedAt: room.questionStartedAt,
         serverNow: now(),
-        answeredCount: Object.keys(room.responses).length,
+        answeredCount: Object.keys(room.responses || {}).length,
         question: publicQuestion(room),
         players: playerLeaderboard(room),
         teams: teamLeaderboard(room),
-        messages: room.messages.slice(-40).map(message => ({
+        messages: (room.messages || []).slice(-40).map(message => ({
           id: message.id,
           playerId: message.playerId,
           playerName: message.playerName,
@@ -212,6 +225,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
           text: message.text,
           createdAt: message.createdAt,
         })),
+        persistence: storage.enabled ? 'postgresql' : 'memory',
         createdAt: room.createdAt,
         finishedAt: room.finishedAt,
       },
@@ -233,6 +247,47 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     };
   }
 
+  function persistentRoom(room) {
+    const copy = structuredClone(room);
+    copy.schemaVersion = 2;
+    for (const player of Object.values(copy.players || {})) {
+      player.connected = false;
+      delete player.token;
+    }
+    return copy;
+  }
+
+  function queueSave(room) {
+    if (!storage.enabled || !room?.code || !rooms.has(room.code)) return Promise.resolve(false);
+    const snapshot = persistentRoom(room);
+    const previous = saveChains.get(room.code) || Promise.resolve();
+    const next = previous
+      .catch(() => false)
+      .then(() => storage.saveRoom(snapshot, ROOM_TTL_MS))
+      .catch(error => {
+        console.error(`Online-Raum ${room.code} konnte nicht in PostgreSQL gespeichert werden:`, error.message);
+        return false;
+      });
+    saveChains.set(room.code, next);
+    next.finally(() => {
+      if (saveChains.get(room.code) === next) saveChains.delete(room.code);
+    });
+    return next;
+  }
+
+  async function deletePersistedRoom(code) {
+    const pending = saveChains.get(code);
+    if (pending) await pending.catch(() => false);
+    saveChains.delete(code);
+    if (!storage.enabled) return false;
+    try {
+      return await storage.deleteRoom(code);
+    } catch (error) {
+      console.error(`Online-Raum ${code} konnte nicht aus PostgreSQL entfernt werden:`, error.message);
+      return false;
+    }
+  }
+
   function sendSse(res, event, payload) {
     if (res.writableEnded) return;
     res.write(`event: ${event}\n`);
@@ -240,12 +295,17 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
   }
 
   function broadcast(room) {
-    room.updatedAt = now();
     for (const entry of streamEntries(room.code)) {
       if (entry.res.writableEnded) continue;
       const player = getPlayerByToken(room, entry.token);
       if (player) sendSse(entry.res, 'state', publicState(room, player));
     }
+  }
+
+  async function commitRoom(room) {
+    room.updatedAt = now();
+    broadcast(room);
+    return queueSave(room);
   }
 
   function clearQuestionTimer(room) {
@@ -256,28 +316,32 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
 
   function scheduleQuestionTimer(room) {
     clearQuestionTimer(room);
-    const remaining = Math.max(0, QUESTION_SECONDS * 1000 - (now() - room.questionStartedAt));
-    const timer = setTimeout(() => revealQuestion(room), remaining + 30);
+    if (room.phase !== 'question' || !room.questionStartedAt) return;
+    const remaining = Math.max(0, QUESTION_SECONDS * 1000 - (now() - Number(room.questionStartedAt)));
+    const timer = setTimeout(() => {
+      revealQuestion(room).catch(error => console.error(`Online-Frage in Raum ${room.code} konnte nicht aufgelöst werden:`, error.message));
+    }, remaining + 30);
     timer.unref?.();
     questionTimers.set(room.code, timer);
   }
 
-  function finishRoom(room) {
+  async function finishRoom(room) {
     clearQuestionTimer(room);
     room.phase = 'finished';
     room.finishedAt = now();
     room.questionStartedAt = null;
     room.responses = {};
-    broadcast(room);
+    await commitRoom(room);
   }
 
-  function revealQuestion(room) {
+  async function revealQuestion(room) {
     if (room.phase !== 'question') return;
     clearQuestionTimer(room);
     const question = room.questions[room.currentIndex];
-    const elapsedMs = Math.max(0, now() - room.questionStartedAt);
-    const remainingAtTimeout = Math.max(0, QUESTION_SECONDS - elapsedMs / 1000);
+    if (!question) return finishRoom(room);
 
+    const elapsedMs = Math.max(0, now() - Number(room.questionStartedAt || now()));
+    const remainingAtTimeout = Math.max(0, QUESTION_SECONDS - elapsedMs / 1000);
     for (const player of roomPlayers(room)) {
       let response = room.responses[player.id];
       if (!response) {
@@ -303,20 +367,21 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       else player.wrong += 1;
     }
     room.phase = 'revealed';
-    broadcast(room);
+    await commitRoom(room);
   }
 
-  function startQuestion(room, index) {
+  async function startQuestion(room, index) {
     room.currentIndex = index;
     room.phase = 'question';
     room.questionStartedAt = now();
     room.responses = {};
-    broadcast(room);
+    await commitRoom(room);
     scheduleQuestionTimer(room);
   }
 
   function allPlayersAnswered(room) {
-    return roomPlayers(room).length > 0 && roomPlayers(room).every(player => Boolean(room.responses[player.id]));
+    const players = roomPlayers(room);
+    return players.length > 0 && players.every(player => Boolean(room.responses[player.id]));
   }
 
   function preview(room) {
@@ -334,6 +399,97 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       teams: TEAM_NAMES,
     };
   }
+
+  function normalizeRestoredRoom(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const code = normalizeRoomCode(raw.code);
+    if (code.length !== ROOM_CODE_LENGTH) return null;
+    const players = {};
+    for (const value of Object.values(raw.players || {})) {
+      if (!value?.id || !safeName(value.name)) continue;
+      const tokenHash = value.tokenHash || (value.token ? hashToken(value.token) : '');
+      if (!tokenHash) continue;
+      players[value.id] = {
+        id: String(value.id),
+        tokenHash: String(tokenHash),
+        name: safeName(value.name),
+        team: value.team === 'blue' ? 'blue' : value.team === 'violet' ? 'violet' : null,
+        ready: Boolean(value.ready),
+        connected: false,
+        score: Number(value.score || 0),
+        correct: Number(value.correct || 0),
+        wrong: Number(value.wrong || 0),
+        unanswered: Number(value.unanswered || 0),
+        joinedAt: Number(value.joinedAt || now()),
+      };
+    }
+    const playerList = Object.values(players);
+    if (!playerList.length) return null;
+    const hostPlayerId = players[raw.hostPlayerId] ? raw.hostPlayerId : playerList.sort((a, b) => a.joinedAt - b.joinedAt)[0].id;
+    const quizType = raw.quizType === 'adult' ? 'adult' : 'child';
+    const categories = categoriesFor(quizType);
+    const category = raw.category === 'Gemischt' || categories.includes(raw.category) ? raw.category : 'Gemischt';
+    const questionCount = ALLOWED_QUESTION_COUNTS.has(Number(raw.questionCount)) ? Number(raw.questionCount) : 10;
+    return {
+      schemaVersion: 2,
+      code,
+      title: safeText(raw.title || 'Online-Quizraum', 60) || 'Online-Quizraum',
+      visibility: raw.visibility === 'public' ? 'public' : 'private',
+      gameMode: raw.gameMode === 'teams' ? 'teams' : 'individual',
+      quizType,
+      category,
+      questionCount,
+      maxPlayers: Math.max(playerList.length, Math.min(8, Math.max(2, Number(raw.maxPlayers) || 8))),
+      phase: VALID_PHASES.has(raw.phase) ? raw.phase : 'lobby',
+      hostPlayerId,
+      players,
+      questions: Array.isArray(raw.questions) ? raw.questions.map(enrichQuestion) : [],
+      currentIndex: Math.max(0, Number(raw.currentIndex) || 0),
+      questionStartedAt: raw.questionStartedAt ? Number(raw.questionStartedAt) : null,
+      responses: raw.responses && typeof raw.responses === 'object' ? raw.responses : {},
+      messages: Array.isArray(raw.messages) ? raw.messages.slice(-50) : [],
+      createdAt: Number(raw.createdAt || now()),
+      updatedAt: Number(raw.updatedAt || now()),
+      finishedAt: raw.finishedAt ? Number(raw.finishedAt) : null,
+    };
+  }
+
+  async function restoreRooms() {
+    if (!storage.enabled) {
+      console.log('Online-Räume laufen ohne PostgreSQL nur im Arbeitsspeicher.');
+      return 0;
+    }
+    try {
+      const storedRooms = await storage.loadRooms(MAX_ROOMS);
+      for (const raw of storedRooms) {
+        const room = normalizeRestoredRoom(raw);
+        if (!room || rooms.has(room.code)) continue;
+        rooms.set(room.code, room);
+      }
+      for (const room of rooms.values()) {
+        if (room.phase === 'question') {
+          const remaining = QUESTION_SECONDS * 1000 - (now() - Number(room.questionStartedAt || 0));
+          if (remaining <= 0) await revealQuestion(room);
+          else scheduleQuestionTimer(room);
+        }
+      }
+      console.log(`${rooms.size} Online-Raum/Räume aus PostgreSQL wiederhergestellt.`);
+      return rooms.size;
+    } catch (error) {
+      console.error('PostgreSQL-Wiederherstellung der Online-Räume fehlgeschlagen; Arbeitsspeicher bleibt verfügbar:', error.message);
+      return 0;
+    }
+  }
+
+  const readyPromise = restoreRooms();
+  app.use('/api/online', async (_req, res, next) => {
+    try {
+      await readyPromise;
+      next();
+    } catch (error) {
+      res.status(503).json({ error: `Online-Räume werden noch vorbereitet: ${error.message}` });
+    }
+  });
 
   function roomFromRequest(req, res) {
     const code = normalizeRoomCode(req.params.code || req.body?.code || req.query?.code);
@@ -391,11 +547,21 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     res.json({
       questionCounts: [...ALLOWED_QUESTION_COUNTS],
       questionSeconds: QUESTION_SECONDS,
+      persistence: storage.enabled ? 'postgresql' : 'memory',
       teams: TEAM_NAMES,
       catalogs: {
         child: { size: catalogs.child.length, categories: categoriesFor('child') },
         adult: { size: catalogs.adult.length, categories: categoriesFor('adult') },
       },
+    });
+  });
+
+  app.get('/api/online/status', async (_req, res) => {
+    const database = storage.enabled ? await storage.ping().catch(() => false) : false;
+    res.json({
+      online: true,
+      activeRooms: rooms.size,
+      persistence: database ? 'postgresql' : storage.enabled ? 'postgresql-unavailable' : 'memory',
     });
   });
 
@@ -413,7 +579,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     if (room) res.json({ room: preview(room) });
   });
 
-  app.post('/api/online/rooms', (req, res) => {
+  app.post('/api/online/rooms', async (req, res) => {
     if (!allowRoomCreation(ipOf(req))) return res.status(429).json({ error: 'Zu viele Räume erstellt. Bitte später erneut versuchen.' });
     if (rooms.size >= MAX_ROOMS) return res.status(503).json({ error: 'Aktuell sind zu viele Online-Räume aktiv.' });
 
@@ -433,6 +599,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     const team = gameMode === 'teams' && req.body?.team === 'blue' ? 'blue' : gameMode === 'teams' ? 'violet' : null;
     const timestamp = now();
     const room = {
+      schemaVersion: 2,
       code,
       title: safeText(req.body?.title || `${hostName}s Quizraum`, 60) || `${hostName}s Quizraum`,
       visibility,
@@ -446,7 +613,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       players: {
         [playerId]: {
           id: playerId,
-          token,
+          tokenHash: hashToken(token),
           name: hostName,
           team,
           ready: true,
@@ -469,10 +636,11 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     };
     rooms.set(code, room);
     addSystemMessage(room, `${hostName} hat den Raum erstellt.`);
+    await commitRoom(room);
     res.status(201).json({ code, token, playerId, state: publicState(room, room.players[playerId]) });
   });
 
-  app.post('/api/online/rooms/:code/join', (req, res) => {
+  app.post('/api/online/rooms/:code/join', async (req, res) => {
     const room = roomFromRequest(req, res);
     if (!room) return;
     if (room.phase !== 'lobby') return res.status(409).json({ error: 'Dieses Spiel läuft bereits.' });
@@ -487,7 +655,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     const team = room.gameMode === 'teams' && req.body?.team === 'blue' ? 'blue' : room.gameMode === 'teams' ? 'violet' : null;
     room.players[playerId] = {
       id: playerId,
-      token,
+      tokenHash: hashToken(token),
       name,
       team,
       ready: false,
@@ -499,7 +667,7 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       joinedAt: now(),
     };
     addSystemMessage(room, `${name} ist dem Raum beigetreten.`);
-    broadcast(room);
+    await commitRoom(room);
     res.status(201).json({ code: room.code, token, playerId, state: publicState(room, room.players[playerId]) });
   });
 
@@ -537,16 +705,15 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     });
   });
 
-  app.post('/api/online/rooms/:code/ready', (req, res) => {
+  app.post('/api/online/rooms/:code/ready', async (req, res) => {
     const auth = authenticated(req, res);
-    if (!auth) return;
-    if (!ensureLobby(auth.room, res)) return;
+    if (!auth || !ensureLobby(auth.room, res)) return;
     auth.player.ready = req.body?.ready !== false;
-    broadcast(auth.room);
+    await commitRoom(auth.room);
     res.json({ ok: true, state: publicState(auth.room, auth.player) });
   });
 
-  app.patch('/api/online/rooms/:code/settings', (req, res) => {
+  app.patch('/api/online/rooms/:code/settings', async (req, res) => {
     const auth = requireHost(req, res);
     if (!auth || !ensureLobby(auth.room, res)) return;
     const room = auth.room;
@@ -562,27 +729,27 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       const category = safeText(req.body.category, 50);
       room.category = category === 'Gemischt' || categoriesFor(room.quizType).includes(category) ? category : 'Gemischt';
     }
-    broadcast(room);
+    await commitRoom(room);
     res.json({ ok: true, state: publicState(room, auth.player) });
   });
 
-  app.patch('/api/online/rooms/:code/team', (req, res) => {
+  app.patch('/api/online/rooms/:code/team', async (req, res) => {
     const auth = authenticated(req, res);
     if (!auth || !ensureLobby(auth.room, res)) return;
     if (auth.room.gameMode !== 'teams') return res.status(409).json({ error: 'Dieser Raum wird ohne Teams gespielt.' });
     auth.player.team = req.body?.team === 'blue' ? 'blue' : 'violet';
     auth.player.ready = false;
-    broadcast(auth.room);
+    await commitRoom(auth.room);
     res.json({ ok: true, state: publicState(auth.room, auth.player) });
   });
 
-  app.post('/api/online/rooms/:code/start', (req, res) => {
+  app.post('/api/online/rooms/:code/start', async (req, res) => {
     const auth = requireHost(req, res);
     if (!auth || !ensureLobby(auth.room, res)) return;
     const room = auth.room;
     const players = roomPlayers(room);
     if (players.length < 2) return res.status(409).json({ error: 'Mindestens zwei Spieler sind erforderlich.' });
-    if (players.some(player => !player.ready)) return res.status(409).json({ error: 'Alle Spieler müssen bereit sein.' });
+    if (players.some(player => !player.ready || !player.connected)) return res.status(409).json({ error: 'Alle Spieler müssen verbunden und bereit sein.' });
     if (room.gameMode === 'teams') {
       const teams = new Set(players.map(player => player.team));
       if (!teams.has('violet') || !teams.has('blue')) return res.status(409).json({ error: 'Beide Teams benötigen mindestens ein Mitglied.' });
@@ -599,14 +766,14 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
         player.unanswered = 0;
       }
       addSystemMessage(room, 'Das Online-Quiz wurde gestartet.');
-      startQuestion(room, 0);
+      await startQuestion(room, 0);
       res.json({ ok: true, state: publicState(room, auth.player) });
     } catch (error) {
       res.status(409).json({ error: error.message });
     }
   });
 
-  app.post('/api/online/rooms/:code/answer', (req, res) => {
+  app.post('/api/online/rooms/:code/answer', async (req, res) => {
     const auth = authenticated(req, res);
     if (!auth) return;
     const { room, player } = auth;
@@ -614,9 +781,9 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     if (room.responses[player.id]) return res.status(409).json({ error: 'Du hast diese Frage bereits beantwortet.' });
     const answerIndex = Number(req.body?.answerIndex);
     if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 3) return res.status(400).json({ error: 'Bitte eine gültige Antwort auswählen.' });
-    const remainingMs = Math.max(0, QUESTION_SECONDS * 1000 - (now() - room.questionStartedAt));
+    const remainingMs = Math.max(0, QUESTION_SECONDS * 1000 - (now() - Number(room.questionStartedAt)));
     if (remainingMs <= 0) {
-      revealQuestion(room);
+      await revealQuestion(room);
       return res.status(409).json({ error: 'Die Antwortzeit ist bereits abgelaufen.' });
     }
     room.responses[player.id] = {
@@ -625,28 +792,27 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       remainingSeconds: Math.max(0, Math.ceil(remainingMs / 1000)),
       timedOut: false,
     };
-    broadcast(room);
+    await commitRoom(room);
     if (allPlayersAnswered(room)) {
-      const timer = setTimeout(() => revealQuestion(room), 450);
+      const timer = setTimeout(() => {
+        revealQuestion(room).catch(error => console.error(`Online-Frage in Raum ${room.code} konnte nicht frühzeitig aufgelöst werden:`, error.message));
+      }, 450);
       timer.unref?.();
     }
     res.json({ ok: true, state: publicState(room, player) });
   });
 
-  app.post('/api/online/rooms/:code/next', (req, res) => {
+  app.post('/api/online/rooms/:code/next', async (req, res) => {
     const auth = requireHost(req, res);
     if (!auth) return;
     const room = auth.room;
     if (room.phase !== 'revealed') return res.status(409).json({ error: 'Die aktuelle Frage muss zuerst aufgelöst sein.' });
-    if (room.currentIndex + 1 >= room.questions.length) {
-      finishRoom(room);
-    } else {
-      startQuestion(room, room.currentIndex + 1);
-    }
+    if (room.currentIndex + 1 >= room.questions.length) await finishRoom(room);
+    else await startQuestion(room, room.currentIndex + 1);
     res.json({ ok: true, state: publicState(room, auth.player) });
   });
 
-  app.post('/api/online/rooms/:code/restart', (req, res) => {
+  app.post('/api/online/rooms/:code/restart', async (req, res) => {
     const auth = requireHost(req, res);
     if (!auth) return;
     const room = auth.room;
@@ -666,11 +832,11 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       player.ready = player.id === room.hostPlayerId;
     }
     addSystemMessage(room, 'Der Raum ist für eine neue Runde bereit.');
-    broadcast(room);
+    await commitRoom(room);
     res.json({ ok: true, state: publicState(room, auth.player) });
   });
 
-  app.post('/api/online/rooms/:code/kick', (req, res) => {
+  app.post('/api/online/rooms/:code/kick', async (req, res) => {
     const auth = requireHost(req, res);
     if (!auth || !ensureLobby(auth.room, res)) return;
     const targetId = String(req.body?.playerId || '');
@@ -680,16 +846,16 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
     delete auth.room.players[targetId];
     addSystemMessage(auth.room, `${removed.name} wurde aus dem Raum entfernt.`);
     for (const entry of streamEntries(auth.room.code)) {
-      if (entry.token === removed.token) {
+      if (secureHashEqual(hashToken(entry.token), removed.tokenHash)) {
         sendSse(entry.res, 'removed', { message: 'Du wurdest vom Gastgeber aus dem Raum entfernt.' });
         entry.res.end();
       }
     }
-    broadcast(auth.room);
+    await commitRoom(auth.room);
     res.json({ ok: true });
   });
 
-  app.post('/api/online/rooms/:code/chat', (req, res) => {
+  app.post('/api/online/rooms/:code/chat', async (req, res) => {
     const auth = authenticated(req, res);
     if (!auth) return;
     const reaction = safeText(req.body?.reaction, 4);
@@ -704,11 +870,11 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       createdAt: now(),
     });
     if (auth.room.messages.length > 50) auth.room.messages.splice(0, auth.room.messages.length - 50);
-    broadcast(auth.room);
+    await commitRoom(auth.room);
     res.json({ ok: true });
   });
 
-  app.post('/api/online/rooms/:code/leave', (req, res) => {
+  app.post('/api/online/rooms/:code/leave', async (req, res) => {
     const auth = authenticated(req, res);
     if (!auth) return;
     const { room, player } = auth;
@@ -718,28 +884,34 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       if (!roomPlayers(room).length) {
         clearQuestionTimer(room);
         rooms.delete(room.code);
-      } else if (room.hostPlayerId === player.id) {
+        for (const entry of streamEntries(room.code)) entry.res.end();
+        streams.delete(room.code);
+        await deletePersistedRoom(room.code);
+        return res.json({ ok: true });
+      }
+      if (room.hostPlayerId === player.id) {
         const successor = roomPlayers(room).sort((a, b) => a.joinedAt - b.joinedAt)[0];
         room.hostPlayerId = successor.id;
         successor.ready = true;
         addSystemMessage(room, `${successor.name} ist jetzt Gastgeber.`);
       }
+      await commitRoom(room);
     } else {
       player.connected = false;
+      broadcast(room);
     }
-    broadcast(room);
     res.json({ ok: true });
   });
 
-  setInterval(() => {
+  const cleanupTimer = setInterval(async () => {
     const cutoff = now() - ROOM_TTL_MS;
     for (const [code, room] of rooms) {
-      if (room.updatedAt < cutoff) {
-        clearQuestionTimer(room);
-        for (const entry of streamEntries(code)) entry.res.end();
-        streams.delete(code);
-        rooms.delete(code);
-      }
+      if (room.updatedAt >= cutoff) continue;
+      clearQuestionTimer(room);
+      for (const entry of streamEntries(code)) entry.res.end();
+      streams.delete(code);
+      rooms.delete(code);
+      await deletePersistedRoom(code);
     }
     const attemptCutoff = now() - 60 * 60 * 1000;
     for (const [ip, attempts] of createAttempts) {
@@ -747,7 +919,15 @@ function installOnlineMultiplayerRoutes(app, { now = () => Date.now() } = {}) {
       if (active.length) createAttempts.set(ip, active);
       else createAttempts.delete(ip);
     }
-  }, 10 * 60 * 1000).unref?.();
+    if (storage.enabled) await storage.pruneRooms().catch(error => console.error('Alte Online-Räume konnten nicht bereinigt werden:', error.message));
+  }, 10 * 60 * 1000);
+  cleanupTimer.unref?.();
+
+  return {
+    ready: readyPromise,
+    activeRoomCount: () => rooms.size,
+    persistence: storage.enabled ? 'postgresql' : 'memory',
+  };
 }
 
 module.exports = {
@@ -755,4 +935,5 @@ module.exports = {
   calculateOnlineScore,
   normalizeRoomCode,
   TEAM_NAMES,
+  _test: { hashToken, secureHashEqual },
 };
