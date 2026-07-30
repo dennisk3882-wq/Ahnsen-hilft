@@ -8,11 +8,14 @@ const runtimeRoomAdmin = require('./runtime-room-admin');
 const platformDb = require('./platform-db');
 const storage = require('./platform-storage');
 const testMailbox = require('./test-mailbox');
+const phase10Bridge = require('./phase10-online-bridge');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installPhase10Routes } = require('./phase10-routes');
 const { installBrowserTestStatusRoute } = require('./browser-test-status');
 const { installE2ETestSupport } = require('./e2e-test-support');
+
+phase10Bridge.patchOnlineStorage();
 
 accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
 for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
@@ -95,6 +98,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
   const originalInstall = profileAuth.installProfileRoutes;
   profileAuth.installProfileRoutes = function installProfileRoutesWithPlatform(app) {
     installPlatformSecurity(app);
+    phase10Bridge.installRequestCapture(app);
 
     const NativeMap = global.Map;
     const capturedMaps = [];
