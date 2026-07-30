@@ -15,21 +15,18 @@ function publicQuestion(question) {
 }
 
 function catalogVersion() {
-  return catalogService.versionFor({
-    adult: catalogService.canonicalCatalog('adult'),
-    child: catalogService.canonicalCatalog('child'),
-  });
+  return catalogService.versionFor(catalogService.currentCatalogs());
 }
 
 function installOfflineRoutes(app) {
   app.get('/api/offline/catalog', (_req, res) => {
-    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
     res.json({
       version: catalogVersion(),
       generatedAt: Date.now(),
       catalogs: {
-        adult: catalogService.canonicalCatalog('adult').map(publicQuestion),
-        child: catalogService.canonicalCatalog('child').map(publicQuestion),
+        adult: catalogService.currentCatalog('adult').map(publicQuestion),
+        child: catalogService.currentCatalog('child').map(publicQuestion),
       },
     });
   });
