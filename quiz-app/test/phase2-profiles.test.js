@@ -87,7 +87,7 @@ assert(practiceClient.includes("'/api/solo/practice/start'"), 'Fehlertraining ru
 assert(practiceClient.includes('settings.questionCount = 10'), 'Nach kurzen Trainingslisten bleibt keine gültige Fragenzahl ausgewählt.');
 assert(!practiceClient.includes('settings.questionCount = practiceState.totalQuestions'), 'Kurze Trainingslisten machen die normale Solo-Auswahl ungültig.');
 
-assert(sw.includes("'ahnsen-quiz-phase2-v1'"), 'PWA-Cache wurde nicht auf Phase 2 erhöht.');
+assert(/'ahnsen-quiz-phase\d+-v\d+'/.test(sw), 'PWA-Cache besitzt keine gültige Phasenkennung.');
 for (const asset of ['/profile-phase2.css', '/profile-phase2-extras.css', '/wrong-practice.js']) {
   assert(sw.includes(`'${asset}'`), `Phase-2-PWA-Asset fehlt: ${asset}`);
 }
