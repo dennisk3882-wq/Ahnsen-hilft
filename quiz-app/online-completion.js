@@ -12,6 +12,15 @@ function persistentSnapshot(room) {
   return snapshot;
 }
 
+function sendRoomError(res, error) {
+  const message = String(error?.message || 'Die Online-Aktion konnte nicht verarbeitet werden.');
+  const status = /nicht gefunden/iu.test(message) ? 404
+    : /Nur der aktuelle Gastgeber|Spieleranmeldung/iu.test(message) ? 403
+      : /anderen verbundenen Spieler|aktuell verbunden/iu.test(message) ? 409
+        : 500;
+  res.status(status).json({ error: status === 500 ? 'Die Online-Aktion konnte nicht verarbeitet werden.' : message });
+}
+
 function installOnlineCompletionRoutes(app) {
   app.get('/api/online/rooms/:code/spectate', (req, res) => {
     const state = runtimeRoomAdmin.spectatorState(req.params.code);
@@ -20,22 +29,22 @@ function installOnlineCompletionRoutes(app) {
     res.json({ spectator: true, state });
   });
 
-  app.get('/api/online/rooms/:code/host-options', (req, res, next) => {
+  app.get('/api/online/rooms/:code/host-options', (req, res) => {
     try {
       res.set('Cache-Control', 'no-store');
       res.json(runtimeRoomAdmin.hostOptions(req.params.code, req.query.token));
-    } catch (error) { next(error); }
+    } catch (error) { sendRoomError(res, error); }
   });
 
-  app.post('/api/online/rooms/:code/transfer-host', async (req, res, next) => {
+  app.post('/api/online/rooms/:code/transfer-host', async (req, res) => {
     try {
       const result = runtimeRoomAdmin.transferHost(req.params.code, req.body?.token, String(req.body?.playerId || ''));
       if (onlineStorage.enabled) await onlineStorage.saveRoom(persistentSnapshot(result.room)).catch(error => {
         console.error('Gastgeberwechsel konnte nicht sofort persistiert werden:', error.message);
       });
       res.json({ ok: true, previousHost: result.previousHost, host: result.host });
-    } catch (error) { next(error); }
+    } catch (error) { sendRoomError(res, error); }
   });
 }
 
-module.exports = { installOnlineCompletionRoutes, _test: { persistentSnapshot } };
+module.exports = { installOnlineCompletionRoutes, _test: { persistentSnapshot, sendRoomError } };
