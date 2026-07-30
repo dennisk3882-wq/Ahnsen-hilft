@@ -140,6 +140,12 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       requireProfile: profileAuth.requireProfile,
       requireAdmin: requirePlatformAdmin,
     });
+    app.use((error, req, res, next) => {
+      if (res.headersSent) return next(error);
+      console.error(`Phase-10-Anfrage ${req.method} ${req.originalUrl} fehlgeschlagen:`, error.message);
+      const status = error.code === '23505' ? 409 : error.code === '23503' ? 409 : 500;
+      res.status(status).json({ error: status === 500 ? 'Die Arena-Anfrage konnte nicht verarbeitet werden.' : 'Dieser Vorgang steht im Konflikt mit bestehenden Daten.' });
+    });
     installBrowserTestStatusRoute(app, requirePlatformAdmin);
   };
   profileAuth.__quiztimePlatformWrapped = true;
