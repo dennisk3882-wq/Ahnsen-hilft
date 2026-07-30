@@ -5,6 +5,7 @@ const accountStorage = require('./account-storage');
 const adminProfileStorage = require('./platform-admin-profile-storage');
 const adminStorage = require('./platform-admin-storage');
 const runtimeRoomAdmin = require('./runtime-room-admin');
+const platformDb = require('./platform-db');
 const storage = require('./platform-storage');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes } = require('./platform-routes');
@@ -17,6 +18,28 @@ for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
     return original(...args);
   };
 }
+
+const loadBaseAccount = accountStorage.getAccount;
+accountStorage.getAccount = async profileId => {
+  const account = await loadBaseAccount(profileId);
+  if (!account || !platformDb.enabled()) return account;
+  const { rows } = await platformDb.query(`
+    SELECT leaderboard_visible,public_profile,allow_friend_requests,invite_policy,
+           email_notifications,push_notifications
+      FROM quiz_account_preferences WHERE profile_id=$1
+  `, [profileId]);
+  const preferences = rows[0];
+  if (!preferences) return account;
+  account.preferences = {
+    leaderboardVisible: Boolean(preferences.leaderboard_visible),
+    publicProfile: Boolean(preferences.public_profile),
+    allowFriendRequests: Boolean(preferences.allow_friend_requests),
+    invitePolicy: preferences.invite_policy || 'friends',
+    emailNotifications: Boolean(preferences.email_notifications),
+    pushNotifications: Boolean(preferences.push_notifications),
+  };
+  return account;
+};
 
 if (!adminStorage.__quiztimeRuntimeWrapped) {
   const closePersistedRoom = adminStorage.closeRoom;
