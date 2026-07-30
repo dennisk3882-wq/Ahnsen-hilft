@@ -15,6 +15,46 @@
     return nativeFetch(input, options);
   };
 
+  function message(text, bad = false) {
+    const node = document.querySelector('#profileMessage');
+    if (!node) return;
+    node.textContent = text || '';
+    node.classList.toggle('bad-text', bad);
+  }
+
+  function installReliableRegistration(registerForm) {
+    if (!registerForm || registerForm.dataset.accountRegistrationReady) return;
+    registerForm.dataset.accountRegistrationReady = 'true';
+    registerForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const button = registerForm.querySelector('button[type="submit"]');
+      if (button) button.disabled = true;
+      message('Profil wird erstellt …');
+      try {
+        const activeAvatar = registerForm.querySelector('[data-register-avatar].active')?.dataset.registerAvatar || 'robot';
+        const response = await nativeFetch('/api/solo/profiles/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.querySelector('#profileRegisterName')?.value || '',
+            email: document.querySelector('#profileRegisterEmail')?.value || '',
+            password: document.querySelector('#profileRegisterPassword')?.value || '',
+            passwordConfirmation: document.querySelector('#profileRegisterConfirmation')?.value || '',
+            avatarId: activeAvatar,
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Profil konnte nicht erstellt werden.');
+        message(`Das Profil „${data.profile?.name || ''}“ wurde erstellt. Profil wird geöffnet …`);
+        location.reload();
+      } catch (error) {
+        message(error.message, true);
+        if (button) button.disabled = false;
+      }
+    }, true);
+  }
+
   function enhanceProfilePanel() {
     const registerForm = document.querySelector('#profileRegisterForm');
     if (registerForm && !document.querySelector('#profileRegisterEmail')) {
@@ -29,6 +69,7 @@
       note.textContent = 'Nach der Registrierung erhältst du einen Bestätigungslink. Dein Passwort wird niemals per E-Mail versendet.';
       password?.parentElement?.appendChild(note);
     }
+    installReliableRegistration(registerForm);
 
     const loginForm = document.querySelector('#profileLoginForm');
     if (loginForm && !document.querySelector('#forgotProfilePassword')) {
