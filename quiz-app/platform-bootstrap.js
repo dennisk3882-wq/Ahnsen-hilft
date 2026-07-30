@@ -8,7 +8,9 @@ const runtimeRoomAdmin = require('./runtime-room-admin');
 const platformDb = require('./platform-db');
 const storage = require('./platform-storage');
 const { installPlatformSecurity } = require('./platform-security');
-const { installPlatformRoutes } = require('./platform-routes');
+const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
+const { installBrowserTestStatusRoute } = require('./browser-test-status');
+const { installE2ETestSupport } = require('./e2e-test-support');
 
 accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
 for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
@@ -79,6 +81,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
     global.Map = CapturedMap;
     try {
       originalInstall(app);
+      installE2ETestSupport(app);
     } finally {
       global.Map = NativeMap;
     }
@@ -101,6 +104,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       requireProfile: profileAuth.requireProfile,
       profileForRequest: profileAuth.profileForRequest,
     });
+    installBrowserTestStatusRoute(app, requirePlatformAdmin);
   };
   profileAuth.__quiztimePlatformWrapped = true;
 }
