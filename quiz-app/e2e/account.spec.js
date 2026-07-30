@@ -9,7 +9,7 @@ test('Registrierung, E-Mail-Bestätigung, Kontocenter und Passwort-Reset funktio
 
   const verification = await latestMail(request, identity.email, 'bestätigen');
   await page.goto(extractRecoverUrl(verification, 'verify'));
-  await expect(page.locator('#verifyMessage')).toContainText(/bestätigt|erfolgreich/i);
+  await expect(page.locator('#verifyPanel')).toContainText(/E-Mail-Adresse bestätigt|Erfolgreich/i);
 
   await page.goto('/account');
   await expect(page.locator('#accountApp')).toBeVisible();
@@ -34,7 +34,7 @@ test('Registrierung, E-Mail-Bestätigung, Kontocenter und Passwort-Reset funktio
   await page.fill('#resetPassword', identity.newPassword);
   await page.fill('#resetConfirmation', identity.newPassword);
   await page.locator('#resetForm button[type="submit"]').click();
-  await expect(page.locator('#resetMessage')).toContainText(/gespeichert|erfolgreich/i);
+  await expect(page.locator('#resetPanel')).toContainText(/Passwort wurde geändert|Erfolgreich/i);
 
   await loginProfile(page, identity, identity.newPassword);
 });
