@@ -47,10 +47,12 @@ for (const modeClass of [
 assert(appJs.includes("navigator.serviceWorker.register('/sw.js')"), 'Service Worker wird nicht registriert.');
 assert(appJs.includes('beforeinstallprompt'), 'PWA-Installationshinweis fehlt.');
 assert(appJs.includes('data-upcoming'), 'Vorschau-Bereiche sind nicht interaktiv.');
+assert(appJs.includes('watchQuizTimeBranding'), 'QuizTime-Branding wird nicht auf allen App-Seiten angewendet.');
 assert(sw.includes("url.pathname.startsWith('/api/')"), 'API-Anfragen dürfen nicht offline gecacht werden.');
 assert(sw.includes("url.pathname.startsWith('/socket.io/')"), 'Socket.IO darf nicht offline gecacht werden.');
 
-assert.strictEqual(manifest.name, 'Ahnsen Quiz');
+assert.strictEqual(manifest.name, 'QuizTime');
+assert.strictEqual(manifest.short_name, 'QuizTime');
 assert.strictEqual(manifest.display, 'standalone');
 assert(manifest.icons.length >= 2, 'PWA-App-Symbole fehlen.');
 assert(fs.existsSync(path.join(root, 'public/icons/ahnsen-quiz.svg')), 'App-Symbol fehlt.');
