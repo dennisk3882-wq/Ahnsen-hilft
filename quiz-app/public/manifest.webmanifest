@@ -1,7 +1,7 @@
 {
   "name": "Ahnsen Quiz",
   "short_name": "Ahnsen Quiz",
-  "description": "Solo-, Live- und Mehrspieler-Quiz für Kinder und Erwachsene.",
+  "description": "Solo-, Offline-, Online- und Live-Quiz für Kinder und Erwachsene.",
   "lang": "de-DE",
   "start_url": "/",
   "scope": "/",
@@ -16,6 +16,20 @@
       "short_name": "Solo",
       "description": "Direkt ein Solo-Quiz starten",
       "url": "/solo",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Offline-Mehrspieler",
+      "short_name": "Offline",
+      "description": "Gemeinsam auf einem Gerät spielen",
+      "url": "/offline",
+      "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Online-Mehrspieler",
+      "short_name": "Online",
+      "description": "Online-Raum erstellen oder beitreten",
+      "url": "/online",
       "icons": [{ "src": "/icons/ahnsen-quiz.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
