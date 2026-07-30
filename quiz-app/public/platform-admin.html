@@ -1,1 +1,78 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#070914"><title>Plattform-Admin – QuizTime</title><link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/platform-admin.css"></head><body class="app-body platform-admin-body"><main class="platform-admin-shell"><header class="platform-admin-header"><a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Plattform-Administration</span></div></a><div class="row"><span id="adminAutoRefresh" class="status-chip">Live-Monitoring</span><button id="adminLogout" class="btn ghost small hidden" type="button">Abmelden</button></div></header><section id="adminLogin" class="admin-login-card"><span class="app-kicker">Geschützter Bereich</span><h1>Plattform-Dashboard</h1><p>Monitoring, Moderation, Fehlerdiagnose und Datenexport.</p><form id="adminLoginForm"><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Admin-Passwort" required><button class="btn primary" type="submit">Anmelden</button></form><div id="adminLoginMessage" class="message"></div></section><section id="adminDashboard" class="hidden"><div class="admin-title-row"><div><span class="app-kicker">Systemübersicht</span><h1>QuizTime läuft</h1><p id="adminUpdated" class="muted"></p></div><div class="row"><button id="refreshAdmin" class="btn secondary" type="button">Aktualisieren</button><a class="btn ghost" href="/api/platform/admin/export">Datenexport</a></div></div><div id="adminMetrics" class="admin-metric-grid"></div><div class="admin-main-grid"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Moderation</span><h2>Offene Meldungen</h2></div><select id="reportFilter"><option value="open">Offen</option><option value="all">Alle</option><option value="reviewing">In Prüfung</option><option value="resolved">Erledigt</option><option value="dismissed">Verworfen</option></select></div><div id="adminReports" class="admin-list"></div></section><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Fehlerdiagnose</span><h2>Letzte Fehler</h2></div></div><div id="adminErrors" class="admin-list"></div></section></div><div class="admin-main-grid"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Sicherheit</span><h2>Audit-Protokoll</h2></div></div><div id="adminAudit" class="admin-list"></div></section><section class="panel"><div class="panel-heading"><div><span class="eyebrow">Betrieb</span><h2>Prüfliste</h2></div></div><div class="admin-checks"><div><i></i><span>PostgreSQL-Persistenz für Online-Räume</span></div><div><i></i><span>Kurzlebige verschlüsselte SSE-Tickets</span></div><div><i></i><span>Rate Limits und automatische Netzsperren</span></div><div><i></i><span>Push- und In-App-Mitteilungen</span></div><div><i></i><span>Client- und Serverfehlererfassung</span></div><div><i></i><span>JSON-Datenexport für Sicherungen</span></div></div></section></div></section></main><script src="/platform-admin.js"></script></body></html>
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070914">
+  <title>Plattform-Admin – QuizTime</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/platform-admin.css">
+</head>
+<body class="app-body platform-admin-body">
+  <main class="platform-admin-shell">
+    <header class="platform-admin-header">
+      <a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Plattform-Administration</span></div></a>
+      <div class="row"><span id="adminAutoRefresh" class="status-chip">15-Sekunden-Monitoring</span><button id="adminLogout" class="btn ghost small hidden" type="button">Abmelden</button></div>
+    </header>
+
+    <section id="adminLogin" class="admin-login-card">
+      <span class="app-kicker">Geschützter Bereich</span><h1>Plattform-Dashboard</h1><p>Spieler, Räume, Turniere, Moderation, Sicherheit, Fehlerdiagnose und Datenschutz.</p>
+      <form id="adminLoginForm"><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Admin-Passwort" required><button class="btn primary" type="submit">Anmelden</button></form>
+      <div id="adminLoginMessage" class="message"></div>
+    </section>
+
+    <section id="adminDashboard" class="hidden">
+      <div class="admin-title-row"><div><span class="app-kicker">Systemübersicht</span><h1>QuizTime Betrieb</h1><p id="adminUpdated" class="muted"></p></div><div class="row"><button id="refreshAdmin" class="btn secondary" type="button">Alles aktualisieren</button><a class="btn ghost" href="/api/platform/admin/export">Datenexport</a></div></div>
+      <nav class="admin-tabs" aria-label="Administrationsbereiche">
+        <button class="active" data-admin-tab="overview" type="button">Übersicht</button>
+        <button data-admin-tab="profiles" type="button">Profile</button>
+        <button data-admin-tab="rooms" type="button">Räume</button>
+        <button data-admin-tab="reports" type="button">Moderation</button>
+        <button data-admin-tab="tournaments" type="button">Turniere</button>
+        <button data-admin-tab="packs" type="button">Alte Quizpakete</button>
+        <button data-admin-tab="security" type="button">Sicherheit & Fehler</button>
+      </nav>
+
+      <section data-admin-view="overview">
+        <div id="adminMetrics" class="admin-metric-grid"></div>
+        <div class="admin-main-grid">
+          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Betriebszustand</span><h2>Dienste & Konfiguration</h2></div></div><div id="adminServiceChecks" class="admin-checks"></div></section>
+          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">24 Stunden</span><h2>API-Aktivität</h2></div></div><div id="adminMetricTimeline" class="admin-timeline"></div></section>
+        </div>
+      </section>
+
+      <section class="hidden" data-admin-view="profiles">
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Kontoverwaltung</span><h2>Spielerprofile</h2></div></div><form id="adminProfileSearch" class="admin-filter-row"><input id="adminProfileQuery" placeholder="Name oder E-Mail suchen"><select id="adminProfileStatus"><option value="all">Alle Status</option><option value="active">Aktiv</option><option value="suspended">Vorübergehend gesperrt</option><option value="banned">Dauerhaft gesperrt</option></select><button class="btn primary" type="submit">Suchen</button></form><div id="adminProfiles" class="admin-list"></div></section>
+        <section id="adminProfileDetails" class="panel hidden"></section>
+      </section>
+
+      <section class="hidden" data-admin-view="rooms">
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Echtzeitbetrieb</span><h2>Aktive Online-Räume</h2></div><button id="refreshRooms" class="btn ghost small" type="button">Aktualisieren</button></div><p class="muted">Geschlossene Räume werden sofort für neue Aktionen und Wiederverbindungen gesperrt. Entfernte Spieler können dem Raum mit ihrer bisherigen Verbindung nicht erneut beitreten.</p><div id="adminRooms" class="admin-list"></div></section>
+      </section>
+
+      <section class="hidden" data-admin-view="reports">
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Moderation</span><h2>Spieler- und Raummeldungen</h2></div><select id="reportFilter"><option value="open">Offen</option><option value="all">Alle</option><option value="reviewing">In Prüfung</option><option value="resolved">Erledigt</option><option value="dismissed">Verworfen</option></select></div><div id="adminReports" class="admin-list"></div></section>
+      </section>
+
+      <section class="hidden" data-admin-view="tournaments">
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Wettbewerb</span><h2>Alle Turniere</h2></div><button id="refreshTournamentsAdmin" class="btn ghost small" type="button">Aktualisieren</button></div><div id="adminTournaments" class="admin-list"></div></section>
+      </section>
+
+      <section class="hidden" data-admin-view="packs">
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Deaktivierte Funktion</span><h2>Bestehende Nutzer-Quizpakete</h2></div><button id="refreshPacksAdmin" class="btn ghost small" type="button">Aktualisieren</button></div><p class="muted">Die Erstellung und Veröffentlichung eigener Fragenpakete ist für Nutzer deaktiviert. Hier können bereits vorhandene Datensätze geprüft und endgültig gelöscht werden.</p><div id="adminPacks" class="admin-list"></div></section>
+      </section>
+
+      <section class="hidden" data-admin-view="security">
+        <div class="admin-main-grid">
+          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Netzsperren</span><h2>Aktive automatische Sperren</h2></div></div><div id="adminBans" class="admin-list"></div></section>
+          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Fehlerdiagnose</span><h2>Letzte Fehler</h2></div></div><div id="adminErrors" class="admin-list"></div></section>
+        </div>
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Nachvollziehbarkeit</span><h2>Audit-Protokoll</h2></div></div><div id="adminAudit" class="admin-list audit-wide"></div></section>
+      </section>
+    </section>
+  </main>
+  <script src="/platform-admin.js"></script>
+</body>
+</html>
