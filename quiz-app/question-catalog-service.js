@@ -4,11 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const db = require('./platform-db');
+const childQuestionBank = require('./data/child-question-bank');
 const { enrichQuestion } = require('./question-explanations');
 
 const canonical = Object.freeze({
   adult: Object.freeze(JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion)),
-  child: Object.freeze(JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'child-questions.json'), 'utf8')).map(enrichQuestion)),
+  child: Object.freeze(childQuestionBank.map(enrichQuestion)),
 });
 let published = {
   adult: canonical.adult.map(cloneQuestion),
@@ -23,11 +24,18 @@ function cloneQuestion(question) {
 function normalizeCatalog(values, fallback) {
   const source = Array.isArray(values) && values.length ? values : fallback;
   const ids = new Set();
-  return source.map(enrichQuestion).filter(question => {
+  const normalized = source.map(enrichQuestion).filter(question => {
     if (!question?.id || ids.has(question.id) || !Array.isArray(question.options) || question.options.length !== 4) return false;
     ids.add(question.id);
     return true;
   }).map(cloneQuestion);
+
+  for (const standard of fallback) {
+    if (ids.has(standard.id)) continue;
+    normalized.push(cloneQuestion(standard));
+    ids.add(standard.id);
+  }
+  return normalized;
 }
 
 function canonicalCatalog(type) {
@@ -66,12 +74,13 @@ function versionFor(catalogs = canonical) {
 }
 
 async function databaseCatalog(type) {
-  if (!db.enabled()) return currentCatalog(type);
+  const key = type === 'child' ? 'child' : 'adult';
+  if (!db.enabled()) return currentCatalog(key);
   try {
-    const { rows } = await db.query('SELECT questions FROM quiz_question_sets WHERE quiz_type=$1', [type === 'child' ? 'child' : 'adult']);
-    return normalizeCatalog(rows[0]?.questions, canonical[type === 'child' ? 'child' : 'adult']);
+    const { rows } = await db.query('SELECT questions FROM quiz_question_sets WHERE quiz_type=$1', [key]);
+    return normalizeCatalog(rows[0]?.questions, canonical[key]);
   } catch {
-    return currentCatalog(type);
+    return currentCatalog(key);
   }
 }
 
