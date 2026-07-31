@@ -1,0 +1,402 @@
+[
+  {
+    "id": "child-math-001",
+    "category": "Mathematik",
+    "text": "Wie viel ist 3 + 4?",
+    "options": ["7", "6", "8", "9"],
+    "correctIndex": 0,
+    "explanation": "3 plus 4 ergibt 7. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-002",
+    "category": "Mathematik",
+    "text": "Wie viel ist 5 + 6?",
+    "options": ["10", "11", "12", "13"],
+    "correctIndex": 1,
+    "explanation": "5 plus 6 ergibt 11. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-003",
+    "category": "Mathematik",
+    "text": "Wie viel ist 7 + 8?",
+    "options": ["14", "16", "15", "17"],
+    "correctIndex": 2,
+    "explanation": "7 plus 8 ergibt 15. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-004",
+    "category": "Mathematik",
+    "text": "Wie viel ist 9 + 5?",
+    "options": ["13", "15", "16", "14"],
+    "correctIndex": 3,
+    "explanation": "9 plus 5 ergibt 14. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-005",
+    "category": "Mathematik",
+    "text": "Wie viel ist 12 + 7?",
+    "options": ["19", "20", "21", "18"],
+    "correctIndex": 0,
+    "explanation": "12 plus 7 ergibt 19. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-006",
+    "category": "Mathematik",
+    "text": "Wie viel ist 14 + 9?",
+    "options": ["24", "23", "25", "22"],
+    "correctIndex": 1,
+    "explanation": "14 plus 9 ergibt 23. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-007",
+    "category": "Mathematik",
+    "text": "Wie viel ist 16 + 8?",
+    "options": ["25", "26", "24", "23"],
+    "correctIndex": 2,
+    "explanation": "16 plus 8 ergibt 24. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-008",
+    "category": "Mathematik",
+    "text": "Wie viel ist 18 + 6?",
+    "options": ["25", "26", "23", "24"],
+    "correctIndex": 3,
+    "explanation": "18 plus 6 ergibt 24. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-009",
+    "category": "Mathematik",
+    "text": "Wie viel ist 21 + 9?",
+    "options": ["30", "32", "29", "31"],
+    "correctIndex": 0,
+    "explanation": "21 plus 9 ergibt 30. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-010",
+    "category": "Mathematik",
+    "text": "Wie viel ist 24 + 7?",
+    "options": ["33", "31", "30", "32"],
+    "correctIndex": 1,
+    "explanation": "24 plus 7 ergibt 31. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-011",
+    "category": "Mathematik",
+    "text": "Wie viel ist 11 + 13?",
+    "options": ["26", "23", "24", "25"],
+    "correctIndex": 2,
+    "explanation": "11 plus 13 ergibt 24. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-012",
+    "category": "Mathematik",
+    "text": "Wie viel ist 15 + 17?",
+    "options": ["34", "31", "33", "32"],
+    "correctIndex": 3,
+    "explanation": "15 plus 17 ergibt 32. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-013",
+    "category": "Mathematik",
+    "text": "Wie viel ist 22 + 18?",
+    "options": ["40", "39", "41", "42"],
+    "correctIndex": 0,
+    "explanation": "22 plus 18 ergibt 40. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-014",
+    "category": "Mathematik",
+    "text": "Wie viel ist 25 + 16?",
+    "options": ["40", "41", "42", "43"],
+    "correctIndex": 1,
+    "explanation": "25 plus 16 ergibt 41. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-015",
+    "category": "Mathematik",
+    "text": "Wie viel ist 31 + 12?",
+    "options": ["42", "44", "43", "45"],
+    "correctIndex": 2,
+    "explanation": "31 plus 12 ergibt 43. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-016",
+    "category": "Mathematik",
+    "text": "Wie viel ist 34 + 15?",
+    "options": ["48", "50", "51", "49"],
+    "correctIndex": 3,
+    "explanation": "34 plus 15 ergibt 49. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-017",
+    "category": "Mathematik",
+    "text": "Wie viel ist 42 + 17?",
+    "options": ["59", "60", "61", "58"],
+    "correctIndex": 0,
+    "explanation": "42 plus 17 ergibt 59. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-018",
+    "category": "Mathematik",
+    "text": "Wie viel ist 48 + 23?",
+    "options": ["72", "71", "73", "70"],
+    "correctIndex": 1,
+    "explanation": "48 plus 23 ergibt 71. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-019",
+    "category": "Mathematik",
+    "text": "Wie viel ist 56 + 19?",
+    "options": ["76", "77", "75", "74"],
+    "correctIndex": 2,
+    "explanation": "56 plus 19 ergibt 75. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-020",
+    "category": "Mathematik",
+    "text": "Wie viel ist 67 + 24?",
+    "options": ["92", "93", "90", "91"],
+    "correctIndex": 3,
+    "explanation": "67 plus 24 ergibt 91. Beim Addieren werden beide Zahlen zu einer Summe zusammengefasst."
+  },
+  {
+    "id": "child-math-021",
+    "category": "Mathematik",
+    "text": "Wie viel ist 9 − 3?",
+    "options": ["6", "9", "5", "7"],
+    "correctIndex": 0,
+    "explanation": "9 minus 3 ergibt 6. Beim Subtrahieren wird 3 von 9 weggenommen."
+  },
+  {
+    "id": "child-math-022",
+    "category": "Mathematik",
+    "text": "Wie viel ist 12 − 5?",
+    "options": ["10", "7", "6", "8"],
+    "correctIndex": 1,
+    "explanation": "12 minus 5 ergibt 7. Beim Subtrahieren wird 5 von 12 weggenommen."
+  },
+  {
+    "id": "child-math-023",
+    "category": "Mathematik",
+    "text": "Wie viel ist 15 − 7?",
+    "options": ["11", "7", "8", "9"],
+    "correctIndex": 2,
+    "explanation": "15 minus 7 ergibt 8. Beim Subtrahieren wird 7 von 15 weggenommen."
+  },
+  {
+    "id": "child-math-024",
+    "category": "Mathematik",
+    "text": "Wie viel ist 18 − 9?",
+    "options": ["12", "8", "10", "9"],
+    "correctIndex": 3,
+    "explanation": "18 minus 9 ergibt 9. Beim Subtrahieren wird 9 von 18 weggenommen."
+  },
+  {
+    "id": "child-math-025",
+    "category": "Mathematik",
+    "text": "Wie viel ist 21 − 8?",
+    "options": ["13", "12", "14", "16"],
+    "correctIndex": 0,
+    "explanation": "21 minus 8 ergibt 13. Beim Subtrahieren wird 8 von 21 weggenommen."
+  },
+  {
+    "id": "child-math-026",
+    "category": "Mathematik",
+    "text": "Wie viel ist 25 − 11?",
+    "options": ["13", "14", "15", "17"],
+    "correctIndex": 1,
+    "explanation": "25 minus 11 ergibt 14. Beim Subtrahieren wird 11 von 25 weggenommen."
+  },
+  {
+    "id": "child-math-027",
+    "category": "Mathematik",
+    "text": "Wie viel ist 30 − 14?",
+    "options": ["15", "17", "16", "19"],
+    "correctIndex": 2,
+    "explanation": "30 minus 14 ergibt 16. Beim Subtrahieren wird 14 von 30 weggenommen."
+  },
+  {
+    "id": "child-math-028",
+    "category": "Mathematik",
+    "text": "Wie viel ist 34 − 16?",
+    "options": ["17", "19", "21", "18"],
+    "correctIndex": 3,
+    "explanation": "34 minus 16 ergibt 18. Beim Subtrahieren wird 16 von 34 weggenommen."
+  },
+  {
+    "id": "child-math-029",
+    "category": "Mathematik",
+    "text": "Wie viel ist 40 − 17?",
+    "options": ["23", "24", "26", "22"],
+    "correctIndex": 0,
+    "explanation": "40 minus 17 ergibt 23. Beim Subtrahieren wird 17 von 40 weggenommen."
+  },
+  {
+    "id": "child-math-030",
+    "category": "Mathematik",
+    "text": "Wie viel ist 45 − 19?",
+    "options": ["27", "26", "29", "25"],
+    "correctIndex": 1,
+    "explanation": "45 minus 19 ergibt 26. Beim Subtrahieren wird 19 von 45 weggenommen."
+  },
+  {
+    "id": "child-math-031",
+    "category": "Mathematik",
+    "text": "Wie viel ist 50 − 23?",
+    "options": ["28", "30", "27", "26"],
+    "correctIndex": 2,
+    "explanation": "50 minus 23 ergibt 27. Beim Subtrahieren wird 23 von 50 weggenommen."
+  },
+  {
+    "id": "child-math-032",
+    "category": "Mathematik",
+    "text": "Wie viel ist 57 − 18?",
+    "options": ["40", "42", "38", "39"],
+    "correctIndex": 3,
+    "explanation": "57 minus 18 ergibt 39. Beim Subtrahieren wird 18 von 57 weggenommen."
+  },
+  {
+    "id": "child-math-033",
+    "category": "Mathematik",
+    "text": "Wie viel ist 63 − 27?",
+    "options": ["36", "39", "35", "37"],
+    "correctIndex": 0,
+    "explanation": "63 minus 27 ergibt 36. Beim Subtrahieren wird 27 von 63 weggenommen."
+  },
+  {
+    "id": "child-math-034",
+    "category": "Mathematik",
+    "text": "Wie viel ist 70 − 35?",
+    "options": ["38", "35", "34", "36"],
+    "correctIndex": 1,
+    "explanation": "70 minus 35 ergibt 35. Beim Subtrahieren wird 35 von 70 weggenommen."
+  },
+  {
+    "id": "child-math-035",
+    "category": "Mathematik",
+    "text": "Wie viel ist 76 − 29?",
+    "options": ["50", "46", "47", "48"],
+    "correctIndex": 2,
+    "explanation": "76 minus 29 ergibt 47. Beim Subtrahieren wird 29 von 76 weggenommen."
+  },
+  {
+    "id": "child-math-036",
+    "category": "Mathematik",
+    "text": "Wie viel ist 82 − 34?",
+    "options": ["51", "47", "49", "48"],
+    "correctIndex": 3,
+    "explanation": "82 minus 34 ergibt 48. Beim Subtrahieren wird 34 von 82 weggenommen."
+  },
+  {
+    "id": "child-math-037",
+    "category": "Mathematik",
+    "text": "Wie viel ist 90 − 41?",
+    "options": ["49", "48", "50", "52"],
+    "correctIndex": 0,
+    "explanation": "90 minus 41 ergibt 49. Beim Subtrahieren wird 41 von 90 weggenommen."
+  },
+  {
+    "id": "child-math-038",
+    "category": "Mathematik",
+    "text": "Wie viel ist 95 − 46?",
+    "options": ["48", "49", "50", "52"],
+    "correctIndex": 1,
+    "explanation": "95 minus 46 ergibt 49. Beim Subtrahieren wird 46 von 95 weggenommen."
+  },
+  {
+    "id": "child-math-039",
+    "category": "Mathematik",
+    "text": "Wie viel ist 100 − 58?",
+    "options": ["41", "43", "42", "45"],
+    "correctIndex": 2,
+    "explanation": "100 minus 58 ergibt 42. Beim Subtrahieren wird 58 von 100 weggenommen."
+  },
+  {
+    "id": "child-math-040",
+    "category": "Mathematik",
+    "text": "Wie viel ist 120 − 47?",
+    "options": ["72", "74", "76", "73"],
+    "correctIndex": 3,
+    "explanation": "120 minus 47 ergibt 73. Beim Subtrahieren wird 47 von 120 weggenommen."
+  },
+  {
+    "id": "child-math-041",
+    "category": "Mathematik",
+    "text": "Wie viel ist 2 × 3?",
+    "options": ["6", "9", "8", "4"],
+    "correctIndex": 0,
+    "explanation": "2 mal 3 ergibt 6. Die Multiplikation fasst 3 gleich große Gruppen mit je 2 zusammen."
+  },
+  {
+    "id": "child-math-042",
+    "category": "Mathematik",
+    "text": "Wie viel ist 2 × 7?",
+    "options": ["21", "14", "16", "12"],
+    "correctIndex": 1,
+    "explanation": "2 mal 7 ergibt 14. Die Multiplikation fasst 7 gleich große Gruppen mit je 2 zusammen."
+  },
+  {
+    "id": "child-math-043",
+    "category": "Mathematik",
+    "text": "Wie viel ist 3 × 4?",
+    "options": ["16", "15", "12", "9"],
+    "correctIndex": 2,
+    "explanation": "3 mal 4 ergibt 12. Die Multiplikation fasst 4 gleich große Gruppen mit je 3 zusammen."
+  },
+  {
+    "id": "child-math-044",
+    "category": "Mathematik",
+    "text": "Wie viel ist 3 × 8?",
+    "options": ["32", "27", "21", "24"],
+    "correctIndex": 3,
+    "explanation": "3 mal 8 ergibt 24. Die Multiplikation fasst 8 gleich große Gruppen mit je 3 zusammen."
+  },
+  {
+    "id": "child-math-045",
+    "category": "Mathematik",
+    "text": "Wie viel ist 4 × 5?",
+    "options": ["20", "24", "16", "25"],
+    "correctIndex": 0,
+    "explanation": "4 mal 5 ergibt 20. Die Multiplikation fasst 5 gleich große Gruppen mit je 4 zusammen."
+  },
+  {
+    "id": "child-math-046",
+    "category": "Mathematik",
+    "text": "Wie viel ist 4 × 9?",
+    "options": ["40", "36", "32", "45"],
+    "correctIndex": 1,
+    "explanation": "4 mal 9 ergibt 36. Die Multiplikation fasst 9 gleich große Gruppen mit je 4 zusammen."
+  },
+  {
+    "id": "child-math-047",
+    "category": "Mathematik",
+    "text": "Wie viel ist 5 × 6?",
+    "options": ["35", "25", "30", "36"],
+    "correctIndex": 2,
+    "explanation": "5 mal 6 ergibt 30. Die Multiplikation fasst 6 gleich große Gruppen mit je 5 zusammen."
+  },
+  {
+    "id": "child-math-048",
+    "category": "Mathematik",
+    "text": "Wie viel ist 5 × 8?",
+    "options": ["45", "35", "48", "40"],
+    "correctIndex": 3,
+    "explanation": "5 mal 8 ergibt 40. Die Multiplikation fasst 8 gleich große Gruppen mit je 5 zusammen."
+  },
+  {
+    "id": "child-math-049",
+    "category": "Mathematik",
+    "text": "Wie viel ist 6 × 7?",
+    "options": ["42", "36", "49", "48"],
+    "correctIndex": 0,
+    "explanation": "6 mal 7 ergibt 42. Die Multiplikation fasst 7 gleich große Gruppen mit je 6 zusammen."
+  },
+  {
+    "id": "child-math-050",
+    "category": "Mathematik",
+    "text": "Wie viel ist 6 × 9?",
+    "options": ["48", "54", "63", "60"],
+    "correctIndex": 1,
+    "explanation": "6 mal 9 ergibt 54. Die Multiplikation fasst 9 gleich große Gruppen mit je 6 zusammen."
+  }
+]
