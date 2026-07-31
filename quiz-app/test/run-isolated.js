@@ -17,6 +17,7 @@ const tests = [
   'test/browser-automation.test.js',
   'test/phase10.test.js',
   'test/stability-v101.test.js',
+  'test/answer-layout.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',
