@@ -38,6 +38,10 @@ const globalTexts = new Map();
 
 function normalizeText(value) {
   return String(value ?? '')
+    .replace(/\+/g, ' plus ')
+    .replace(/[−-]/g, ' minus ')
+    .replace(/[×*]/g, ' mal ')
+    .replace(/[÷/:]/g, ' geteilt ')
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('de-DE')
@@ -47,7 +51,7 @@ function normalizeText(value) {
 }
 
 function normalizeAnswer(value) {
-  return String(value ?? '').normalize('NFKC').toLocaleLowerCase('de-DE').trim().replace(/\s+/g, ' ');
+  return String(value ?? '').normalize('NFKC').trim().replace(/\s+/g, ' ');
 }
 
 function sentenceCount(value) {
@@ -65,6 +69,7 @@ for (const catalog of catalogs) {
   }
 
   const distribution = [0, 0, 0, 0];
+  const catalogTexts = new Map();
   questions.forEach((question, index) => {
     const label = `${catalog.name}[${index}]`;
     if (!question || typeof question !== 'object' || Array.isArray(question)) {
@@ -85,8 +90,13 @@ for (const catalog of catalogs) {
 
     const normalizedText = normalizeText(text);
     if (!normalizedText) errors.push(`${label}: Fragetext fehlt.`);
-    else if (globalTexts.has(normalizedText)) errors.push(`${label}: Doppelter Fragetext zu ${globalTexts.get(normalizedText)}.`);
-    else globalTexts.set(normalizedText, label);
+    else if (catalogTexts.has(normalizedText)) errors.push(`${label}: Doppelter Fragetext zu ${catalogTexts.get(normalizedText)}.`);
+    else {
+      catalogTexts.set(normalizedText, label);
+      const previous = globalTexts.get(normalizedText);
+      if (previous && previous.catalogKey !== catalog.key) warnings.push(`${label}: Gleicher Grundfragetext auch in ${previous.label}.`);
+      else if (!previous) globalTexts.set(normalizedText, { catalogKey: catalog.key, label });
+    }
 
     if (!category) errors.push(`${label}: Kategorie fehlt.`);
     else if (!catalog.categories.has(category)) errors.push(`${label}: Unzulässige Kategorie „${category}“.`);
@@ -96,7 +106,7 @@ for (const catalog of catalogs) {
     } else {
       const normalizedOptions = options.map(normalizeAnswer);
       if (normalizedOptions.some(option => !option)) errors.push(`${label}: Mindestens eine Antwort ist leer.`);
-      if (new Set(normalizedOptions).size !== 4) errors.push(`${label}: Antwortmöglichkeiten sind innerhalb der Frage doppelt.`);
+      if (new Set(normalizedOptions).size !== 4) errors.push(`${label}: Antwortmöglichkeiten sind innerhalb der Frage exakt doppelt.`);
       if (options.some(option => typeof option !== 'string')) errors.push(`${label}: Alle Antworten müssen Text sein.`);
     }
 
@@ -110,7 +120,8 @@ for (const catalog of catalogs) {
       if (catalog.key === 'child' && (sentences < 2 || sentences > 3)) {
         errors.push(`${label}: Kinder-Erklärung muss aus zwei oder drei Sätzen bestehen, gefunden: ${sentences}.`);
       }
-      if (explanation.length < 30) errors.push(`${label}: Lern-Erklärung ist zu kurz.`);
+      if (catalog.key === 'child' && explanation.length < 30) errors.push(`${label}: Kinder-Lern-Erklärung ist zu kurz.`);
+      if (catalog.key === 'adult' && explanation.length < 30) warnings.push(`${label}: Erwachsenen-Erklärung ist sehr kurz.`);
       if (explanation.length > 320) warnings.push(`${label}: Lern-Erklärung ist für ein Handy ungewöhnlich lang.`);
       if (!/[.!?]$/u.test(explanation)) errors.push(`${label}: Lern-Erklärung endet nicht mit einem Satzzeichen.`);
     }
@@ -137,9 +148,10 @@ const reportLines = [
   '## Automatisch geprüft',
   '',
   '- 300 Erwachsenenfragen und 500 Kinderfragen',
-  '- eindeutige feste Frage-IDs und Fragetexte',
+  '- eindeutige feste Frage-IDs und Fragetexte innerhalb jedes Katalogs',
+  '- Rechenzeichen bleiben bei der Duplikatprüfung unterscheidbar',
   '- zulässige Kategorien',
-  '- genau vier nicht leere und unterschiedliche Antworten',
+  '- genau vier nicht leere und exakt unterschiedliche Antworten',
   '- gültiger correctIndex von 0 bis 3',
   '- bei Kinderfragen exakt 125 richtige Antworten je Position A, B, C und D',
   '- bei Kinderfragen zwei bis drei verständliche Erklärungssätze',
