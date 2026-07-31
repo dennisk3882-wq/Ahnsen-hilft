@@ -1,5 +1,23 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
+const childQuestionBank = require('./data/child-question-bank');
+
+if (!fs.__quiztimeChildQuestionBankPatched) {
+  const nativeReadFileSync = fs.readFileSync.bind(fs);
+  const serializedChildBank = JSON.stringify(childQuestionBank);
+  fs.readFileSync = function readQuizTimeFile(file, ...args) {
+    if (path.basename(String(file || '')) === 'child-questions.json') {
+      const option = args[0];
+      const encoding = typeof option === 'string' ? option : option?.encoding;
+      return encoding ? serializedChildBank : Buffer.from(serializedChildBank, 'utf8');
+    }
+    return nativeReadFileSync(file, ...args);
+  };
+  fs.__quiztimeChildQuestionBankPatched = true;
+}
+
 const answerLayout = require('./answer-layout');
 const catalogService = require('./question-catalog-service');
 
@@ -68,9 +86,9 @@ function translateAnswer(req, store) {
 function interceptInstall(app, definitions, install) {
   const originals = { get: app.get, post: app.post, delete: app.delete };
   for (const method of Object.keys(originals)) {
-    app[method] = function interceptedRoute(path, ...handlers) {
-      const definition = definitions[`${method.toUpperCase()} ${path}`];
-      if (!definition) return originals[method].call(this, path, ...handlers);
+    app[method] = function interceptedRoute(routePath, ...handlers) {
+      const definition = definitions[`${method.toUpperCase()} ${routePath}`];
+      if (!definition) return originals[method].call(this, routePath, ...handlers);
       const interceptor = (req, res, next) => {
         try { definition.before?.(req, res); } catch (error) { return next(error); }
         const originalJson = res.json.bind(res);
@@ -80,7 +98,7 @@ function interceptInstall(app, definitions, install) {
         };
         next();
       };
-      return originals[method].call(this, path, interceptor, ...handlers);
+      return originals[method].call(this, routePath, interceptor, ...handlers);
     };
   }
   try { return install(); }
