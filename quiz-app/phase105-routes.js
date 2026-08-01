@@ -1,12 +1,21 @@
 'use strict';
 
 const path = require('path');
+const db = require('./platform-db');
 const storage = require('./phase105-storage');
 
 function wrap(handler) {
   return async (req, res, next) => {
     try { await handler(req, res, next); } catch (error) { next(error); }
   };
+}
+
+async function ensurePreferenceRow(profileId) {
+  await db.query(`
+    INSERT INTO quiz_account_preferences(profile_id)
+    VALUES($1)
+    ON CONFLICT(profile_id) DO NOTHING
+  `, [profileId]);
 }
 
 function installPhase105Routes(app, { requireProfile, requireAdmin, requireVerified, profileForRequest }) {
@@ -21,8 +30,9 @@ function installPhase105Routes(app, { requireProfile, requireAdmin, requireVerif
     res.sendFile(path.join(__dirname, 'public', 'public-profile.html'));
   });
 
-  app.get('/api/platform/public/profiles/:id', wrap(async (req, res) => {
+  app.get('/api/platform/profiles/:id/public', wrap(async (req, res) => {
     await storage.ensureReady();
+    await ensurePreferenceRow(req.params.id);
     const viewer = await profileForRequest(req).catch(() => null);
     const profile = await storage.publicProfile(req.params.id, viewer?.id || null);
     if (!profile) return res.status(404).json({ error: 'Profil wurde nicht gefunden.' });
@@ -31,11 +41,13 @@ function installPhase105Routes(app, { requireProfile, requireAdmin, requireVerif
 
   app.get('/api/platform/public-profile/me/settings', requireProfile, requireVerified, wrap(async (req, res) => {
     await storage.ensureReady();
+    await ensurePreferenceRow(req.soloProfile.id);
     res.json({ settings: await storage.profileSettings(req.soloProfile.id) });
   }));
 
   app.patch('/api/platform/public-profile/me/settings', requireProfile, requireVerified, wrap(async (req, res) => {
     await storage.ensureReady();
+    await ensurePreferenceRow(req.soloProfile.id);
     res.json({ settings: await storage.updateProfileSettings(req.soloProfile.id, req.body || {}) });
   }));
 
