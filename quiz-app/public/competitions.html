@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070914">
+  <meta name="description" content="QuizTime Wettbewerbszentrale mit offiziellen Events, Saisonarchiv, Ligen und Champions.">
+  <title>Wettbewerbe & Saisons – QuizTime</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/competitions.css">
+</head>
+<body class="app-body competitions-body">
+  <main class="app-shell competitions-shell" id="mainContent">
+    <header class="app-topbar">
+      <a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Wettbewerbe & Saisons</span></div></a>
+      <div class="app-top-actions"><a id="myPublicProfile" class="btn ghost small hidden" href="#">Mein Profil</a><a class="btn ghost small" href="/arena">Arena</a><a class="btn ghost small" href="/community">Community</a></div>
+    </header>
+
+    <section id="competitionsLoading" class="panel competitions-state">Wettbewerbe werden geladen …</section>
+    <section id="competitionsLogin" class="panel competitions-state hidden"><h1>Bestätigtes Profil erforderlich</h1><p>Deine Eventversuche, Saisonpunkte und Ranglistenplätze werden dauerhaft mit deinem QuizTime-Profil verbunden.</p><a class="btn primary" href="/solo">Profil öffnen</a></section>
+
+    <div id="competitionsApp" class="hidden">
+      <section class="competition-hero">
+        <div class="competition-hero-copy"><span class="app-kicker">Phase 10.5 · Offizielle Wettbewerbe</span><h1>Deine Saison.<br><span>Dein Platz in der QuizTime-Geschichte.</span></h1><p>Spiele das Quiz der Woche, Themenwochen, Kinder-Challenges und große Saisonereignisse. Vergangene Platzierungen und Champions bleiben dauerhaft im Saisonarchiv erhalten.</p><div class="competition-actions"><a class="btn primary" href="/arena?tab=events">Jetzt Event spielen</a><a class="btn secondary" href="#seasonArchiveSection">Saisonarchiv ansehen</a></div></div><div class="competition-cup"><div class="cup-glow"></div><span>🏆</span><strong>QUIZTIME</strong><small>OFFICIAL COMPETITION</small></div>
+      </section>
+
+      <section id="currentSeason" class="current-season panel"></section>
+
+      <nav class="competition-filter" aria-label="Eventfilter"><button class="active" type="button" data-event-filter="all">Alle</button><button type="button" data-event-filter="live">Jetzt live</button><button type="button" data-event-filter="upcoming">Demnächst</button><button type="button" data-event-filter="child">Kinder</button><button type="button" data-event-filter="adult">Erwachsene</button></nav>
+
+      <section class="competition-section">
+        <div class="competition-section-heading"><div><span class="app-kicker">Eventkalender</span><h2>Laufende und kommende Wettbewerbe</h2><p>Jede Runde zieht ihre Fragen zufällig aus dem vollständigen Kategorienpool. Eine Kategorie darf deutlich mehr als 50 Fragen enthalten.</p></div><button id="refreshCompetitions" class="btn ghost" type="button">Aktualisieren</button></div>
+        <div id="eventCalendar" class="competition-event-grid"></div>
+      </section>
+
+      <section class="competition-grid-two">
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Aktuelle Saison</span><h2>Spitzenplätze</h2></div><a class="btn ghost small" href="/arena?tab=league">Vollständige Liga</a></div><div id="currentLeaders" class="competition-leaderboard"></div></section>
+        <section class="panel"><div class="panel-heading"><div><span class="eyebrow">K.-o.-Turniere</span><h2>Aktuelle Champions</h2></div><a class="btn ghost small" href="/arena?tab=tournaments">Turniere öffnen</a></div><div id="tournamentChampions" class="champion-list"></div></section>
+      </section>
+
+      <section id="seasonArchiveSection" class="competition-section">
+        <div class="competition-section-heading"><div><span class="app-kicker">Unvergessen</span><h2>Saisonarchiv</h2><p>Abschlussliga, Saisonpunkte, Auf- und Abstiege sowie die besten drei Profile bleiben dauerhaft erhalten.</p></div></div>
+        <div id="seasonArchiveCards" class="season-archive-grid"></div>
+      </section>
+
+      <section id="seasonDetailsPanel" class="panel season-details hidden"><div class="panel-heading"><div><span class="eyebrow">Abschlusstabelle</span><h2 id="seasonDetailsTitle">Saison</h2></div><button id="closeSeasonDetails" class="btn ghost small" type="button">Schließen</button></div><div id="seasonDetailsTable" class="season-details-table"></div></section>
+    </div>
+  </main>
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation"></nav>
+  <script src="/competitions.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
