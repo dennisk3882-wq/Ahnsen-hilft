@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070914">
+  <meta name="description" content="Öffentliches QuizTime-Spielerprofil mit Liga, Erfolgen, Statistiken und Saisonarchiv.">
+  <title>Spielerprofil – QuizTime</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/public-profile.css">
+</head>
+<body class="app-body profile-public-body">
+  <main class="app-shell profile-public-shell" id="mainContent">
+    <header class="app-topbar">
+      <a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Spielerprofil</span></div></a>
+      <div class="app-top-actions"><a class="btn ghost small" href="/competitions">Wettbewerbe</a><a class="btn ghost small" href="/arena">Arena</a></div>
+    </header>
+
+    <section id="profileLoading" class="panel profile-state">Profil wird geladen …</section>
+    <section id="profileError" class="panel profile-state hidden"><div class="profile-error-icon">🔒</div><h1>Profil nicht verfügbar</h1><p id="profileErrorText"></p><a class="btn secondary" href="/community">Zur Community</a></section>
+
+    <div id="profileApp" class="hidden">
+      <section class="profile-hero panel">
+        <div id="profileAvatar" class="profile-avatar" aria-hidden="true">🤖</div>
+        <div class="profile-identity">
+          <span id="profileVisibility" class="eyebrow">Öffentliches Profil</span>
+          <h1 id="profileName">Spieler</h1>
+          <p id="profileBio" class="profile-bio">Noch keine Profilbeschreibung.</p>
+          <div class="profile-meta"><span id="profileMemberSince"></span><span id="profileLevel"></span><span id="profileLeague"></span></div>
+          <div id="profileActions" class="profile-actions"></div>
+        </div>
+        <div class="profile-emblem"><span id="profileLeagueIcon">🥉</span><strong id="profileLeagueName">Bronze-Liga</strong><small id="profileLeaguePoints">0 Saisonpunkte</small></div>
+      </section>
+
+      <section id="profileStats" class="profile-stat-grid"></section>
+
+      <div class="profile-layout">
+        <div class="profile-main-column">
+          <section class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Auszeichnungen</span><h2>Abzeichen & Erfolge</h2></div></div>
+            <div id="featuredBadges" class="featured-badges"></div>
+            <div id="allBadges" class="badge-cloud"></div>
+          </section>
+
+          <section id="categoryPanel" class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Wissensprofil</span><h2>Lieblingskategorien</h2></div></div>
+            <div id="favoriteCategories" class="category-profile-list"></div>
+          </section>
+
+          <section id="recentMatchesPanel" class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Zuletzt gespielt</span><h2>Aktuelle Ergebnisse</h2></div></div>
+            <div id="recentMatches" class="profile-match-list"></div>
+          </section>
+        </div>
+
+        <aside class="profile-side-column">
+          <section class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Direkte Duelle</span><h2>Duellbilanz</h2></div></div>
+            <div id="duelStats" class="duel-profile-stats"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Langfristiger Erfolg</span><h2>Saisonarchiv</h2></div><a class="btn ghost small" href="/competitions">Alle Saisons</a></div>
+            <div id="seasonArchive" class="profile-season-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Offizielle Wettbewerbe</span><h2>Erfolge</h2></div></div>
+            <div id="competitionSuccesses" class="profile-success-list"></div>
+          </section>
+        </aside>
+      </div>
+
+      <section id="profileEditor" class="panel profile-editor hidden">
+        <div class="panel-heading"><div><span class="eyebrow">Dein Auftritt</span><h2>Öffentliches Profil bearbeiten</h2><p>Du entscheidest, wer dein Profil sehen darf und welche Bereiche sichtbar sind.</p></div></div>
+        <form id="profileSettingsForm" class="profile-settings-form">
+          <label>Profilbeschreibung<textarea id="profileBioInput" maxlength="240" rows="4" placeholder="Erzähle kurz, welche Quizthemen dir besonders gefallen."></textarea><small><span id="bioCounter">0</span>/240 Zeichen</small></label>
+          <label>Wer darf dein Profil sehen?<select id="profileVisibilityInput"><option value="public">Alle Spieler</option><option value="friends">Nur bestätigte Freunde</option><option value="private">Nur ich</option></select></label>
+          <label class="profile-toggle"><input id="showRecentMatches" type="checkbox"><span><strong>Letzte Ergebnisse anzeigen</strong><small>Zeigt bis zu zehn aktuelle Solo-, Online-, Duell- und Turnierergebnisse.</small></span></label>
+          <label class="profile-toggle"><input id="showFavoriteCategories" type="checkbox"><span><strong>Lieblingskategorien anzeigen</strong><small>Wird automatisch aus deinen beantworteten Fragen berechnet.</small></span></label>
+          <fieldset><legend>Bis zu drei Abzeichen hervorheben</legend><div id="badgeSelection" class="badge-selection"></div></fieldset>
+          <button class="btn primary" type="submit">Profil speichern</button>
+        </form>
+        <div id="profileSettingsMessage" class="message"></div>
+      </section>
+    </div>
+  </main>
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation"></nav>
+  <script src="/public-profile.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
