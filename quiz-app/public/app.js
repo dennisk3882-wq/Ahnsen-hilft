@@ -132,31 +132,45 @@ function connectAppShortcuts() {
 
 function primaryNavigation() {
   const path = location.pathname;
+  const competitionArea = path === '/arena' || path === '/competitions' || path.startsWith('/profile/');
   const items = [
     { href: '/', label: 'Start', active: path === '/', icon: '<path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/>' },
     { href: '/solo', label: 'Spielen', active: ['/solo', '/offline', '/online'].includes(path), icon: '<circle cx="12" cy="12" r="8"/><path d="m10 8 6 4-6 4Z"/>' },
     { href: '/community', label: 'Community', active: path === '/community', icon: '<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/>' },
-    { href: '/arena', label: 'Arena', active: path === '/arena', icon: '<path d="M7 3h10v6a5 5 0 0 1-10 0V3Z"/><path d="M7 6H3v2a5 5 0 0 0 5 5m9-7h4v2a5 5 0 0 1-5 5M12 14v7m-4 0h8"/>' },
+    { href: '/arena', label: 'Arena', active: competitionArea, icon: '<path d="M7 3h10v6a5 5 0 0 1-10 0V3Z"/><path d="M7 6H3v2a5 5 0 0 0 5 5m9-7h4v2a5 5 0 0 1-5 5M12 14v7m-4 0h8"/>' },
   ];
   document.querySelectorAll('.app-bottom-nav').forEach(nav => {
     nav.innerHTML = items.map(item => `<a class="app-nav-item ${item.active ? 'active' : ''}" href="${item.href}" ${item.active ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" aria-hidden="true">${item.icon}</svg><span>${item.label}</span></a>`).join('');
   });
 }
 
-function installArenaPresentation() {
+function installPhase105Presentation() {
   const banner = document.querySelector('.phase-banner');
   if (banner) {
     const icon = banner.querySelector('.phase-banner-icon');
     const strong = banner.querySelector('strong');
     const detail = banner.querySelector('strong + span');
     const action = banner.querySelector('a');
-    if (icon) icon.textContent = '10.1';
-    if (strong) strong.textContent = 'QuizTime 10.1: stabile Arena, Ligen und offizielle Events';
-    if (detail) detail.textContent = 'Profilgebundene Online-Ergebnisse, transaktionssichere Belohnungen, echte Saisonligen, Entscheidungsrunden und automatische Wartung sind integriert.';
-    if (action) { action.href = '/arena'; action.textContent = 'Arena öffnen'; }
+    if (icon) icon.textContent = '10.5';
+    if (strong) strong.textContent = 'QuizTime 10.5: öffentliche Profile und offizielle Wettbewerbe';
+    if (detail) detail.textContent = '500 Erwachsenenfragen, öffentliche Spielerprofile, Eventkalender, Saisonarchiv und dauerhafte Champions sind integriert.';
+    if (action) { action.href = '/competitions'; action.textContent = 'Wettbewerbe öffnen'; }
   }
   const topBadge = document.querySelector('#topModeBadge');
-  if (topBadge) topBadge.innerHTML = '<i></i> Version 10.1';
+  if (topBadge) topBadge.innerHTML = '<i></i> Version 10.5';
+
+  if (location.pathname === '/arena') {
+    const actions = document.querySelector('.arena-topbar .app-top-actions');
+    if (actions && !actions.querySelector('a[href="/competitions"]')) {
+      const link = document.createElement('a');
+      link.className = 'btn ghost small';
+      link.href = '/competitions';
+      link.textContent = 'Wettbewerbe';
+      actions.prepend(link);
+    }
+    const kicker = document.querySelector('.arena-hero .app-kicker');
+    if (kicker) kicker.textContent = 'Version 10.5 · Arena, Profile & Wettbewerbe';
+  }
 }
 
 function loadEnhancements() {
@@ -185,6 +199,6 @@ installUpcomingHandlers();
 installPwaHandling();
 connectAppShortcuts();
 primaryNavigation();
-installArenaPresentation();
+installPhase105Presentation();
 loadEnhancements();
 registerServiceWorker();
