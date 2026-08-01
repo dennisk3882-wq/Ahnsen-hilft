@@ -30,14 +30,16 @@ function installPhase105Routes(app, { requireProfile, requireAdmin, requireVerif
     res.sendFile(path.join(__dirname, 'public', 'public-profile.html'));
   });
 
-  app.get('/api/platform/profiles/:id/public', wrap(async (req, res) => {
+  const publicProfileHandler = wrap(async (req, res) => {
     await storage.ensureReady();
     await ensurePreferenceRow(req.params.id);
     const viewer = await profileForRequest(req).catch(() => null);
     const profile = await storage.publicProfile(req.params.id, viewer?.id || null);
     if (!profile) return res.status(404).json({ error: 'Profil wurde nicht gefunden.' });
     res.json(profile);
-  }));
+  });
+  app.get('/api/platform/profiles/:id/public', publicProfileHandler);
+  app.get('/api/platform/public/profiles/:id', publicProfileHandler);
 
   app.get('/api/platform/public-profile/me/settings', requireProfile, requireVerified, wrap(async (req, res) => {
     await storage.ensureReady();
