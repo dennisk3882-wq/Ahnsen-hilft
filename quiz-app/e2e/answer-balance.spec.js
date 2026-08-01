@@ -25,7 +25,7 @@ function longestStreak(values) {
   return longest;
 }
 
-test('50 Kinderfragen verteilen richtige Antworten ausgeglichen auf A bis D', async ({ page, request }) => {
+test('50 Kinderfragen verteilen und bewerten Antworten konsistent auf A bis D', async ({ page, request }) => {
   const identity = uniqueIdentity('AntwortMix');
   await registerAndVerifyProfile(page, request, identity);
 
@@ -42,13 +42,16 @@ test('50 Kinderfragen verteilen richtige Antworten ausgeglichen auf A bis D', as
   const correctPositions = [];
 
   for (let index = 0; index < 50; index += 1) {
+    const selectedIndex = index % 4;
     response = await jsonFetch(page, '/api/solo/answer', {
       method: 'POST',
-      body: JSON.stringify({ sessionId, answerIndex: 0 }),
+      body: JSON.stringify({ sessionId, answerIndex: selectedIndex }),
     });
     expect(response.status).toBe(200);
     expect(response.body.result.correctIndex).toBeGreaterThanOrEqual(0);
     expect(response.body.result.correctIndex).toBeLessThanOrEqual(3);
+    expect(response.body.result.answerIndex).toBe(selectedIndex);
+    expect(response.body.result.correct).toBe(selectedIndex === response.body.result.correctIndex);
     correctPositions.push(response.body.result.correctIndex);
 
     response = await jsonFetch(page, '/api/solo/next', {

@@ -45,6 +45,17 @@ function layoutKey(sessionId, index) {
 function transformState(payload, { scope, quizType, store }) {
   if (!payload || typeof payload !== 'object' || transformedPayloads.has(payload)) return payload;
   if (!payload.sessionId || !payload.question) return payload;
+
+  // Persistente Solo-Runden speichern die bereits gemischten Antworten samt
+  // correctIndex direkt in PostgreSQL. Eine zweite Übersetzung würde den vom
+  // Browser gesendeten Anzeigeindex gegen einen erneut verschobenen Index prüfen.
+  if (Number(payload.answerLayoutVersion || 0) >= 1) {
+    store.delete(layoutKey(payload.sessionId, payload.currentIndex));
+    store.delete(String(payload.sessionId));
+    transformedPayloads.add(payload);
+    return payload;
+  }
+
   const raw = rawQuestion(quizType(payload), payload.question);
   if (!raw) return payload;
   const index = Number(payload.currentIndex || 0);

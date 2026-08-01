@@ -1,8 +1,8 @@
 {
   "name": "ahnsen-live-quiz",
-  "version": "10.1.1",
+  "version": "10.1.2",
   "private": true,
-  "description": "QuizTime Plattform mit transaktionssicherer Arena, Profil-Mehrspieler, Ligen, Events, 500 Kinderfragen und ausgeglichener Antwortverteilung",
+  "description": "QuizTime Plattform mit transaktionssicherer Arena, Profil-Mehrspieler, Ligen, Events, 500 Kinderfragen sowie ausgeglichener und konsistenter Antwortauswertung",
   "main": "server.js",
   "scripts": {
     "start": "node start.js",
