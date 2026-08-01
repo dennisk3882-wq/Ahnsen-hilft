@@ -2,19 +2,25 @@
 
 const fs = require('fs');
 const path = require('path');
+const adultQuestionBank = require('./data/adult-question-bank');
 const childQuestionBank = require('./data/child-question-bank');
 
-if (!fs.__quiztimeChildQuestionBankPatched) {
+if (!fs.__quiztimeQuestionBanksPatched) {
   const nativeReadFileSync = fs.readFileSync.bind(fs);
-  const serializedChildBank = JSON.stringify(childQuestionBank);
+  const serializedBanks = new Map([
+    ['adult-questions.json', JSON.stringify(adultQuestionBank)],
+    ['child-questions.json', JSON.stringify(childQuestionBank)],
+  ]);
   fs.readFileSync = function readQuizTimeFile(file, ...args) {
-    if (path.basename(String(file || '')) === 'child-questions.json') {
+    const serialized = serializedBanks.get(path.basename(String(file || '')));
+    if (serialized !== undefined) {
       const option = args[0];
       const encoding = typeof option === 'string' ? option : option?.encoding;
-      return encoding ? serializedChildBank : Buffer.from(serializedChildBank, 'utf8');
+      return encoding ? serialized : Buffer.from(serialized, 'utf8');
     }
     return nativeReadFileSync(file, ...args);
   };
+  fs.__quiztimeQuestionBanksPatched = true;
   fs.__quiztimeChildQuestionBankPatched = true;
 }
 
