@@ -23,6 +23,7 @@ const catalogService = require('./question-catalog-service');
 
 const soloLayouts = new Map();
 const eventLayouts = new Map();
+const transformedPayloads = new WeakSet();
 
 function rawQuestion(type, publicQuestion) {
   if (!publicQuestion) return null;
@@ -42,7 +43,8 @@ function layoutKey(sessionId, index) {
 }
 
 function transformState(payload, { scope, quizType, store }) {
-  if (!payload || typeof payload !== 'object' || !payload.sessionId || !payload.question) return payload;
+  if (!payload || typeof payload !== 'object' || transformedPayloads.has(payload)) return payload;
+  if (!payload.sessionId || !payload.question) return payload;
   const raw = rawQuestion(quizType(payload), payload.question);
   if (!raw) return payload;
   const index = Number(payload.currentIndex || 0);
@@ -71,16 +73,56 @@ function transformState(payload, { scope, quizType, store }) {
       correctIndex: prepared.question.correctIndex,
     };
   }
+  transformedPayloads.add(payload);
   return payload;
 }
 
 function translateAnswer(req, store) {
+  if (req.__quiztimeAnswerTranslated) return;
   const sessionId = String(req.body?.sessionId || req.params?.id || '');
   const active = store.get(sessionId);
   const displayed = Number(req.body?.answerIndex);
   if (!active || !Number.isInteger(displayed) || displayed < 0 || displayed > 3) return;
   const raw = active.displayToRaw[displayed];
-  if (Number.isInteger(raw)) req.body.answerIndex = raw;
+  if (Number.isInteger(raw)) {
+    req.body.answerIndex = raw;
+    req.__quiztimeAnswerTranslated = true;
+  }
+}
+
+function normalizeSpeechRequest(req) {
+  if (req.__quiztimeSpeechNormalized) return;
+  const type = req.body?.quizType === 'adult' ? 'adult' : 'child';
+  const question = catalogService.currentCatalog(type).find(item => item.text === req.body?.questionText)
+    || catalogService.canonicalCatalog(type).find(item => item.text === req.body?.questionText);
+  if (question) req.body.options = [...question.options];
+  req.__quiztimeSpeechNormalized = true;
+}
+
+function installSoloMiddleware(app) {
+  if (app.__quiztimeAnswerLayoutMiddlewareInstalled) return;
+  app.__quiztimeAnswerLayoutMiddlewareInstalled = true;
+  app.use('/api/solo', (req, res, next) => {
+    try {
+      const route = String(req.path || '');
+      if (req.method === 'POST' && route === '/answer') translateAnswer(req, soloLayouts);
+      if (req.method === 'POST' && route === '/speech') normalizeSpeechRequest(req);
+
+      const transformable = (req.method === 'POST' && ['/start', '/answer', '/next'].includes(route))
+        || (req.method === 'GET' && route.startsWith('/state/'));
+      if (transformable) {
+        const originalJson = res.json.bind(res);
+        res.json = payload => originalJson(transformState(payload, {
+          scope: 'solo',
+          quizType: value => value.quizType,
+          store: soloLayouts,
+        }));
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
 }
 
 function interceptInstall(app, definitions, install) {
@@ -122,17 +164,30 @@ function patchSoloRoutes() {
       'GET /api/solo/state/:sessionId': { after },
       'POST /api/solo/answer': { before: req => translateAnswer(req, soloLayouts), after },
       'POST /api/solo/next': { after },
-      'POST /api/solo/speech': {
-        before: req => {
-          const type = req.body?.quizType === 'adult' ? 'adult' : 'child';
-          const question = catalogService.currentCatalog(type).find(item => item.text === req.body?.questionText)
-            || catalogService.canonicalCatalog(type).find(item => item.text === req.body?.questionText);
-          if (question) req.body.options = [...question.options];
-        },
-      },
+      'POST /api/solo/speech': { before: normalizeSpeechRequest },
     }, () => originalInstall(app, options));
   };
   module.__quiztimeAnswerLayoutPatched = true;
+}
+
+function patchPersistentSoloOrder() {
+  const stability = require('./solo-session-stability');
+  if (stability.__quiztimeAnswerLayoutOrderPatched) return;
+  const originalPatch = stability.patchSoloRoutes;
+  stability.patchSoloRoutes = function patchStableSoloWithAnswerLayout(...args) {
+    const result = originalPatch(...args);
+    const soloModule = require('./solo-routes');
+    if (!soloModule.__quiztimeAnswerLayoutFinalInstallPatched) {
+      const stableInstall = soloModule.installSoloRoutes;
+      soloModule.installSoloRoutes = function installAllSoloRoutesWithAnswerLayout(app, options) {
+        installSoloMiddleware(app);
+        return stableInstall(app, options);
+      };
+      soloModule.__quiztimeAnswerLayoutFinalInstallPatched = true;
+    }
+    return result;
+  };
+  stability.__quiztimeAnswerLayoutOrderPatched = true;
 }
 
 function patchEventRoutes() {
@@ -194,12 +249,15 @@ function patchOfflineCatalog() {
 }
 
 patchSoloRoutes();
+patchPersistentSoloOrder();
 patchEventRoutes();
 patchOnlineRooms();
 patchOfflineCatalog();
 
 module.exports = {
+  installSoloMiddleware,
   patchSoloRoutes,
+  patchPersistentSoloOrder,
   patchEventRoutes,
   patchOnlineRooms,
   patchOfflineCatalog,
