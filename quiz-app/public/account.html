@@ -16,7 +16,7 @@
   <main class="app-shell account-shell">
     <header class="app-topbar account-topbar">
       <a class="app-brand" href="/"><div class="app-logo">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Kontocenter</span></div></a>
-      <div class="app-top-actions"><a class="btn ghost small" href="/solo">Zum Profil</a><a class="btn ghost small" href="/community">Community</a></div>
+      <div class="app-top-actions"><a id="myPublicProfileLink" class="btn ghost small hidden" href="#">Öffentliches Profil</a><a class="btn ghost small" href="/solo">Zum Profil</a><a class="btn ghost small" href="/community">Community</a></div>
     </header>
 
     <section id="accountLoading" class="panel account-loading">Kontodaten werden sicher geladen …</section>
@@ -64,7 +64,7 @@
           <div class="panel-heading"><div><span class="eyebrow">Privatsphäre</span><h2>Sichtbarkeit & Kontakte</h2></div></div>
           <form id="preferencesForm" class="account-form">
             <label class="account-toggle"><input id="leaderboardVisible" type="checkbox"><span><strong>In Bestenlisten anzeigen</strong><small>Dein Profil erscheint in globalen und saisonalen Ranglisten.</small></span></label>
-            <label class="account-toggle"><input id="publicProfile" type="checkbox"><span><strong>Profil auffindbar</strong><small>Andere Spieler können dich über die Profilsuche finden.</small></span></label>
+            <label>Wer darf dein Spielerprofil sehen?<select id="profileVisibility"><option value="public">Alle Spieler</option><option value="friends">Nur bestätigte Freunde</option><option value="private">Nur ich</option></select><small>Bestimmt die Sichtbarkeit von Statistiken, Abzeichen, Saisonarchiv und letzten Ergebnissen.</small></label>
             <label class="account-toggle"><input id="allowFriendRequests" type="checkbox"><span><strong>Freundschaftsanfragen erlauben</strong><small>Deaktivieren verhindert neue Anfragen.</small></span></label>
             <label>Wer darf dich einladen?<select id="invitePolicy"><option value="all">Alle Spieler</option><option value="friends">Nur Freunde</option><option value="none">Niemand</option></select></label>
             <label class="account-toggle"><input id="emailNotifications" type="checkbox"><span><strong>Kontohinweise per E-Mail</strong><small>Sicherheits- und wichtige Kontonachrichten.</small></span></label>
