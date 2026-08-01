@@ -32,11 +32,15 @@ INSERT INTO quiz_phase105_profile_settings(profile_id)
 SELECT id FROM quiz_solo_profiles
 ON CONFLICT(profile_id) DO NOTHING;
 
-CREATE INDEX IF NOT EXISTS quiz_phase10_league_archive_profile_time
-  ON quiz_phase10_league_archive(profile_id,archived_at DESC);
-
-CREATE INDEX IF NOT EXISTS quiz_phase10_events_calendar
-  ON quiz_phase10_events(starts_at,ends_at,active);
-
-CREATE INDEX IF NOT EXISTS quiz_phase10_event_entries_profile_time
-  ON quiz_phase10_event_entries(profile_id,completed_at DESC);
+DO $$
+BEGIN
+  IF to_regclass('public.quiz_phase10_league_archive') IS NOT NULL THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS quiz_phase10_league_archive_profile_time ON quiz_phase10_league_archive(profile_id,archived_at DESC)';
+  END IF;
+  IF to_regclass('public.quiz_phase10_events') IS NOT NULL THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS quiz_phase10_events_calendar ON quiz_phase10_events(starts_at,ends_at,active)';
+  END IF;
+  IF to_regclass('public.quiz_phase10_event_entries') IS NOT NULL THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS quiz_phase10_event_entries_profile_time ON quiz_phase10_event_entries(profile_id,completed_at DESC)';
+  END IF;
+END $$;
