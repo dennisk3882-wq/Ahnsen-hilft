@@ -18,6 +18,23 @@ async function ensurePreferenceRow(profileId) {
   `, [profileId]);
 }
 
+async function tournamentChampions(limit = 12) {
+  const { rows } = await db.query(`
+    SELECT t.id,t.code,t.name AS tournament_name,t.description,t.format,m.completed_at,
+           p.id AS profile_id,p.name AS champion_name,p.avatar_id
+      FROM quiz_phase10_tournament_matches m
+      JOIN quiz_platform_tournaments t ON t.id=m.tournament_id
+      JOIN quiz_solo_profiles p ON p.id=m.winner_id
+     WHERE m.next_match_id IS NULL AND m.status='completed'
+     ORDER BY m.completed_at DESC LIMIT $1
+  `, [Math.max(1, Math.min(50, Number(limit) || 12))]);
+  return rows.map(row => ({
+    ...row,
+    name: row.champion_name,
+    description: row.tournament_name,
+  }));
+}
+
 function installPhase105Routes(app, { requireProfile, requireAdmin, requireVerified, profileForRequest }) {
   storage.ensureReady().catch(error => console.error('Phase 10.5 konnte nicht vorbereitet werden:', error.message));
 
@@ -55,7 +72,9 @@ function installPhase105Routes(app, { requireProfile, requireAdmin, requireVerif
 
   app.get('/api/platform/phase105/competitions', requireProfile, requireVerified, wrap(async (req, res) => {
     await storage.ensureReady();
-    res.json(await storage.competitionOverview(req.soloProfile.id));
+    const overview = await storage.competitionOverview(req.soloProfile.id);
+    overview.tournamentChampions = await tournamentChampions(12);
+    res.json(overview);
   }));
 
   app.get('/api/platform/phase105/calendar', requireProfile, requireVerified, wrap(async (req, res) => {
@@ -77,7 +96,7 @@ function installPhase105Routes(app, { requireProfile, requireAdmin, requireVerif
 
   app.get('/api/platform/phase105/tournament-champions', wrap(async (req, res) => {
     await storage.ensureReady();
-    res.json({ champions: await storage.tournamentChampions(req.query.limit) });
+    res.json({ champions: await tournamentChampions(req.query.limit) });
   }));
 
   app.post('/api/platform/admin/phase105/events/ensure', requireAdmin, wrap(async (_req, res) => {
