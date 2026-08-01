@@ -11,6 +11,7 @@ const testMailbox = require('./test-mailbox');
 const phase10Bridge = require('./phase10-online-bridge');
 const phase10Progression = require('./phase10-progression-bridge');
 const phase10Stability = require('./phase10-stability');
+const phase105Storage = require('./phase105-storage');
 const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
 const onlineCatalogStability = require('./online-catalog-stability');
@@ -20,6 +21,7 @@ const { installEventRuntimeRoutes } = require('./event-runtime-routes');
 const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installPhase10Routes } = require('./phase10-routes');
+const { installPhase105Routes } = require('./phase105-routes');
 const { installBrowserTestStatusRoute } = require('./browser-test-status');
 const { installE2ETestSupport } = require('./e2e-test-support');
 
@@ -70,8 +72,9 @@ const loadBaseAccount = accountStorage.getAccount;
 accountStorage.getAccount = async profileId => {
   const account = await loadBaseAccount(profileId);
   if (!account || !platformDb.enabled()) return account;
+  await phase105Storage.ensureReady();
   const { rows } = await platformDb.query(`
-    SELECT leaderboard_visible,public_profile,allow_friend_requests,invite_policy,
+    SELECT leaderboard_visible,public_profile,profile_visibility,allow_friend_requests,invite_policy,
            email_notifications,push_notifications
       FROM quiz_account_preferences WHERE profile_id=$1
   `, [profileId]);
@@ -80,12 +83,31 @@ accountStorage.getAccount = async profileId => {
   account.preferences = {
     leaderboardVisible: Boolean(preferences.leaderboard_visible),
     publicProfile: Boolean(preferences.public_profile),
+    profileVisibility: preferences.profile_visibility || (preferences.public_profile ? 'public' : 'private'),
     allowFriendRequests: Boolean(preferences.allow_friend_requests),
     invitePolicy: preferences.invite_policy || 'friends',
     emailNotifications: Boolean(preferences.email_notifications),
     pushNotifications: Boolean(preferences.push_notifications),
   };
   return account;
+};
+
+const updateBasePreferences = accountStorage.updatePreferences;
+accountStorage.updatePreferences = async (profileId, values = {}) => {
+  await phase105Storage.ensureReady();
+  const visibility = phase105Storage.normalizeVisibility(
+    values.profileVisibility || (values.publicProfile === false ? 'private' : 'public'),
+  );
+  const result = await updateBasePreferences(profileId, {
+    ...values,
+    publicProfile: visibility !== 'private',
+  });
+  await platformDb.query(`
+    UPDATE quiz_account_preferences
+       SET profile_visibility=$2,public_profile=$2<>'private',updated_at=NOW()
+     WHERE profile_id=$1
+  `, [profileId, visibility]);
+  return { ...result, profile_visibility: visibility, public_profile: visibility !== 'private' };
 };
 
 if (!adminStorage.__quiztimeRuntimeWrapped) {
@@ -188,13 +210,19 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       requireProfile: requireProfileWithActor,
       requireAdmin: requirePlatformAdmin,
     });
+    installPhase105Routes(app, {
+      requireProfile: requireProfileWithActor,
+      requireAdmin: requirePlatformAdmin,
+      requireVerified,
+      profileForRequest: profileAuth.profileForRequest,
+    });
     app.use((error, req, res, next) => {
       if (res.headersSent) return next(error);
       console.error(`Plattform-Anfrage ${req.method} ${req.originalUrl} fehlgeschlagen:`, error.message);
       const status = error.code === '23505' || error.code === '23503' || error.code === 'SEASON_SETTLEMENT_REQUIRED' ? 409
-        : error.code === 'NOT_FRIENDS' ? 403
+        : error.code === 'NOT_FRIENDS' || error.code === 'PROFILE_PRIVATE' ? 403
           : /nicht gefunden/iu.test(error.message || '') ? 404
-            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat|Gastgeber/iu.test(error.message || '') ? 403
+            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat|nur für Freunde|Gastgeber/iu.test(error.message || '') ? 403
               : /noch nicht|bereits|maximale|läuft noch|erst nach|verbunden/iu.test(error.message || '') ? 409
                 : 500;
       res.status(status).json({ error: status === 500 ? 'Die Anfrage konnte nicht verarbeitet werden.' : error.message });

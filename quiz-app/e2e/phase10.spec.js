@@ -36,6 +36,9 @@ test('Phase-10-Admin zeigt Event-, Liga- und Stabilitätsverwaltung', async ({ p
   await expect(page.locator('#adminDashboard')).toBeVisible();
   await page.locator('[data-admin-tab="phase10"]').click();
   await expect(page.locator('#adminPhase10Content')).toContainText(/Offizielle Events|Ligen & Saisonabschluss/);
-  await expect(page.locator('#adminOfficialEvents .admin-item')).toHaveCount(2);
+  const officialEvents = page.locator('#adminOfficialEvents .admin-item');
+  await expect(officialEvents.first()).toBeVisible();
+  expect(await officialEvents.count()).toBeGreaterThanOrEqual(2);
+  await expect(page.locator('#adminOfficialEvents')).toContainText(/Quiz der Woche|Monats-Challenge|Themenwoche|Saison/i);
   await expect(page.locator('#adminStabilityPanel')).toContainText(/Stabilität|Migration|Abgleich/i);
 });

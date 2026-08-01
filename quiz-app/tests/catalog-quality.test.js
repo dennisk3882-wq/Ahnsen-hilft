@@ -1,22 +1,23 @@
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
 
 const appRoot = path.resolve(__dirname, '..');
+const adultQuestions = require(path.join(appRoot, 'data', 'adult-question-bank'));
 const childQuestions = require(path.join(appRoot, 'data', 'child-question-bank'));
-const adultQuestions = JSON.parse(fs.readFileSync(path.join(appRoot, 'data', 'adult-questions.json'), 'utf8'));
+
+const adultCategories = new Set([
+  'Allgemeinwissen', 'Geografie', 'Geschichte', 'Natur & Wissenschaft',
+  'Musik', 'Sport', 'Film & Fernsehen', 'Technik', 'Essen & Trinken',
+]);
 
 const catalogs = [
   {
     name: 'Erwachsene',
     key: 'adult',
     questions: adultQuestions,
-    expectedCount: 300,
-    categories: new Set([
-      'Allgemeinwissen', 'Geografie', 'Geschichte', 'Natur & Wissenschaft',
-      'Musik', 'Sport', 'Film & Fernsehen', 'Technik', 'Essen & Trinken',
-    ]),
+    expectedCount: 500,
+    categories: adultCategories,
   },
   {
     name: 'Kinder',
@@ -69,6 +70,7 @@ for (const catalog of catalogs) {
   }
 
   const distribution = [0, 0, 0, 0];
+  const categoryCounts = new Map();
   const catalogTexts = new Map();
   questions.forEach((question, index) => {
     const label = `${catalog.name}[${index}]`;
@@ -100,6 +102,11 @@ for (const catalog of catalogs) {
 
     if (!category) errors.push(`${label}: Kategorie fehlt.`);
     else if (!catalog.categories.has(category)) errors.push(`${label}: Unzulässige Kategorie „${category}“.`);
+    else categoryCounts.set(category, Number(categoryCounts.get(category) || 0) + 1);
+
+    if (Object.prototype.hasOwnProperty.call(question, 'difficulty')) {
+      errors.push(`${label}: Schwierigkeitsstufen sind für diesen Ausbau ausdrücklich nicht vorgesehen.`);
+    }
 
     if (!Array.isArray(options) || options.length !== 4) {
       errors.push(`${label}: Es müssen genau vier Antwortmöglichkeiten vorhanden sein.`);
@@ -117,12 +124,11 @@ for (const catalog of catalogs) {
     if (!explanation) errors.push(`${label}: Lern-Erklärung fehlt.`);
     else {
       const sentences = sentenceCount(explanation);
-      if (catalog.key === 'child' && (sentences < 2 || sentences > 3)) {
-        errors.push(`${label}: Kinder-Erklärung muss aus zwei oder drei Sätzen bestehen, gefunden: ${sentences}.`);
+      if (sentences < 2 || sentences > 3) {
+        errors.push(`${label}: Lern-Erklärung muss aus zwei oder drei Sätzen bestehen, gefunden: ${sentences}.`);
       }
-      if (catalog.key === 'child' && explanation.length < 30) errors.push(`${label}: Kinder-Lern-Erklärung ist zu kurz.`);
-      if (catalog.key === 'adult' && explanation.length < 30) warnings.push(`${label}: Erwachsenen-Erklärung ist sehr kurz.`);
-      if (explanation.length > 320) warnings.push(`${label}: Lern-Erklärung ist für ein Handy ungewöhnlich lang.`);
+      if (explanation.length < 30) errors.push(`${label}: Lern-Erklärung ist zu kurz.`);
+      if (explanation.length > 360) warnings.push(`${label}: Lern-Erklärung ist für ein Handy ungewöhnlich lang.`);
       if (!/[.!?]$/u.test(explanation)) errors.push(`${label}: Lern-Erklärung endet nicht mit einem Satzzeichen.`);
     }
 
@@ -136,6 +142,15 @@ for (const catalog of catalogs) {
       errors.push(`${catalog.name}: Richtige Antwortpositionen sind nicht exakt ausgeglichen: ${distribution.join('/')}.`);
     }
   }
+
+  if (catalog.key === 'adult') {
+    if (categoryCounts.size !== adultCategories.size) {
+      errors.push(`${catalog.name}: Es müssen genau die neun vorhandenen Kategorien verwendet werden.`);
+    }
+    if (![...categoryCounts.values()].some(count => count > 50)) {
+      errors.push(`${catalog.name}: Mindestens eine Kategorie muss mehr als 50 Fragen enthalten; die Quizlänge darf den Kategorienpool nicht begrenzen.`);
+    }
+  }
 }
 
 const reportLines = [
@@ -147,21 +162,22 @@ const reportLines = [
   '',
   '## Automatisch geprüft',
   '',
-  '- 300 Erwachsenenfragen und 500 Kinderfragen',
+  '- 500 Erwachsenenfragen und 500 Kinderfragen',
+  '- ausschließlich die neun bestehenden Erwachsenen-Kategorien; keine Schwierigkeitsstufen',
+  '- Kategorienpools dürfen mehr als 50 Fragen enthalten; pro Runde wird nur die gewählte Quizlänge gezogen',
   '- eindeutige feste Frage-IDs und Fragetexte innerhalb jedes Katalogs',
   '- Rechenzeichen bleiben bei der Duplikatprüfung unterscheidbar',
-  '- zulässige Kategorien',
   '- genau vier nicht leere und exakt unterschiedliche Antworten',
   '- gültiger correctIndex von 0 bis 3',
   '- bei Kinderfragen exakt 125 richtige Antworten je Position A, B, C und D',
-  '- bei Kinderfragen zwei bis drei verständliche Erklärungssätze',
+  '- bei allen Fragen zwei bis drei verständliche Erklärungssätze',
   '',
   '> Sachliche Richtigkeit und Aktualität benötigen weiterhin redaktionelle Stichproben; sie lassen sich nicht vollständig automatisieren.',
   '',
 ];
 if (errors.length) reportLines.push('## Fehler', '', ...errors.map(item => `- ${item}`), '');
 if (warnings.length) reportLines.push('## Hinweise', '', ...warnings.map(item => `- ${item}`), '');
-fs.writeFileSync(path.join(appRoot, 'CATALOG_QUALITY_REPORT.md'), `${reportLines.join('\n')}\n`);
+require('fs').writeFileSync(path.join(appRoot, 'CATALOG_QUALITY_REPORT.md'), `${reportLines.join('\n')}\n`);
 
 console.log(`Catalog quality check: ${errors.length} errors, ${warnings.length} warnings.`);
 if (errors.length) {

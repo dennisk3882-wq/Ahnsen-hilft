@@ -39,6 +39,8 @@
     $('#accountName').value = account.name;
     $('#deleteConfirmation').placeholder = `„${account.name}“ exakt eingeben`;
     $('#accountEmail').value = account.pendingEmail || account.email || '';
+    $('#myPublicProfileLink').href = `/profile/${encodeURIComponent(account.id)}`;
+    $('#myPublicProfileLink').classList.remove('hidden');
 
     const statusCard = document.querySelector('.account-security-card');
     statusCard.classList.remove('warning', 'danger');
@@ -71,7 +73,7 @@
 
     const prefs = account.preferences || {};
     $('#leaderboardVisible').checked = prefs.leaderboardVisible !== false;
-    $('#publicProfile').checked = prefs.publicProfile !== false;
+    $('#profileVisibility').value = prefs.profileVisibility || (prefs.publicProfile === false ? 'private' : 'public');
     $('#allowFriendRequests').checked = prefs.allowFriendRequests !== false;
     $('#invitePolicy').value = prefs.invitePolicy || 'friends';
     $('#emailNotifications').checked = prefs.emailNotifications !== false;
@@ -165,9 +167,11 @@
   $('#preferencesForm').addEventListener('submit', async event => {
     event.preventDefault(); setBusy(event.currentTarget, true); message('#preferencesMessage', 'Einstellungen werden gespeichert …');
     try {
+      const profileVisibility = $('#profileVisibility').value;
       await api('/api/account/preferences', { method: 'PATCH', body: JSON.stringify({
         leaderboardVisible: $('#leaderboardVisible').checked,
-        publicProfile: $('#publicProfile').checked,
+        profileVisibility,
+        publicProfile: profileVisibility !== 'private',
         allowFriendRequests: $('#allowFriendRequests').checked,
         invitePolicy: $('#invitePolicy').value,
         emailNotifications: $('#emailNotifications').checked,
