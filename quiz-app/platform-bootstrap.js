@@ -11,6 +11,7 @@ const testMailbox = require('./test-mailbox');
 const phase10Bridge = require('./phase10-online-bridge');
 const phase10Progression = require('./phase10-progression-bridge');
 const phase10Stability = require('./phase10-stability');
+const phase105Storage = require('./phase105-storage');
 const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
 const onlineCatalogStability = require('./online-catalog-stability');
@@ -71,6 +72,7 @@ const loadBaseAccount = accountStorage.getAccount;
 accountStorage.getAccount = async profileId => {
   const account = await loadBaseAccount(profileId);
   if (!account || !platformDb.enabled()) return account;
+  await phase105Storage.ensureReady();
   const { rows } = await platformDb.query(`
     SELECT leaderboard_visible,public_profile,profile_visibility,allow_friend_requests,invite_policy,
            email_notifications,push_notifications
@@ -88,6 +90,24 @@ accountStorage.getAccount = async profileId => {
     pushNotifications: Boolean(preferences.push_notifications),
   };
   return account;
+};
+
+const updateBasePreferences = accountStorage.updatePreferences;
+accountStorage.updatePreferences = async (profileId, values = {}) => {
+  await phase105Storage.ensureReady();
+  const visibility = phase105Storage.normalizeVisibility(
+    values.profileVisibility || (values.publicProfile === false ? 'private' : 'public'),
+  );
+  const result = await updateBasePreferences(profileId, {
+    ...values,
+    publicProfile: visibility !== 'private',
+  });
+  await platformDb.query(`
+    UPDATE quiz_account_preferences
+       SET profile_visibility=$2,public_profile=$2<>'private',updated_at=NOW()
+     WHERE profile_id=$1
+  `, [profileId, visibility]);
+  return { ...result, profile_visibility: visibility, public_profile: visibility !== 'private' };
 };
 
 if (!adminStorage.__quiztimeRuntimeWrapped) {
