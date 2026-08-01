@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const answerLayout = require('./answer-layout');
 const db = require('./platform-db');
 const profileAuth = require('./solo-profile-auth');
 const soloRoutes = require('./solo-routes');
@@ -24,6 +25,9 @@ function installPersistentRoutes(app, dependencies) {
   }
 
   function questionFor(state) {
+    if (Array.isArray(state.questions) && state.questions[state.currentIndex]) {
+      return state.questions[state.currentIndex];
+    }
     const id = state.questionIds[state.currentIndex];
     return catalogFor(state.quizType).find(question => question.id === id) || null;
   }
@@ -59,15 +63,18 @@ function installPersistentRoutes(app, dependencies) {
 
   function publicState(state) {
     const question = questionFor(state);
+    const totalQuestions = Array.isArray(state.questions) && state.questions.length
+      ? state.questions.length
+      : state.questionIds.length;
     return {
       sessionId: state.id,
       profile: { id: state.profileId, name: state.profileName },
       quizType: state.quizType,
       category: state.category,
       mode: state.mode,
-      totalQuestions: state.questionIds.length,
+      totalQuestions,
       currentIndex: state.currentIndex,
-      progressLabel: state.finished ? 'Geschafft' : `Frage ${state.currentIndex + 1} von ${state.questionIds.length}`,
+      progressLabel: state.finished ? 'Geschafft' : `Frage ${state.currentIndex + 1} von ${totalQuestions}`,
       question: state.finished ? null : publicQuestion(question, state.answered),
       questionStartedAt: state.questionStartedAt,
       durationSec: state.mode === 'timed' ? state.durationSec : null,
@@ -78,6 +85,7 @@ function installPersistentRoutes(app, dependencies) {
       completedAt: state.completedAt || null,
       summary: summary(state),
       persisted: true,
+      answerLayoutVersion: Number(state.answerLayoutVersion || 0),
     };
   }
 
@@ -149,14 +157,41 @@ function installPersistentRoutes(app, dependencies) {
       const catalog = catalogFor(quizType);
       const available = category === 'Gemischt' ? catalog.length : catalog.filter(question => question.category === category).length;
       if (!available) return res.status(400).json({ error: 'Für diese Kategorie sind keine Fragen vorhanden.' });
-      const questionIds = chooseQuestions(quizType, category, Math.min(requestedCount, available));
-      if (!questionIds.length) return res.status(400).json({ error: 'Es konnten keine Fragen ausgewählt werden.' });
+      const selectedIds = chooseQuestions(quizType, category, Math.min(requestedCount, available));
+      if (!selectedIds.length) return res.status(400).json({ error: 'Es konnten keine Fragen ausgewählt werden.' });
+
+      const byId = new Map(catalog.map(question => [question.id, question]));
+      const selectedQuestions = selectedIds.map(id => byId.get(id)).filter(Boolean);
+      if (selectedQuestions.length !== selectedIds.length) {
+        return res.status(409).json({ error: 'Der aktuelle Fragenkatalog hat sich während der Auswahl verändert. Bitte starte das Quiz erneut.' });
+      }
+
       const timestamp = now();
+      const sessionId = crypto.randomUUID();
+      const questions = answerLayout.prepareBalancedQuestions(selectedQuestions, `solo:${sessionId}`);
       const state = {
-        id: crypto.randomUUID(), profileId: req.soloProfile.id, profileName: req.soloProfile.name,
-        quizType, category, mode, durationSec: Math.max(5, Number(questionSeconds) || 20), questionIds,
-        currentIndex: 0, questionStartedAt: timestamp, answered: false, result: null, finished: false,
-        completedAt: null, score: 0, correct: 0, wrong: 0, unanswered: 0, createdAt: timestamp, lastActivityAt: timestamp,
+        id: sessionId,
+        profileId: req.soloProfile.id,
+        profileName: req.soloProfile.name,
+        quizType,
+        category,
+        mode,
+        durationSec: Math.max(5, Number(questionSeconds) || 20),
+        questionIds: questions.map(question => question.id),
+        questions,
+        answerLayoutVersion: 1,
+        currentIndex: 0,
+        questionStartedAt: timestamp,
+        answered: false,
+        result: null,
+        finished: false,
+        completedAt: null,
+        score: 0,
+        correct: 0,
+        wrong: 0,
+        unanswered: 0,
+        createdAt: timestamp,
+        lastActivityAt: timestamp,
       };
       await db.query(`
         INSERT INTO quiz_solo_sessions(id,profile_id,state,expires_at)
@@ -219,7 +254,10 @@ function installPersistentRoutes(app, dependencies) {
       if (!state) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Dieses Solo-Quiz ist nicht mehr verfügbar.' }); }
       if (!state.finished && !state.answered) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Bitte zuerst die aktuelle Frage beantworten.' }); }
       if (!state.finished) {
-        if (state.currentIndex + 1 >= state.questionIds.length) {
+        const totalQuestions = Array.isArray(state.questions) && state.questions.length
+          ? state.questions.length
+          : state.questionIds.length;
+        if (state.currentIndex + 1 >= totalQuestions) {
           state.finished = true;
           state.completedAt = now();
         } else {
