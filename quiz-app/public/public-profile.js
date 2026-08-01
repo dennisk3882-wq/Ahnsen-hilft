@@ -9,7 +9,7 @@
   const state = { data: null, settings: null };
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  const number = value => new Intl.NumberFormat('de-DE').format(Number(value || 0));
+  const number = value => typeof value === 'string' && value.trim().endsWith('%') ? value : new Intl.NumberFormat('de-DE').format(Number(value || 0));
   const date = value => value ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' }).format(new Date(value)) : '–';
   const dateTime = value => value ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '–';
 
@@ -38,7 +38,7 @@
       ['Spiele', stats.games], ['Siege', stats.wins], ['Genauigkeit', `${stats.accuracy || 0} %`],
       ['Richtige Antworten', stats.correct], ['Punkte', stats.points], ['Beste Serie', data.progression?.bestStreak],
     ];
-    $('#profileStats').innerHTML = items.map(([label, value]) => `<article class="profile-stat"><strong>${esc(number(value).replace(' %', '%'))}</strong><span>${esc(label)}</span></article>`).join('');
+    $('#profileStats').innerHTML = items.map(([label, value]) => `<article class="profile-stat"><strong>${esc(number(value))}</strong><span>${esc(label)}</span></article>`).join('');
   }
 
   function renderBadges(data) {
