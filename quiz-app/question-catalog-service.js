@@ -1,14 +1,13 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 const db = require('./platform-db');
+const adultQuestionBank = require('./data/adult-question-bank');
 const childQuestionBank = require('./data/child-question-bank');
 const { enrichQuestion } = require('./question-explanations');
 
 const canonical = Object.freeze({
-  adult: Object.freeze(JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'adult-questions.json'), 'utf8')).map(enrichQuestion)),
+  adult: Object.freeze(adultQuestionBank.map(enrichQuestion)),
   child: Object.freeze(childQuestionBank.map(enrichQuestion)),
 });
 let published = {
