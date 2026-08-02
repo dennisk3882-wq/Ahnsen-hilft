@@ -1,17 +1,20 @@
 'use strict';
 
-const CACHE_NAME = 'quiztime-phase10-5-v1';
-// Frühere Cachekennungen als Regressionstest-Marker: 'ahnsen-quiz-phase4-v2' 'ahnsen-quiz-phase10-v1' 'quiztime-platform-v1' 'quiztime-account-admin-v2' 'quiztime-browser-tests-v1' 'quiztime-phase10-v1' 'quiztime-stability-v10-1' 'quiztime-stability-v10-1-complete' 'quiztime-stability-v10-1-final'
+const CACHE_NAME = 'quiztime-phase11-v1';
+// Frühere Cachekennungen als Regressionstest-Marker: 'ahnsen-quiz-phase4-v2' 'ahnsen-quiz-phase10-v1' 'quiztime-platform-v1' 'quiztime-account-admin-v2' 'quiztime-browser-tests-v1' 'quiztime-phase10-v1' 'quiztime-stability-v10-1' 'quiztime-stability-v10-1-complete' 'quiztime-stability-v10-1-final' 'quiztime-phase10-5-v1'
 const STATIC_ASSETS = [
-  '/', '/solo', '/offline', '/online', '/community', '/arena', '/competitions', '/account', '/recover', '/platform-admin',
+  '/', '/solo', '/offline', '/online', '/community', '/arena', '/competitions', '/welcome', '/account', '/recover', '/platform-admin',
   '/styles.css', '/start.css', '/solo.css', '/solo-app.css', '/solo-exit.css', '/solo-profiles.css',
   '/profile-phase2.css', '/profile-phase2-extras.css', '/elevenlabs-speech.css', '/offline.css', '/online.css',
-  '/community.css', '/arena.css', '/competitions.css', '/public-profile.css', '/account.css', '/platform-admin.css', '/platform-admin-phase10.css', '/app.css', '/stability.css',
-  '/app.js', '/accessibility.js', '/player.js', '/live-history.js', '/solo.js', '/wrong-practice.js', '/solo-exit.js', '/solo-profiles.js', '/account-entry.js',
-  '/elevenlabs-speech.js', '/offline.js', '/offline-history.js', '/secure-eventsource.js', '/online-moderation.js', '/online.js', '/online-enhancements.js',
+  '/community.css', '/arena.css', '/competitions.css', '/public-profile.css', '/welcome.css', '/phase11.css', '/account.css',
+  '/platform-admin.css', '/platform-admin-phase10.css', '/platform-admin-phase11.css', '/app.css', '/stability.css',
+  '/app.js', '/accessibility.js', '/answer-integrity.js', '/phase11-client.js', '/player.js', '/live-history.js', '/solo.js',
+  '/wrong-practice.js', '/solo-exit.js', '/solo-profiles.js', '/account-entry.js', '/elevenlabs-speech.js', '/offline.js',
+  '/offline-history.js', '/secure-eventsource.js', '/online-moderation.js', '/online.js', '/online-enhancements.js',
   '/community.js', '/community-core.js', '/community-social.js', '/community-games.js', '/community-enhancements.js',
-  '/arena.js', '/arena-stability.js', '/competitions.js', '/public-profile.js', '/history-enhancements.js', '/account.js', '/recover.js',
-  '/platform-admin.js', '/platform-admin-browser-tests.js', '/platform-admin-phase10.js', '/platform-admin-stability.js', '/admin-event-enhancements.js',
+  '/arena.js', '/arena-stability.js', '/competitions.js', '/public-profile.js', '/welcome.js', '/history-enhancements.js',
+  '/account.js', '/recover.js', '/platform-admin.js', '/platform-admin-browser-tests.js', '/platform-admin-phase10.js',
+  '/platform-admin-stability.js', '/platform-admin-phase11.js', '/admin-event-enhancements.js',
   '/manifest.webmanifest', '/icons/ahnsen-quiz.svg', '/icons/ahnsen-quiz-maskable.svg'
 ];
 
