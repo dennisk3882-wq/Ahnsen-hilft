@@ -15,21 +15,48 @@ function wrap(handler) {
   };
 }
 
+async function guardAnswerRequest(req, res, next, profileForRequest) {
+  if (req.__quiztimePhase11AnswerGuarded || req.method !== 'POST' || !phase11.answerSource(req)) return next();
+  try {
+    const profile = req.soloProfile || await profileForRequest(req).catch(() => null);
+    if (!profile?.id) return next();
+    const event = await phase11.beginAnswerEvent(req, profile.id);
+    req.__quiztimePhase11AnswerGuarded = true;
+    req.__quiztimePhase11AnswerEventId = event?.id || null;
+    if (event?.id) res.once('finish', () => phase11.finishAnswerEvent(event.id, res.statusCode).catch(() => {}));
+    return next();
+  } catch (error) {
+    if (error.code === 'DUPLICATE_ANSWER_EVENT') return res.status(409).json({ error: error.message, reason: 'duplicate_answer' });
+    if (error.code === 'COMPETITION_BLOCKED') return res.status(403).json({ error: error.message, reason: 'competition_blocked' });
+    return next(error);
+  }
+}
+
+function protectExistingAnswerRoutes(app, profileForRequest) {
+  const layers = app?._router?.stack || [];
+  for (const layer of layers) {
+    const route = layer.route;
+    if (!route || route.path !== '/api/solo/answer' || !Array.isArray(route.stack) || !route.stack.length) continue;
+    const firstLayer = route.stack[0];
+    if (firstLayer.handle?.__quiztimePhase11Wrapped) continue;
+    const original = firstLayer.handle;
+    const wrapped = function phase11ProfileThenAnswerGuard(req, res, next) {
+      return original(req, res, error => {
+        if (error) return next(error);
+        if (res.headersSent) return undefined;
+        return guardAnswerRequest(req, res, next, profileForRequest);
+      });
+    };
+    wrapped.__quiztimePhase11Wrapped = true;
+    firstLayer.handle = wrapped;
+  }
+}
+
 function installPhase11RequestGuard(app, profileForRequest) {
-  app.use(async (req, res, next) => {
-    if (req.method !== 'POST' || !phase11.answerSource(req)) return next();
-    try {
-      const profile = await profileForRequest(req).catch(() => null);
-      if (!profile?.id) return next();
-      const event = await phase11.beginAnswerEvent(req, profile.id);
-      if (event?.id) res.once('finish', () => phase11.finishAnswerEvent(event.id, res.statusCode).catch(() => {}));
-      return next();
-    } catch (error) {
-      if (error.code === 'DUPLICATE_ANSWER_EVENT') return res.status(409).json({ error: error.message, reason: 'duplicate_answer' });
-      if (error.code === 'COMPETITION_BLOCKED') return res.status(403).json({ error: error.message, reason: 'competition_blocked' });
-      return next(error);
-    }
-  });
+  if (app.__quiztimePhase11RequestGuardInstalled) return;
+  app.__quiztimePhase11RequestGuardInstalled = true;
+  protectExistingAnswerRoutes(app, profileForRequest);
+  app.use((req, res, next) => guardAnswerRequest(req, res, next, profileForRequest));
 }
 
 function installPhase11Routes(app, { requireProfile, requireAdmin, profileForRequest }) {
@@ -160,4 +187,4 @@ function installPhase11Routes(app, { requireProfile, requireAdmin, profileForReq
   }));
 }
 
-module.exports = { installPhase11RequestGuard, installPhase11Routes };
+module.exports = { installPhase11RequestGuard, installPhase11Routes, _test: { guardAnswerRequest, protectExistingAnswerRoutes } };
