@@ -36,7 +36,7 @@ const onlineCard = index.slice(index.indexOf('home-mode-online'), index.indexOf(
 assert(onlineCard.includes('href="/online"'), 'Online-Mehrspieler ist auf der Startseite nicht freigeschaltet.');
 assert(onlineCard.includes('Sofort spielbar'), 'Online-Mehrspieler ist nicht als spielbar markiert.');
 assert(!onlineCard.includes('data-upcoming'), 'Online-Mehrspieler ist weiterhin nur eine Vorschau.');
-assert(index.includes('Alle vier Plattformphasen sind integriert'), 'Abschluss der vier Plattformphasen wird nicht angezeigt.');
+assert(index.includes('Plattformphasen sind integriert') || index.includes('QuizTime 11 mit Launch-Reife ist integriert'), 'Abschluss der Plattformphasen wird nicht angezeigt.');
 assert(index.includes('PostgreSQL-Reconnect'), 'Dauerhafter Reconnect wird auf der Startseite nicht angezeigt.');
 
 for (const asset of ['/online.css', '/online.js']) {

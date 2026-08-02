@@ -12,6 +12,7 @@ const phase10Bridge = require('./phase10-online-bridge');
 const phase10Progression = require('./phase10-progression-bridge');
 const phase10Stability = require('./phase10-stability');
 const phase105Storage = require('./phase105-storage');
+const phase11Storage = require('./phase11-storage');
 const platformCompletion = require('./platform-completion');
 const soloSessionStability = require('./solo-session-stability');
 const onlineCatalogStability = require('./online-catalog-stability');
@@ -22,6 +23,7 @@ const { installPlatformSecurity } = require('./platform-security');
 const { installPlatformRoutes, requirePlatformAdmin } = require('./platform-routes');
 const { installPhase10Routes } = require('./phase10-routes');
 const { installPhase105Routes } = require('./phase105-routes');
+const { installPhase11RequestGuard, installPhase11Routes } = require('./phase11-routes');
 const { installBrowserTestStatusRoute } = require('./browser-test-status');
 const { installE2ETestSupport } = require('./e2e-test-support');
 
@@ -34,6 +36,7 @@ platformCompletion.patchHistory();
 phase10Stability.patchOnlineStorage();
 phase10Progression.patchProgression();
 friendNotificationControl.patchStorage(storage);
+phase11Storage.patchLeaderboards();
 
 accountStorage.adminListProfiles = adminProfileStorage.listProfiles;
 for (const method of ['verifyEmailToken', 'consumePasswordReset']) {
@@ -134,6 +137,9 @@ storage.ensureReady().catch(error => {
 friendNotificationControl.ensureReady().catch(error => {
   console.error('Freundes-Benachrichtigungseinstellungen konnten nicht vorbereitet werden:', error.message);
 });
+phase11Storage.ensureReady().catch(error => {
+  console.error('QuizTime Phase 11 konnte nicht vorbereitet werden:', error.message);
+});
 phase10Stability.installScheduler();
 platformCompletion.startMaintenance();
 
@@ -153,6 +159,7 @@ if (!profileAuth.__quiztimePlatformWrapped) {
     phase10Bridge.installRequestCapture(app);
     phase10Stability.installOnlineProfileBinding(app, profileAuth.profileForRequest);
     onlineCatalogStability.installOnlineCatalogMiddleware(app);
+    installPhase11RequestGuard(app, profileAuth.profileForRequest);
 
     const NativeMap = global.Map;
     const capturedMaps = [];
@@ -216,13 +223,18 @@ if (!profileAuth.__quiztimePlatformWrapped) {
       requireVerified,
       profileForRequest: profileAuth.profileForRequest,
     });
+    installPhase11Routes(app, {
+      requireProfile: requireProfileWithActor,
+      requireAdmin: requirePlatformAdmin,
+      profileForRequest: profileAuth.profileForRequest,
+    });
     app.use((error, req, res, next) => {
       if (res.headersSent) return next(error);
       console.error(`Plattform-Anfrage ${req.method} ${req.originalUrl} fehlgeschlagen:`, error.message);
-      const status = error.code === '23505' || error.code === '23503' || error.code === 'SEASON_SETTLEMENT_REQUIRED' ? 409
-        : error.code === 'NOT_FRIENDS' || error.code === 'PROFILE_PRIVATE' ? 403
+      const status = error.code === '23505' || error.code === '23503' || error.code === 'SEASON_SETTLEMENT_REQUIRED' || error.code === 'DUPLICATE_ANSWER_EVENT' ? 409
+        : error.code === 'NOT_FRIENDS' || error.code === 'PROFILE_PRIVATE' || error.code === 'COMPETITION_BLOCKED' ? 403
           : /nicht gefunden/iu.test(error.message || '') ? 404
-            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat|nur für Freunde|Gastgeber/iu.test(error.message || '') ? 403
+            : /keine Berechtigung|bestätige zuerst|bestätigten Freunden|privat|nur für Freunde|Gastgeber|gesperrt/iu.test(error.message || '') ? 403
               : /noch nicht|bereits|maximale|läuft noch|erst nach|verbunden/iu.test(error.message || '') ? 409
                 : 500;
       res.status(status).json({ error: status === 500 ? 'Die Anfrage konnte nicht verarbeitet werden.' : error.message });

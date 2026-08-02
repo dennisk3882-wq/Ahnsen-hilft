@@ -134,7 +134,7 @@ function primaryNavigation() {
   const path = location.pathname;
   const competitionArea = path === '/arena' || path === '/competitions' || path.startsWith('/profile/');
   const items = [
-    { href: '/', label: 'Start', active: path === '/', icon: '<path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/>' },
+    { href: '/', label: 'Start', active: path === '/' || path === '/welcome', icon: '<path d="m3 11 9-8 9 8v9H3v-9Z"/><path d="M9 20v-6h6v6"/>' },
     { href: '/solo', label: 'Spielen', active: ['/solo', '/offline', '/online'].includes(path), icon: '<circle cx="12" cy="12" r="8"/><path d="m10 8 6 4-6 4Z"/>' },
     { href: '/community', label: 'Community', active: path === '/community', icon: '<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1M13 20v-.5a4.5 4.5 0 0 1 8-2.8"/>' },
     { href: '/arena', label: 'Arena', active: competitionArea, icon: '<path d="M7 3h10v6a5 5 0 0 1-10 0V3Z"/><path d="M7 6H3v2a5 5 0 0 0 5 5m9-7h4v2a5 5 0 0 1-5 5M12 14v7m-4 0h8"/>' },
@@ -144,20 +144,20 @@ function primaryNavigation() {
   });
 }
 
-function installPhase105Presentation() {
+function installPhase11Presentation() {
   const banner = document.querySelector('.phase-banner');
   if (banner) {
     const icon = banner.querySelector('.phase-banner-icon');
     const strong = banner.querySelector('strong');
     const detail = banner.querySelector('strong + span');
     const action = banner.querySelector('a');
-    if (icon) icon.textContent = '10.5';
-    if (strong) strong.textContent = 'QuizTime 10.5: öffentliche Profile und offizielle Wettbewerbe';
-    if (detail) detail.textContent = '500 Erwachsenenfragen, öffentliche Spielerprofile, Eventkalender, Saisonarchiv und dauerhafte Champions sind integriert.';
-    if (action) { action.href = '/competitions'; action.textContent = 'Wettbewerbe öffnen'; }
+    if (icon) icon.textContent = '11.0';
+    if (strong) strong.textContent = 'QuizTime 11: bereit für Einführung und öffentlichen Betrieb';
+    if (detail) detail.textContent = 'Neue-Spieler-Einführung, Produktionschecks, Manipulationsschutz, vollständige Eventsteuerung und Betriebsanalysen sind integriert.';
+    if (action) { action.href = '/welcome'; action.textContent = 'Einführung öffnen'; }
   }
   const topBadge = document.querySelector('#topModeBadge');
-  if (topBadge) topBadge.innerHTML = '<i></i> Version 10.5';
+  if (topBadge) topBadge.innerHTML = '<i></i> Version 11.0';
 
   if (location.pathname === '/arena') {
     const actions = document.querySelector('.arena-topbar .app-top-actions');
@@ -169,23 +169,32 @@ function installPhase105Presentation() {
       actions.prepend(link);
     }
     const kicker = document.querySelector('.arena-hero .app-kicker');
-    if (kicker) kicker.textContent = 'Version 10.5 · Arena, Profile & Wettbewerbe';
+    if (kicker) kicker.textContent = 'Version 11 · Arena, Schutz & Wettbewerbe';
   }
 }
 
+function appendStyle(href) {
+  if (document.querySelector(`link[href="${href}"]`)) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+function appendScript(src) {
+  if (document.querySelector(`script[src="${src}"]`)) return;
+  const script = document.createElement('script');
+  script.src = src;
+  script.defer = true;
+  document.body.appendChild(script);
+}
+
 function loadEnhancements() {
-  if (!document.querySelector('link[href="/stability.css"]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/stability.css';
-    document.head.appendChild(link);
-  }
-  if (!document.querySelector('script[src="/accessibility.js"]')) {
-    const script = document.createElement('script');
-    script.src = '/accessibility.js';
-    script.defer = true;
-    document.body.appendChild(script);
-  }
+  appendStyle('/stability.css');
+  appendStyle('/phase11.css');
+  appendScript('/accessibility.js');
+  appendScript('/answer-integrity.js');
+  appendScript('/phase11-client.js');
 }
 
 function registerServiceWorker() {
@@ -199,6 +208,6 @@ installUpcomingHandlers();
 installPwaHandling();
 connectAppShortcuts();
 primaryNavigation();
-installPhase105Presentation();
+installPhase11Presentation();
 loadEnhancements();
 registerServiceWorker();

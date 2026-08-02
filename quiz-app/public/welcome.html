@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070914">
+  <meta name="description" content="QuizTime Einführung: Profil schützen, erstes Quiz spielen, Freunde finden und Wettbewerbe entdecken.">
+  <title>Willkommen bei QuizTime</title>
+  <link rel="icon" href="/icons/ahnsen-quiz.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/welcome.css">
+</head>
+<body class="app-body welcome-body">
+  <main class="app-shell welcome-shell" id="mainContent">
+    <header class="app-topbar welcome-topbar">
+      <a class="app-brand" href="/" aria-label="QuizTime Startseite"><div class="app-logo" aria-hidden="true">Q</div><div class="app-brand-copy"><strong>QuizTime</strong><span>Dein persönlicher Einstieg</span></div></a>
+      <a class="btn ghost small" href="/account">Kontocenter</a>
+    </header>
+
+    <section id="welcomeLoading" class="panel welcome-loading">Einführung wird geladen …</section>
+    <section id="welcomeLogin" class="panel hidden"><span class="app-kicker">Profil erforderlich</span><h1>Willkommen bei QuizTime</h1><p>Erstelle oder öffne zuerst dein Profil. Danach begleitet dich diese Einführung durch die wichtigsten Bereiche.</p><a class="btn primary" href="/solo">Profil öffnen</a></section>
+
+    <section id="welcomeApp" class="hidden">
+      <section class="welcome-hero">
+        <div><span class="app-kicker">Phase 11 · Sicher starten</span><h1>Dein Weg zum QuizTime-Profi</h1><p>Sieben kurze Schritte erklären Konto, Spielmodi, Freunde, Arena und Wettbewerbe. Dein Fortschritt wird automatisch gespeichert.</p></div>
+        <div class="welcome-progress-ring" aria-label="Einführungsfortschritt"><strong id="welcomePercent">0 %</strong><span>geschafft</span></div>
+      </section>
+
+      <section class="panel welcome-progress-panel">
+        <div class="welcome-progress-copy"><strong id="welcomeProgressLabel">0 von 7 Schritten</strong><span id="welcomeProgressText">Los geht’s.</span></div>
+        <div class="welcome-progress-track"><span id="welcomeProgressBar"></span></div>
+      </section>
+
+      <section id="welcomeSteps" class="welcome-grid" aria-label="Einführungsschritte"></section>
+
+      <section id="welcomeReward" class="panel welcome-reward">
+        <div class="welcome-reward-icon" aria-hidden="true">🏆</div>
+        <div><span class="app-kicker">Abschlussbelohnung</span><h2>500 XP, 100 Saisonpunkte und ein Abzeichen</h2><p>Nach allen sieben Schritten erhältst du das Abzeichen „QuizTime bereit“.</p></div>
+        <button id="claimWelcomeReward" class="btn primary" type="button" disabled>Belohnung abholen</button>
+      </section>
+
+      <div class="welcome-footer-actions"><button id="dismissWelcome" class="btn ghost" type="button">Einführung vorerst ausblenden</button><a class="btn secondary" href="/">Zur Startseite</a></div>
+      <div id="welcomeMessage" class="message" aria-live="polite"></div>
+    </section>
+  </main>
+  <nav class="app-bottom-nav" aria-label="Hauptnavigation"></nav>
+  <script src="/welcome.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
