@@ -72,12 +72,27 @@ function versionFor(catalogs = canonical) {
   return hash.digest('hex').slice(0, 16);
 }
 
+async function disabledQuestionIds() {
+  if (!db.enabled()) return new Set();
+  try {
+    const exists = await db.query("SELECT to_regclass('public.quiz_phase11_question_controls') AS name");
+    if (!exists.rows[0]?.name) return new Set();
+    const { rows } = await db.query('SELECT question_id FROM quiz_phase11_question_controls WHERE disabled');
+    return new Set(rows.map(row => row.question_id));
+  } catch {
+    return new Set();
+  }
+}
+
 async function databaseCatalog(type) {
   const key = type === 'child' ? 'child' : 'adult';
   if (!db.enabled()) return currentCatalog(key);
   try {
-    const { rows } = await db.query('SELECT questions FROM quiz_question_sets WHERE quiz_type=$1', [key]);
-    return normalizeCatalog(rows[0]?.questions, canonical[key]);
+    const [{ rows }, disabled] = await Promise.all([
+      db.query('SELECT questions FROM quiz_question_sets WHERE quiz_type=$1', [key]),
+      disabledQuestionIds(),
+    ]);
+    return normalizeCatalog(rows[0]?.questions, canonical[key]).filter(question => !disabled.has(question.id));
   } catch {
     return currentCatalog(key);
   }
@@ -91,6 +106,7 @@ async function reloadFromDatabase() {
 async function diagnostics() {
   const runtime = currentCatalogs();
   const database = { adult: await databaseCatalog('adult'), child: await databaseCatalog('child') };
+  const disabled = await disabledQuestionIds();
   const byType = {};
   for (const type of ['adult', 'child']) {
     const standardIds = new Set(canonical[type].map(question => question.id));
@@ -101,12 +117,14 @@ async function diagnostics() {
       return other && JSON.stringify([question.text, question.options, question.correctIndex, question.explanation || ''])
         !== JSON.stringify([other.text, other.options, other.correctIndex, other.explanation || '']);
     }).length;
+    const disabledForType = canonical[type].filter(question => disabled.has(question.id)).length;
     byType[type] = {
       canonical: canonical[type].length,
       runtime: runtime[type].length,
       database: database[type].length,
+      disabled: disabledForType,
       custom: runtime[type].filter(question => !standardIds.has(question.id)).length,
-      missingStandards: canonical[type].filter(question => !runtimeById.has(question.id)).length,
+      missingStandards: canonical[type].filter(question => !runtimeById.has(question.id) && !disabled.has(question.id)).length,
       changedStandards,
       databaseMatchesRuntime: versionFor({ [type]: database[type] }) === versionFor({ [type]: runtime[type] }),
       databaseMissingRuntime: runtime[type].filter(question => !databaseById.has(question.id)).length,
@@ -118,8 +136,9 @@ async function diagnostics() {
     databaseVersion: versionFor(database),
     updatedAt,
     consistent: Object.values(byType).every(item => item.missingStandards === 0 && item.databaseMatchesRuntime),
+    disabledQuestions: disabled.size,
     byType,
-    policy: 'Der in PostgreSQL veröffentlichte Fragenkatalog wird als gemeinsamer Laufzeitkatalog für Live, Solo, Offline, Online, Duelle, Turniere, offizielle Events und Schwächen-Training verwendet.',
+    policy: 'Der in PostgreSQL veröffentlichte Fragenkatalog wird als gemeinsamer Laufzeitkatalog für Live, Solo, Offline, Online, Duelle, Turniere, offizielle Events und Schwächen-Training verwendet. Administrativ deaktivierte Fragen werden zentral ausgeschlossen.',
   };
 }
 
@@ -133,4 +152,5 @@ module.exports = {
   versionFor,
   databaseCatalog,
   diagnostics,
+  disabledQuestionIds,
 };
