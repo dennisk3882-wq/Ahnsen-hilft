@@ -3,7 +3,11 @@
 const path = require('path');
 const phase11 = require('./phase11-storage');
 const phase10 = require('./phase10-storage');
+const gameStorage = require('./platform-game-storage');
 const platformStorage = require('./platform-storage');
+const { patchPhase11 } = require('./phase11-patch');
+
+patchPhase11();
 
 function wrap(handler) {
   return async (req, res, next) => {
