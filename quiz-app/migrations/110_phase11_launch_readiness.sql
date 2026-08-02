@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS quiz_phase11_answer_events (
   risk_reasons JSONB NOT NULL DEFAULT '[]'::jsonb,
   ip_hash TEXT,
   user_agent_hash TEXT,
+  browser_family TEXT,
+  device_family TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   finished_at TIMESTAMPTZ
 );
@@ -37,6 +39,8 @@ CREATE INDEX IF NOT EXISTS quiz_phase11_answer_profile_time
   ON quiz_phase11_answer_events(profile_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS quiz_phase11_answer_source
   ON quiz_phase11_answer_events(source_type,source_id,profile_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS quiz_phase11_answer_device_time
+  ON quiz_phase11_answer_events(browser_family,device_family,created_at DESC);
 
 CREATE TABLE IF NOT EXISTS quiz_phase11_risk_flags (
   id UUID PRIMARY KEY,
