@@ -24,6 +24,8 @@ const readinessSource = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'r
 assert.match(readinessSource, /require\('\.\.\/package\.json'\)/u);
 assert.match(readinessSource, /result\.status === 'fail'/u);
 assert.doesNotMatch(readinessSource, /result\.status === 'warning'/u);
+assert.match(readinessSource, /!response\.ok\b/u);
+assert.doesNotMatch(readinessSource, /response\.ok\(\)/u);
 
 const cleanLog = 'LOG: database system is ready\nWARNING: no usable locales\n';
 assert.deepStrictEqual(databaseErrors(cleanLog), []);
