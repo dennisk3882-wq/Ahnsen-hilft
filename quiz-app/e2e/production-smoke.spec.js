@@ -1,6 +1,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
+const { version: expectedReleaseVersion } = require('../package.json');
 
 test('Produktionsseite, PostgreSQL, QuizTime 13, Recht und Raumlebenszyklus funktionieren', async ({ page, request }) => {
   const health = await request.get('/health');
@@ -29,7 +30,7 @@ test('Produktionsseite, PostgreSQL, QuizTime 13, Recht und Raumlebenszyklus funk
   const release = await request.get('/api/platform/release-readiness');
   expect([200, 503]).toContain(release.status());
   const releaseStatus = await release.json();
-  expect(releaseStatus.version).toBe('13.0.0');
+  expect(releaseStatus.version).toBe(expectedReleaseVersion);
   expect(releaseStatus.checks.some(item => item.key === 'database' && item.ok)).toBe(true);
   expect(releaseStatus.checks.some(item => item.key === 'migration-120' && item.ok)).toBe(true);
   expect(releaseStatus.checks.some(item => item.key === 'catalog-child' && item.ok)).toBe(true);
