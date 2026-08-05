@@ -21,6 +21,7 @@ const tests = [
   'test/phase105.test.js',
   'test/phase11.test.js',
   'test/phase12-13.test.js',
+  'test/phase13-1-hardening.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',
