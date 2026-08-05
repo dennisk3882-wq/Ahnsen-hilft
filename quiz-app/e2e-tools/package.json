@@ -1,0 +1,12 @@
+{
+  "name": "quiztime-e2e-tools",
+  "version": "13.1.0",
+  "private": true,
+  "description": "Reproduzierbar gesperrte Browser-Testwerkzeuge für QuizTime",
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
