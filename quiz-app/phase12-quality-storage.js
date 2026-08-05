@@ -52,11 +52,19 @@ async function updateQuestionReport(id, values = {}, actor = 'platform-admin') {
 
 async function questionStatistics(query = '') {
   const term = `%${safeText(query, 120)}%`;
-  return (await q(`SELECT question_id,MAX(question_text) AS question_text,MAX(category) AS category,MAX(quiz_type) AS quiz_type,COUNT(*)::int AS answers,
-    COUNT(*) FILTER(WHERE correct)::int AS correct,COUNT(*) FILTER(WHERE NOT correct AND NOT timed_out)::int AS wrong,COUNT(*) FILTER(WHERE timed_out)::int AS timed_out,
-    ROUND(AVG(CASE WHEN correct THEN 1 ELSE 0 END)*100)::int AS accuracy,ROUND(AVG(GREATEST(0,delta)))::int AS average_points,MAX(answered_at) AS last_answered_at
-    FROM quiz_solo_attempts WHERE ($1='%%' OR question_text ILIKE $1 OR category ILIKE $1 OR question_id ILIKE $1)
-    GROUP BY question_id ORDER BY accuracy ASC,answers DESC LIMIT 500`, [term])).rows;
+  return (await q(`WITH attempt_stats AS (
+      SELECT question_id,MAX(question_text) AS question_text,MAX(category) AS category,MAX(quiz_type) AS quiz_type,COUNT(*)::int AS answers,
+        COUNT(*) FILTER(WHERE correct)::int AS correct,COUNT(*) FILTER(WHERE NOT correct AND NOT timed_out)::int AS wrong,COUNT(*) FILTER(WHERE timed_out)::int AS timed_out,
+        ROUND(AVG(CASE WHEN correct THEN 1 ELSE 0 END)*100)::int AS accuracy,MAX(answered_at) AS last_answered_at
+      FROM quiz_solo_attempts WHERE ($1='%%' OR question_text ILIKE $1 OR category ILIKE $1 OR question_id ILIKE $1)
+      GROUP BY question_id
+    ), timing AS (
+      SELECT question_key,ROUND(AVG(response_ms))::int AS average_response_ms,COUNT(*)::int AS measured_answers
+      FROM quiz_phase11_answer_events WHERE accepted AND response_ms IS NOT NULL GROUP BY question_key
+    )
+    SELECT a.*,t.average_response_ms,COALESCE(t.measured_answers,0)::int AS measured_answers
+    FROM attempt_stats a LEFT JOIN timing t ON t.question_key=a.question_id
+    ORDER BY a.accuracy ASC,a.answers DESC LIMIT 500`, [term])).rows;
 }
 
 async function editQuestion(questionId, values = {}, actor = 'platform-admin') {
