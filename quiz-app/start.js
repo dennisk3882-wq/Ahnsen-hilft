@@ -7,6 +7,7 @@ require('./answer-layout-patch');
 (async () => {
   await require('./startup-schema').prepareStartupSchema();
   require('./platform-bootstrap');
+  require('./phase12-13-bootstrap');
   require('./server');
 })().catch(error => {
   console.error('QuizTime konnte nicht sicher gestartet werden:', error);
