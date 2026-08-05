@@ -20,6 +20,11 @@ assert.match(opsSource, /jsonb_object_keys/u);
 const startupSource = fs.readFileSync(path.join(__dirname, '..', 'startup-schema.js'), 'utf8');
 assert.ok(startupSource.indexOf('baseDatabase.ensureBaseSchema') < startupSource.indexOf('profiles.ensureReady'));
 
+const readinessSource = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'release-readiness.js'), 'utf8');
+assert.match(readinessSource, /require\('\.\.\/package\.json'\)/u);
+assert.match(readinessSource, /result\.status === 'fail'/u);
+assert.doesNotMatch(readinessSource, /result\.status === 'warning'/u);
+
 const cleanLog = 'LOG: database system is ready\nWARNING: no usable locales\n';
 assert.deepStrictEqual(databaseErrors(cleanLog), []);
 const brokenLog = '2026-08-05 UTC [1] ERROR: relation fehlt\n2026 UTC [2] FATAL: Abbruch\n';
