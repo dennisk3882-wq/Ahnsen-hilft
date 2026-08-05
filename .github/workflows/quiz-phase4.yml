@@ -1,35 +1,46 @@
 name: Quiz Phase 4
 
 on:
-  pull_request:
-    paths:
-      - 'quiz-app/**'
-      - '.github/workflows/quiz-phase4.yml'
   push:
     branches:
       - ahnsen-live-quiz-online
     paths:
       - 'quiz-app/**'
       - '.github/workflows/quiz-phase4.yml'
+  pull_request:
+    branches:
+      - ahnsen-live-quiz-online
+    paths:
+      - 'quiz-app/**'
+      - '.github/workflows/quiz-phase4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   online-multiplayer:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: quiz-app
+    timeout-minutes: 15
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
-      - name: Node.js einrichten
-        uses: actions/setup-node@v4
+        uses: actions/checkout@v6
+
+      - name: Node.js 24 einrichten
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
           cache-dependency-path: quiz-app/package-lock.json
+
       - name: Abhängigkeiten installieren
+        working-directory: quiz-app
         run: npm ci
+
       - name: Bestehende Prüfungen ausführen
+        working-directory: quiz-app
         run: npm run test:all
+
       - name: Phase-4-Online-Mehrspieler prüfen
+        working-directory: quiz-app
         run: node test/phase4-online.test.js
