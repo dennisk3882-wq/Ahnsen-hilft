@@ -45,7 +45,8 @@ assert(postgresLogCheck.includes('ERROR|FATAL|PANIC'), 'PostgreSQL-Prüfung erke
 assert(browserWorkflow.includes('actions/upload-artifact@v6'), 'Fehlerberichte werden nicht mit der Node-24-fähigen Artefaktaktion gespeichert.');
 assert(productionWorkflow.includes("cron: '17 */6 * * *'"), 'Sechsstündiger Produktionsplan fehlt.');
 assert(productionWorkflow.includes('GITHUB_SHA'), 'Produktionsprüfung wartet nicht auf den tatsächlich ausgerollten Commit.');
-assert(productionWorkflow.includes('production-smoke.spec.js'), 'Produktions-Smoke-Test fehlt.');
+assert.strictEqual(packageJson.scripts['test:production-smoke'], 'node scripts/run-playwright.js test e2e/production-smoke.spec.js', 'Produktions-Smoke-Test ist nicht an den gesperrten Runner angebunden.');
+assert(productionWorkflow.includes('npm run test:production-smoke'), 'Produktionsworkflow führt den Smoke-Test nicht aus.');
 assert(playwrightConfig.includes("trace: 'retain-on-failure'"), 'Playwright-Traces bei Fehlern fehlen.');
 assert(playwrightConfig.includes("video: 'retain-on-failure'"), 'Browservideos bei Fehlern fehlen.');
 
