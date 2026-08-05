@@ -17,6 +17,12 @@ const opsSource = fs.readFileSync(path.join(__dirname, '..', 'platform-ops-stora
 assert.doesNotMatch(opsSource, /jsonb_object_length/u);
 assert.match(opsSource, /jsonb_object_keys/u);
 
+const platformStorageSource = fs.readFileSync(path.join(__dirname, '..', 'platform-storage.js'), 'utf8');
+assert.ok(platformStorageSource.indexOf('...ops') < platformStorageSource.lastIndexOf('ensureReady'), 'Die gemeinsame Plattformbereitschaft darf nicht durch Modul-Spreads überschrieben werden.');
+for (const readinessCall of ['account.ensureReady()', 'social.ensureReady()', 'game.ensureReady()', 'ops.ensureReady()']) {
+  assert(platformStorageSource.includes(readinessCall), `Gemeinsamer Plattformstart fehlt: ${readinessCall}`);
+}
+
 const startupSource = fs.readFileSync(path.join(__dirname, '..', 'startup-schema.js'), 'utf8');
 assert.ok(startupSource.indexOf('baseDatabase.ensureBaseSchema') < startupSource.indexOf('profiles.ensureReady'));
 
@@ -26,6 +32,10 @@ assert.match(readinessSource, /result\.status === 'fail'/u);
 assert.doesNotMatch(readinessSource, /result\.status === 'warning'/u);
 assert.match(readinessSource, /!response\.ok\b/u);
 assert.doesNotMatch(readinessSource, /response\.ok\(\)/u);
+
+const phase1213BrowserSource = fs.readFileSync(path.join(__dirname, '..', 'e2e', 'phase12-13.spec.js'), 'utf8');
+assert.match(phase1213BrowserSource, /expectedReleaseVersion/u);
+assert.doesNotMatch(phase1213BrowserSource, /toBe\('13\.0\.0'\)/u);
 
 const cleanLog = 'LOG: database system is ready\nWARNING: no usable locales\n';
 assert.deepStrictEqual(databaseErrors(cleanLog), []);
