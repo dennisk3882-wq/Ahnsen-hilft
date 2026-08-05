@@ -36,6 +36,7 @@ assert(legalStorage.includes("ageGroup === 'under16'"), 'Altersgruppenprüfung f
 assert(legalStorage.includes('guardian_verified_at'), 'Bestätigung durch Erziehungsberechtigte fehlt.');
 assert(quality.includes('reportQuestion'), 'Fragenmeldung fehlt.');
 assert(quality.includes('questionStatistics'), 'Fragenstatistik fehlt.');
+assert(quality.includes('average_response_ms'), 'Durchschnittliche Antwortzeit fehlt.');
 assert(quality.includes('quiz_phase12_question_versions'), 'Fragenversionsverlauf fehlt.');
 assert(quality.includes('reloadFromDatabase'), 'Katalog wird nach Korrektur nicht neu geladen.');
 assert(operations.includes('releaseChecks'), 'Release-Bereitschaft fehlt.');
@@ -68,6 +69,6 @@ const moduleApi = require('../phase12-13-storage');
 assert.strictEqual(moduleApi._test.berlinDate(new Date('2026-08-05T10:00:00Z')), '2026-08-05');
 assert.strictEqual(moduleApi._test.mondayFor('2026-08-05'), '2026-08-03');
 assert.strictEqual(moduleApi._test.dateDiffDays('2026-08-05', '2026-08-04'), 1);
-assert(moduleApi._test.resolveQuestion({ questionId: 'child-001', quizType: 'child' }), 'Bekannte Kinderfrage wird nicht aufgelöst.');
+assert(moduleApi._test.resolveQuestion({ questionId: 'child-math-001', quizType: 'child' }), 'Bekannte Kinderfrage wird nicht aufgelöst.');
 
 console.log('Phase 12/13 release, legal, quality and engagement tests passed.');
