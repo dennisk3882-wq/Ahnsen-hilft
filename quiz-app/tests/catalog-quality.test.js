@@ -3,7 +3,7 @@
 const path = require('path');
 
 const appRoot = path.resolve(__dirname, '..');
-const adultQuestions = require(path.join(appRoot, 'data', 'adult-question-bank'));
+const adultQuestions = require(path.join(appRoot, 'data', 'adult-question-catalog'));
 const childQuestions = require(path.join(appRoot, 'data', 'child-question-bank'));
 
 const adultCategories = new Set([
@@ -16,14 +16,16 @@ const catalogs = [
     name: 'Erwachsene',
     key: 'adult',
     questions: adultQuestions,
-    expectedCount: 500,
+    expectedCount: 1000,
+    expansionPrefix: 'adult-b1-',
     categories: adultCategories,
   },
   {
     name: 'Kinder',
     key: 'child',
     questions: childQuestions,
-    expectedCount: 500,
+    expectedCount: 1000,
+    expansionPrefix: 'child-b1-',
     categories: new Set([
       'Mathematik', 'Sprache', 'Natur & Tiere', 'Technik & Wissenschaft',
       'Geografie', 'Alltag & Verkehr', 'Essen & Gesundheit', 'Allgemeinwissen',
@@ -67,6 +69,10 @@ for (const catalog of catalogs) {
   }
   if (questions.length !== catalog.expectedCount) {
     errors.push(`${catalog.name}: Erwartet werden ${catalog.expectedCount} Fragen, gefunden wurden ${questions.length}.`);
+  }
+  const expansionCount = questions.filter(question => String(question?.id || '').startsWith(catalog.expansionPrefix)).length;
+  if (expansionCount !== 500) {
+    errors.push(`${catalog.name}: Der erste Ausbau muss genau 500 neue Fragen enthalten, gefunden wurden ${expansionCount}.`);
   }
 
   const distribution = [0, 0, 0, 0];
@@ -162,14 +168,15 @@ const reportLines = [
   '',
   '## Automatisch geprüft',
   '',
-  '- 500 Erwachsenenfragen und 500 Kinderfragen',
-  '- ausschließlich die neun bestehenden Erwachsenen-Kategorien; keine Schwierigkeitsstufen',
+  '- 1.000 Erwachsenenfragen und 1.000 Kinderfragen',
+  '- erster Ausbau enthält exakt 500 neue Fragen je Zielgruppe',
+  '- ausschließlich die bestehenden Kategorien; keine Schwierigkeitsstufen',
   '- Kategorienpools dürfen mehr als 50 Fragen enthalten; pro Runde wird nur die gewählte Quizlänge gezogen',
   '- eindeutige feste Frage-IDs und Fragetexte innerhalb jedes Katalogs',
   '- Rechenzeichen bleiben bei der Duplikatprüfung unterscheidbar',
   '- genau vier nicht leere und exakt unterschiedliche Antworten',
   '- gültiger correctIndex von 0 bis 3',
-  '- bei Kinderfragen exakt 125 richtige Antworten je Position A, B, C und D',
+  '- bei Kinderfragen exakt 250 richtige Antworten je Position A, B, C und D',
   '- bei allen Fragen zwei bis drei verständliche Erklärungssätze',
   '',
   '> Sachliche Richtigkeit und Aktualität benötigen weiterhin redaktionelle Stichproben; sie lassen sich nicht vollständig automatisieren.',

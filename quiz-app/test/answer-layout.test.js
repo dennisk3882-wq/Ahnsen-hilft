@@ -8,10 +8,10 @@ function sentenceCount(value) {
   return String(value || '').split(/(?<=[.!?])\s+/u).filter(Boolean).length;
 }
 
-assert.strictEqual(childQuestions.length, 500, 'Der Kinderkatalog muss exakt 500 Fragen enthalten.');
-assert.strictEqual(new Set(childQuestions.map(question => question.id)).size, 500, 'Alle Kinderfragen benötigen eindeutige IDs.');
-assert.strictEqual(new Set(childQuestions.map(question => question.text)).size, 500, 'Alle Kinderfragen benötigen eindeutige Texte.');
-assert.deepStrictEqual(answerLayout.distribution(childQuestions), [125, 125, 125, 125], 'Der Quellkatalog muss A bis D exakt ausgleichen.');
+assert.strictEqual(childQuestions.length, 1000, 'Der Kinderkatalog muss exakt 1.000 Fragen enthalten.');
+assert.strictEqual(new Set(childQuestions.map(question => question.id)).size, 1000, 'Alle Kinderfragen benötigen eindeutige IDs.');
+assert.strictEqual(new Set(childQuestions.map(question => question.text)).size, 1000, 'Alle Kinderfragen benötigen eindeutige Texte.');
+assert.deepStrictEqual(answerLayout.distribution(childQuestions), [250, 250, 250, 250], 'Der Quellkatalog muss A bis D exakt ausgleichen.');
 assert(childQuestions.every(question => sentenceCount(question.explanation) >= 2 && sentenceCount(question.explanation) <= 3), 'Jede Kinderfrage benötigt zwei bis drei Erklärungssätze.');
 
 for (let attempt = 0; attempt < 100; attempt += 1) {
@@ -34,4 +34,4 @@ prepared.forEach((question, index) => {
   assert.deepStrictEqual([...question.options].sort(), [...original.options].sort(), 'Beim Mischen dürfen keine Antworten verloren gehen oder hinzukommen.');
 });
 
-console.log('Answer layout and 500-child-question tests passed.');
+console.log('Answer layout and 1.000-child-question tests passed.');
