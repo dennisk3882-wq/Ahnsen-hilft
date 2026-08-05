@@ -9,7 +9,8 @@
 - E-Mail-Bestätigung einer erziehungsberechtigten Person für die Altersgruppe unter 16
 - Datenexport und Kontolöschung im Kontocenter
 - technisch notwendige Sitzungs-Cookies und PWA-Speicherung beschrieben
-- globaler Problem-melden-Kanal und Fragenmeldungen
+- kontextbezogene Meldung fehlerhafter Quizfragen aus Phase 12.4
+- kein allgemeiner Beta- oder Problem-melden-Kanal aus Phase 12.3
 
 ## Vor einer breiten öffentlichen Veröffentlichung noch erforderlich
 
