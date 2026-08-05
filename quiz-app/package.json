@@ -1,26 +1,26 @@
 {
   "name": "ahnsen-live-quiz",
-  "version": "11.0.0",
+  "version": "13.0.0",
   "private": true,
-  "description": "QuizTime Plattform mit Einführung, Produktionsbereitschaft, Manipulationsschutz, vollständiger Wettbewerbsverwaltung und Betriebsanalysen",
+  "description": "QuizTime mit Release-Prüfung, Fragen-Qualitätsverwaltung, Datenschutz, Jugendschutz, Serien, Wochenzielen, Abzeichen und Empfehlungen",
   "main": "server.js",
   "scripts": {
     "start": "node start.js",
-    "check": "node --check start.js && node --check test-pg-ssl-compat.js && node --check test-mailbox.js && node --check answer-layout.js && node --check answer-layout-patch.js && node --check data/adult-question-bank.js && node --check data/child-question-bank.js && node --check server.js && node --check db.js && node --check solo-routes.js && node --check solo-session-stability.js && node --check progression.js && node --check weak-practice.js && node --check offline-routes.js && node --check online-multiplayer.js && node --check online-room-storage.js && node --check online-completion.js && node --check online-catalog-stability.js && node --check event-runtime-routes.js && node --check friend-notification-control.js && node --check elevenlabs.js && node --check extended-storage.js && node --check account-storage.js && node --check email-service.js && node --check e2e-test-support.js && node --check browser-test-status.js && node --check solo-profile-auth.js && node --check question-explanations.js && node --check question-catalog-service.js && node --check platform-bootstrap.js && node --check platform-completion.js && node --check platform-db.js && node --check platform-storage.js && node --check platform-social-storage.js && node --check platform-game-storage.js && node --check platform-ops-storage.js && node --check platform-admin-storage.js && node --check platform-admin-profile-storage.js && node --check runtime-room-admin.js && node --check platform-security.js && node --check platform-routes.js && node --check migration-runner.js && node --check phase10-storage.js && node --check phase10-routes.js && node --check phase10-online-bridge.js && node --check phase10-progression-bridge.js && node --check phase10-stability.js && node --check phase105-storage.js && node --check phase105-routes.js && node --check phase11-storage.js && node --check phase11-patch.js && node --check phase11-routes.js && node --check public/player.js && node --check public/admin.js && node --check public/screen.js && node --check public/solo.js && node --check public/wrong-practice.js && node --check public/offline.js && node --check public/offline-history.js && node --check public/online.js && node --check public/online-enhancements.js && node --check public/secure-eventsource.js && node --check public/online-moderation.js && node --check public/community.js && node --check public/community-core.js && node --check public/community-social.js && node --check public/community-games.js && node --check public/community-enhancements.js && node --check public/arena.js && node --check public/arena-stability.js && node --check public/competitions.js && node --check public/public-profile.js && node --check public/welcome.js && node --check public/answer-integrity.js && node --check public/phase11-client.js && node --check public/history-enhancements.js && node --check public/live-history.js && node --check public/accessibility.js && node --check public/account.js && node --check public/account-entry.js && node --check public/recover.js && node --check public/platform-admin.js && node --check public/platform-admin-browser-tests.js && node --check public/platform-admin-phase10.js && node --check public/platform-admin-stability.js && node --check public/platform-admin-phase11.js && node --check public/admin-event-enhancements.js && node --check public/solo-exit.js && node --check public/app.js && node --check public/sw.js && node --check public/elevenlabs-speech.js && node --check public/solo-profiles.js && node --check scripts/backup-critical-data.js && node --check scripts/restore-critical-data.js && node --check scripts/load-smoke.js && node --check scripts/production-readiness.js && node --check playwright.config.js && node --check e2e/helpers.js && node --check e2e/account.spec.js && node --check e2e/admin.spec.js && node --check e2e/online.spec.js && node --check e2e/phase10.spec.js && node --check e2e/phase10-stability.spec.js && node --check e2e/phase105.spec.js && node --check e2e/phase11.spec.js && node --check e2e/friend-notifications.spec.js && node --check e2e/answer-balance.spec.js && node --check e2e/production-smoke.spec.js && node --check test/run-isolated.js && node --check test/phase4-online.test.js && node --check test/platform-features.test.js && node --check test/account-admin.test.js && node --check test/browser-automation.test.js && node --check test/phase10.test.js && node --check test/stability-v101.test.js && node --check test/answer-layout.test.js && node --check test/phase105.test.js && node --check test/phase11.test.js",
+    "check": "node scripts/check-js.js",
     "test:core": "node test/run-isolated.js",
     "test:catalog": "node tests/catalog-quality.test.js",
     "test:browser": "playwright test",
     "test:production-smoke": "playwright test e2e/production-smoke.spec.js",
     "test:production-readiness": "node scripts/production-readiness.js",
+    "test:release-readiness": "node scripts/release-readiness.js",
+    "test:restore": "node scripts/verify-backup-restore.js",
     "test:stability": "node test/stability-v101.test.js",
     "test:all": "npm run check && npm run test:core && npm run test:catalog",
     "test:load": "node scripts/load-smoke.js",
     "backup:critical": "node scripts/backup-critical-data.js",
     "restore:critical": "node scripts/restore-critical-data.js"
   },
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "cookie-parser": "1.4.7",
     "express": "4.22.2",
