@@ -1,6 +1,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
+const { version: expectedReleaseVersion } = require('../package.json');
 const { uniqueIdentity, latestMail, registerAndVerifyProfile } = require('./helpers');
 
 async function jsonFetch(page, url, options = {}) {
@@ -29,7 +30,7 @@ test('Phase 12 und 13 verbinden Recht, Fragenqualität, Release-Prüfung und Spi
   const readiness = await request.get('/api/platform/release-readiness');
   expect([200, 503]).toContain(readiness.status());
   const readinessBody = await readiness.json();
-  expect(readinessBody.version).toBe('13.0.0');
+  expect(readinessBody.version).toBe(expectedReleaseVersion);
   expect(readinessBody.checks.some(item => item.key === 'database' && item.ok)).toBe(true);
   expect(readinessBody.checks.some(item => item.key === 'migration-120' && item.ok)).toBe(true);
   expect(readinessBody.checks.some(item => item.key === 'catalog-child' && item.ok)).toBe(true);
@@ -44,7 +45,7 @@ test('Phase 12 und 13 verbinden Recht, Fragenqualität, Release-Prüfung und Spi
   const next = await jsonFetch(page, '/api/solo/next', { method: 'POST', body: JSON.stringify({ sessionId: started.body.sessionId }) });
   expect(next.status).toBe(200);
 
-  const report = await jsonFetch(page, '/api/platform/questions/report', { method: 'POST', body: JSON.stringify({ questionId: question.id, questionText: question.text, quizType: 'child', category: question.category, reportType: 'unclear', comment: 'Automatische Browserprüfung der Fragenmeldung.', pagePath: '/solo', appVersion: '13.0.0' }) });
+  const report = await jsonFetch(page, '/api/platform/questions/report', { method: 'POST', body: JSON.stringify({ questionId: question.id, questionText: question.text, quizType: 'child', category: question.category, reportType: 'unclear', comment: 'Automatische Browserprüfung der Fragenmeldung.', pagePath: '/solo', appVersion: expectedReleaseVersion }) });
   expect(report.status).toBe(201);
   expect(report.body.status).toBe('open');
 
