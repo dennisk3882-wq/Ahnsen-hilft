@@ -12,4 +12,4 @@ async function ensureReady(){
   await ops.ensureReady();
   return true;
 }
-module.exports={enabled:db.enabled,ensureReady,safeText:db.safeText,safeCode:db.safeCode,...social,...game,...ops,account,_test:{normalizeQuestions:db.normalizeQuestions,pairIds:db.pairIds,randomCode:db.randomCode}};
+module.exports={...social,...game,...ops,enabled:db.enabled,ensureReady,safeText:db.safeText,safeCode:db.safeCode,account,_test:{normalizeQuestions:db.normalizeQuestions,pairIds:db.pairIds,randomCode:db.randomCode}};
