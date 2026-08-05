@@ -17,6 +17,7 @@ async function submitLegalConsent(profileId, values = {}) {
   if (values.accepted !== true) throw new Error('Datenschutzerklärung und Nutzungsbedingungen müssen bestätigt werden.');
   const guardianEmail = ageGroup === 'under16' ? accountStorage.normalizeEmail(values.guardianEmail) : null;
   if (ageGroup === 'under16' && !guardianEmail) throw new Error('Für Nutzer unter 16 Jahren wird eine Kontaktadresse eines Erziehungsberechtigten benötigt.');
+  await q('SELECT 1');
   const client = await db.pool.connect(); let token = null;
   try {
     await client.query('BEGIN');
@@ -32,14 +33,16 @@ async function submitLegalConsent(profileId, values = {}) {
     }
     await client.query('COMMIT');
   } catch (error) { await client.query('ROLLBACK').catch(() => {}); throw error; } finally { client.release(); }
+  let guardianEmailSent = null;
   if (token) {
     const account = await accountStorage.getAccount(profileId); const url = `${emailService.APP_BASE_URL}/legal/guardian?token=${encodeURIComponent(token)}`;
-    await emailService.sendEmail({ to: guardianEmail, subject: 'QuizTime-Zustimmung bestätigen', text: `Für das Profil ${account?.name || ''} wurde eine Zustimmung angefragt. Link: ${url}`, html: `<p>Für das Profil wurde eine Zustimmung angefragt.</p><p><a href="${url}">Zustimmung bestätigen</a></p>` });
+    guardianEmailSent = await emailService.sendEmail({ to: guardianEmail, subject: 'QuizTime-Zustimmung bestätigen', text: `Für das Profil ${account?.name || ''} wurde eine Zustimmung angefragt. Link: ${url}`, html: `<p>Für das Profil wurde eine Zustimmung angefragt.</p><p><a href="${url}">Zustimmung bestätigen</a></p>` }).catch(() => false);
   }
-  return legalConsent(profileId);
+  return { ...await legalConsent(profileId), guardianEmailSent };
 }
 
 async function verifyGuardian(rawToken) {
+  await q('SELECT 1');
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
