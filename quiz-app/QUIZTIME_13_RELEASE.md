@@ -25,8 +25,8 @@ Vor dem öffentlichen Betrieb muss in Render zusätzlich `LEGAL_CONTACT_EMAIL` m
 
 ## Phase 12.4 – Fragenqualität
 
-- globaler Button „Problem melden“
-- gezielte Meldung der aktuell sichtbaren Frage
+- ausschließlich kontextbezogene Aktion „Diese Frage melden“ an einer aktuell angezeigten Quizfrage
+- kein globaler Beta-, Ideen- oder Technik-Feedbackbutton aus Phase 12.3
 - Meldungsübersicht und Fragenstatistik im Adminbereich
 - sofortige zentrale Deaktivierung
 - redaktionelle Korrektur mit archivierter Vorversion
