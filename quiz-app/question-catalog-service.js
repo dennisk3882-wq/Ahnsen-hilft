@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const db = require('./platform-db');
-const adultQuestionBank = require('./data/adult-question-bank');
+const adultQuestionBank = require('./data/adult-question-catalog');
 const childQuestionBank = require('./data/child-question-bank');
 const { enrichQuestion } = require('./question-explanations');
 
