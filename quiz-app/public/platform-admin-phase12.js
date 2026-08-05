@@ -1,42 +1,160 @@
 'use strict';
 
 (() => {
-  const root = document.querySelector('#adminPhase12Content'); if (!root) return;
-  const esc = value => String(value ?? '').replace(/[&<>"']/gu, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const root = document.querySelector('#adminPhase12Content');
+  if (!root) return;
+
+  const esc = value => String(value ?? '').replace(/[&<>"']/gu, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[char]));
   const date = value => value ? new Date(value).toLocaleString('de-DE') : '–';
-  async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || `Anfrage fehlgeschlagen (${response.status}).`); return body; }
-  function layout() {
-    root.innerHTML = `<div class="phase12-admin-grid"><section class="panel phase12-admin-card"><div class="panel-heading"><div><span class="eyebrow">Phase 12.1 & 12.2</span><h2>Release-Bereitschaft</h2></div><button id="p12RunRelease" class="btn primary small">Neu prüfen</button></div><div id="p12ReleaseStatus"></div><div id="p12ReleaseChecks" class="phase12-checks"></div></section><section class="panel phase12-admin-card"><div class="panel-heading"><div><span class="eyebrow">Backups</span><h2>Sicherung & Wiederherstellung</h2></div></div><div id="p12Backups"></div><button id="p12ConfirmBackup" class="btn secondary small">Erfolgreiche Prüfung eintragen</button></section><section class="panel phase12-admin-card full"><div class="panel-heading"><div><span class="eyebrow">Phase 12.4</span><h2>Gemeldete Quizfragen</h2></div><select id="p12ReportStatus"><option value="open">Offen</option><option value="reviewing">In Prüfung</option><option value="resolved">Erledigt</option><option value="dismissed">Verworfen</option><option value="all">Alle</option></select></div><div id="p12Reports"></div></section><section class="panel phase12-admin-card full"><div class="panel-heading"><div><span class="eyebrow">Fragenanalyse</span><h2>Schwierigste Fragen</h2></div><form id="p12QuestionSearch" class="row"><input id="p12QuestionQuery" placeholder="Frage oder Kategorie"><button class="btn secondary small">Suchen</button></form></div><div id="p12QuestionStats" class="phase12-question-table"></div></section><section class="panel phase12-admin-card"><span class="eyebrow">Beta</span><h2>Fehler & Ideen</h2><div id="p12Feedback"></div></section><section class="panel phase12-admin-card"><span class="eyebrow">Diagnose</span><h2>Fehlerereignisse</h2><div id="p12Errors"></div></section></div>`;
-    root.querySelector('#p12RunRelease').onclick = runRelease; root.querySelector('#p12ConfirmBackup').onclick = confirmBackup; root.querySelector('#p12ReportStatus').onchange = loadReports; root.querySelector('#p12QuestionSearch').onsubmit = event => { event.preventDefault(); loadQuestionStats(); };
+
+  async function api(url, options = {}) {
+    const response = await fetch(url, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || `Anfrage fehlgeschlagen (${response.status}).`);
+    return body;
   }
+
+  function layout() {
+    root.innerHTML = `<div class="phase12-admin-grid">
+      <section class="panel phase12-admin-card">
+        <div class="panel-heading"><div><span class="eyebrow">Phase 12.1 & 12.2</span><h2>Release-Bereitschaft</h2></div><button id="p12RunRelease" class="btn primary small">Neu prüfen</button></div>
+        <div id="p12ReleaseStatus"></div><div id="p12ReleaseChecks" class="phase12-checks"></div>
+      </section>
+      <section class="panel phase12-admin-card">
+        <div class="panel-heading"><div><span class="eyebrow">Backups</span><h2>Sicherung & Wiederherstellung</h2></div></div>
+        <div id="p12Backups"></div><button id="p12ConfirmBackup" class="btn secondary small">Erfolgreiche Prüfung eintragen</button>
+      </section>
+      <section class="panel phase12-admin-card full">
+        <div class="panel-heading"><div><span class="eyebrow">Phase 12.4</span><h2>Gemeldete Quizfragen</h2></div><select id="p12ReportStatus"><option value="open">Offen</option><option value="reviewing">In Prüfung</option><option value="resolved">Erledigt</option><option value="dismissed">Verworfen</option><option value="all">Alle</option></select></div>
+        <div id="p12Reports"></div>
+      </section>
+      <section class="panel phase12-admin-card full">
+        <div class="panel-heading"><div><span class="eyebrow">Fragenanalyse</span><h2>Schwierigste Fragen</h2></div><form id="p12QuestionSearch" class="row"><input id="p12QuestionQuery" placeholder="Frage oder Kategorie"><button class="btn secondary small">Suchen</button></form></div>
+        <div id="p12QuestionStats" class="phase12-question-table"></div>
+      </section>
+      <section class="panel phase12-admin-card full"><span class="eyebrow">Diagnose</span><h2>Fehlerereignisse</h2><div id="p12Errors"></div></section>
+    </div>`;
+    root.querySelector('#p12RunRelease').onclick = runRelease;
+    root.querySelector('#p12ConfirmBackup').onclick = confirmBackup;
+    root.querySelector('#p12ReportStatus').onchange = loadReports;
+    root.querySelector('#p12QuestionSearch').onsubmit = event => {
+      event.preventDefault();
+      loadQuestionStats();
+    };
+  }
+
   async function loadRelease() {
-    const data = await api('/api/platform/admin/phase12/release'); const current = data.current;
+    const data = await api('/api/platform/admin/phase12/release');
+    const current = data.current;
     root.querySelector('#p12ReleaseStatus').innerHTML = `<p><span class="admin-status ${esc(current.status)}">${esc(current.status)}</span> Version ${esc(current.version)} · ${date(current.checkedAt)}</p>`;
     root.querySelector('#p12ReleaseChecks').innerHTML = (current.checks || []).map(check => `<div class="phase12-check ${check.ok ? '' : check.level}"><i></i><div><strong>${esc(check.label)}</strong><br><small>${esc(check.detail)}</small></div><span>${check.ok ? 'OK' : check.level}</span></div>`).join('');
-    root.querySelector('#p12Backups').innerHTML = (data.backups || []).length ? data.backups.slice(0, 8).map(item => `<p><strong>${esc(item.check_type)}</strong> · ${esc(item.status)}<br><small>${date(item.created_at)}</small></p>`).join('') : '<p class="muted">Noch keine Backup-Prüfung dokumentiert.</p>';
+    root.querySelector('#p12Backups').innerHTML = (data.backups || []).length
+      ? data.backups.slice(0, 8).map(item => `<p><strong>${esc(item.check_type)}</strong> · ${esc(item.status)}<br><small>${date(item.created_at)}</small></p>`).join('')
+      : '<p class="muted">Noch keine Backup-Prüfung dokumentiert.</p>';
   }
-  async function runRelease() { await api('/api/platform/admin/phase12/release/run', { method: 'POST', body: '{}' }); await loadRelease(); }
-  async function confirmBackup() { const note = prompt('Welche Wiederherstellung wurde geprüft?', 'Verschlüsseltes PostgreSQL-Backup testweise wiederhergestellt'); if (!note) return; await api('/api/platform/admin/phase12/backups/check', { method: 'POST', body: JSON.stringify({ checkType: 'manual-restore-verification', status: 'pass', details: { note } }) }); await loadRelease(); }
+
+  async function runRelease() {
+    await api('/api/platform/admin/phase12/release/run', { method: 'POST', body: '{}' });
+    await loadRelease();
+  }
+
+  async function confirmBackup() {
+    const note = prompt('Welche Wiederherstellung wurde geprüft?', 'Verschlüsseltes PostgreSQL-Backup testweise wiederhergestellt');
+    if (!note) return;
+    await api('/api/platform/admin/phase12/backups/check', {
+      method: 'POST',
+      body: JSON.stringify({ checkType: 'manual-restore-verification', status: 'pass', details: { note } }),
+    });
+    await loadRelease();
+  }
+
   async function loadReports() {
-    const data = await api(`/api/platform/admin/phase12/question-reports?status=${encodeURIComponent(root.querySelector('#p12ReportStatus').value)}`);
-    root.querySelector('#p12Reports').innerHTML = data.reports.length ? data.reports.map(report => `<article class="phase12-report"><div class="phase12-report-head"><div><strong>${esc(report.question_text)}</strong><small>${esc(report.quiz_type || '?')} · ${esc(report.category || 'ohne Kategorie')} · ${esc(report.report_type)}</small></div><span class="admin-status ${esc(report.status)}">${esc(report.status)}</span></div><p>${esc(report.comment || 'Keine zusätzliche Beschreibung.')}</p><p class="muted">${report.answers} Antworten · ${report.accuracy}% richtig · ${date(report.created_at)}</p><div class="phase12-report-actions"><button class="btn secondary small" data-review="${report.id}">Prüfen</button><button class="btn primary small" data-resolve="${report.id}">Erledigt</button>${report.question_id ? `<button class="btn ghost small" data-disable="${esc(report.question_id)}">Deaktivieren</button>` : ''}</div></article>`).join('') : '<div class="admin-empty">Keine passenden Meldungen.</div>';
-    root.querySelectorAll('[data-review]').forEach(button => button.onclick = () => updateReport(button.dataset.review, 'reviewing')); root.querySelectorAll('[data-resolve]').forEach(button => button.onclick = () => updateReport(button.dataset.resolve, 'resolved')); root.querySelectorAll('[data-disable]').forEach(button => button.onclick = () => disableQuestion(button.dataset.disable));
+    const status = root.querySelector('#p12ReportStatus').value;
+    const data = await api(`/api/platform/admin/phase12/question-reports?status=${encodeURIComponent(status)}`);
+    root.querySelector('#p12Reports').innerHTML = data.reports.length
+      ? data.reports.map(report => `<article class="phase12-report"><div class="phase12-report-head"><div><strong>${esc(report.question_text)}</strong><small>${esc(report.quiz_type || '?')} · ${esc(report.category || 'ohne Kategorie')} · ${esc(report.report_type)}</small></div><span class="admin-status ${esc(report.status)}">${esc(report.status)}</span></div><p>${esc(report.comment || 'Keine zusätzliche Beschreibung.')}</p><p class="muted">${report.answers} Antworten · ${report.accuracy}% richtig · ${date(report.created_at)}</p><div class="phase12-report-actions"><button class="btn secondary small" data-review="${report.id}">Prüfen</button><button class="btn primary small" data-resolve="${report.id}">Erledigt</button>${report.question_id ? `<button class="btn ghost small" data-disable="${esc(report.question_id)}">Deaktivieren</button>` : ''}</div></article>`).join('')
+      : '<div class="admin-empty">Keine passenden Meldungen.</div>';
+    root.querySelectorAll('[data-review]').forEach(button => button.onclick = () => updateReport(button.dataset.review, 'reviewing'));
+    root.querySelectorAll('[data-resolve]').forEach(button => button.onclick = () => updateReport(button.dataset.resolve, 'resolved'));
+    root.querySelectorAll('[data-disable]').forEach(button => button.onclick = () => disableQuestion(button.dataset.disable));
   }
-  async function updateReport(id, status) { const note = prompt('Interne Notiz:', status === 'resolved' ? 'Inhalt geprüft und bearbeitet.' : 'Redaktionelle Prüfung gestartet.'); if (note === null) return; await api(`/api/platform/admin/phase12/question-reports/${id}`, { method: 'PATCH', body: JSON.stringify({ status, note }) }); await loadReports(); }
-  async function disableQuestion(id) { const reason = prompt('Grund für die Deaktivierung:', 'Redaktionelle Prüfung'); if (!reason) return; await api(`/api/platform/admin/phase12/questions/${encodeURIComponent(id)}/control`, { method: 'PUT', body: JSON.stringify({ disabled: true, reason }) }); alert('Frage deaktiviert.'); }
+
+  async function updateReport(id, status) {
+    const note = prompt('Interne Notiz:', status === 'resolved' ? 'Inhalt geprüft und bearbeitet.' : 'Redaktionelle Prüfung gestartet.');
+    if (note === null) return;
+    await api(`/api/platform/admin/phase12/question-reports/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, note }),
+    });
+    await loadReports();
+  }
+
+  async function disableQuestion(id) {
+    const reason = prompt('Grund für die Deaktivierung:', 'Redaktionelle Prüfung');
+    if (!reason) return;
+    await api(`/api/platform/admin/phase12/questions/${encodeURIComponent(id)}/control`, {
+      method: 'PUT',
+      body: JSON.stringify({ disabled: true, reason }),
+    });
+    alert('Frage deaktiviert.');
+  }
+
   async function loadQuestionStats() {
-    const data = await api(`/api/platform/admin/phase12/questions/stats?q=${encodeURIComponent(root.querySelector('#p12QuestionQuery').value)}`);
-    root.querySelector('#p12QuestionStats').innerHTML = data.questions.length ? data.questions.map(question => `<div class="phase12-question-row"><div><strong>${esc(question.question_text)}</strong><small>${esc(question.quiz_type)} · ${esc(question.category)} · ${esc(question.question_id)}</small></div><span>${question.answers}<small>Antworten</small></span><span>${question.correct}<small>richtig</small></span><span>${question.wrong}<small>falsch</small></span><span>${question.accuracy}%<small>Quote</small></span><button class="btn secondary small" data-edit="${esc(question.question_id)}" data-type="${esc(question.quiz_type)}">Bearbeiten</button></div>`).join('') : '<div class="admin-empty">Noch keine Statistiken.</div>';
+    const query = root.querySelector('#p12QuestionQuery').value;
+    const data = await api(`/api/platform/admin/phase12/questions/stats?q=${encodeURIComponent(query)}`);
+    root.querySelector('#p12QuestionStats').innerHTML = data.questions.length
+      ? data.questions.map(question => `<div class="phase12-question-row"><div><strong>${esc(question.question_text)}</strong><small>${esc(question.quiz_type)} · ${esc(question.category)} · ${esc(question.question_id)}</small></div><span>${question.answers}<small>Antworten</small></span><span>${question.correct}<small>richtig</small></span><span>${question.wrong}<small>falsch</small></span><span>${question.accuracy}%<small>Quote</small></span><button class="btn secondary small" data-edit="${esc(question.question_id)}" data-type="${esc(question.quiz_type)}">Bearbeiten</button></div>`).join('')
+      : '<div class="admin-empty">Noch keine Statistiken.</div>';
     root.querySelectorAll('[data-edit]').forEach(button => button.onclick = () => editQuestion(button.dataset.edit, button.dataset.type));
   }
+
   async function editQuestion(id, quizType) {
-    const text = prompt('Korrigierter Fragetext:'); if (!text) return; const options = [];
-    for (let index = 0; index < 4; index += 1) { const value = prompt(`Antwort ${String.fromCharCode(65 + index)}:`); if (!value) return; options.push(value); }
-    const correctIndex = Number(prompt('Richtige Antwort: 0=A, 1=B, 2=C, 3=D', '0')); const explanation = prompt('Erklärung:'); const category = prompt('Kategorie:', 'Allgemeinwissen'); if (!explanation || !category) return;
-    await api(`/api/platform/admin/phase12/questions/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ quizType, text, options, correctIndex, explanation, category, note: 'Korrektur nach Qualitätsprüfung' }) }); alert('Frage korrigiert; alte Version archiviert.'); await loadQuestionStats();
+    const text = prompt('Korrigierter Fragetext:');
+    if (!text) return;
+    const options = [];
+    for (let index = 0; index < 4; index += 1) {
+      const value = prompt(`Antwort ${String.fromCharCode(65 + index)}:`);
+      if (!value) return;
+      options.push(value);
+    }
+    const correctIndex = Number(prompt('Richtige Antwort: 0=A, 1=B, 2=C, 3=D', '0'));
+    const explanation = prompt('Erklärung:');
+    const category = prompt('Kategorie:', 'Allgemeinwissen');
+    if (!explanation || !category) return;
+    await api(`/api/platform/admin/phase12/questions/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ quizType, text, options, correctIndex, explanation, category, note: 'Korrektur nach Qualitätsprüfung' }),
+    });
+    alert('Frage korrigiert; alte Version archiviert.');
+    await loadQuestionStats();
   }
-  async function loadFeedback() { const data = await api('/api/platform/admin/phase12/feedback?status=open'); root.querySelector('#p12Feedback').innerHTML = data.feedback.length ? data.feedback.slice(0,30).map(item => `<article class="phase12-report"><strong>${esc(item.title)}</strong><small>${esc(item.kind)} · ${date(item.created_at)}</small><p>${esc(item.description)}</p><button class="btn secondary small" data-feedback="${item.id}">Erledigt</button></article>`).join('') : '<p class="muted">Keine offenen Rückmeldungen.</p>'; root.querySelectorAll('[data-feedback]').forEach(button => button.onclick = async () => { await api(`/api/platform/admin/phase12/feedback/${button.dataset.feedback}`, { method: 'PATCH', body: JSON.stringify({ status: 'resolved', note: 'Erledigt' }) }); await loadFeedback(); }); }
-  async function loadErrors() { const data = await api('/api/platform/admin/phase12/errors'); root.querySelector('#p12Errors').innerHTML = data.errors.filter(item => !item.resolved_at).slice(0,30).map(item => `<article class="phase12-report"><strong>${esc(item.source)}</strong><small>${item.occurrence_count}× · ${date(item.last_seen_at)}</small><p>${esc(item.message)}</p><button class="btn secondary small" data-error="${item.id}">Behoben</button></article>`).join('') || '<p class="muted">Keine offenen Fehler.</p>'; root.querySelectorAll('[data-error]').forEach(button => button.onclick = async () => { await api(`/api/platform/admin/phase12/errors/${button.dataset.error}/resolve`, { method: 'POST', body: '{}' }); await loadErrors(); }); }
-  async function loadAll() { if (!root.dataset.initialized) { layout(); root.dataset.initialized = '1'; } try { await Promise.all([loadRelease(), loadReports(), loadQuestionStats(), loadFeedback(), loadErrors()]); } catch (error) { root.innerHTML = `<div class="admin-empty">${esc(error.message)}</div>`; } }
-  document.querySelector('[data-admin-tab="phase12"]')?.addEventListener('click', loadAll); window.addEventListener('quiztime:phase12-admin-open', loadAll);
+
+  async function loadErrors() {
+    const data = await api('/api/platform/admin/phase12/errors');
+    root.querySelector('#p12Errors').innerHTML = data.errors.filter(item => !item.resolved_at).slice(0, 30).map(item => `<article class="phase12-report"><strong>${esc(item.source)}</strong><small>${item.occurrence_count}× · ${date(item.last_seen_at)}</small><p>${esc(item.message)}</p><button class="btn secondary small" data-error="${item.id}">Behoben</button></article>`).join('') || '<p class="muted">Keine offenen Fehler.</p>';
+    root.querySelectorAll('[data-error]').forEach(button => button.onclick = async () => {
+      await api(`/api/platform/admin/phase12/errors/${button.dataset.error}/resolve`, { method: 'POST', body: '{}' });
+      await loadErrors();
+    });
+  }
+
+  async function loadAll() {
+    if (!root.dataset.initialized) {
+      layout();
+      root.dataset.initialized = '1';
+    }
+    try {
+      await Promise.all([loadRelease(), loadReports(), loadQuestionStats(), loadErrors()]);
+    } catch (error) {
+      root.innerHTML = `<div class="admin-empty">${esc(error.message)}</div>`;
+    }
+  }
+
+  document.querySelector('[data-admin-tab="phase12"]')?.addEventListener('click', loadAll);
+  window.addEventListener('quiztime:phase12-admin-open', loadAll);
 })();
