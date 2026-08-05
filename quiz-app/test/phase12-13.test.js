@@ -22,9 +22,20 @@ const progress = read('public/progress.html');
 const adminWrapper = read('public/platform-admin-phase11.js');
 const adminCore = read('public/platform-admin-phase11-core.js');
 
-for (const table of ['quiz_phase12_question_reports','quiz_phase12_question_versions','quiz_phase12_feedback','quiz_phase12_error_events','quiz_phase12_release_checks','quiz_phase12_legal_consents','quiz_phase13_engagement','quiz_phase13_daily_activity','quiz_phase13_achievements','quiz_phase13_records']) {
+for (const table of [
+  'quiz_phase12_question_reports',
+  'quiz_phase12_question_versions',
+  'quiz_phase12_error_events',
+  'quiz_phase12_release_checks',
+  'quiz_phase12_legal_consents',
+  'quiz_phase13_engagement',
+  'quiz_phase13_daily_activity',
+  'quiz_phase13_achievements',
+  'quiz_phase13_records',
+]) {
   assert(migration.includes(table), `Phase-12/13-Tabelle fehlt: ${table}`);
 }
+assert(!migration.includes('quiz_phase12_feedback'), 'Nicht gewünschte Phase-12.3-Feedbacktabelle ist noch enthalten.');
 assert.strictEqual(packageJson.version, '13.0.0', 'Paketversion ist nicht 13.0.0.');
 assert.strictEqual(packageJson.scripts.check, 'node scripts/check-js.js', 'Automatische JavaScript-Prüfung ist nicht aktiv.');
 assert(shared.includes("VERSION = '13.0.0'"), 'Zentrale Version 13.0.0 fehlt.');
@@ -39,6 +50,7 @@ assert(quality.includes('questionStatistics'), 'Fragenstatistik fehlt.');
 assert(quality.includes('average_response_ms'), 'Durchschnittliche Antwortzeit fehlt.');
 assert(quality.includes('quiz_phase12_question_versions'), 'Fragenversionsverlauf fehlt.');
 assert(quality.includes('reloadFromDatabase'), 'Katalog wird nach Korrektur nicht neu geladen.');
+assert(!quality.includes('submitFeedback'), 'Nicht gewünschter allgemeiner Feedbackkanal ist noch enthalten.');
 assert(operations.includes('releaseChecks'), 'Release-Bereitschaft fehlt.');
 assert(operations.includes('recordError'), 'Zentrale Fehleraggregation fehlt.');
 assert(operations.includes("migration-120"), 'Migration 120 wird nicht geprüft.');
@@ -49,16 +61,20 @@ assert(engagement.includes('friendActivity'), 'Freundesaktivitäten fehlen.');
 assert(routes.includes("app.get('/legal'"), 'Rechtsseite ist nicht angebunden.');
 assert(routes.includes("app.get('/progress'"), 'Fortschrittsseite ist nicht angebunden.');
 assert(routes.includes("app.post('/api/platform/questions/report'"), 'Fragenmelde-API fehlt.');
+assert(!routes.includes("app.post('/api/platform/feedback'"), 'Nicht gewünschter Phase-12.3-Endpunkt ist noch angebunden.');
 assert(routes.includes("app.get('/api/platform/release-readiness'"), 'Release-Endpunkt fehlt.');
 assert(bootstrap.includes('installLegalGuard'), 'Rechtliche Einwilligung wird nicht geschützt.');
 assert(bootstrap.includes('installActivityCapture'), 'Aktivitätsaufzeichnung fehlt.');
 assert(legalPages.includes('technische Vorlagen'), 'Hinweis auf rechtliche Prüfung fehlt.');
 assert(legalPages.includes('Tracking-Cookies werden in Version 13 nicht eingesetzt'), 'Tracking-Hinweis fehlt.');
-assert(client.includes('Problem melden'), 'Globaler Problem-melden-Button fehlt.');
+assert(client.includes('Diese Frage melden'), 'Kontextbezogene Fragenmeldung fehlt.');
+assert(!client.includes('⚑ Problem melden'), 'Nicht gewünschter globaler Problem-melden-Button ist noch enthalten.');
 assert(client.includes('Ein vollständiges Geburtsdatum wird nicht gespeichert'), 'Datensparsame Altersabfrage fehlt.');
 assert(progress.includes('Dein Fortschritt'), 'Fortschrittsseite fehlt.');
-assert(sw.includes("quiztime-phase13-v1"), 'PWA-Cache wurde nicht auf Phase 13 erhöht.');
-for (const asset of ['/progress','/legal','/phase12-13-client.js','/platform-admin-phase11-core.js']) assert(sw.includes(`'${asset}'`), `PWA-Asset fehlt: ${asset}`);
+assert(sw.includes('quiztime-phase13-v1'), 'PWA-Cache wurde nicht auf Phase 13 erhöht.');
+for (const asset of ['/progress', '/legal', '/phase12-13-client.js', '/platform-admin-phase11-core.js']) {
+  assert(sw.includes(`'${asset}'`), `PWA-Asset fehlt: ${asset}`);
+}
 assert(adminWrapper.includes('/platform-admin-phase11-core.js'), 'Phase-11-Admin-Kern wird nicht nachgeladen.');
 assert(adminWrapper.includes('/platform-admin-phase12.js'), 'Phase-12-Admin wird nicht geladen.');
 assert(adminCore.includes('Launch-Reife'), 'Bestehende Phase-11-Administration ging verloren.');
@@ -71,4 +87,4 @@ assert.strictEqual(moduleApi._test.mondayFor('2026-08-05'), '2026-08-03');
 assert.strictEqual(moduleApi._test.dateDiffDays('2026-08-05', '2026-08-04'), 1);
 assert(moduleApi._test.resolveQuestion({ questionId: 'child-math-001', quizType: 'child' }), 'Bekannte Kinderfrage wird nicht aufgelöst.');
 
-console.log('Phase 12/13 release, legal, quality and engagement tests passed.');
+console.log('Phase 12/13 release, legal, quality and engagement tests passed without Phase 12.3.');
