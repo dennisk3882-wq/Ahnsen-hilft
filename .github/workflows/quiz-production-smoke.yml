@@ -66,9 +66,13 @@ jobs:
           echo "QuizTime war nach zehn Minuten nicht erreichbar."
           exit 1
 
-      - name: Interne Launch-Bereitschaft prüfen
+      - name: Phase-11-Bereitschaft prüfen
         working-directory: quiz-app
         run: npm run test:production-readiness
+
+      - name: QuizTime-13-Releasebereitschaft prüfen
+        working-directory: quiz-app
+        run: npm run test:release-readiness
 
       - name: Produktionsseite mit echtem Browser prüfen
         working-directory: quiz-app

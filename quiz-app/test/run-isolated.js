@@ -20,6 +20,7 @@ const tests = [
   'test/answer-layout.test.js',
   'test/phase105.test.js',
   'test/phase11.test.js',
+  'test/phase12-13.test.js',
   'test/elevenlabs.test.js',
   'test/screen-qr.test.js',
   'test/v70.test.js',
@@ -34,6 +35,7 @@ const isolatedEnvironment = {
   ELEVENLABS_VOICE_ID: '',
   BREVO_API_KEY: '',
   RESEND_API_KEY: '',
+  LEGAL_CONTACT_EMAIL: 'test@quiztime.example',
   PROFILE_SESSION_SECRET: isolatedSecret,
   PLATFORM_SECURITY_SECRET: isolatedSecret,
   PLATFORM_INTERNAL_SECRET: isolatedSecret,
@@ -45,9 +47,7 @@ for (const testFile of tests) {
     env: isolatedEnvironment,
     stdio: 'inherit',
   });
-
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status || 1);
 }
-
 console.log('All isolated core tests passed without production services.');
