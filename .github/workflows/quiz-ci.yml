@@ -4,18 +4,16 @@ on:
   push:
     branches:
       - ahnsen-live-quiz-online
-      - quiz-build-cleanup
     paths:
       - 'quiz-app/**'
-      - 'render.yaml'
       - '.github/workflows/quiz-ci.yml'
   pull_request:
     branches:
       - ahnsen-live-quiz-online
     paths:
       - 'quiz-app/**'
-      - 'render.yaml'
       - '.github/workflows/quiz-ci.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,14 +21,15 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Node.js einrichten
-        uses: actions/setup-node@v4
+      - name: Node.js 24 einrichten
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
           cache-dependency-path: quiz-app/package-lock.json
 
@@ -38,6 +37,6 @@ jobs:
         working-directory: quiz-app
         run: npm ci
 
-      - name: Syntax, Spiellogik und 500 Fragen prüfen
+      - name: Syntax, Spiellogik und Fragenkataloge prüfen
         working-directory: quiz-app
         run: npm run test:all
