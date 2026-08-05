@@ -29,58 +29,66 @@ jobs:
       PRODUCTION_URL: ${{ vars.QUIZTIME_PRODUCTION_URL || 'https://ahnsen-live-quiz.onrender.com' }}
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Node.js einrichten
-        uses: actions/setup-node@v4
+      - name: Node.js 24 einrichten
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: quiz-app/package-lock.json
+          cache-dependency-path: |
+            quiz-app/package-lock.json
+            quiz-app/e2e-tools/package-lock.json
 
       - name: Anwendung installieren
         working-directory: quiz-app
         run: npm ci
 
-      - name: Playwright temporär installieren
-        working-directory: quiz-app
-        run: npm install --no-save --package-lock=false @playwright/test@1.54.1
+      - name: Playwright reproduzierbar installieren
+        working-directory: quiz-app/e2e-tools
+        run: npm ci --ignore-scripts
 
       - name: Chromium installieren
         working-directory: quiz-app
-        run: npx playwright install --with-deps chromium
+        run: ./e2e-tools/node_modules/.bin/playwright install --with-deps chromium
 
-      - name: Auf Render-Deployment warten
+      - name: Auf genau diesen Render-Commit warten
         shell: bash
         run: |
           set -euo pipefail
-          echo "Prüfe ${PLAYWRIGHT_BASE_URL}/health"
+          echo "Warte auf ${GITHUB_SHA} unter ${PLAYWRIGHT_BASE_URL}."
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error --max-time 20 "${PLAYWRIGHT_BASE_URL}/health" >/dev/null; then
-              echo "QuizTime ist erreichbar."
-              exit 0
+              payload=$(curl --fail --silent --show-error --max-time 20 "${PLAYWRIGHT_BASE_URL}/api/platform/release-readiness" || true)
+              deployed_sha=$(node -e "try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.commitSha||''));}catch{}" "$payload")
+              if [ "$deployed_sha" = "$GITHUB_SHA" ]; then
+                echo "QuizTime 13.1 ist mit dem erwarteten Commit erreichbar."
+                exit 0
+              fi
+              echo "Versuch ${attempt}/30: Render liefert noch ${deployed_sha:-keinen Commit}."
+            else
+              echo "Versuch ${attempt}/30: Dienst noch nicht erreichbar."
             fi
-            echo "Versuch ${attempt}/30 fehlgeschlagen; nächster Versuch in 20 Sekunden."
             sleep 20
           done
-          echo "QuizTime war nach zehn Minuten nicht erreichbar."
+          echo "Render hat den erwarteten Commit nicht innerhalb von zehn Minuten ausgeliefert."
           exit 1
 
       - name: Phase-11-Bereitschaft prüfen
         working-directory: quiz-app
         run: npm run test:production-readiness
 
-      - name: QuizTime-13-Releasebereitschaft prüfen
+      - name: QuizTime-13.1-Releasebereitschaft prüfen
         working-directory: quiz-app
         run: npm run test:release-readiness
 
       - name: Produktionsseite mit echtem Browser prüfen
         working-directory: quiz-app
-        run: npx playwright test e2e/production-smoke.spec.js
+        run: npm run test:production-smoke
 
       - name: Produktionsbericht sichern
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: quiztime-production-report-${{ github.run_number }}
           path: |
