@@ -30,18 +30,26 @@ async function audit(entry){if(!db.enabled())return false;try{await ensureReady(
 async function banKey(keyHash,reason,minutes=30){if(!db.safeText(keyHash,100))throw new Error('Sperrschlüssel fehlt.');await q(`INSERT INTO quiz_platform_bans(key_hash,reason,expires_at) VALUES($1,$2,NOW()+($3*INTERVAL '1 minute')) ON CONFLICT(key_hash) DO UPDATE SET reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at`,[db.safeText(keyHash,100),db.safeText(reason,180),Math.max(1,Math.min(10080,Number(minutes)||30))]);return true;}
 async function activeBan(keyHash){const{rows}=await q('SELECT reason,expires_at FROM quiz_platform_bans WHERE key_hash=$1 AND expires_at>NOW()',[db.safeText(keyHash,100)]);return rows[0]||null;}
 async function dashboardSummary(){
-  const safeQuery=async(text,fallback)=>{try{return(await q(text)).rows;}catch{return fallback;}};
+  const safeQuery=async(label,text,fallback)=>{try{return(await q(text)).rows;}catch(error){console.error(`QuizTime 13.1: Dashboard-Abfrage ${label} fehlgeschlagen:`,error.message);return fallback;}};
   const [profiles,rooms,reports,activity,errors,push,tournaments,packs,queue,auditRows]=await Promise.all([
-    safeQuery(`SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE last_login_at>NOW()-INTERVAL '24 hours')::int AS active_day FROM quiz_solo_profiles`,[{total:0,active_day:0}]),
-    safeQuery(`SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE room->>'phase'='question')::int AS playing,COALESCE(SUM(jsonb_object_length(room->'players')),0)::int AS players FROM quiz_online_rooms WHERE expires_at>NOW()`,[{total:0,playing:0,players:0}]),
-    safeQuery(`SELECT COUNT(*)::int AS open FROM quiz_platform_reports WHERE status IN ('open','reviewing')`,[{open:0}]),
-    safeQuery(`SELECT COUNT(*)::int AS requests,COALESCE(ROUND(AVG(duration_ms)),0)::int AS avg_ms,COUNT(*) FILTER(WHERE status_code>=500)::int AS server_errors FROM quiz_platform_metrics WHERE created_at>NOW()-INTERVAL '24 hours'`,[{requests:0,avg_ms:0,server_errors:0}]),
-    safeQuery(`SELECT event_type,route,status_code,duration_ms,details,created_at FROM quiz_platform_metrics WHERE status_code>=400 OR event_type='client_error' ORDER BY created_at DESC LIMIT 50`,[]),
-    safeQuery('SELECT COUNT(*)::int AS subscriptions FROM quiz_platform_push_subscriptions',[{subscriptions:0}]),
-    safeQuery(`SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE status IN ('open','running'))::int AS active FROM quiz_platform_tournaments`,[{total:0,active:0}]),
-    safeQuery('SELECT COUNT(*)::int AS total,COALESCE(SUM(plays),0)::int AS plays FROM quiz_platform_packs',[{total:0,plays:0}]),
-    safeQuery('SELECT COUNT(*)::int AS waiting FROM quiz_platform_matchmaking_queue',[{waiting:0}]),
-    safeQuery('SELECT actor_type,actor_id,action,target,details,created_at FROM quiz_platform_audit ORDER BY created_at DESC LIMIT 50',[]),
+    safeQuery('profiles',`SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE last_login_at>NOW()-INTERVAL '24 hours')::int AS active_day FROM quiz_solo_profiles`,[{total:0,active_day:0}]),
+    safeQuery('rooms',`SELECT COUNT(*)::int AS total,
+      COUNT(*) FILTER(WHERE r.room->>'phase'='question')::int AS playing,
+      COALESCE(SUM(player_counts.player_count),0)::int AS players
+      FROM quiz_online_rooms r
+      CROSS JOIN LATERAL (
+        SELECT COUNT(*)::int AS player_count
+          FROM jsonb_object_keys(COALESCE(r.room->'players','{}'::jsonb))
+      ) AS player_counts
+      WHERE r.expires_at>NOW()`,[{total:0,playing:0,players:0}]),
+    safeQuery('reports',`SELECT COUNT(*)::int AS open FROM quiz_platform_reports WHERE status IN ('open','reviewing')`,[{open:0}]),
+    safeQuery('activity',`SELECT COUNT(*)::int AS requests,COALESCE(ROUND(AVG(duration_ms)),0)::int AS avg_ms,COUNT(*) FILTER(WHERE status_code>=500)::int AS server_errors FROM quiz_platform_metrics WHERE created_at>NOW()-INTERVAL '24 hours'`,[{requests:0,avg_ms:0,server_errors:0}]),
+    safeQuery('errors',`SELECT event_type,route,status_code,duration_ms,details,created_at FROM quiz_platform_metrics WHERE status_code>=400 OR event_type='client_error' ORDER BY created_at DESC LIMIT 50`,[]),
+    safeQuery('push','SELECT COUNT(*)::int AS subscriptions FROM quiz_platform_push_subscriptions',[{subscriptions:0}]),
+    safeQuery('tournaments',`SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE status IN ('open','running'))::int AS active FROM quiz_platform_tournaments`,[{total:0,active:0}]),
+    safeQuery('packs','SELECT COUNT(*)::int AS total,COALESCE(SUM(plays),0)::int AS plays FROM quiz_platform_packs',[{total:0,plays:0}]),
+    safeQuery('queue','SELECT COUNT(*)::int AS waiting FROM quiz_platform_matchmaking_queue',[{waiting:0}]),
+    safeQuery('audit','SELECT actor_type,actor_id,action,target,details,created_at FROM quiz_platform_audit ORDER BY created_at DESC LIMIT 50',[]),
   ]);
   return{profiles:profiles[0],rooms:rooms[0],reports:reports[0],activity:activity[0],errors,push:push[0],tournaments:tournaments[0],packs:packs[0],queue:queue[0],audit:auditRows};
 }
