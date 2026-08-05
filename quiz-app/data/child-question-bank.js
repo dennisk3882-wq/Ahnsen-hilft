@@ -20,14 +20,33 @@ if (questions.length !== 1000) {
   throw new Error(`Der Kinderfragenkatalog ist unvollständig: ${questions.length} statt 1000 Fragen.`);
 }
 
-const ids = new Set();
-const texts = new Set();
-for (const question of questions) {
-  const text = String(question.text || '').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^a-z0-9äöüß]+/giu, ' ').trim();
-  if (!question.id || ids.has(question.id)) throw new Error(`Doppelte Kinderfragen-ID: ${question.id || 'leer'}.`);
-  if (!text || texts.has(text)) throw new Error(`Doppelte Kinderfrage: ${question.text || 'leer'}.`);
-  ids.add(question.id);
-  texts.add(text);
+function normalizeText(value) {
+  return String(value || '').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^a-z0-9äöüß]+/giu, ' ').trim();
+}
+
+const ids = new Map();
+const texts = new Map();
+const duplicateIds = [];
+const duplicateTexts = [];
+for (const [index, question] of questions.entries()) {
+  const id = String(question.id || '').trim();
+  const text = normalizeText(question.text);
+  if (!id) duplicateIds.push(`leer@${index + 1}`);
+  else if (ids.has(id)) duplicateIds.push(`${id}@${ids.get(id) + 1}/${index + 1}`);
+  else ids.set(id, index);
+
+  if (!text) duplicateTexts.push(`leer@${index + 1}`);
+  else if (texts.has(text)) {
+    const first = texts.get(text);
+    duplicateTexts.push(`„${question.text}“@${first + 1}/${index + 1}`);
+  } else texts.set(text, index);
+}
+
+if (duplicateIds.length || duplicateTexts.length) {
+  throw new Error([
+    duplicateIds.length ? `Doppelte Kinderfragen-IDs: ${duplicateIds.join(' | ')}` : '',
+    duplicateTexts.length ? `Doppelte Kinderfragen: ${duplicateTexts.join(' | ')}` : '',
+  ].filter(Boolean).join('\n'));
 }
 
 module.exports = Object.freeze(questions);
