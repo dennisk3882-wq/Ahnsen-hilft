@@ -16,6 +16,7 @@ const connectionString = databaseUrlWithStrictTls(rawUrl);
 const pool = connectionString
   ? new Pool({ connectionString, max: 5, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 })
   : null;
+let baseSchemaPromise = null;
 
 function normalizeQuestion(question, type, index) {
   const options = Array.isArray(question.options) ? question.options.map(String).slice(0, 4) : [];
@@ -75,38 +76,52 @@ function mergeCatalog(existing, defaults, type) {
   return merged;
 }
 
+async function ensureBaseSchema() {
+  if (!pool) return false;
+  if (!baseSchemaPromise) {
+    baseSchemaPromise = (async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS quiz_question_sets (
+          quiz_type TEXT PRIMARY KEY,
+          questions JSONB NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS quiz_live_state (
+          id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+          state JSONB NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS quiz_runs (
+          id BIGSERIAL PRIMARY KEY,
+          quiz_type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          finished_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          leaderboard JSONB NOT NULL,
+          answer_history JSONB NOT NULL
+        );
+      `);
+      await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS run_uuid TEXT');
+      await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS category TEXT');
+      await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS question_count INTEGER');
+      await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ');
+      await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS settings JSONB');
+      await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS quiz_runs_run_uuid_unique ON quiz_runs(run_uuid) WHERE run_uuid IS NOT NULL');
+      return true;
+    })().catch(error => {
+      baseSchemaPromise = null;
+      throw error;
+    });
+  }
+  return baseSchemaPromise;
+}
+
 async function initDatabase(defaultSets) {
   if (!pool) {
     catalogService.setPublishedCatalogs(defaultSets);
     return { enabled: false, questionSets: defaultSets, liveState: null };
   }
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS quiz_question_sets (
-      quiz_type TEXT PRIMARY KEY,
-      questions JSONB NOT NULL,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS quiz_live_state (
-      id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-      state JSONB NOT NULL,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS quiz_runs (
-      id BIGSERIAL PRIMARY KEY,
-      quiz_type TEXT NOT NULL,
-      title TEXT NOT NULL,
-      finished_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      leaderboard JSONB NOT NULL,
-      answer_history JSONB NOT NULL
-    );
-  `);
-  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS run_uuid TEXT');
-  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS category TEXT');
-  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS question_count INTEGER');
-  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ');
-  await pool.query('ALTER TABLE quiz_runs ADD COLUMN IF NOT EXISTS settings JSONB');
-  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS quiz_runs_run_uuid_unique ON quiz_runs(run_uuid) WHERE run_uuid IS NOT NULL');
+  await ensureBaseSchema();
 
   const questionSets = {};
   for (const type of ['adult', 'child']) {
@@ -131,6 +146,7 @@ async function saveQuestionSet(type, questions) {
   const key = type === 'child' ? 'child' : 'adult';
   const normalized = catalogService.setPublishedCatalog(key, questions);
   if (!pool) return true;
+  await ensureBaseSchema();
   await pool.query(
     `INSERT INTO quiz_question_sets (quiz_type, questions, updated_at)
      VALUES ($1, $2::jsonb, NOW())
@@ -142,6 +158,7 @@ async function saveQuestionSet(type, questions) {
 
 async function saveLiveState(state) {
   if (!pool) return false;
+  await ensureBaseSchema();
   await pool.query(
     `INSERT INTO quiz_live_state (id, state, updated_at)
      VALUES (1, $1::jsonb, NOW())
@@ -153,6 +170,7 @@ async function saveLiveState(state) {
 
 async function saveQuizRun(run) {
   if (!pool) return false;
+  await ensureBaseSchema();
   await pool.query(
     `INSERT INTO quiz_runs
       (run_uuid, quiz_type, title, category, question_count, started_at, finished_at, leaderboard, answer_history, settings)
@@ -166,6 +184,7 @@ async function saveQuizRun(run) {
 
 async function listQuizRuns(limit = 100) {
   if (!pool) return [];
+  await ensureBaseSchema();
   const { rows } = await pool.query(
     `SELECT id, run_uuid, quiz_type, title, category, question_count, started_at, finished_at,
             leaderboard, answer_history, settings
@@ -177,6 +196,7 @@ async function listQuizRuns(limit = 100) {
 
 async function getQuizRun(id) {
   if (!pool) return null;
+  await ensureBaseSchema();
   const { rows } = await pool.query(
     `SELECT id, run_uuid, quiz_type, title, category, question_count, started_at, finished_at,
             leaderboard, answer_history, settings
@@ -188,6 +208,7 @@ async function getQuizRun(id) {
 
 async function deleteQuizRun(id) {
   if (!pool) return false;
+  await ensureBaseSchema();
   const result = await pool.query('DELETE FROM quiz_runs WHERE id = $1', [id]);
   return result.rowCount > 0;
 }
@@ -200,6 +221,7 @@ async function pingDatabase() {
 
 module.exports = {
   initDatabase,
+  ensureBaseSchema,
   saveQuestionSet,
   saveLiveState,
   saveQuizRun,
