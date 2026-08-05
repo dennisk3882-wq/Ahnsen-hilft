@@ -22,6 +22,7 @@ const adminClient = read('public/platform-admin-browser-tests.js');
 const serviceWorker = read('public/sw.js');
 const browserWorkflow = readRepo('.github/workflows/quiz-browser-tests.yml');
 const productionWorkflow = readRepo('.github/workflows/quiz-production-smoke.yml');
+const productionSmokeSpec = read('e2e/production-smoke.spec.js');
 const playwrightConfig = read('playwright.config.js');
 const packageJson = JSON.parse(read('package.json'));
 const e2ePackage = JSON.parse(read('e2e-tools/package.json'));
@@ -47,6 +48,8 @@ assert(productionWorkflow.includes("cron: '17 */6 * * *'"), 'Sechsstündiger Pro
 assert(productionWorkflow.includes('GITHUB_SHA'), 'Produktionsprüfung wartet nicht auf den tatsächlich ausgerollten Commit.');
 assert.strictEqual(packageJson.scripts['test:production-smoke'], 'node scripts/run-playwright.js test e2e/production-smoke.spec.js', 'Produktions-Smoke-Test ist nicht an den gesperrten Runner angebunden.');
 assert(productionWorkflow.includes('npm run test:production-smoke'), 'Produktionsworkflow führt den Smoke-Test nicht aus.');
+assert(productionSmokeSpec.includes("require('../package.json')"), 'Produktions-Smoke-Test ist nicht an die Paketversion gekoppelt.');
+assert(!productionSmokeSpec.includes("toBe('13.0.0')"), 'Produktions-Smoke-Test enthält noch eine veraltete feste Version.');
 assert(playwrightConfig.includes("trace: 'retain-on-failure'"), 'Playwright-Traces bei Fehlern fehlen.');
 assert(playwrightConfig.includes("video: 'retain-on-failure'"), 'Browservideos bei Fehlern fehlen.');
 
