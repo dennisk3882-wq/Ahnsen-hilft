@@ -5,7 +5,7 @@ const db = require('./platform-db');
 const accountStorage = require('./account-storage');
 const { runMigrations } = require('./migration-runner');
 
-const VERSION = '13.0.0';
+const VERSION = '13.1.0';
 const PRIVACY_VERSION = '2026-08-05';
 const TERMS_VERSION = '2026-08-05';
 const BERLIN_TIMEZONE = 'Europe/Berlin';
