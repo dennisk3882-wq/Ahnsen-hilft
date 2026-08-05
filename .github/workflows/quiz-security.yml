@@ -14,37 +14,55 @@ on:
       - 'quiz-app/**'
       - '.github/workflows/quiz-security.yml'
   schedule:
-    - cron: '17 3 * * 1'
+    - cron: '11 3 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
   security-events: write
-  pull-requests: read
 
 jobs:
   dependency-audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Repository auschecken
+        uses: actions/checkout@v6
+
+      - name: Node.js 24 einrichten
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: quiz-app/package-lock.json
-      - name: Abhängigkeiten reproduzierbar installieren
+          cache-dependency-path: |
+            quiz-app/package-lock.json
+            quiz-app/e2e-tools/package-lock.json
+
+      - name: Produktionsabhängigkeiten installieren
         working-directory: quiz-app
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Browser-Testwerkzeuge installieren
+        working-directory: quiz-app/e2e-tools
+        run: npm ci --ignore-scripts
+
       - name: Bekannte Schwachstellen ab hoher Kritikalität blockieren
         working-directory: quiz-app
-        run: npm audit --audit-level=high
+        run: |
+          npm audit --audit-level=high
+          npm --prefix e2e-tools audit --audit-level=high
 
   codeql:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - name: Repository auschecken
+        uses: actions/checkout@v6
+
       - name: CodeQL initialisieren
         uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
+
       - name: CodeQL analysieren
         uses: github/codeql-action/analyze@v3
