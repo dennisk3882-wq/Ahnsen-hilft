@@ -84,7 +84,7 @@ test('Phase 12 und 13 verbinden Recht, Fragenqualität, Release-Prüfung und Spi
   await expect(page.locator('#adminDashboard')).toBeVisible();
   await page.locator('[data-admin-tab="phase12"]').click();
   await expect(page.locator('#adminPhase12Content')).toContainText(/Release-Bereitschaft/i);
-  await expect(page.locator('#p12ReleaseChecks .phase12-check')).toHaveCount(7);
+  await expect(page.locator('#p12ReleaseChecks .phase12-check')).toHaveCount(8);
   await expect(page.locator('#p12Reports')).toContainText('Automatische Browserprüfung');
 
   const reports = await page.evaluate(async () => {
