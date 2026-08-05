@@ -1,13 +1,13 @@
 name: QuizTime Browser Tests
 
 on:
-  pull_request:
+  push:
     branches:
       - ahnsen-live-quiz-online
     paths:
       - 'quiz-app/**'
       - '.github/workflows/quiz-browser-tests.yml'
-  push:
+  pull_request:
     branches:
       - ahnsen-live-quiz-online
     paths:
@@ -19,13 +19,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: quiztime-browser-${{ github.ref }}
+  group: quiztime-browser-tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   browser-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -37,9 +37,7 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U quiztime -d quiztime_e2e"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
+          --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       NODE_ENV: test
       PORT: '3000'
@@ -59,38 +57,51 @@ jobs:
       RESEND_API_KEY: ''
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Node.js einrichten
-        uses: actions/setup-node@v4
+      - name: Node.js 24 einrichten
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: quiz-app/package-lock.json
+          cache-dependency-path: |
+            quiz-app/package-lock.json
+            quiz-app/e2e-tools/package-lock.json
 
       - name: Anwendung installieren
         working-directory: quiz-app
         run: npm ci
 
-      - name: Playwright temporär installieren
-        working-directory: quiz-app
-        run: npm install --no-save --package-lock=false @playwright/test@1.54.1
+      - name: Playwright reproduzierbar installieren
+        working-directory: quiz-app/e2e-tools
+        run: npm ci --ignore-scripts
 
       - name: Chromium installieren
         working-directory: quiz-app
-        run: npx playwright install --with-deps chromium
+        run: ./e2e-tools/node_modules/.bin/playwright install --with-deps chromium
 
       - name: Vollständige Browserabläufe prüfen
         working-directory: quiz-app
-        run: npx playwright test
+        run: npm run test:browser
+
+      - name: PostgreSQL-Protokoll erfassen
+        if: always()
+        working-directory: quiz-app
+        run: docker logs "${{ job.services.postgres.id }}" > postgres.log 2>&1
+
+      - name: PostgreSQL-Protokoll strikt prüfen
+        if: always()
+        working-directory: quiz-app
+        run: npm run test:postgres-log
 
       - name: Testberichte sichern
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: quiztime-browser-report-${{ github.run_number }}
           path: |
             quiz-app/playwright-report
             quiz-app/test-results
+            quiz-app/postgres.log
           retention-days: 14
           if-no-files-found: ignore
