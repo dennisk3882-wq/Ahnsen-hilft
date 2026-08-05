@@ -1,0 +1,77 @@
+name: QuizTime Encrypted Backup
+
+on:
+  schedule:
+    - cron: '31 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  encrypted-backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: restore
+          POSTGRES_PASSWORD: restore
+          POSTGRES_DB: restore_check
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U restore -d restore_check"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Backup-Konfiguration prüfen
+        id: config
+        env:
+          DATABASE_URL: ${{ secrets.QUIZTIME_DATABASE_URL }}
+          PASSPHRASE: ${{ secrets.QUIZTIME_BACKUP_PASSPHRASE }}
+        run: |
+          if [ -n "$DATABASE_URL" ] && [ -n "$PASSPHRASE" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "ready=false" >> "$GITHUB_OUTPUT"; echo "Backup-Secrets fehlen; Lauf wird ohne Sicherung beendet."; fi
+
+      - name: PostgreSQL-Client installieren
+        if: steps.config.outputs.ready == 'true'
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Dump erzeugen und verschlüsseln
+        if: steps.config.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.QUIZTIME_DATABASE_URL }}
+          PASSPHRASE: ${{ secrets.QUIZTIME_BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          pg_dump "$DATABASE_URL" --format=custom --no-owner --no-acl > "quiztime-${stamp}.dump"
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 250000 -in "quiztime-${stamp}.dump" -out "quiztime-${stamp}.dump.enc" -pass env:PASSPHRASE
+          sha256sum "quiztime-${stamp}.dump.enc" > "quiztime-${stamp}.sha256"
+          echo "BACKUP_FILE=quiztime-${stamp}.dump.enc" >> "$GITHUB_ENV"
+          echo "CHECKSUM_FILE=quiztime-${stamp}.sha256" >> "$GITHUB_ENV"
+          echo "PLAIN_FILE=quiztime-${stamp}.dump" >> "$GITHUB_ENV"
+
+      - name: Verschlüsseltes Backup testweise wiederherstellen
+        if: steps.config.outputs.ready == 'true'
+        env:
+          PGPASSWORD: restore
+        run: pg_restore --host=127.0.0.1 --port=55432 --username=restore --dbname=restore_check --clean --if-exists --no-owner --no-acl "$PLAIN_FILE"
+
+      - name: Klartext-Dump entfernen
+        if: always() && steps.config.outputs.ready == 'true'
+        run: rm -f "${PLAIN_FILE:-}"
+
+      - name: Nur verschlüsselte Sicherung speichern
+        if: steps.config.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiztime-encrypted-backup-${{ github.run_number }}
+          path: |
+            ${{ env.BACKUP_FILE }}
+            ${{ env.CHECKSUM_FILE }}
+          retention-days: 30
+          if-no-files-found: error
