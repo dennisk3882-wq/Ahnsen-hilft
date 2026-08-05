@@ -52,3 +52,7 @@ Die bereitgestellten Texte sind technische Vorlagen und ersetzen keine individue
 - Aktivitäten bestätigter Freunde
 - optionale interne Erinnerungen
 - Fortschrittsseite `/progress`
+
+## Produktionsvalidierung
+
+- erneute vollständige Produktionsprüfung am 5. August 2026 nach Einrichtung der öffentlichen Kontakt-E-Mail ausgelöst
