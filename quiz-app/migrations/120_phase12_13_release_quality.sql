@@ -33,23 +33,6 @@ CREATE TABLE IF NOT EXISTS quiz_phase12_question_versions (
 CREATE INDEX IF NOT EXISTS quiz_phase12_question_versions_question
   ON quiz_phase12_question_versions(question_id,created_at DESC);
 
-CREATE TABLE IF NOT EXISTS quiz_phase12_feedback (
-  id UUID PRIMARY KEY,
-  profile_id UUID REFERENCES quiz_solo_profiles(id) ON DELETE SET NULL,
-  kind TEXT NOT NULL DEFAULT 'bug' CHECK(kind IN ('bug','idea','usability','question','other')),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  page_path TEXT,
-  app_version TEXT,
-  client_context JSONB NOT NULL DEFAULT '{}'::jsonb,
-  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','reviewing','resolved','dismissed')),
-  resolution_note TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS quiz_phase12_feedback_status
-  ON quiz_phase12_feedback(status,created_at DESC);
-
 CREATE TABLE IF NOT EXISTS quiz_phase12_error_events (
   id UUID PRIMARY KEY,
   source TEXT NOT NULL,
