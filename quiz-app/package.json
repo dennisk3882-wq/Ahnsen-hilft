@@ -1,18 +1,19 @@
 {
   "name": "ahnsen-live-quiz",
-  "version": "13.0.0",
+  "version": "13.1.0",
   "private": true,
-  "description": "QuizTime mit Release-Prüfung, Fragen-Qualitätsverwaltung, Datenschutz, Jugendschutz, Serien, Wochenzielen, Abzeichen und Empfehlungen",
+  "description": "QuizTime mit gehärtetem PostgreSQL-Start, fehlerfreier Analytics, reproduzierbaren Browsertests und Node.js 24",
   "main": "server.js",
   "scripts": {
     "start": "node start.js",
     "check": "node scripts/check-js.js",
     "test:core": "node test/run-isolated.js",
     "test:catalog": "node tests/catalog-quality.test.js",
-    "test:browser": "playwright test",
-    "test:production-smoke": "playwright test e2e/production-smoke.spec.js",
+    "test:browser": "node scripts/run-playwright.js test",
+    "test:production-smoke": "node scripts/run-playwright.js test e2e/production-smoke.spec.js",
     "test:production-readiness": "node scripts/production-readiness.js",
     "test:release-readiness": "node scripts/release-readiness.js",
+    "test:postgres-log": "node scripts/check-postgres-log.js postgres.log",
     "test:restore": "node scripts/verify-backup-restore.js",
     "test:stability": "node test/stability-v101.test.js",
     "test:all": "npm run check && npm run test:core && npm run test:catalog",
@@ -20,7 +21,7 @@
     "backup:critical": "node scripts/backup-critical-data.js",
     "restore:critical": "node scripts/restore-critical-data.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=24 <25" },
   "dependencies": {
     "cookie-parser": "1.4.7",
     "express": "4.22.2",
