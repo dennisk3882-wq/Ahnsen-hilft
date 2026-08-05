@@ -36,9 +36,9 @@ for (const table of [
   assert(migration.includes(table), `Phase-12/13-Tabelle fehlt: ${table}`);
 }
 assert(!migration.includes('quiz_phase12_feedback'), 'Nicht gewünschte Phase-12.3-Feedbacktabelle ist noch enthalten.');
-assert.strictEqual(packageJson.version, '13.0.0', 'Paketversion ist nicht 13.0.0.');
+assert.strictEqual(packageJson.version, '13.1.0', 'Paketversion ist nicht 13.1.0.');
 assert.strictEqual(packageJson.scripts.check, 'node scripts/check-js.js', 'Automatische JavaScript-Prüfung ist nicht aktiv.');
-assert(shared.includes("VERSION = '13.0.0'"), 'Zentrale Version 13.0.0 fehlt.');
+assert(shared.includes("VERSION = '13.1.0'"), 'Zentrale Version 13.1.0 fehlt.');
 assert(shared.includes("name: 'Dennis Koch'"), 'Betreibername fehlt.');
 assert(shared.includes("street: 'In der Flöte 19'"), 'Betreiberanschrift fehlt.');
 assert(shared.includes("postalCode: '31708'"), 'Postleitzahl fehlt.');
