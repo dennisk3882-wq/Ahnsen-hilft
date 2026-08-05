@@ -3,6 +3,7 @@
 process.env.QUIZ_TITLE = 'QuizTime';
 require('./test-pg-ssl-compat');
 require('./answer-layout-patch');
+require('./phase12-13-bootstrap');
 
 (async () => {
   await require('./startup-schema').prepareStartupSchema();
