@@ -1,8 +1,7 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const zlib = require('zlib');
+const childSource = require('./question-expansion-batch1-child');
+const adultSource = require('./question-expansion-batch1-adult');
 
 const CHILD_CATEGORIES = new Set([
   'Mathematik', 'Sprache', 'Natur & Tiere', 'Technik & Wissenschaft',
@@ -27,15 +26,6 @@ function sentenceCount(value) {
     .trim()
     .split(/(?<=[.!?])\s+/u)
     .filter(Boolean).length;
-}
-
-function readBatch(prefix) {
-  const directory = path.join(__dirname, 'question-expansion-batch1');
-  const encoded = ['01', '02']
-    .map(part => fs.readFileSync(path.join(directory, `${prefix}-${part}.b64`), 'utf8').trim())
-    .join('');
-  const json = zlib.inflateSync(Buffer.from(encoded, 'base64')).toString('utf8');
-  return JSON.parse(json);
 }
 
 function validateBatch(questions, { expectedCount, idPrefix, categories, label }) {
@@ -89,13 +79,21 @@ function freezeQuestions(questions) {
   })));
 }
 
-const child = readBatch('child');
-const adult = readBatch('adult');
-validateBatch(child, { expectedCount: 500, idPrefix: 'child-b1-', categories: CHILD_CATEGORIES, label: 'Kinder-Erweiterung 1' });
-validateBatch(adult, { expectedCount: 500, idPrefix: 'adult-b1-', categories: ADULT_CATEGORIES, label: 'Erwachsenen-Erweiterung 1' });
+validateBatch(childSource, {
+  expectedCount: 500,
+  idPrefix: 'child-b1-',
+  categories: CHILD_CATEGORIES,
+  label: 'Kinder-Erweiterung 1',
+});
+validateBatch(adultSource, {
+  expectedCount: 500,
+  idPrefix: 'adult-b1-',
+  categories: ADULT_CATEGORIES,
+  label: 'Erwachsenen-Erweiterung 1',
+});
 
 module.exports = Object.freeze({
-  child: freezeQuestions(child),
-  adult: freezeQuestions(adult),
+  child: freezeQuestions(childSource),
+  adult: freezeQuestions(adultSource),
   _test: Object.freeze({ normalizeText, sentenceCount }),
 });
