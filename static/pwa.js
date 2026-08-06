@@ -140,6 +140,20 @@ if (typeof document === 'undefined') {
 
     let installPrompt = null;
     const installButton = document.getElementById('install-app');
+    if (installButton) {
+      installButton.setAttribute('aria-label', 'Ahnsen hilft installieren');
+      installButton.setAttribute('title', 'App installieren');
+      installButton.innerHTML = `
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6.5" y="2.5" width="11" height="19" rx="2.5"></rect>
+          <path d="M9.5 5.5h5"></path>
+          <path d="M12 8v7"></path>
+          <path d="m9.5 12.5 2.5 2.5 2.5-2.5"></path>
+          <path d="M10.5 18.5h3"></path>
+        </svg>
+        <span>Installieren</span>
+      `;
+    }
     window.addEventListener('beforeinstallprompt', event => {
       event.preventDefault();
       installPrompt = event;
