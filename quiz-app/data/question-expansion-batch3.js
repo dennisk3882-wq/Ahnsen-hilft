@@ -1,6 +1,6 @@
 'use strict';
 
-const childSource = require('./question-expansion-batch3-child');
+const childSource = require('./question-expansion-batch3-child-polished');
 const adultSource = require('./question-expansion-batch3-adult');
 
 const CHILD_CATEGORIES = new Set([
