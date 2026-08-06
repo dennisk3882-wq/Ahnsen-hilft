@@ -10,6 +10,7 @@ from pwa_core import STATIC_DIR, app
 
 
 ICON_VERSION = "v5"
+SERVICE_WORKER_VERSION = "v6"
 ICON_SOURCE = STATIC_DIR / "icon-ahnsen.svg"
 ICON_SIZES = {180, 192, 512}
 
@@ -127,67 +128,81 @@ async def legacy_icon(size: int):
 
 
 _PUSH_HELPER = r"""
-;(() => {
-  const blockedMessage =
-    'Benachrichtigungen sind für diese Website im Browser blockiert. ' +
-    'Tippe auf das Symbol links neben der Internetadresse, öffne Berechtigungen ' +
-    'oder Website-Einstellungen, stelle Benachrichtigungen auf Zulassen und lade die Seite neu.';
+if (typeof document !== 'undefined') {
+  (() => {
+    const blockedMessage =
+      'Benachrichtigungen sind für diese Website im Browser blockiert. ' +
+      'Tippe auf das Symbol links neben der Internetadresse, öffne Berechtigungen ' +
+      'oder Website-Einstellungen, stelle Benachrichtigungen auf Zulassen und lade die Seite neu.';
 
-  const improvePushMessage = () => {
-    const status = document.getElementById('push-status');
-    if (!status) return;
-    const text = String(status.textContent || '');
-    if (/permission denied|registration failed|notallowederror/i.test(text)) {
-      status.textContent = blockedMessage;
-    }
-  };
+    const improvePushMessage = () => {
+      const status = document.getElementById('push-status');
+      if (!status) return;
+      const text = String(status.textContent || '');
+      if (/permission denied|registration failed|notallowederror/i.test(text)) {
+        status.textContent = blockedMessage;
+      }
+    };
 
-  const setup = () => {
-    const status = document.getElementById('push-status');
-    const button = document.getElementById('enable-push');
+    const setup = () => {
+      const status = document.getElementById('push-status');
+      const button = document.getElementById('enable-push');
 
-    if (status) {
-      new MutationObserver(improvePushMessage).observe(status, {
-        childList: true,
-        characterData: true,
-        subtree: true
+      if (status) {
+        new MutationObserver(improvePushMessage).observe(status, {
+          childList: true,
+          characterData: true,
+          subtree: true
+        });
+        improvePushMessage();
+      }
+
+      if (button && 'Notification' in window) {
+        button.addEventListener('click', () => {
+          if (Notification.permission === 'denied' && status) {
+            status.textContent = blockedMessage;
+          }
+        }, true);
+      }
+
+      const manifest = document.querySelector('link[rel="manifest"]');
+      if (manifest) {
+        manifest.href = '/manifest.webmanifest?v=5';
+      }
+
+      document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(link => {
+        link.href = '/pwa/ahnsen-app-v5-180.png';
       });
-      improvePushMessage();
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setup, { once: true });
+    } else {
+      setup();
     }
-
-    if (button && 'Notification' in window) {
-      button.addEventListener('click', () => {
-        if (Notification.permission === 'denied' && status) {
-          status.textContent = blockedMessage;
-        }
-      }, true);
-    }
-
-    const manifest = document.querySelector('link[rel="manifest"]');
-    if (manifest) {
-      manifest.href = '/manifest.webmanifest?v=5';
-    }
-
-    document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(link => {
-      link.href = '/pwa/ahnsen-app-v5-180.png';
-    });
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setup, { once: true });
-  } else {
-    setup();
-  }
-})();
+  })();
+}
 """
 
 
-async def pwa_javascript_v5():
+async def pwa_javascript_v6():
     source = (STATIC_DIR / "pwa.js").read_text(encoding="utf-8")
-    source = source.replace("ahnsen-hilft-public-v3", "ahnsen-hilft-public-v5")
+    source = source.replace("ahnsen-hilft-public-v3", "ahnsen-hilft-public-v6")
     source = source.replace("/pwa/icon-192.png", "/pwa/ahnsen-app-v5-192.png")
     source = source.replace("/pwa/icon-512.png", "/pwa/ahnsen-app-v5-512.png")
-    source = source.replace("?worker=3", "?worker=5")
+    source = source.replace("?worker=3", f"?worker={SERVICE_WORKER_VERSION}")
+    source = source.replace(
+        "          const registration = await navigator.serviceWorker.ready;\n",
+        """          const registration = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((_, reject) => setTimeout(
+              () => reject(new Error('Der Push-Dienst konnte nicht gestartet werden. Lade die Seite neu und versuche es erneut.')),
+              12000
+            ))
+          ]);
+""",
+        1,
+    )
     return Response(
         source + _PUSH_HELPER,
         media_type="application/javascript; charset=utf-8",
@@ -222,9 +237,9 @@ for route in reversed(
         ),
         APIRoute(
             "/pwa.js",
-            pwa_javascript_v5,
+            pwa_javascript_v6,
             methods=["GET"],
-            name="pwa_javascript_v5",
+            name="pwa_javascript_v6",
         ),
     ]
 ):
