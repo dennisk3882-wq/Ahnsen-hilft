@@ -1,0 +1,122 @@
+name: PWA smoke tests
+
+on:
+  push:
+    branches:
+      - agent/pwa-buergerapp-final
+  pull_request:
+    paths:
+      - "pwa_main.py"
+      - "pwa_ui.py"
+      - "static/pwa.css"
+      - "static/pwa.js"
+      - "static/icon-*.png"
+      - "render.yaml"
+      - "whatsapp.py"
+      - ".github/workflows/pwa-smoke.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./pwa-smoke.db
+      VERIFY_TOKEN: smoke
+      DASHBOARD_USER: smoke-admin
+      DASHBOARD_PASSWORD: smoke-password
+      DASHBOARD_SESSION_SECRET: smoke-session-secret
+      WHATSAPP_TOKEN: disabled
+      PHONE_NUMBER_ID: disabled
+      EMAIL_USER: ""
+      EMAIL_PASSWORD: ""
+      EMAIL_TO: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile changed Python modules
+        run: python -m py_compile pwa_main.py pwa_ui.py email_service.py whatsapp.py intern_ui.py
+
+      - name: Validate PWA application surface
+        run: |
+          python - <<'PY'
+          import asyncio
+          from datetime import date, timedelta
+          from pathlib import Path
+          from types import SimpleNamespace
+
+          import pwa_main
+          import pwa_ui
+          import whatsapp
+
+          paths = {getattr(route, "path", "") for route in pwa_main.app.routes}
+          required = {
+              "/",
+              "/mangel-melden",
+              "/api/maengel",
+              "/meldestatus",
+              "/veranstaltungen",
+              "/dgh-mieten",
+              "/muelltermine-info",
+              "/manifest.webmanifest",
+              "/service-worker.js",
+              "/verwaltung",
+              "/intern/maengel",
+          }
+          missing = required - paths
+          assert not missing, f"Missing PWA routes: {sorted(missing)}"
+          assert "/webhook" not in paths, "WhatsApp webhook must not be mounted"
+
+          manifest = asyncio.run(pwa_main.manifest())
+          assert manifest.status_code == 200
+          assert b'"display":"standalone"' in manifest.body
+
+          worker = asyncio.run(pwa_main.service_worker())
+          assert worker.status_code == 200
+          assert b"ahnsen-hilft-pwa-v1" in worker.body
+
+          assert Path("static/pwa.css").is_file()
+          assert Path("static/pwa.js").is_file()
+          assert Path("static/icon-192.png").is_file()
+          assert Path("static/icon-512.png").is_file()
+
+          settings = {
+              "seiten_titel": "Ahnsen hilft",
+              "vereine": "TSV Ahnsen|Sport und Gemeinschaft",
+              "aktuelles": "PWA gestartet|Alle Dienste an einem Ort",
+              "ansprechpartner": "Gemeinde Ahnsen|Kontakt",
+          }
+          events = [SimpleNamespace(
+              id=1,
+              titel="Dorffest",
+              datum="15.08.2026",
+              uhrzeit="18:00",
+              ort="DGH",
+              beschreibung="Gemeinsam feiern",
+              ansprechpartner="",
+              bild_base64=None,
+          )]
+          waste = [SimpleNamespace(
+              datum=date.today() + timedelta(days=1),
+              abfuhrarten="Restmüll",
+              feiertagsabweichung="Nein",
+          )]
+          response = pwa_ui.home_page({
+              "einstellungen": settings,
+              "veranstaltungen": events,
+              "muelltermine": waste,
+          })
+          assert response.status_code == 200
+          assert b"M\xc3\xa4ngel melden" in response.body
+          assert b"WhatsApp-Konto" in response.body
+
+          disabled = whatsapp.send_whatsapp_message("test", "test")
+          assert disabled.status_code == 410
+          print(f"Validated {len(paths)} routes and all PWA assets")
+          PY
