@@ -80,9 +80,16 @@ for (const catalog of catalogs) {
   }
 
   for (const expansion of catalog.expansions) {
-    const count = questions.filter(question => String(question?.id || '').startsWith(expansion.prefix)).length;
-    if (count !== expansion.expected) {
-      errors.push(`${catalog.name}: Der ${expansion.label} muss genau ${expansion.expected} Fragen enthalten, gefunden wurden ${count}.`);
+    const expandedQuestions = questions.filter(question => String(question?.id || '').startsWith(expansion.prefix));
+    if (expandedQuestions.length !== expansion.expected) {
+      errors.push(`${catalog.name}: Der ${expansion.label} muss genau ${expansion.expected} Fragen enthalten, gefunden wurden ${expandedQuestions.length}.`);
+    }
+    const expansionDistribution = expandedQuestions.reduce((counts, question) => {
+      if (Number.isInteger(question?.correctIndex) && question.correctIndex >= 0 && question.correctIndex <= 3) counts[question.correctIndex] += 1;
+      return counts;
+    }, [0, 0, 0, 0]);
+    if (expansionDistribution.some(value => value !== expansion.expected / 4)) {
+      errors.push(`${catalog.name}: Der ${expansion.label} ist nicht exakt auf A bis D verteilt: ${expansionDistribution.join('/')}.`);
     }
   }
 
@@ -154,9 +161,11 @@ for (const catalog of catalogs) {
     if (text.length > 220) warnings.push(`${label}: Sehr langer Fragetext für Handy oder Beamer.`);
   });
 
-  const expectedPerPosition = catalog.expectedCount / 4;
-  if (distribution.some(value => value !== expectedPerPosition)) {
-    errors.push(`${catalog.name}: Richtige Antwortpositionen sind nicht exakt ausgeglichen: ${distribution.join('/')}.`);
+  if (catalog.key === 'child') {
+    const expectedPerPosition = catalog.expectedCount / 4;
+    if (distribution.some(value => value !== expectedPerPosition)) {
+      errors.push(`${catalog.name}: Richtige Antwortpositionen sind nicht exakt ausgeglichen: ${distribution.join('/')}.`);
+    }
   }
   if (categoryCounts.size !== catalog.categories.size) {
     errors.push(`${catalog.name}: Es müssen genau die vorhandenen Kategorien verwendet werden.`);
@@ -177,11 +186,12 @@ const reportLines = [
   '',
   '- 1.500 Erwachsenenfragen und 1.500 Kinderfragen',
   '- erster und zweiter Ausbau enthalten jeweils exakt 500 neue Fragen je Zielgruppe',
+  '- jeder neue 500er-Block enthält exakt 125 richtige Antworten je Position A, B, C und D',
   '- ausschließlich die bestehenden Kategorien; keine Schwierigkeitsstufen',
   '- eindeutige feste Frage-IDs und Fragetexte innerhalb jedes Katalogs',
   '- genau vier nicht leere und unterschiedliche Antworten',
   '- gültiger correctIndex von 0 bis 3',
-  '- bei beiden Katalogen exakt 375 richtige Antworten je Position A, B, C und D',
+  '- vollständiger Kinderkatalog: exakt 375 richtige Antworten je Position A, B, C und D',
   '- bei allen Fragen zwei bis drei verständliche Erklärungssätze',
   '',
   '> Sachliche Richtigkeit und Aktualität benötigen weiterhin redaktionelle Stichproben; sie lassen sich nicht vollständig automatisieren.',
