@@ -1,6 +1,9 @@
 name: Administration smoke tests
 
 on:
+  push:
+    branches:
+      - agent/dashboard-im-pwa-design
   pull_request:
     branches:
       - main
