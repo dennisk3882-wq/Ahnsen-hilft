@@ -5,6 +5,7 @@ const path = require('path');
 const zlib = require('zlib');
 const expansion1 = require('./question-expansion-batch1');
 const expansion2 = require('./question-expansion-batch2');
+const expansion3 = require('./question-expansion-batch3');
 
 const directory = path.join(__dirname, 'child-questions');
 const firstHundred = [
@@ -90,11 +91,12 @@ function freezeQuestion(question, text = question.text) {
 const extensionQuestions = [
   ...expansion1.child.map(question => freezeQuestion(question, uniqueBatch1Text(question.text))),
   ...expansion2.child.map(question => freezeQuestion(question)),
+  ...expansion3.child.map(question => freezeQuestion(question)),
 ];
 
 const questions = [...baseQuestions, ...extensionQuestions];
-if (questions.length !== 1500) {
-  throw new Error(`Der Kinderfragenkatalog ist unvollständig: ${questions.length} statt 1500 Fragen.`);
+if (questions.length !== 2000) {
+  throw new Error(`Der Kinderfragenkatalog ist unvollständig: ${questions.length} statt 2000 Fragen.`);
 }
 
 const ids = new Set();

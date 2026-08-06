@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const expansion = require('../data/question-expansion-batch2');
+const expansion = require('../data/question-expansion-batch3');
 const childCatalog = require('../data/child-question-bank');
 const adultCatalog = require('../data/adult-question-catalog');
 
@@ -51,13 +51,13 @@ function validateBatch(questions, prefix, categories, label) {
   });
 }
 
-validateBatch(expansion.child, 'child-b2-', CHILD_CATEGORIES, 'Kinder-Erweiterung 2');
-validateBatch(expansion.adult, 'adult-b2-', ADULT_CATEGORIES, 'Erwachsenen-Erweiterung 2');
+validateBatch(expansion.child, 'child-b3-', CHILD_CATEGORIES, 'Kinder-Erweiterung 3');
+validateBatch(expansion.adult, 'adult-b3-', ADULT_CATEGORIES, 'Erwachsenen-Erweiterung 3');
 
 assert.strictEqual(childCatalog.length, 2000, 'Der vollständige Kinderkatalog muss 2.000 Fragen enthalten.');
 assert.strictEqual(adultCatalog.length, 2000, 'Der vollständige Erwachsenenkatalog muss 2.000 Fragen enthalten.');
-assert.strictEqual(childCatalog.filter(question => String(question.id).startsWith('child-b2-')).length, 500);
-assert.strictEqual(adultCatalog.filter(question => String(question.id).startsWith('adult-b2-')).length, 500);
+assert.strictEqual(childCatalog.filter(question => String(question.id).startsWith('child-b3-')).length, 500);
+assert.strictEqual(adultCatalog.filter(question => String(question.id).startsWith('adult-b3-')).length, 500);
 
 for (const [label, catalog] of [['Kinder', childCatalog], ['Erwachsene', adultCatalog]]) {
   assert.strictEqual(new Set(catalog.map(question => String(question.id).toLowerCase())).size, 2000, `${label}: alle IDs müssen eindeutig sein.`);
@@ -73,4 +73,9 @@ assert.deepStrictEqual(
   'Der vollständige Kinderkatalog muss A bis D exakt ausgleichen.',
 );
 
-console.log('Question expansion batch 2 remains valid inside the 2.000-question catalogs.');
+assert.strictEqual(adultCatalog.meta.baseCount, 500);
+assert.strictEqual(adultCatalog.meta.expansionCount, 1500);
+assert.strictEqual(adultCatalog.meta.expansion3Count, 500);
+assert.strictEqual(adultCatalog.meta.totalCount, 2000);
+
+console.log('Question expansion batch 3 tests passed: final 500 child and 500 adult questions.');

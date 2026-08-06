@@ -30,8 +30,8 @@ async function releaseChecks({ persist = false } = {}) {
   if (databaseOk) try { migrations = (await db.query('SELECT version,applied_at FROM quiz_schema_migrations ORDER BY version')).rows; add('migration-120', migrations.some(row => row.version === '120_phase12_13_release_quality.sql'), 'fail', 'Migration 120', 'Release-, Qualitäts- und Bindungstabellen sind vorhanden.'); }
   catch (error) { add('migration-120', false, 'fail', 'Migration 120', safeText(error.message, 300)); }
   const catalogs = questionCatalog.currentCatalogs();
-  add('catalog-child', catalogs.child.length >= 1500, 'fail', 'Kinderfragen', `${catalogs.child.length} veröffentlichte Fragen; erforderlich sind mindestens 1500.`);
-  add('catalog-adult', catalogs.adult.length >= 1500, 'fail', 'Erwachsenenfragen', `${catalogs.adult.length} veröffentlichte Fragen; erforderlich sind mindestens 1500.`);
+  add('catalog-child', catalogs.child.length >= 2000, 'fail', 'Kinderfragen', `${catalogs.child.length} veröffentlichte Fragen; erforderlich sind mindestens 2000.`);
+  add('catalog-adult', catalogs.adult.length >= 2000, 'fail', 'Erwachsenenfragen', `${catalogs.adult.length} veröffentlichte Fragen; erforderlich sind mindestens 2000.`);
   const mail = emailService.status(); add('email', mail.configured, 'warning', 'E-Mail-Versand', mail.configured ? `${mail.provider} ist konfiguriert.` : 'Kein E-Mail-Anbieter ist konfiguriert.');
   const legal = legalConfig(); add('legal-contact', legal.contactConfigured, 'fail', 'Impressums-E-Mail', legal.contactConfigured ? legal.contactEmail : 'LEGAL_CONTACT_EMAIL fehlt.');
   let backup = null; if (databaseOk) backup = (await db.query('SELECT * FROM quiz_phase12_backup_checks ORDER BY created_at DESC LIMIT 1').catch(() => ({ rows: [] }))).rows[0] || null;
