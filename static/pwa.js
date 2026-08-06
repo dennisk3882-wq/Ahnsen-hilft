@@ -1,4 +1,9 @@
 (() => {
+  const extraCss = document.createElement('link');
+  extraCss.rel = 'stylesheet';
+  extraCss.href = '/pwa-extra.css?v=1';
+  document.head.appendChild(extraCss);
+
   const offlineBanner = document.getElementById('offline-banner');
   const updateNetworkState = () => {
     if (offlineBanner) offlineBanner.hidden = navigator.onLine;
@@ -11,6 +16,26 @@
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js').catch(() => {});
     });
+  }
+
+  const nav = document.querySelector('.bottom-nav');
+  if (nav && !nav.querySelector('a[href="/profil"]')) {
+    const profile = document.createElement('a');
+    const active = ['/profil', '/anmelden', '/registrieren'].some(path => location.pathname.startsWith(path));
+    profile.className = `bottom-link${active ? ' active profile-active' : ''}`;
+    profile.href = '/profil';
+    if (active) profile.setAttribute('aria-current', 'page');
+    profile.innerHTML = '<span class="glyph" aria-hidden="true">●</span><small>Profil</small>';
+    nav.appendChild(profile);
+  }
+
+  const menu = document.querySelector('.menu-list');
+  if (menu && !menu.querySelector('a[href="/profil"]')) {
+    const row = document.createElement('a');
+    row.className = 'menu-row profile-menu-link';
+    row.href = '/profil';
+    row.innerHTML = '<span><span class="glyph" aria-hidden="true">●</span></span><div><strong>Mein Profil</strong><small>Eigene Meldungen, DGH-Anfragen und Push</small></div><span class="glyph" aria-hidden="true">›</span>';
+    menu.prepend(row);
   }
 
   let installPrompt = null;
@@ -45,7 +70,7 @@
           const longitude = document.getElementById('longitude');
           if (latitude) latitude.value = position.coords.latitude.toFixed(6);
           if (longitude) longitude.value = position.coords.longitude.toFixed(6);
-          locationStatus.textContent = 'Standort wurde der Meldung hinzugefügt.';
+          locationStatus.textContent = 'Standort wurde hinzugefügt.';
           locationButton.disabled = false;
         },
         () => {
@@ -77,6 +102,78 @@
       preview.src = url;
       preview.hidden = false;
       preview.onload = () => URL.revokeObjectURL(url);
+    });
+  }
+
+  const pushStatus = document.getElementById('push-status');
+  const enablePush = document.getElementById('enable-push');
+  const disablePush = document.getElementById('disable-push');
+  const setPushStatus = text => {
+    if (pushStatus) pushStatus.textContent = text;
+  };
+  const urlBase64ToUint8Array = base64String => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+  };
+
+  if (enablePush) {
+    enablePush.addEventListener('click', async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setPushStatus('Dieses Gerät unterstützt keine Browser-Push-Nachrichten.');
+        return;
+      }
+      try {
+        enablePush.disabled = true;
+        setPushStatus('Benachrichtigungen werden eingerichtet …');
+        const keyResponse = await fetch('/api/push/public-key', { credentials: 'same-origin' });
+        if (!keyResponse.ok) throw new Error('Push ist auf dem Server noch nicht eingerichtet.');
+        const keyData = await keyResponse.json();
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+          });
+        }
+        const save = await fetch('/api/push/subscribe', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription.toJSON())
+        });
+        if (!save.ok) throw new Error('Die Anmeldung konnte nicht gespeichert werden.');
+        setPushStatus('Push-Nachrichten sind auf diesem Gerät aktiv.');
+      } catch (error) {
+        setPushStatus(error.message || 'Push konnte nicht aktiviert werden.');
+      } finally {
+        enablePush.disabled = false;
+      }
+    });
+  }
+
+  if (disablePush) {
+    disablePush.addEventListener('click', async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          setPushStatus('Auf diesem Gerät ist Push bereits deaktiviert.');
+          return;
+        }
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: subscription.endpoint })
+        });
+        await subscription.unsubscribe();
+        setPushStatus('Push wurde auf diesem Gerät deaktiviert.');
+      } catch (_error) {
+        setPushStatus('Push konnte auf diesem Gerät nicht deaktiviert werden.');
+      }
     });
   }
 })();
