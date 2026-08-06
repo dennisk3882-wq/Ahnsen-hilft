@@ -40,6 +40,17 @@ function withAnswerPosition(question, correct, distractors) {
 const questions = source.map(question => {
   const numericId = Number(String(question.id).slice(-3));
 
+  if (numericId >= 101 && numericId <= 150) {
+    const text = String(question.text)
+      .replace(/^Welches Wort bedeutet das Gegenteil von „(.+)“\?$/u, 'Welche Gegenbedeutung passt zu „$1“?')
+      .replace(/^Welches Wort ist das Gegenteil von „(.+)“\?$/u, 'Welcher Ausdruck bildet das Gegensatzpaar zu „$1“?');
+    return Object.freeze({
+      ...question,
+      text,
+      options: Object.freeze([...question.options]),
+    });
+  }
+
   if (numericId >= 151 && numericId <= 200) {
     return Object.freeze({
       ...question,
