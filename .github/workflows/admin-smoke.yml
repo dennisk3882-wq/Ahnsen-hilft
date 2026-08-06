@@ -1,0 +1,88 @@
+name: Administration smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: admin-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./admin-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile administration modules
+        run: |
+          python -m py_compile \
+            intern_ui.py \
+            dashboard.py \
+            veranstaltungen_dashboard.py \
+            dgh_dashboard.py \
+            muelltermine_dashboard.py \
+            gemeinde_dashboard.py
+      - name: Render all administration pages
+        run: |
+          python - <<'PY'
+          from crud import save_meldung
+          from dashboard import dashboard_page, meldung_detail_page
+          from dgh_dashboard import dgh_dashboard
+          from gemeinde_crud import get_gemeinde_einstellungen
+          from gemeinde_dashboard import gemeinde_dashboard
+          from muelltermine_dashboard import muelltermine_dashboard
+          from pwa_core import startup
+          from veranstaltungen_dashboard import veranstaltungen_dashboard
+
+          startup()
+          save_meldung(
+              "AHN-ADMIN-SMOKE",
+              {
+                  "art": "Straßenlaterne defekt",
+                  "ort": "Teststraße 1",
+                  "beschreibung": "Die Straßenlaterne ist seit gestern ausgefallen.",
+                  "foto_bytes": None,
+              },
+              "PWA | Name: Test Nutzer | E-Mail: test@example.com",
+          )
+
+          pages = {
+              "dashboard": dashboard_page(),
+              "detail": meldung_detail_page("AHN-ADMIN-SMOKE"),
+              "events": veranstaltungen_dashboard(),
+              "dgh": dgh_dashboard(),
+              "waste": muelltermine_dashboard(),
+              "content": gemeinde_dashboard(get_gemeinde_einstellungen()),
+          }
+
+          for name, response in pages.items():
+              html = response.body.decode("utf-8")
+              assert "Ahnsen" in html, name
+              assert "internal-mobile-nav" in html, name
+              assert "admin-forest" in html, name
+              assert response.status_code == 200, name
+
+          dashboard_html = pages["dashboard"].body.decode("utf-8")
+          assert "Mängel & Meldungen" in dashboard_html
+          assert "AHN-ADMIN-SMOKE" in dashboard_html
+          assert "admin-mobile-card" in dashboard_html
+
+          content_html = pages["content"].body.decode("utf-8")
+          assert "Inhalte & Erscheinungsbild" in content_html
+          assert "WhatsApp-Bot</h2>" not in content_html
+
+          print("Administration smoke tests passed")
+          PY
