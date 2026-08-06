@@ -3,28 +3,42 @@ services:
     name: ahnsen-hilft
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn pwa_main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PWA_SESSION_SECRET
+        generateValue: true
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:gemeinde@ahnsen.de
 
   - type: cron
-    name: ahnsen-muell-erinnerungen
+    name: ahnsen-pwa-erinnerungen
     runtime: python
     plan: starter
-    schedule: "0 16,17 * * *"
+    schedule: "0 * * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python muelltermine_job.py
+    startCommand: python pwa_push_job.py
     envVars:
       - key: DATABASE_URL
         fromService:
           name: ahnsen-hilft
           type: web
           envVarKey: DATABASE_URL
-      - key: WHATSAPP_TOKEN
+      - key: VAPID_PUBLIC_KEY
         fromService:
           name: ahnsen-hilft
           type: web
-          envVarKey: WHATSAPP_TOKEN
-      - key: PHONE_NUMBER_ID
+          envVarKey: VAPID_PUBLIC_KEY
+      - key: VAPID_PRIVATE_KEY
         fromService:
           name: ahnsen-hilft
           type: web
-          envVarKey: PHONE_NUMBER_ID
+          envVarKey: VAPID_PRIVATE_KEY
+      - key: VAPID_SUBJECT
+        fromService:
+          name: ahnsen-hilft
+          type: web
+          envVarKey: VAPID_SUBJECT

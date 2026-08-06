@@ -1,0 +1,121 @@
+name: PWA smoke tests
+
+on:
+  push:
+    branches:
+      - agent/pwa-buergerapp-final
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: pwa-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./pwa-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      VAPID_PUBLIC_KEY: test-public-key
+      VAPID_PRIVATE_KEY: test-private-key
+      VAPID_SUBJECT: mailto:test@example.com
+      COOKIE_SECURE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile Python and JavaScript
+        run: |
+          python -m py_compile *.py
+          node --check static/pwa.js
+      - name: Validate PWA, accounts, DGH and push
+        run: |
+          python - <<'PY'
+          import asyncio
+          from pathlib import Path
+
+          import pwa_main
+          from crud import get_meldungen_fuer_benutzer, save_meldung
+          from dgh_crud import get_dgh_termine_fuer_benutzer, save_dgh_termin
+          from pwa_crud import (
+              create_user,
+              has_push_subscription,
+              init_pwa_db,
+              upsert_push_subscription,
+              verify_password,
+          )
+          from pwa_ui import home_page
+
+          pwa_main.startup()
+          init_pwa_db()
+
+          paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
+          required = {
+              "/", "/mangel-melden", "/api/maengel", "/meldestatus",
+              "/dgh-mieten", "/dgh-anfrage", "/api/dgh-anfragen",
+              "/registrieren", "/anmelden", "/profil", "/profil/passwort",
+              "/api/push/public-key", "/api/push/subscribe",
+              "/api/push/unsubscribe", "/manifest.webmanifest",
+              "/service-worker.js", "/verwaltung", "/intern/maengel",
+          }
+          assert required <= paths, sorted(required - paths)
+          assert "/webhook" not in paths
+
+          user = create_user("test@example.com", "SehrSicheresPasswort123!", "Test Nutzer", "05722 123")
+          assert verify_password("SehrSicheresPasswort123!", user.password_hash)
+          assert not verify_password("falsch", user.password_hash)
+
+          save_meldung(
+              "AHN-TEST-ACCOUNT",
+              {"art": "Schlagloch", "ort": "Teststraße", "beschreibung": "Testbeschreibung", "foto_bytes": None},
+              "PWA",
+              pwa_user_id=user.id,
+          )
+          assert get_meldungen_fuer_benutzer(user.id)[0].ticket == "AHN-TEST-ACCOUNT"
+
+          dgh = save_dgh_termin(
+              "31.12.2099", "18:00 Uhr", "Testfeier", "Test Nutzer", "05722 123", "",
+              status="Anfrage", email="test@example.com", pwa_user_id=user.id,
+          )
+          assert get_dgh_termine_fuer_benutzer(user.id)[0].id == dgh.id
+
+          upsert_push_subscription(
+              user.id,
+              "https://push.example.test/subscription",
+              "p256dh-test",
+              "auth-test",
+              "Smoke test",
+          )
+          assert has_push_subscription(user.id)
+
+          html = home_page({"einstellungen": {}, "veranstaltungen": [], "muelltermine": []}).body.decode()
+          assert "Ahnsen" in html and "Mängel melden" in html
+          assert Path("static/pwa-extra.css").stat().st_size > 500
+          assert Path("static/pwa.js").stat().st_size > 1000
+          assert Path("static/icon-192.png").exists()
+          assert Path("static/icon-512.png").exists()
+
+          pwa_script = Path("static/pwa.js").read_text(encoding="utf-8")
+          worker_section = pwa_script.split("} else {", 1)[0]
+          assert "navigator.serviceWorker.register('/pwa.js?worker=3'" in pwa_script
+          assert "showNotification" in worker_section and "notificationclick" in worker_section
+          assert "'/profil'" not in worker_section.split("const CORE", 1)[1].split("];", 1)[0]
+          assert "'/verwaltung'" not in worker_section
+          assert "event.request.mode === 'navigate'" in worker_section
+
+          manifest = asyncio.run(pwa_main.manifest())
+          assert b"DGH anfragen" in manifest.body and b"Mein Profil" in manifest.body
+
+          import whatsapp
+          response = whatsapp.send_whatsapp_message("123", "test")
+          assert response.status_code == 410
+          print("PWA smoke tests passed")
+          PY

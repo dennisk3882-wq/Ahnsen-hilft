@@ -1,8 +1,9 @@
 import base64
 from datetime import datetime, timedelta
+
 from sqlalchemy import inspect, or_
 
-from database import Base, engine, SessionLocal
+from database import Base, SessionLocal, engine
 from models import Meldung
 
 
@@ -10,28 +11,35 @@ def init_db():
     Base.metadata.create_all(bind=engine)
 
     vorhandene_spalten = {
-        spalte["name"]
-        for spalte in inspect(engine).get_columns("meldungen")
+        spalte["name"] for spalte in inspect(engine).get_columns("meldungen")
     }
 
-    if "foto_base64" not in vorhandene_spalten:
+    migrationen = {
+        "foto_base64": "TEXT",
+        "interne_notiz": "TEXT DEFAULT ''",
+        "pwa_user_id": "INTEGER",
+    }
+    for spaltenname, spaltentyp in migrationen.items():
+        if spaltenname in vorhandene_spalten:
+            continue
         with engine.begin() as conn:
-            conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN foto_base64 TEXT")
-            print("Spalte foto_base64 hinzugefügt.")
+            conn.exec_driver_sql(
+                f"ALTER TABLE meldungen ADD COLUMN {spaltenname} {spaltentyp}"
+            )
+        print(f"Spalte meldungen.{spaltenname} hinzugefügt.")
 
-    if "interne_notiz" not in vorhandene_spalten:
-        with engine.begin() as conn:
-            conn.exec_driver_sql("ALTER TABLE meldungen ADD COLUMN interne_notiz TEXT DEFAULT ''")
-            print("Spalte interne_notiz hinzugefügt.")
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_meldungen_pwa_user_id "
+            "ON meldungen (pwa_user_id)"
+        )
 
 
-def save_meldung(ticket, data, sender):
+def save_meldung(ticket, data, sender, pwa_user_id=None):
     db = SessionLocal()
-
     try:
         foto_bytes = data.get("foto_bytes")
         foto_base64 = None
-
         if foto_bytes:
             foto_base64 = base64.b64encode(foto_bytes).decode("utf-8")
 
@@ -44,44 +52,34 @@ def save_meldung(ticket, data, sender):
             foto_vorhanden="Ja" if foto_bytes else "Nein",
             foto_base64=foto_base64,
             whatsapp_absender=sender,
+            pwa_user_id=pwa_user_id,
             interne_notiz="",
         )
-
         db.add(meldung)
         db.commit()
         db.refresh(meldung)
-
         print("Meldung gespeichert:", ticket)
         return meldung
-
     finally:
         db.close()
 
 
 def _zeitraum_filter(query, zeitraum):
     jetzt = datetime.utcnow()
-
     if zeitraum == "heute":
         start = datetime(jetzt.year, jetzt.month, jetzt.day)
         return query.filter(Meldung.erstellt_am >= start)
-
     if zeitraum == "woche":
-        start = jetzt - timedelta(days=7)
-        return query.filter(Meldung.erstellt_am >= start)
-
+        return query.filter(Meldung.erstellt_am >= jetzt - timedelta(days=7))
     if zeitraum == "monat":
-        start = jetzt - timedelta(days=30)
-        return query.filter(Meldung.erstellt_am >= start)
-
+        return query.filter(Meldung.erstellt_am >= jetzt - timedelta(days=30))
     return query
 
 
 def suche_meldungen(suche="", status_filter="", zeitraum=""):
     db = SessionLocal()
-
     try:
         query = db.query(Meldung)
-
         if suche:
             query = query.filter(
                 or_(
@@ -94,65 +92,65 @@ def suche_meldungen(suche="", status_filter="", zeitraum=""):
                     Meldung.interne_notiz.ilike(f"%{suche}%"),
                 )
             )
-
         if status_filter:
             query = query.filter(Meldung.status == status_filter)
-
         query = _zeitraum_filter(query, zeitraum)
-
         return query.order_by(Meldung.erstellt_am.desc()).all()
-
     finally:
         db.close()
 
 
 def get_meldung(ticket):
     db = SessionLocal()
-
     try:
         return db.query(Meldung).filter(Meldung.ticket == ticket).first()
+    finally:
+        db.close()
 
+
+def get_meldungen_fuer_benutzer(user_id):
+    db = SessionLocal()
+    try:
+        return (
+            db.query(Meldung)
+            .filter(Meldung.pwa_user_id == user_id)
+            .order_by(Meldung.erstellt_am.desc())
+            .all()
+        )
     finally:
         db.close()
 
 
 def update_status(ticket, neuer_status):
     db = SessionLocal()
-
     try:
         meldung = db.query(Meldung).filter(Meldung.ticket == ticket).first()
-
         if meldung:
             meldung.status = neuer_status
             db.commit()
+            db.refresh(meldung)
             print("Status geändert:", ticket, neuer_status)
-
         return meldung
-
     finally:
         db.close()
 
 
 def update_notiz(ticket, notiz):
     db = SessionLocal()
-
     try:
         meldung = db.query(Meldung).filter(Meldung.ticket == ticket).first()
-
         if meldung:
             meldung.interne_notiz = notiz
             db.commit()
+            db.refresh(meldung)
             print("Notiz gespeichert:", ticket)
-
         return meldung
-
     finally:
         db.close()
 
 
 def statistik():
     db = SessionLocal()
-
     try:
         return {
             "offen": db.query(Meldung).filter(Meldung.status == "Offen").count(),
@@ -160,6 +158,5 @@ def statistik():
             "erledigt": db.query(Meldung).filter(Meldung.status == "Erledigt").count(),
             "gesamt": db.query(Meldung).count(),
         }
-
     finally:
         db.close()

@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
+
+from sqlalchemy import Column, DateTime, Integer, String, Text
+
 from database import Base
 
 
@@ -15,5 +17,6 @@ class Meldung(Base):
     foto_vorhanden = Column(String, default="Nein")
     foto_base64 = Column(Text, nullable=True)
     whatsapp_absender = Column(String)
+    pwa_user_id = Column(Integer, index=True, nullable=True)
     interne_notiz = Column(Text, default="")
     erstellt_am = Column(DateTime, default=datetime.utcnow)

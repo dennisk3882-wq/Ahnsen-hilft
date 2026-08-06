@@ -3,7 +3,7 @@ from html import escape
 
 def intern_nav(active=""):
     eintraege = [
-        ("start", "/", "⌂", "Start"),
+        ("start", "/intern/maengel", "⌂", "Übersicht"),
         ("maengel", "/intern/maengel", "⚠", "Mängel"),
         ("veranstaltungen", "/intern/veranstaltungen", "📅", "Veranstaltungen"),
         ("dgh", "/intern/dgh", "⌂", "DGH"),
@@ -23,7 +23,7 @@ def intern_nav(active=""):
 
     return f"""
     <nav class="internal-nav" aria-label="Interne Navigation">
-        <a class="internal-brand" href="/">
+        <a class="internal-brand" href="/intern/maengel">
             <span class="internal-brand-mark">AH</span>
             <strong>Ahnsen hilft</strong>
             <small>Interner Bereich</small>
