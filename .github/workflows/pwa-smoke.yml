@@ -5,118 +5,105 @@ on:
     branches:
       - agent/pwa-buergerapp-final
   pull_request:
-    paths:
-      - "pwa_main.py"
-      - "pwa_ui.py"
-      - "static/pwa.css"
-      - "static/pwa.js"
-      - "static/icon-*.png"
-      - "render.yaml"
-      - "whatsapp.py"
-      - ".github/workflows/pwa-smoke.yml"
+    branches:
+      - main
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: sqlite:///./pwa-smoke.db
-      VERIFY_TOKEN: smoke
-      DASHBOARD_USER: smoke-admin
-      DASHBOARD_PASSWORD: smoke-password
-      DASHBOARD_SESSION_SECRET: smoke-session-secret
-      WHATSAPP_TOKEN: disabled
-      PHONE_NUMBER_ID: disabled
-      EMAIL_USER: ""
-      EMAIL_PASSWORD: ""
-      EMAIL_TO: ""
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      VAPID_PUBLIC_KEY: test-public-key
+      VAPID_PRIVATE_KEY: test-private-key
+      VAPID_SUBJECT: mailto:test@example.com
+      COOKIE_SECURE: "false"
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Compile changed Python modules
-        run: python -m py_compile pwa_main.py pwa_ui.py email_service.py whatsapp.py intern_ui.py
-
-      - name: Validate PWA application surface
+      - name: Compile Python modules
+        run: python -m py_compile *.py
+      - name: Validate PWA, accounts, DGH and push
         run: |
           python - <<'PY'
           import asyncio
-          from datetime import date, timedelta
           from pathlib import Path
-          from types import SimpleNamespace
 
           import pwa_main
-          import pwa_ui
-          import whatsapp
+          from crud import get_meldungen_fuer_benutzer, save_meldung
+          from dgh_crud import get_dgh_termine_fuer_benutzer, save_dgh_termin
+          from pwa_crud import (
+              create_user,
+              has_push_subscription,
+              init_pwa_db,
+              upsert_push_subscription,
+              verify_password,
+          )
+          from pwa_ui import home_page
 
-          paths = {getattr(route, "path", "") for route in pwa_main.app.routes}
+          pwa_main.startup()
+          init_pwa_db()
+
+          paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
           required = {
-              "/",
-              "/mangel-melden",
-              "/api/maengel",
-              "/meldestatus",
-              "/veranstaltungen",
-              "/dgh-mieten",
-              "/muelltermine-info",
-              "/manifest.webmanifest",
-              "/service-worker.js",
-              "/verwaltung",
-              "/intern/maengel",
+              "/", "/mangel-melden", "/api/maengel", "/meldestatus",
+              "/dgh-mieten", "/dgh-anfrage", "/api/dgh-anfragen",
+              "/registrieren", "/anmelden", "/profil", "/profil/passwort",
+              "/api/push/public-key", "/api/push/subscribe",
+              "/api/push/unsubscribe", "/manifest.webmanifest",
+              "/service-worker.js", "/verwaltung", "/intern/maengel",
           }
-          missing = required - paths
-          assert not missing, f"Missing PWA routes: {sorted(missing)}"
-          assert "/webhook" not in paths, "WhatsApp webhook must not be mounted"
+          assert required <= paths, sorted(required - paths)
+          assert "/webhook" not in paths
+
+          user = create_user("test@example.com", "SehrSicheresPasswort123!", "Test Nutzer", "05722 123")
+          assert verify_password("SehrSicheresPasswort123!", user.password_hash)
+          assert not verify_password("falsch", user.password_hash)
+
+          save_meldung(
+              "AHN-TEST-ACCOUNT",
+              {"art": "Schlagloch", "ort": "Teststraße", "beschreibung": "Testbeschreibung", "foto_bytes": None},
+              "PWA",
+              pwa_user_id=user.id,
+          )
+          assert get_meldungen_fuer_benutzer(user.id)[0].ticket == "AHN-TEST-ACCOUNT"
+
+          dgh = save_dgh_termin(
+              "31.12.2099", "18:00 Uhr", "Testfeier", "Test Nutzer", "05722 123", "",
+              status="Anfrage", email="test@example.com", pwa_user_id=user.id,
+          )
+          assert get_dgh_termine_fuer_benutzer(user.id)[0].id == dgh.id
+
+          upsert_push_subscription(
+              user.id,
+              "https://push.example.test/subscription",
+              "p256dh-test",
+              "auth-test",
+              "Smoke test",
+          )
+          assert has_push_subscription(user.id)
+
+          html = home_page({"einstellungen": {}, "veranstaltungen": [], "muelltermine": []}).body.decode()
+          assert "Ahnsen" in html and "Mängel melden" in html
+          assert Path("static/pwa-extra.css").stat().st_size > 500
+          assert Path("static/pwa.js").stat().st_size > 1000
+          assert Path("static/icon-192.png").exists()
+          assert Path("static/icon-512.png").exists()
 
           manifest = asyncio.run(pwa_main.manifest())
-          assert manifest.status_code == 200
-          assert b'"display":"standalone"' in manifest.body
-
+          assert b"DGH anfragen" in manifest.body and b"Mein Profil" in manifest.body
           worker = asyncio.run(pwa_main.service_worker())
-          assert worker.status_code == 200
-          assert b"ahnsen-hilft-pwa-v1" in worker.body
+          assert b"notificationclick" in worker.body and b"showNotification" in worker.body
 
-          assert Path("static/pwa.css").is_file()
-          assert Path("static/pwa.js").is_file()
-          assert Path("static/icon-192.png").is_file()
-          assert Path("static/icon-512.png").is_file()
-
-          settings = {
-              "seiten_titel": "Ahnsen hilft",
-              "vereine": "TSV Ahnsen|Sport und Gemeinschaft",
-              "aktuelles": "PWA gestartet|Alle Dienste an einem Ort",
-              "ansprechpartner": "Gemeinde Ahnsen|Kontakt",
-          }
-          events = [SimpleNamespace(
-              id=1,
-              titel="Dorffest",
-              datum="15.08.2026",
-              uhrzeit="18:00",
-              ort="DGH",
-              beschreibung="Gemeinsam feiern",
-              ansprechpartner="",
-              bild_base64=None,
-          )]
-          waste = [SimpleNamespace(
-              datum=date.today() + timedelta(days=1),
-              abfuhrarten="Restmüll",
-              feiertagsabweichung="Nein",
-          )]
-          response = pwa_ui.home_page({
-              "einstellungen": settings,
-              "veranstaltungen": events,
-              "muelltermine": waste,
-          })
-          assert response.status_code == 200
-          assert b"M\xc3\xa4ngel melden" in response.body
-          assert b"WhatsApp-Konto" in response.body
-
-          disabled = whatsapp.send_whatsapp_message("test", "test")
-          assert disabled.status_code == 410
-          print(f"Validated {len(paths)} routes and all PWA assets")
+          import whatsapp
+          response = whatsapp.send_whatsapp_message("123", "test")
+          assert response.status_code == 410
+          print("PWA smoke tests passed")
           PY
