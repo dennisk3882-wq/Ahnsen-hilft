@@ -54,14 +54,14 @@ function validateBatch(questions, prefix, categories, label) {
 validateBatch(expansion.child, 'child-b2-', CHILD_CATEGORIES, 'Kinder-Erweiterung 2');
 validateBatch(expansion.adult, 'adult-b2-', ADULT_CATEGORIES, 'Erwachsenen-Erweiterung 2');
 
-assert.strictEqual(childCatalog.length, 1500, 'Der vollständige Kinderkatalog muss 1.500 Fragen enthalten.');
-assert.strictEqual(adultCatalog.length, 1500, 'Der vollständige Erwachsenenkatalog muss 1.500 Fragen enthalten.');
+assert.strictEqual(childCatalog.length, 2000, 'Der vollständige Kinderkatalog muss 2.000 Fragen enthalten.');
+assert.strictEqual(adultCatalog.length, 2000, 'Der vollständige Erwachsenenkatalog muss 2.000 Fragen enthalten.');
 assert.strictEqual(childCatalog.filter(question => String(question.id).startsWith('child-b2-')).length, 500);
 assert.strictEqual(adultCatalog.filter(question => String(question.id).startsWith('adult-b2-')).length, 500);
 
 for (const [label, catalog] of [['Kinder', childCatalog], ['Erwachsene', adultCatalog]]) {
-  assert.strictEqual(new Set(catalog.map(question => String(question.id).toLowerCase())).size, 1500, `${label}: alle IDs müssen eindeutig sein.`);
-  assert.strictEqual(new Set(catalog.map(question => normalizeText(question.text))).size, 1500, `${label}: alle Fragetexte müssen eindeutig sein.`);
+  assert.strictEqual(new Set(catalog.map(question => String(question.id).toLowerCase())).size, 2000, `${label}: alle IDs müssen eindeutig sein.`);
+  assert.strictEqual(new Set(catalog.map(question => normalizeText(question.text))).size, 2000, `${label}: alle Fragetexte müssen eindeutig sein.`);
 }
 
 assert.deepStrictEqual(
@@ -69,8 +69,8 @@ assert.deepStrictEqual(
     counts[question.correctIndex] += 1;
     return counts;
   }, [0, 0, 0, 0]),
-  [375, 375, 375, 375],
+  [500, 500, 500, 500],
   'Der vollständige Kinderkatalog muss A bis D exakt ausgleichen.',
 );
 
-console.log('Question expansion batch 2 tests passed: 500 child and 500 adult questions.');
+console.log('Question expansion batch 2 remains valid inside the 2.000-question catalogs.');
