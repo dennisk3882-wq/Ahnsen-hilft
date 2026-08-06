@@ -1,70 +1,59 @@
-# email_service.py
-
+import mimetypes
 import smtplib
 from datetime import datetime
 from email.message import EmailMessage
 
-from config import EMAIL_USER, EMAIL_PASSWORD, EMAIL_TO
+from config import EMAIL_PASSWORD, EMAIL_TO, EMAIL_USER
 
 
 def send_email(ticket, data, sender):
-    print("send_email() gestartet")
-
+    """Send an optional notification after a report has already been stored."""
     if not EMAIL_USER or not EMAIL_PASSWORD or not EMAIL_TO:
-        raise Exception("E-Mail Umgebungsvariablen fehlen")
+        raise RuntimeError("E-Mail-Umgebungsvariablen fehlen")
 
     msg = EmailMessage()
-
     msg["Subject"] = f"Neue Mängelmeldung {ticket}"
     msg["From"] = EMAIL_USER
     msg["To"] = EMAIL_TO
-
-    body = f"""
-Neue Mängelmeldung über Ahnsen hilft
+    msg.set_content(
+        f"""Neue Mängelmeldung über Ahnsen hilft
 
 Vorgangsnummer:
 {ticket}
 
 Art des Mangels:
-{data.get("art")}
+{data.get('art')}
 
 Ort:
-{data.get("ort")}
+{data.get('ort')}
 
 Beschreibung:
-{data.get("beschreibung")}
+{data.get('beschreibung')}
 
-WhatsApp-Absender:
-{sender}
+Quelle / freiwillige Kontaktdaten:
+{sender or 'Keine Angabe'}
 
 Zeit:
-{datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
+{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
 """
+    )
 
-    msg.set_content(body)
-
-    if data.get("foto_bytes"):
+    photo_bytes = data.get("foto_bytes")
+    if photo_bytes:
+        maintype, subtype = "image", "jpeg"
+        guessed = mimetypes.guess_type(str(data.get("foto_name") or ""))[0]
+        if guessed and "/" in guessed:
+            maintype, subtype = guessed.split("/", 1)
         msg.add_attachment(
-            data["foto_bytes"],
-            maintype="image",
-            subtype="jpeg",
-            filename=f"{ticket}.jpg"
+            photo_bytes,
+            maintype=maintype,
+            subtype=subtype,
+            filename=f"{ticket}.{subtype}",
         )
-        print("Foto angehängt")
-    else:
-        print("Kein Foto vorhanden")
-
-    print("SMTP Verbindung wird aufgebaut")
 
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
         smtp.ehlo()
         smtp.starttls()
         smtp.ehlo()
-
-        print("SMTP Login...")
         smtp.login(EMAIL_USER, EMAIL_PASSWORD)
-
-        print("E-Mail wird versendet...")
         smtp.send_message(msg)
-
-    print("E-Mail erfolgreich versendet")
