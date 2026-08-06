@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const expansion = require('./question-expansion-batch1');
+const expansion1 = require('./question-expansion-batch1');
+const expansion2 = require('./question-expansion-batch2');
 
 const directory = path.join(__dirname, 'child-questions');
 const firstHundred = [
@@ -65,7 +66,7 @@ baseQuestions[50] = replaceMathQuestion(baseQuestions[50], {
   explanation: '16 mal 5 ergibt 80. Die Multiplikation fasst fünf Gruppen mit jeweils 16 zusammen.',
 });
 
-function uniqueExpansionText(text) {
+function uniqueBatch1Text(text) {
   let match = /^Wie viel ist (\d+) \+ (\d+)\?$/u.exec(text);
   if (match) return `Berechne die Summe aus ${match[1]} und ${match[2]}.`;
 
@@ -78,15 +79,22 @@ function uniqueExpansionText(text) {
   return text;
 }
 
-const extensionQuestions = expansion.child.map(question => Object.freeze({
-  ...question,
-  text: uniqueExpansionText(question.text),
-  options: Object.freeze([...question.options]),
-}));
+function freezeQuestion(question, text = question.text) {
+  return Object.freeze({
+    ...question,
+    text,
+    options: Object.freeze([...question.options]),
+  });
+}
+
+const extensionQuestions = [
+  ...expansion1.child.map(question => freezeQuestion(question, uniqueBatch1Text(question.text))),
+  ...expansion2.child.map(question => freezeQuestion(question)),
+];
 
 const questions = [...baseQuestions, ...extensionQuestions];
-if (questions.length !== 1000) {
-  throw new Error(`Der Kinderfragenkatalog ist unvollständig: ${questions.length} statt 1000 Fragen.`);
+if (questions.length !== 1500) {
+  throw new Error(`Der Kinderfragenkatalog ist unvollständig: ${questions.length} statt 1500 Fragen.`);
 }
 
 const ids = new Set();

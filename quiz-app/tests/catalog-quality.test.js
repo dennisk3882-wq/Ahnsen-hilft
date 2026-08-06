@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 
 const appRoot = path.resolve(__dirname, '..');
@@ -10,27 +11,34 @@ const adultCategories = new Set([
   'Allgemeinwissen', 'Geografie', 'Geschichte', 'Natur & Wissenschaft',
   'Musik', 'Sport', 'Film & Fernsehen', 'Technik', 'Essen & Trinken',
 ]);
+const childCategories = new Set([
+  'Mathematik', 'Sprache', 'Natur & Tiere', 'Technik & Wissenschaft',
+  'Geografie', 'Alltag & Verkehr', 'Essen & Gesundheit', 'Allgemeinwissen',
+  'Geschichte', 'Musik', 'Sport', 'Film & Fernsehen',
+]);
 
 const catalogs = [
   {
     name: 'Erwachsene',
     key: 'adult',
     questions: adultQuestions,
-    expectedCount: 1000,
-    expansionPrefix: 'adult-b1-',
+    expectedCount: 1500,
+    expansions: [
+      { prefix: 'adult-b1-', expected: 500, label: 'erster Ausbau' },
+      { prefix: 'adult-b2-', expected: 500, label: 'zweiter Ausbau' },
+    ],
     categories: adultCategories,
   },
   {
     name: 'Kinder',
     key: 'child',
     questions: childQuestions,
-    expectedCount: 1000,
-    expansionPrefix: 'child-b1-',
-    categories: new Set([
-      'Mathematik', 'Sprache', 'Natur & Tiere', 'Technik & Wissenschaft',
-      'Geografie', 'Alltag & Verkehr', 'Essen & Gesundheit', 'Allgemeinwissen',
-      'Geschichte', 'Musik', 'Sport', 'Film & Fernsehen',
-    ]),
+    expectedCount: 1500,
+    expansions: [
+      { prefix: 'child-b1-', expected: 500, label: 'erster Ausbau' },
+      { prefix: 'child-b2-', expected: 500, label: 'zweiter Ausbau' },
+    ],
+    categories: childCategories,
   },
 ];
 
@@ -70,14 +78,25 @@ for (const catalog of catalogs) {
   if (questions.length !== catalog.expectedCount) {
     errors.push(`${catalog.name}: Erwartet werden ${catalog.expectedCount} Fragen, gefunden wurden ${questions.length}.`);
   }
-  const expansionCount = questions.filter(question => String(question?.id || '').startsWith(catalog.expansionPrefix)).length;
-  if (expansionCount !== 500) {
-    errors.push(`${catalog.name}: Der erste Ausbau muss genau 500 neue Fragen enthalten, gefunden wurden ${expansionCount}.`);
+
+  for (const expansion of catalog.expansions) {
+    const expandedQuestions = questions.filter(question => String(question?.id || '').startsWith(expansion.prefix));
+    if (expandedQuestions.length !== expansion.expected) {
+      errors.push(`${catalog.name}: Der ${expansion.label} muss genau ${expansion.expected} Fragen enthalten, gefunden wurden ${expandedQuestions.length}.`);
+    }
+    const expansionDistribution = expandedQuestions.reduce((counts, question) => {
+      if (Number.isInteger(question?.correctIndex) && question.correctIndex >= 0 && question.correctIndex <= 3) counts[question.correctIndex] += 1;
+      return counts;
+    }, [0, 0, 0, 0]);
+    if (expansionDistribution.some(value => value !== expansion.expected / 4)) {
+      errors.push(`${catalog.name}: Der ${expansion.label} ist nicht exakt auf A bis D verteilt: ${expansionDistribution.join('/')}.`);
+    }
   }
 
   const distribution = [0, 0, 0, 0];
   const categoryCounts = new Map();
   const catalogTexts = new Map();
+
   questions.forEach((question, index) => {
     const label = `${catalog.name}[${index}]`;
     if (!question || typeof question !== 'object' || Array.isArray(question)) {
@@ -111,7 +130,7 @@ for (const catalog of catalogs) {
     else categoryCounts.set(category, Number(categoryCounts.get(category) || 0) + 1);
 
     if (Object.prototype.hasOwnProperty.call(question, 'difficulty')) {
-      errors.push(`${label}: Schwierigkeitsstufen sind für diesen Ausbau ausdrücklich nicht vorgesehen.`);
+      errors.push(`${label}: Schwierigkeitsstufen sind ausdrücklich nicht vorgesehen.`);
     }
 
     if (!Array.isArray(options) || options.length !== 4) {
@@ -119,7 +138,7 @@ for (const catalog of catalogs) {
     } else {
       const normalizedOptions = options.map(normalizeAnswer);
       if (normalizedOptions.some(option => !option)) errors.push(`${label}: Mindestens eine Antwort ist leer.`);
-      if (new Set(normalizedOptions).size !== 4) errors.push(`${label}: Antwortmöglichkeiten sind innerhalb der Frage exakt doppelt.`);
+      if (new Set(normalizedOptions).size !== 4) errors.push(`${label}: Antwortmöglichkeiten sind innerhalb der Frage doppelt.`);
       if (options.some(option => typeof option !== 'string')) errors.push(`${label}: Alle Antworten müssen Text sein.`);
     }
 
@@ -148,14 +167,11 @@ for (const catalog of catalogs) {
       errors.push(`${catalog.name}: Richtige Antwortpositionen sind nicht exakt ausgeglichen: ${distribution.join('/')}.`);
     }
   }
-
-  if (catalog.key === 'adult') {
-    if (categoryCounts.size !== adultCategories.size) {
-      errors.push(`${catalog.name}: Es müssen genau die neun vorhandenen Kategorien verwendet werden.`);
-    }
-    if (![...categoryCounts.values()].some(count => count > 50)) {
-      errors.push(`${catalog.name}: Mindestens eine Kategorie muss mehr als 50 Fragen enthalten; die Quizlänge darf den Kategorienpool nicht begrenzen.`);
-    }
+  if (categoryCounts.size !== catalog.categories.size) {
+    errors.push(`${catalog.name}: Es müssen genau die vorhandenen Kategorien verwendet werden.`);
+  }
+  if (![...categoryCounts.values()].some(count => count > 50)) {
+    errors.push(`${catalog.name}: Mindestens eine Kategorie muss mehr als 50 Fragen enthalten.`);
   }
 }
 
@@ -168,15 +184,14 @@ const reportLines = [
   '',
   '## Automatisch geprüft',
   '',
-  '- 1.000 Erwachsenenfragen und 1.000 Kinderfragen',
-  '- erster Ausbau enthält exakt 500 neue Fragen je Zielgruppe',
+  '- 1.500 Erwachsenenfragen und 1.500 Kinderfragen',
+  '- erster und zweiter Ausbau enthalten jeweils exakt 500 neue Fragen je Zielgruppe',
+  '- jeder neue 500er-Block enthält exakt 125 richtige Antworten je Position A, B, C und D',
   '- ausschließlich die bestehenden Kategorien; keine Schwierigkeitsstufen',
-  '- Kategorienpools dürfen mehr als 50 Fragen enthalten; pro Runde wird nur die gewählte Quizlänge gezogen',
   '- eindeutige feste Frage-IDs und Fragetexte innerhalb jedes Katalogs',
-  '- Rechenzeichen bleiben bei der Duplikatprüfung unterscheidbar',
-  '- genau vier nicht leere und exakt unterschiedliche Antworten',
+  '- genau vier nicht leere und unterschiedliche Antworten',
   '- gültiger correctIndex von 0 bis 3',
-  '- bei Kinderfragen exakt 250 richtige Antworten je Position A, B, C und D',
+  '- vollständiger Kinderkatalog: exakt 375 richtige Antworten je Position A, B, C und D',
   '- bei allen Fragen zwei bis drei verständliche Erklärungssätze',
   '',
   '> Sachliche Richtigkeit und Aktualität benötigen weiterhin redaktionelle Stichproben; sie lassen sich nicht vollständig automatisieren.',
@@ -184,7 +199,7 @@ const reportLines = [
 ];
 if (errors.length) reportLines.push('## Fehler', '', ...errors.map(item => `- ${item}`), '');
 if (warnings.length) reportLines.push('## Hinweise', '', ...warnings.map(item => `- ${item}`), '');
-require('fs').writeFileSync(path.join(appRoot, 'CATALOG_QUALITY_REPORT.md'), `${reportLines.join('\n')}\n`);
+fs.writeFileSync(path.join(appRoot, 'CATALOG_QUALITY_REPORT.md'), `${reportLines.join('\n')}\n`);
 
 console.log(`Catalog quality check: ${errors.length} errors, ${warnings.length} warnings.`);
 if (errors.length) {

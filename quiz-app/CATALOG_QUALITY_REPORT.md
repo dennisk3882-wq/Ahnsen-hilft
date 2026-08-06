@@ -1,28 +1,23 @@
 # Automatische Qualitätsprüfung des Fragenkatalogs
 
-Geprüfte Fragen: **500**
-Strukturelle Fehler: **0**
-Prüfhinweise: **5**
+Geprüfte Fragen: **3.000**  
+Strukturelle Fehler: **0**  
+Prüfhinweise: **86**
 
 ## Automatisch geprüft
 
-- 300 Erwachsenenfragen und 200 Kinderfragen
-- eindeutige feste Frage-IDs
-- zulässige Kategorien
-- genau vier nicht leere und unterschiedliche Antworten
-- gültiger correctIndex von 0 bis 3
-- vollständige, verständliche Lern-Erklärungen ohne Standardfloskeln
-- exakte Duplikate und auffällig ähnliche Fragen
-- ungewöhnlich kurze oder lange Texte
+- 1.500 Erwachsenenfragen und 1.500 Kinderfragen
+- erster und zweiter Ausbau enthalten jeweils exakt 500 neue Fragen je Zielgruppe
+- jeder neue 500er-Block enthält exakt 125 richtige Antworten je Position A, B, C und D
+- ausschließlich die bestehenden Kategorien; keine Schwierigkeitsstufen
+- eindeutige feste Frage-IDs und Fragetexte innerhalb jedes Zielgruppenkatalogs
+- genau vier nicht leere und unterschiedliche Antwortmöglichkeiten pro Frage
+- gültiger `correctIndex` von 0 bis 3
+- vollständiger Kinderkatalog: exakt 375 richtige Antworten je Position A, B, C und D
+- zwei bis drei verständliche Erklärungssätze pro Frage
 
-> Sachliche Richtigkeit, Aktualität und sprachliche Eindeutigkeit benötigen weiterhin menschliche Stichproben; sie lassen sich nicht vollständig automatisieren.
+## Einordnung der Hinweise
 
-## Hinweise
+Die Prüfhinweise sind nicht blockierend. Sie betreffen überwiegend bereits vorhandene Fragetexte ohne abschließendes Fragezeichen sowie einzelne inhaltliche Überschneidungen zwischen Kinder- und Erwachsenenkatalog; innerhalb desselben Zielgruppenkatalogs bestehen keine doppelten Fragetexte.
 
-Die folgenden Hinweise betreffen gleiche Fragetexte in Erwachsenen- und Kinderkatalog. Sie sind keine strukturellen Fehler.
-
-- Kinder[1]: Gleicher Fragetext auch in Erwachsene[8].
-- Kinder[93]: Gleicher Fragetext auch in Erwachsene[69].
-- Kinder[95]: Gleicher Fragetext auch in Erwachsene[74].
-- Kinder[97]: Gleicher Fragetext auch in Erwachsene[5].
-- Kinder[148]: Gleicher Fragetext auch in Erwachsene[171].
+> Sachliche Richtigkeit, Aktualität und sprachliche Eindeutigkeit benötigen zusätzlich weiterhin redaktionelle Stichproben; sie lassen sich nicht vollständig automatisieren.

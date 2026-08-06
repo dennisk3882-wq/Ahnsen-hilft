@@ -59,10 +59,10 @@ function validateNewQuestions(questions, { prefix, categories, label }) {
 }
 
 function validateCombinedCatalog(questions, { expectedPrefix, label }) {
-  assert.strictEqual(questions.length, 1000, `${label}: Gesamtkatalog muss 1.000 Fragen enthalten.`);
-  assert.strictEqual(questions.filter(question => String(question.id).startsWith(expectedPrefix)).length, 500, `${label}: Ausbauanteil muss 500 betragen.`);
-  assert.strictEqual(new Set(questions.map(question => String(question.id).toLocaleLowerCase('de-DE'))).size, 1000, `${label}: doppelte IDs im Gesamtkatalog.`);
-  assert.strictEqual(new Set(questions.map(question => normalizeText(question.text))).size, 1000, `${label}: doppelte Texte im Gesamtkatalog.`);
+  assert.strictEqual(questions.length, 1500, `${label}: Gesamtkatalog muss 1.500 Fragen enthalten.`);
+  assert.strictEqual(questions.filter(question => String(question.id).startsWith(expectedPrefix)).length, 500, `${label}: erster Ausbauanteil muss weiterhin exakt 500 betragen.`);
+  assert.strictEqual(new Set(questions.map(question => String(question.id).toLocaleLowerCase('de-DE'))).size, 1500, `${label}: doppelte IDs im Gesamtkatalog.`);
+  assert.strictEqual(new Set(questions.map(question => normalizeText(question.text))).size, 1500, `${label}: doppelte Texte im Gesamtkatalog.`);
 }
 
 validateNewQuestions(expansion.child, { prefix: 'child-b1-', categories: CHILD_CATEGORIES, label: 'Kinder-Ausbau 1' });
@@ -70,9 +70,11 @@ validateNewQuestions(expansion.adult, { prefix: 'adult-b1-', categories: ADULT_C
 validateCombinedCatalog(childCatalog, { expectedPrefix: 'child-b1-', label: 'Kinder' });
 validateCombinedCatalog(adultCatalog, { expectedPrefix: 'adult-b1-', label: 'Erwachsene' });
 
-assert.strictEqual(catalogService.canonicalCatalog('child').length, 1000, 'Katalogservice veröffentlicht nicht alle 1.000 Kinderfragen.');
-assert.strictEqual(catalogService.canonicalCatalog('adult').length, 1000, 'Katalogservice veröffentlicht nicht alle 1.000 Erwachsenenfragen.');
+assert.strictEqual(catalogService.canonicalCatalog('child').length, 1500, 'Katalogservice veröffentlicht nicht alle 1.500 Kinderfragen.');
+assert.strictEqual(catalogService.canonicalCatalog('adult').length, 1500, 'Katalogservice veröffentlicht nicht alle 1.500 Erwachsenenfragen.');
 assert.strictEqual(adultCatalog.meta.baseCount, 500, 'Erwachsenen-Basiskatalog wurde unerwartet verändert.');
-assert.strictEqual(adultCatalog.meta.expansionCount, 500, 'Erwachsenen-Ausbau enthält nicht 500 Fragen.');
+assert.strictEqual(adultCatalog.meta.expansion1Count, 500, 'Der erste Erwachsenen-Ausbau enthält nicht mehr exakt 500 Fragen.');
+assert.strictEqual(adultCatalog.meta.expansion2Count, 500, 'Der zweite Erwachsenen-Ausbau enthält nicht exakt 500 Fragen.');
+assert.strictEqual(adultCatalog.meta.expansionCount, 1000, 'Beide Erwachsenen-Ausbaustufen enthalten zusammen nicht exakt 1.000 Fragen.');
 
-console.log('QuizTime question expansion batch 1 passed: 500 new child and 500 new adult questions.');
+console.log('QuizTime question expansion batch 1 remains valid inside the 1.500-question catalogs.');

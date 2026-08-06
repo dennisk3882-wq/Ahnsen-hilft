@@ -1,7 +1,8 @@
 'use strict';
 
 const baseQuestions = require('./adult-question-bank');
-const expansion = require('./question-expansion-batch1');
+const expansion1 = require('./question-expansion-batch1');
+const expansion2 = require('./question-expansion-batch2');
 
 function normalizeText(value) {
   return String(value || '')
@@ -11,9 +12,9 @@ function normalizeText(value) {
     .trim();
 }
 
-const questions = [...baseQuestions, ...expansion.adult];
-if (questions.length !== 1000) {
-  throw new Error(`Der Erwachsenenfragenkatalog ist unvollständig: ${questions.length} statt 1000 Fragen.`);
+const questions = [...baseQuestions, ...expansion1.adult, ...expansion2.adult];
+if (questions.length !== 1500) {
+  throw new Error(`Der Erwachsenenfragenkatalog ist unvollständig: ${questions.length} statt 1500 Fragen.`);
 }
 
 const ids = new Set();
@@ -31,7 +32,9 @@ Object.defineProperty(questions, 'meta', {
   enumerable: false,
   value: Object.freeze({
     baseCount: baseQuestions.length,
-    expansionCount: expansion.adult.length,
+    expansionCount: expansion1.adult.length + expansion2.adult.length,
+    expansion1Count: expansion1.adult.length,
+    expansion2Count: expansion2.adult.length,
     totalCount: questions.length,
     categories: Object.freeze([...new Set(questions.map(question => question.category))]),
   }),
