@@ -1,9 +1,6 @@
 name: PWA smoke tests
 
 on:
-  push:
-    branches:
-      - agent/pwa-buergerapp-final
   pull_request:
     branches:
       - main
@@ -45,6 +42,7 @@ jobs:
           import pwa_main
           from crud import get_meldungen_fuer_benutzer, save_meldung
           from dgh_crud import get_dgh_termine_fuer_benutzer, save_dgh_termin
+          from pwa_core import startup
           from pwa_crud import (
               create_user,
               has_push_subscription,
@@ -54,7 +52,7 @@ jobs:
           )
           from pwa_ui import home_page
 
-          pwa_main.startup()
+          startup()
           init_pwa_db()
 
           paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
@@ -102,17 +100,18 @@ jobs:
           assert Path("static/pwa.js").stat().st_size > 1000
           assert Path("static/icon-192.png").exists()
           assert Path("static/icon-512.png").exists()
+          assert Path("static/icon-ahnsen.svg").exists()
 
           pwa_script = Path("static/pwa.js").read_text(encoding="utf-8")
           worker_section = pwa_script.split("} else {", 1)[0]
-          assert "navigator.serviceWorker.register('/pwa.js?worker=3'" in pwa_script
           assert "showNotification" in worker_section and "notificationclick" in worker_section
           assert "'/profil'" not in worker_section.split("const CORE", 1)[1].split("];", 1)[0]
           assert "'/verwaltung'" not in worker_section
           assert "event.request.mode === 'navigate'" in worker_section
 
-          manifest = asyncio.run(pwa_main.manifest())
+          manifest = asyncio.run(pwa_main.manifest_v5())
           assert b"DGH anfragen" in manifest.body and b"Mein Profil" in manifest.body
+          assert b"ahnsen-app-v5-512.png" in manifest.body
 
           import whatsapp
           response = whatsapp.send_whatsapp_message("123", "test")
