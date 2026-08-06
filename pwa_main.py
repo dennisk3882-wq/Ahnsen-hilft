@@ -1,24 +1,63 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import os
 import secrets
 import time
 from collections import defaultdict, deque
+from datetime import date
 from pathlib import Path
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 
 import main as legacy
-from crud import get_meldung, init_db, save_meldung
-from dgh_crud import get_alle_dgh_termine, get_freie_tage, init_dgh_db
-from email_service import send_email
+from crud import (
+    get_meldung,
+    get_meldungen_fuer_benutzer,
+    init_db,
+    save_meldung,
+    update_status,
+)
+from dgh_crud import (
+    get_alle_dgh_termine,
+    get_dgh_termin,
+    get_dgh_termine_fuer_benutzer,
+    get_freie_tage,
+    init_dgh_db,
+    ist_dgh_belegt,
+    save_dgh_termin,
+    set_dgh_status,
+)
+from email_service import send_dgh_email, send_email
 from gemeinde_crud import get_gemeinde_einstellungen, init_gemeinde_db
 from muelltermine_crud import get_naechste_muelltermine, init_muelltermine_db
-from veranstaltungen_crud import get_aktive_veranstaltungen, init_veranstaltungen_db
+from pwa_account_ui import (
+    account_page,
+    dgh_overview_page,
+    dgh_request_page,
+    dgh_success_page,
+    profile_page,
+)
+from pwa_crud import (
+    create_user,
+    delete_push_subscription,
+    get_user_by_email,
+    get_user_by_id,
+    has_push_subscription,
+    init_pwa_db,
+    normalize_email,
+    update_user_password,
+    update_user_profile,
+    upsert_push_subscription,
+    verify_password,
+)
+from push_service import public_key, push_configured, send_user_notification
 from pwa_ui import (
     admin_login_page,
-    dgh_page,
     events_page,
     home_page,
     info_page,
@@ -29,6 +68,7 @@ from pwa_ui import (
     status_page,
     waste_page,
 )
+from veranstaltungen_crud import get_aktive_veranstaltungen, init_veranstaltungen_db
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -37,13 +77,18 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 RATE_WINDOW_SECONDS = 10 * 60
 RATE_MAX_REPORTS = 5
+RATE_MAX_AUTH = 12
 REPORT_RATE_LIMIT: dict[str, deque[float]] = defaultdict(deque)
+AUTH_RATE_LIMIT: dict[str, deque[float]] = defaultdict(deque)
+PWA_SESSION_COOKIE = "ahnsen_user_session"
+PWA_SESSION_MAX_AGE = 30 * 24 * 60 * 60
+PWA_SESSION_SECRET = os.getenv("PWA_SESSION_SECRET") or legacy.DASHBOARD_SESSION_SECRET or ""
 
 
 app = FastAPI(
     title="Ahnsen hilft PWA",
     description="Installierbare digitale Bürgerplattform für Ahnsen",
-    version="2.0.0-pwa",
+    version="3.0.0-pwa",
     docs_url=None,
     redoc_url=None,
 )
@@ -56,6 +101,7 @@ def startup() -> None:
     init_dgh_db()
     init_muelltermine_db()
     init_gemeinde_db()
+    init_pwa_db()
 
 
 def _public_data() -> dict:
@@ -77,23 +123,92 @@ def _client_key(request: Request) -> str:
     return "unknown"
 
 
-def _rate_limit_report(request: Request) -> None:
+def _rate_limit(store, request: Request, maximum: int) -> None:
     now = time.monotonic()
-    queue = REPORT_RATE_LIMIT[_client_key(request)]
+    queue = store[_client_key(request)]
     while queue and now - queue[0] > RATE_WINDOW_SECONDS:
         queue.popleft()
-    if len(queue) >= RATE_MAX_REPORTS:
+    if len(queue) >= maximum:
         raise HTTPException(
             status_code=429,
-            detail="Zu viele Meldungen in kurzer Zeit. Bitte versuche es später erneut.",
+            detail="Zu viele Versuche in kurzer Zeit. Bitte versuche es später erneut.",
         )
     queue.append(now)
 
 
 def _new_ticket() -> str:
-    date_part = time.strftime("%Y%m%d")
-    random_part = uuid4().hex[:6].upper()
-    return f"AHN-{date_part}-{random_part}"
+    return f"AHN-{time.strftime('%Y%m%d')}-{uuid4().hex[:10].upper()}"
+
+
+def _trim(value, max_length: int) -> str:
+    return str(value or "").strip()[:max_length]
+
+
+def _valid_email(value: str) -> bool:
+    value = normalize_email(value)
+    return bool(value and "@" in value and "." in value.rsplit("@", 1)[-1])
+
+
+def _safe_next(value: str, fallback: str = "/profil") -> str:
+    value = str(value or "").strip()
+    if value.startswith("/") and not value.startswith("//"):
+        return value[:500]
+    return fallback
+
+
+def _user_signature(user_id: int, timestamp: str) -> str:
+    if not PWA_SESSION_SECRET:
+        return ""
+    payload = f"{user_id}:{timestamp}".encode("utf-8")
+    return hmac.new(PWA_SESSION_SECRET.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+
+
+def _new_user_session(user_id: int) -> str:
+    timestamp = str(int(time.time()))
+    return f"{user_id}.{timestamp}.{_user_signature(user_id, timestamp)}"
+
+
+def _current_user(request: Request):
+    token = request.cookies.get(PWA_SESSION_COOKIE, "")
+    try:
+        user_id_text, timestamp, signature = token.split(".", 2)
+        user_id = int(user_id_text)
+        created_at = int(timestamp)
+    except (TypeError, ValueError):
+        return None
+    now = int(time.time())
+    if not PWA_SESSION_SECRET or created_at > now + 60 or now - created_at > PWA_SESSION_MAX_AGE:
+        return None
+    if not secrets.compare_digest(signature, _user_signature(user_id, timestamp)):
+        return None
+    return get_user_by_id(user_id)
+
+
+def _set_user_cookie(response: Response, request: Request, user_id: int) -> None:
+    response.set_cookie(
+        key=PWA_SESSION_COOKIE,
+        value=_new_user_session(user_id),
+        max_age=PWA_SESSION_MAX_AGE,
+        httponly=True,
+        secure=request.url.scheme == "https" or os.getenv("COOKIE_SECURE", "true").casefold() != "false",
+        samesite="lax",
+    )
+
+
+def _require_user(request: Request, next_url: str = "/profil"):
+    user = _current_user(request)
+    if not user:
+        raise HTTPException(
+            status_code=303,
+            headers={"Location": f"/anmelden?next={quote(_safe_next(next_url))}"},
+        )
+    return user
+
+
+def _object_token(kind: str, object_id: int) -> str:
+    payload = f"{kind}:{object_id}".encode("utf-8")
+    secret = (PWA_SESSION_SECRET or legacy.DASHBOARD_SESSION_SECRET or "disabled").encode("utf-8")
+    return hmac.new(secret, payload, hashlib.sha256).hexdigest()[:32]
 
 
 def _send_email_safely(ticket: str, data: dict, source: str) -> None:
@@ -103,8 +218,11 @@ def _send_email_safely(ticket: str, data: dict, source: str) -> None:
         print("PWA-Meldung gespeichert, E-Mail konnte nicht gesendet werden:", repr(error))
 
 
-def _trim(value, max_length: int) -> str:
-    return str(value or "").strip()[:max_length]
+def _send_dgh_email_safely(reference: str, data: dict) -> None:
+    try:
+        send_dgh_email(reference, data)
+    except Exception as error:
+        print("DGH-Anfrage gespeichert, E-Mail konnte nicht gesendet werden:", repr(error))
 
 
 @app.get("/")
@@ -112,65 +230,167 @@ async def pwa_home():
     return home_page(_public_data())
 
 
+@app.get("/registrieren")
+async def register_page(request: Request, next: str = "/profil"):
+    if _current_user(request):
+        return RedirectResponse(url=_safe_next(next), status_code=303)
+    return account_page("register", next_url=_safe_next(next))
+
+
+@app.post("/registrieren")
+async def register_submit(request: Request):
+    _rate_limit(AUTH_RATE_LIMIT, request, RATE_MAX_AUTH)
+    form = await request.form()
+    values = {
+        "name": _trim(form.get("name"), 120),
+        "email": normalize_email(form.get("email")),
+        "telefon": _trim(form.get("telefon"), 60),
+    }
+    password = str(form.get("password") or "")
+    confirmation = str(form.get("password_confirm") or "")
+    next_url = _safe_next(form.get("next"))
+
+    if not PWA_SESSION_SECRET:
+        response = account_page("register", "Der Kontobereich ist auf dem Server noch nicht eingerichtet.", values, next_url)
+        response.status_code = 503
+        return response
+    if not values["name"] or not _valid_email(values["email"]):
+        return account_page("register", "Bitte gib Name und eine gültige E-Mail-Adresse an.", values, next_url)
+    if len(password) < 10:
+        return account_page("register", "Das Passwort muss mindestens 10 Zeichen lang sein.", values, next_url)
+    if password != confirmation:
+        return account_page("register", "Die beiden Passwörter stimmen nicht überein.", values, next_url)
+    if _trim(form.get("datenschutz"), 10) != "ja":
+        return account_page("register", "Bitte bestätige die Datenschutzhinweise.", values, next_url)
+
+    try:
+        user = create_user(values["email"], password, values["name"], values["telefon"])
+    except ValueError as error:
+        return account_page("register", str(error), values, next_url)
+
+    response = RedirectResponse(url=next_url, status_code=303)
+    _set_user_cookie(response, request, user.id)
+    return response
+
+
+@app.get("/anmelden")
+async def user_login_page(request: Request, next: str = "/profil"):
+    if _current_user(request):
+        return RedirectResponse(url=_safe_next(next), status_code=303)
+    return account_page("login", next_url=_safe_next(next))
+
+
+@app.post("/anmelden")
+async def user_login_submit(request: Request):
+    _rate_limit(AUTH_RATE_LIMIT, request, RATE_MAX_AUTH)
+    form = await request.form()
+    email = normalize_email(form.get("email"))
+    password = str(form.get("password") or "")
+    next_url = _safe_next(form.get("next"))
+    user = get_user_by_email(email)
+    if not user or not verify_password(password, user.password_hash):
+        return account_page("login", "E-Mail-Adresse oder Passwort ist nicht korrekt.", {"email": email}, next_url)
+    response = RedirectResponse(url=next_url, status_code=303)
+    _set_user_cookie(response, request, user.id)
+    return response
+
+
+@app.post("/abmelden")
+async def user_logout():
+    response = RedirectResponse(url="/", status_code=303)
+    response.delete_cookie(PWA_SESSION_COOKIE, httponly=True, secure=True, samesite="lax")
+    return response
+
+
+@app.get("/profil")
+async def user_profile(request: Request, hinweis: str = "", fehler: str = ""):
+    user = _current_user(request)
+    if not user:
+        return RedirectResponse(url="/anmelden?next=/profil", status_code=303)
+    return profile_page(
+        user,
+        get_meldungen_fuer_benutzer(user.id),
+        get_dgh_termine_fuer_benutzer(user.id),
+        has_push_subscription(user.id),
+        push_configured(),
+        message=hinweis,
+        error=fehler,
+    )
+
+
+@app.post("/profil")
+async def update_profile(request: Request):
+    user = _require_user(request)
+    form = await request.form()
+    name = _trim(form.get("name"), 120)
+    if not name:
+        return RedirectResponse(url="/profil?fehler=Bitte%20gib%20deinen%20Namen%20an.", status_code=303)
+    update_user_profile(
+        user.id,
+        name,
+        _trim(form.get("telefon"), 60),
+        _trim(form.get("push_muell"), 10) == "ja",
+    )
+    return RedirectResponse(url="/profil?hinweis=Profil%20wurde%20gespeichert.", status_code=303)
+
+
+@app.post("/profil/passwort")
+async def update_password(request: Request):
+    user = _require_user(request)
+    form = await request.form()
+    current_password = str(form.get("current_password") or "")
+    new_password = str(form.get("new_password") or "")
+    confirmation = str(form.get("new_password_confirm") or "")
+    if not verify_password(current_password, user.password_hash):
+        return RedirectResponse(url="/profil?fehler=Das%20aktuelle%20Passwort%20ist%20nicht%20korrekt.", status_code=303)
+    if len(new_password) < 10:
+        return RedirectResponse(url="/profil?fehler=Das%20neue%20Passwort%20muss%20mindestens%2010%20Zeichen%20haben.", status_code=303)
+    if new_password != confirmation:
+        return RedirectResponse(url="/profil?fehler=Die%20neuen%20Passwörter%20stimmen%20nicht%20überein.", status_code=303)
+    update_user_password(user.id, new_password)
+    return RedirectResponse(url="/profil?hinweis=Passwort%20wurde%20geändert.", status_code=303)
+
+
 @app.get("/mangel-melden")
-async def pwa_report():
-    return report_page()
+async def pwa_report(request: Request):
+    user = _current_user(request)
+    values = {"name": user.name, "email": user.email} if user else None
+    return report_page(values=values)
 
 
 @app.post("/api/maengel")
 async def submit_report(request: Request, background_tasks: BackgroundTasks):
-    _rate_limit_report(request)
+    _rate_limit(REPORT_RATE_LIMIT, request, RATE_MAX_REPORTS)
     form = await request.form()
-
     if _trim(form.get("website"), 200):
         return RedirectResponse(url="/", status_code=303)
 
+    user = _current_user(request)
     art = _trim(form.get("art"), 120)
     ort = _trim(form.get("ort"), 180)
     beschreibung = _trim(form.get("beschreibung"), 1500)
     name = _trim(form.get("name"), 120)
-    email = _trim(form.get("email"), 180)
+    email = normalize_email(form.get("email"))
     latitude = _trim(form.get("latitude"), 30)
     longitude = _trim(form.get("longitude"), 30)
-    privacy = _trim(form.get("datenschutz"), 10)
+    values = {"art": art, "ort": ort, "beschreibung": beschreibung, "name": name, "email": email}
 
-    values = {
-        "art": art,
-        "ort": ort,
-        "beschreibung": beschreibung,
-        "name": name,
-        "email": email,
-    }
-
-    if not art or not ort or len(beschreibung) < 10 or privacy != "ja":
-        return report_page(
-            "Bitte fülle alle Pflichtfelder vollständig aus und bestätige die Datenschutzhinweise.",
-            values,
-        )
-
-    if email and ("@" not in email or "." not in email.rsplit("@", 1)[-1]):
+    if not art or not ort or len(beschreibung) < 10 or _trim(form.get("datenschutz"), 10) != "ja":
+        return report_page("Bitte fülle alle Pflichtfelder vollständig aus und bestätige die Datenschutzhinweise.", values)
+    if email and not _valid_email(email):
         return report_page("Bitte gib eine gültige E-Mail-Adresse ein.", values)
 
     photo_bytes = None
     photo = form.get("foto")
     if getattr(photo, "filename", ""):
-        content_type = getattr(photo, "content_type", "") or ""
-        if content_type not in ALLOWED_IMAGE_TYPES:
+        if (getattr(photo, "content_type", "") or "") not in ALLOWED_IMAGE_TYPES:
             return report_page("Bitte lade nur ein JPG-, PNG- oder WEBP-Bild hoch.", values)
         photo_bytes = await photo.read()
         if len(photo_bytes) > MAX_IMAGE_BYTES:
             return report_page("Das Foto darf höchstens 8 MB groß sein.", values)
 
-    location_note = ""
-    if latitude and longitude:
-        location_note = f"\n\nGPS-Position: {latitude}, {longitude}"
-
-    data = {
-        "art": art,
-        "ort": ort,
-        "beschreibung": beschreibung + location_note,
-        "foto_bytes": photo_bytes,
-    }
+    location_note = f"\n\nGPS-Position: {latitude}, {longitude}" if latitude and longitude else ""
+    data = {"art": art, "ort": ort, "beschreibung": beschreibung + location_note, "foto_bytes": photo_bytes}
     contact = "PWA"
     if name:
         contact += f" | Name: {name}"
@@ -178,16 +398,14 @@ async def submit_report(request: Request, background_tasks: BackgroundTasks):
         contact += f" | E-Mail: {email}"
 
     ticket = _new_ticket()
-    save_meldung(ticket, data, contact)
+    save_meldung(ticket, data, contact, pwa_user_id=user.id if user else None)
     background_tasks.add_task(_send_email_safely, ticket, data, contact)
-
     return RedirectResponse(url=f"/meldung-erfolgreich/{ticket}", status_code=303)
 
 
 @app.get("/meldung-erfolgreich/{ticket}")
 async def report_success(ticket: str):
-    report = get_meldung(ticket)
-    if not report:
+    if not get_meldung(ticket):
         return RedirectResponse(url="/mangel-melden", status_code=303)
     return report_success_page(ticket)
 
@@ -207,11 +425,80 @@ async def pwa_events():
 
 
 @app.get("/dgh-mieten")
-async def pwa_dgh():
-    return dgh_page(
+async def pwa_dgh(request: Request):
+    return dgh_overview_page(
         get_freie_tage(anzahl_tage=90),
         get_alle_dgh_termine(),
+        logged_in=_current_user(request) is not None,
     )
+
+
+@app.get("/dgh-anfrage")
+async def dgh_request(request: Request):
+    return dgh_request_page(_current_user(request))
+
+
+@app.post("/api/dgh-anfragen")
+async def submit_dgh_request(request: Request, background_tasks: BackgroundTasks):
+    _rate_limit(REPORT_RATE_LIMIT, request, RATE_MAX_REPORTS)
+    form = await request.form()
+    if _trim(form.get("website"), 200):
+        return RedirectResponse(url="/", status_code=303)
+
+    user = _current_user(request)
+    values = {
+        "datum": _trim(form.get("datum"), 20),
+        "uhrzeit": _trim(form.get("uhrzeit"), 40),
+        "anlass": _trim(form.get("anlass"), 160),
+        "name": _trim(form.get("name"), 120),
+        "telefon": _trim(form.get("telefon"), 60),
+        "email": normalize_email(form.get("email")),
+        "kommentar": _trim(form.get("kommentar"), 1500),
+    }
+    if any(not values[key] for key in ("datum", "uhrzeit", "anlass", "name", "telefon", "email")):
+        return dgh_request_page(user, "Bitte fülle alle Pflichtfelder aus.", values)
+    if not _valid_email(values["email"]):
+        return dgh_request_page(user, "Bitte gib eine gültige E-Mail-Adresse ein.", values)
+    if _trim(form.get("datenschutz"), 10) != "ja":
+        return dgh_request_page(user, "Bitte bestätige die Datenschutzhinweise.", values)
+    try:
+        selected_date = date.fromisoformat(values["datum"])
+    except ValueError:
+        return dgh_request_page(user, "Bitte wähle ein gültiges Datum.", values)
+    if selected_date < date.today():
+        return dgh_request_page(user, "Der gewünschte Termin darf nicht in der Vergangenheit liegen.", values)
+
+    datum_de = selected_date.strftime("%d.%m.%Y")
+    if ist_dgh_belegt(datum_de):
+        return dgh_request_page(user, "Für diesen Tag ist das DGH bereits bestätigt belegt.", values)
+
+    item = save_dgh_termin(
+        datum_de,
+        values["uhrzeit"],
+        values["anlass"],
+        values["name"],
+        values["telefon"],
+        values["kommentar"],
+        status="Anfrage",
+        email=values["email"],
+        pwa_user_id=user.id if user else None,
+    )
+    reference = f"DGH-{item.id:06d}"
+    background_tasks.add_task(_send_dgh_email_safely, reference, {**values, "datum": datum_de})
+    token = _object_token("dgh", item.id)
+    return RedirectResponse(url=f"/dgh-anfrage-erfolgreich/{item.id}?token={token}", status_code=303)
+
+
+@app.get("/dgh-anfrage-erfolgreich/{termin_id}")
+async def dgh_request_success(request: Request, termin_id: int, token: str = ""):
+    item = get_dgh_termin(termin_id)
+    if not item:
+        return RedirectResponse(url="/dgh-mieten", status_code=303)
+    user = _current_user(request)
+    owns = bool(user and item.pwa_user_id == user.id)
+    if not owns and not secrets.compare_digest(token, _object_token("dgh", termin_id)):
+        raise HTTPException(status_code=404, detail="Anfrage nicht gefunden")
+    return dgh_success_page(item, logged_in=owns)
 
 
 @app.get("/muelltermine-info")
@@ -264,6 +551,43 @@ async def pwa_privacy():
     return legal_page("datenschutz", get_gemeinde_einstellungen())
 
 
+@app.get("/api/push/public-key")
+async def push_public_key():
+    if not push_configured():
+        raise HTTPException(status_code=503, detail="Push ist auf dem Server noch nicht konfiguriert")
+    return {"publicKey": public_key()}
+
+
+@app.post("/api/push/subscribe")
+async def push_subscribe(request: Request):
+    user = _current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Bitte zuerst anmelden")
+    if not push_configured():
+        raise HTTPException(status_code=503, detail="Push ist auf dem Server noch nicht konfiguriert")
+    payload = await request.json()
+    endpoint = _trim(payload.get("endpoint"), 4000)
+    keys = payload.get("keys") or {}
+    p256dh = _trim(keys.get("p256dh"), 1000)
+    auth = _trim(keys.get("auth"), 500)
+    if not endpoint.startswith("https://") or not p256dh or not auth:
+        raise HTTPException(status_code=400, detail="Ungültiges Push-Abonnement")
+    upsert_push_subscription(user.id, endpoint, p256dh, auth, request.headers.get("user-agent", ""))
+    return {"status": "ok"}
+
+
+@app.post("/api/push/unsubscribe")
+async def push_unsubscribe(request: Request):
+    user = _current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Bitte zuerst anmelden")
+    payload = await request.json()
+    endpoint = _trim(payload.get("endpoint"), 4000)
+    if endpoint:
+        delete_push_subscription(endpoint, user.id)
+    return {"status": "ok"}
+
+
 @app.get("/verwaltung")
 async def administration(request: Request):
     if legacy._session_ist_gueltig(request):
@@ -288,19 +612,17 @@ async def administration_login_submit(request: Request):
     form = await request.form()
     username = _trim(form.get("username"), 200)
     password = str(form.get("password") or "")
-
     if not legacy.DASHBOARD_USER or not legacy.DASHBOARD_PASSWORD:
         response = admin_login_page("Der Verwaltungszugang ist auf dem Server noch nicht eingerichtet.")
         response.status_code = 503
         return response
-
-    user_ok = secrets.compare_digest(username, legacy.DASHBOARD_USER)
-    password_ok = secrets.compare_digest(password, legacy.DASHBOARD_PASSWORD)
-    if not (user_ok and password_ok):
+    if not (
+        secrets.compare_digest(username, legacy.DASHBOARD_USER)
+        and secrets.compare_digest(password, legacy.DASHBOARD_PASSWORD)
+    ):
         response = admin_login_page("Benutzername oder Passwort ist nicht korrekt.")
         response.status_code = 401
         return response
-
     response = RedirectResponse(url="/intern/maengel", status_code=303)
     response.set_cookie(
         key=legacy.SESSION_COOKIE,
@@ -316,12 +638,7 @@ async def administration_login_submit(request: Request):
 @app.post("/logout")
 async def administration_logout():
     response = RedirectResponse(url="/", status_code=303)
-    response.delete_cookie(
-        key=legacy.SESSION_COOKIE,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-    )
+    response.delete_cookie(key=legacy.SESSION_COOKIE, httponly=True, secure=True, samesite="lax")
     return response
 
 
@@ -332,67 +649,107 @@ async def intern_redirect(request: Request):
     return RedirectResponse(url="/verwaltung/login", status_code=303)
 
 
+@app.get("/status")
+async def admin_report_status(request: Request, background_tasks: BackgroundTasks, ticket: str, neuer_status: str):
+    legacy.check_dashboard_login(request)
+    allowed = {"Offen", "In Bearbeitung", "Erledigt"}
+    if neuer_status not in allowed:
+        raise HTTPException(status_code=400, detail="Ungültiger Status")
+    before = get_meldung(ticket)
+    old_status = before.status if before else None
+    report = update_status(ticket, neuer_status)
+    if report and old_status != neuer_status and report.pwa_user_id:
+        background_tasks.add_task(
+            send_user_notification,
+            report.pwa_user_id,
+            "Status deiner Meldung geändert",
+            f"{ticket} ist jetzt: {neuer_status}.",
+            "/profil",
+            f"meldung-{ticket}",
+        )
+    return RedirectResponse(url="/intern/maengel", status_code=303)
+
+
+@app.post("/dgh/status/{termin_id}")
+async def admin_dgh_status(request: Request, background_tasks: BackgroundTasks, termin_id: int):
+    legacy.check_dashboard_login(request)
+    form = await request.form()
+    status = _trim(form.get("status"), 40)
+    if status not in {"Anfrage", "Bestätigt", "Abgelehnt"}:
+        raise HTTPException(status_code=400, detail="Ungültiger DGH-Status")
+    try:
+        item, old_status = set_dgh_status(termin_id, status)
+    except ValueError as error:
+        return RedirectResponse(url=f"/intern/dgh?fehler={quote(str(error))}", status_code=303)
+    if item and old_status != status and item.pwa_user_id:
+        background_tasks.add_task(
+            send_user_notification,
+            item.pwa_user_id,
+            "DGH-Anfrage aktualisiert",
+            f"Deine Anfrage für {item.datum} ist jetzt: {status}.",
+            "/profil",
+            f"dgh-{item.id}",
+        )
+    return RedirectResponse(url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}", status_code=303)
+
+
 @app.get("/pwa.css")
 async def pwa_css():
-    return FileResponse(
-        STATIC_DIR / "pwa.css",
-        media_type="text/css; charset=utf-8",
-        headers={"Cache-Control": "public, max-age=3600"},
-    )
+    return FileResponse(STATIC_DIR / "pwa.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/pwa-extra.css")
+async def pwa_extra_css():
+    return FileResponse(STATIC_DIR / "pwa-extra.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/pwa.js")
 async def pwa_javascript():
-    return FileResponse(
-        STATIC_DIR / "pwa.js",
-        media_type="application/javascript; charset=utf-8",
-        headers={"Cache-Control": "public, max-age=3600"},
-    )
+    return FileResponse(STATIC_DIR / "pwa.js", media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/pwa/icon-{size}.png")
 async def pwa_icon(size: int):
     if size not in {192, 512}:
         raise HTTPException(status_code=404, detail="Icon nicht gefunden")
-    return FileResponse(
-        STATIC_DIR / f"icon-{size}.png",
-        media_type="image/png",
-        headers={"Cache-Control": "public, max-age=604800"},
-    )
+    return FileResponse(STATIC_DIR / f"icon-{size}.png", media_type="image/png", headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/manifest.webmanifest")
 async def manifest():
-    payload = {
-        "id": "/",
-        "name": "Ahnsen hilft",
-        "short_name": "Ahnsen",
-        "description": "Digitale Bürgerplattform der Gemeinde Ahnsen",
-        "lang": "de-DE",
-        "start_url": "/",
-        "scope": "/",
-        "display": "standalone",
-        "orientation": "portrait-primary",
-        "background_color": "#fbf8f0",
-        "theme_color": "#174936",
-        "categories": ["government", "utilities", "social"],
-        "icons": [
-            {"src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-            {"src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
-        ],
-        "shortcuts": [
-            {"name": "Mangel melden", "url": "/mangel-melden", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
-            {"name": "Mülltermine", "url": "/muelltermine-info", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
-        ],
-    }
-    return JSONResponse(payload, media_type="application/manifest+json")
+    return JSONResponse(
+        {
+            "id": "/",
+            "name": "Ahnsen hilft",
+            "short_name": "Ahnsen",
+            "description": "Digitale Bürgerplattform der Gemeinde Ahnsen",
+            "lang": "de-DE",
+            "start_url": "/",
+            "scope": "/",
+            "display": "standalone",
+            "orientation": "portrait-primary",
+            "background_color": "#fbf8f0",
+            "theme_color": "#174936",
+            "categories": ["government", "utilities", "social"],
+            "icons": [
+                {"src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+                {"src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+            ],
+            "shortcuts": [
+                {"name": "Mangel melden", "url": "/mangel-melden", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
+                {"name": "DGH anfragen", "url": "/dgh-anfrage", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
+                {"name": "Mein Profil", "url": "/profil", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
+            ],
+        },
+        media_type="application/manifest+json",
+    )
 
 
 @app.get("/service-worker.js")
 async def service_worker():
     script = """
-const CACHE = 'ahnsen-hilft-pwa-v1';
-const CORE = ['/', '/mangel-melden', '/mehr', '/pwa.css?v=1', '/pwa.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];
+const CACHE = 'ahnsen-hilft-pwa-v2';
+const CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/pwa.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });
@@ -403,40 +760,56 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const copy = response.clone();
-        if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request).then(cached => cached || caches.match('/')))
-  );
+  event.respondWith(fetch(event.request).then(response => {
+    const copy = response.clone();
+    if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, copy));
+    return response;
+  }).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
+});
+self.addEventListener('push', event => {
+  let data = { title: 'Ahnsen hilft', body: 'Es gibt eine neue Information.', url: '/profil', tag: 'ahnsen-hilft' };
+  try { if (event.data) data = { ...data, ...event.data.json() }; } catch (_error) {}
+  event.waitUntil(self.registration.showNotification(data.title, {
+    body: data.body,
+    icon: data.icon || '/pwa/icon-192.png',
+    badge: data.badge || '/pwa/icon-192.png',
+    tag: data.tag,
+    data: { url: data.url || '/profil' }
+  }));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = event.notification.data && event.notification.data.url ? event.notification.data.url : '/profil';
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const client of list) {
+      if ('focus' in client) { client.navigate(target); return client.focus(); }
+    }
+    return clients.openWindow ? clients.openWindow(target) : undefined;
+  }));
 });
 """.strip()
-    return Response(
-        script,
-        media_type="application/javascript; charset=utf-8",
-        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"},
-    )
+    return Response(script, media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
 
 
 @app.get("/health")
 async def health():
     return {
         "status": "Ahnsen hilft PWA läuft",
-        "version": "pwa-1",
+        "version": "pwa-2-accounts-push",
         "whatsapp": "deaktiviert",
+        "accounts": "aktiv",
+        "push": "konfiguriert" if push_configured() else "VAPID-Schlüssel fehlen",
     }
 
 
 def _reuse_legacy_route(path: str) -> bool:
+    if path in {"/status", "/dgh/status/{termin_id}"}:
+        return False
     exact_paths = {
         "/dashboard",
         "/dgh",
         "/muelltermine",
         "/gemeindeseite",
-        "/status",
         "/notiz",
         "/meldung/{ticket}",
         "/muelltermine.ics",
