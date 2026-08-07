@@ -1,0 +1,42 @@
+name: Temporary update home smoke assertion
+
+on:
+  push:
+    branches:
+      - agent/home-cleanup-warning-trust
+
+permissions:
+  contents: write
+
+jobs:
+  update-smoke:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/home-cleanup-warning-trust
+      - name: Update intended home assertions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/pwa-smoke.yml')
+          text = path.read_text(encoding='utf-8')
+          old = '          assert "Warnmonitor für Ahnsen aktiv" in html and "/warnungen" in html\n'
+          new = '          assert "Warnmonitor für Ahnsen aktiv" not in html and "Einfach und datensparsam" not in html\n          assert "Warnlage" in html and "/warnungen" in html\n'
+          if old not in text:
+              raise SystemExit('Alte Startseiten-Assertion nicht gefunden')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Validate workflow content
+        run: |
+          grep -q 'Warnmonitor für Ahnsen aktiv.*not in html' .github/workflows/pwa-smoke.yml
+          grep -q 'Warnlage.*in html' .github/workflows/pwa-smoke.yml
+      - name: Commit changes
+        run: |
+          rm .github/workflows/temp-update-smoke-home.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/pwa-smoke.yml .github/workflows/temp-update-smoke-home.yml
+          git commit -m "PWA-Smoke-Test an bereinigte Startseite anpassen"
+          git push origin HEAD:agent/home-cleanup-warning-trust
