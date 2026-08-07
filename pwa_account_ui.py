@@ -129,7 +129,7 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
     content = f"""
 {_extra_css()}
 <style>
-.push-settings-title{margin-top:22px}.push-settings-title p{margin:6px 0 0;color:#66736a;line-height:1.5}.push-pref-groups{display:grid;gap:14px}.push-pref-group{padding:15px;border:1px solid #dfe7dc;border-radius:18px;background:#f8faf5}.push-pref-group h3{margin:0 0 10px;font-size:16px}.push-pref{align-items:flex-start!important;margin:7px 0!important;padding:10px!important;border-radius:13px;background:#fff}.push-pref>span{display:grid;gap:3px}.push-pref strong{font-size:14px}.push-pref small{color:#6e786f;line-height:1.35}.push-pref input{margin-top:3px}.profile-settings form{display:grid;gap:12px}
+.push-settings-title{{margin-top:22px}}.push-settings-title p{{margin:6px 0 0;color:#66736a;line-height:1.5}}.push-pref-groups{{display:grid;gap:14px}}.push-pref-group{{padding:15px;border:1px solid #dfe7dc;border-radius:18px;background:#f8faf5}}.push-pref-group h3{{margin:0 0 10px;font-size:16px}}.push-pref{{align-items:flex-start!important;margin:7px 0!important;padding:10px!important;border-radius:13px;background:#fff}}.push-pref>span{{display:grid;gap:3px}}.push-pref strong{{font-size:14px}}.push-pref small{{color:#6e786f;line-height:1.35}}.push-pref input{{margin-top:3px}}.profile-settings form{{display:grid;gap:12px}}
 </style>
 <section class="profile-hero">
   <div class="profile-avatar">{escape((user.name or 'A')[:1].upper())}</div>
