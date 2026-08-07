@@ -1,0 +1,40 @@
+name: Temporary DGH weekend green
+
+on:
+  push:
+    branches:
+      - agent/dgh-weekend-green
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/dgh-weekend-green
+      - name: Make weekends use normal availability colors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('pwa_account_ui.py')
+          text = path.read_text(encoding='utf-8')
+          rule = ".dgh-day.weekend:not(.booked):not(.request):not(.past){background-image:linear-gradient(145deg,rgba(23,73,54,.025),rgba(23,73,54,.055))}"
+          if text.count(rule) != 1:
+              raise SystemExit(f'Weekend-Regel unerwartet oft gefunden: {text.count(rule)}')
+          text = text.replace(rule, '')
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Validate Python
+        run: python -m py_compile pwa_account_ui.py
+      - name: Commit fix
+        run: |
+          rm .github/workflows/temp-dgh-weekend-green.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pwa_account_ui.py .github/workflows/temp-dgh-weekend-green.yml
+          git commit -m "DGH-Wochenenden wie Werktage einfärben"
+          git push origin HEAD:agent/dgh-weekend-green
