@@ -252,7 +252,6 @@ def dgh_overview_page(free_days: Iterable[date], terms: Iterable, logged_in: boo
     today = date.today()
     terms = list(terms)
     availability = {}
-    confirmed = 0
 
     for item in terms:
         if getattr(item, "aktiv", "Ja") != "Ja":
@@ -263,7 +262,6 @@ def dgh_overview_page(free_days: Iterable[date], terms: Iterable, logged_in: boo
         status = getattr(item, "status", "") or ""
         if status == "Bestätigt":
             availability[item_date] = "booked"
-            confirmed += 1
         elif status == "Anfrage":
             if availability.get(item_date) != "booked":
                 availability[item_date] = "request"
@@ -314,7 +312,6 @@ def dgh_overview_page(free_days: Iterable[date], terms: Iterable, logged_in: boo
 {_extra_css()}
 {DGH_CALENDAR_CSS}
 <section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Dorfgemeinschaftshaus</span><h1>DGH mieten</h1><p>Sieh auf einen Blick, welche Tage frei, angefragt oder bereits verbindlich belegt sind. Freie Tage kannst du direkt aus dem Kalender anfragen.</p></section>
-<section class="info-hero"><span>{icon('building')}</span><div><small>Live-Belegungsübersicht</small><strong>{confirmed} bestätigte Belegungen</strong><p>Nur bestätigte Termine sind rot blockiert. Gelbe Tage zeigen laufende Anfragen und können weiterhin angefragt werden.</p></div></section>
 <section class="content-card dgh-calendar-card" data-dgh-calendar>
   <div class="dgh-calendar-top"><div class="dgh-calendar-title"><span class="eyebrow">Belegungskalender</span><h2 data-dgh-month-label aria-live="polite">{first_label}</h2><p>Tippe auf einen freien oder gelben Tag, um ihn direkt in die Mietanfrage zu übernehmen.</p></div><div class="dgh-calendar-nav"><button type="button" data-dgh-prev aria-label="Vorheriger Monat">‹</button><button class="dgh-today-button" type="button" data-dgh-today>Heute</button><button type="button" data-dgh-next aria-label="Nächster Monat">›</button></div></div>
   <div class="dgh-calendar-legend"><span><i class="free"></i>Frei</span><span><i class="request"></i>Anfrage läuft</span><span><i class="booked"></i>Belegt / blockiert</span><span><i class="today"></i>Heute</span></div>
