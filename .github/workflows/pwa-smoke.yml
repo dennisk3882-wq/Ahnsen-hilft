@@ -22,6 +22,7 @@ jobs:
       VAPID_PRIVATE_KEY: test-private-key
       VAPID_SUBJECT: mailto:test@example.com
       COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,10 +34,12 @@ jobs:
         run: |
           python -m py_compile *.py
           node --check static/pwa.js
-      - name: Validate PWA, accounts, DGH, push, profile and diagnostics
+      - name: Validate PWA, accounts, DGH, push, profile, warnings and diagnostics
         run: |
           python - <<'PY'
           import asyncio
+          import io
+          import zipfile
           from pathlib import Path
 
           import pwa_main
@@ -49,12 +52,15 @@ jobs:
               get_user_by_id,
               has_push_subscription,
               init_pwa_db,
+              update_user_profile,
               upsert_push_subscription,
               verify_password,
           )
           from pwa_ui import home_page
           from push_service import push_configured
           from system_diagnostics import run_system_checks
+          from warning_service import _parse_bbk_rss, _parse_dwd_zip, get_warning_stats
+          from warning_ui import warning_page
 
           startup()
           init_pwa_db()
@@ -68,6 +74,7 @@ jobs:
               "/api/push/unsubscribe", "/manifest.webmanifest",
               "/service-worker.js", "/verwaltung", "/intern/maengel",
               "/intern/system", "/intern/system/test-push", "/intern/system/test-email",
+              "/warnungen", "/warning.css", "/intern/warnungen", "/intern/warnungen/pruefen",
           }
           assert required <= paths, sorted(required - paths)
           assert "/webhook" not in paths
@@ -75,6 +82,18 @@ jobs:
           user = create_user("test@example.com", "SehrSicheresPasswort123!", "Test Nutzer", "05722 123")
           assert verify_password("SehrSicheresPasswort123!", user.password_hash)
           assert not verify_password("falsch", user.password_hash)
+
+          prefs = {
+              "push_meldungen": True,
+              "push_dgh": True,
+              "push_unwetter": True,
+              "push_bevoelkerungsschutz": True,
+              "push_hochwasser": True,
+          }
+          update_user_profile(user.id, "Test Nutzer", "05722 123", False, prefs, 3)
+          user = get_user_by_id(user.id)
+          assert user.push_unwetter and user.push_bevoelkerungsschutz and user.push_hochwasser
+          assert user.warn_min_level == 3
 
           save_meldung(
               "AHN-TEST-ACCOUNT",
@@ -109,11 +128,31 @@ jobs:
           assert "Welche Nachrichten möchtest du?" in profile_html
           assert "AHN-TEST-ACCOUNT" in profile_html
           assert "Testfeier" in profile_html
-          assert "Wichtige Warnungen" in profile_html
+          assert "Wetter &amp; Unwetter (DWD)" in profile_html
+          assert "Bevölkerungsschutz" in profile_html
+          assert "Hochwasser &amp; Überflutung" in profile_html
+          assert "Mindest-Warnstufe" in profile_html
 
-          html = home_page({"einstellungen": {}, "veranstaltungen": [], "muelltermine": []}).body.decode()
+          cap = '''<?xml version="1.0" encoding="UTF-8"?>
+          <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>DWD-SMOKE</identifier><sent>2026-08-07T09:00:00+00:00</sent><msgType>Alert</msgType><info><language>de-DE</language><event>STARKES GEWITTER</event><headline>Amtliche Warnung vor starkem Gewitter</headline><severity>Moderate</severity><expires>2026-08-07T12:00:00+00:00</expires><description>Starkregen und Sturmböen möglich.</description><area><areaDesc>Gemeinde Ahnsen</areaDesc></area></info></alert>'''.encode("utf-8")
+          cap_zip = io.BytesIO()
+          with zipfile.ZipFile(cap_zip, "w") as archive:
+              archive.writestr("warning.xml", cap)
+          dwd = _parse_dwd_zip(cap_zip.getvalue())
+          assert len(dwd) == 1 and dwd[0]["category"] == "push_unwetter" and dwd[0]["level"] == 2
+
+          rss = '''<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item><title>Gefahr durch Rauchentwicklung - Landkreis Schaumburg</title><link>https://warnung.bund.de/test</link><description>Amtliche Warnung wegen eines Großbrandes.</description><pubDate>Fri, 07 Aug 2026 09:00:00 +0200</pubDate><guid>BBK-SMOKE</guid></item></channel></rss>'''.encode("utf-8")
+          bbk = _parse_bbk_rss(rss)
+          assert len(bbk) == 1 and bbk[0]["category"] == "push_bevoelkerungsschutz"
+
+          warning_html = warning_page([], get_warning_stats()).body.decode()
+          assert "Warnmonitor aktiv" in warning_html and "Keine aktive amtliche Warnung" in warning_html
+
+          html = home_page({"einstellungen": {}, "veranstaltungen": [], "muelltermine": [], "warnungen": [], "warning_stats": {}}).body.decode()
           assert "Ahnsen" in html and "Mängel melden" in html
+          assert "Warnmonitor für Ahnsen aktiv" in html and "/warnungen" in html
           assert Path("static/pwa-extra.css").stat().st_size > 500
+          assert Path("static/warning.css").stat().st_size > 500
           assert Path("static/pwa.js").stat().st_size > 1000
           assert Path("static/icon-192.png").exists()
           assert Path("static/icon-512.png").exists()
@@ -137,7 +176,7 @@ jobs:
           diagnostic_keys = {item["key"] for item in diagnostic_report["checks"]}
           assert {
               "database", "database_write", "accounts", "reports", "events", "dgh", "waste",
-              "push", "geolocation", "geocoder", "service_worker", "manifest", "security", "cron",
+              "push", "warning_monitor", "geolocation", "geocoder", "service_worker", "manifest", "security", "cron",
           } <= diagnostic_keys
 
           import whatsapp
