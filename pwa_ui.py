@@ -89,7 +89,7 @@ def home_page(data: dict) -> HTMLResponse:
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
         ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
         ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
-        ("shield", "Warnungen", "Amtliche Warnlage für Ahnsen.", "/warnungen"),
+        ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),
     ]
     cards = "".join(f'<a class="service-card{" featured" if key == "report" else ""}" href="{href}"><span class="service-icon">{icon(key)}</span><div><h3>{title}</h3><p>{text}</p></div><span class="card-arrow">{icon("arrow")}</span></a>' for key, title, text, href in services)
     content = f"""
@@ -169,7 +169,7 @@ def info_page(kind: str, settings: dict) -> HTMLResponse:
 
 
 def more_page(settings: dict) -> HTMLResponse:
-    items = [("Warnlage", "/warnungen", "bell", "Amtliche Wetter- und Gefahrenwarnungen"), ("Bürgerinformationen", "/buergerinformationen", "news", "Hinweise der Gemeinde"), ("Über Ahnsen", "/ueber-ahnsen", "home", "Unser Dorf"), ("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]
+    items = [("Bürgerinformationen", "/buergerinformationen", "news", "Hinweise der Gemeinde"), ("Über Ahnsen", "/ueber-ahnsen", "home", "Unser Dorf"), ("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]
     links = "".join(f'<a class="menu-row" href="{href}"><span>{icon(key)}</span><div><strong>{label}</strong><small>{desc}</small></div>{icon("arrow")}</a>' for label, href, key, desc in items)
     return page("Mehr", f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Weitere Bereiche</span><h1>Mehr aus Ahnsen</h1></section><section class="menu-list">{links}</section><section class="install-panel"><span>{icon("download")}</span><div><strong>Ahnsen hilft installieren</strong><small>Über das Browser-Menü zum Startbildschirm hinzufügen.</small></div></section>', active="more")
 
