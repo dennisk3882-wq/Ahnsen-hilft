@@ -77,13 +77,12 @@ def home_page(data: dict) -> HTMLResponse:
         waste_card = f'<section class="notice-card"><span class="notice-icon">{icon("bell")}</span><div><small>Nächste Müllabfuhr · {escape(_days(value))}</small><strong>{escape(getattr(item, "abfuhrarten", "") or "Müllabfuhr")}</strong><span>{escape(_date(value))}</span></div><a href="/muelltermine-info">{icon("arrow")}</a></section>'
     else:
         waste_card = f'<section class="notice-card empty-notice"><span class="notice-icon">{icon("waste")}</span><div><small>Müllabfuhr</small><strong>Noch keine Termine eingetragen</strong></div><a href="/muelltermine-info">{icon("arrow")}</a></section>'
+    warning_card = ""
     if warnings:
         highest = max(int(getattr(item, "level", 2) or 2) for item in warnings)
         top_warning = sorted(warnings, key=lambda item: int(getattr(item, "level", 2) or 2), reverse=True)[0]
         warn_class = " danger-warning" if highest >= 3 else " active-warning"
         warning_card = f'<a class="home-warning-monitor{warn_class}" href="/warnungen"><span class="warning-monitor-dot"></span><div><strong>⚠ Amtliche Warnung für Ahnsen</strong><small>{escape(getattr(top_warning, "title", "Warnlage prüfen"))}</small></div><span class="card-arrow">{icon("arrow")}</span></a>'
-    else:
-        warning_card = f'<a class="home-warning-monitor" href="/warnungen"><span class="warning-monitor-dot"></span><div><strong>Warnmonitor für Ahnsen aktiv</strong><small>DWD- und Bevölkerungsschutz-Warnungen werden automatisch überwacht. Push kannst du im Profil aktivieren.</small></div><span class="card-arrow">{icon("arrow")}</span></a>'
     services = [
         ("report", "Mängel melden", "Direkt mit Foto und Standort.", "/mangel-melden"), ("calendar", "Veranstaltungen", "Was ist los in Ahnsen?", "/veranstaltungen"),
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
@@ -97,7 +96,7 @@ def home_page(data: dict) -> HTMLResponse:
 <section class="greeting-row"><div><span class="eyebrow">{escape(greeting)} 👋</span><h2>Schön, dass du da bist.</h2></div><a class="today-card" href="/veranstaltungen"><span>{icon('calendar')}</span><div><small>Heute in Ahnsen</small><strong>{event_hint}</strong></div>{icon('arrow')}</a></section>
 {warning_card}
 <section class="service-grid" aria-label="Digitale Dienste">{cards}</section>{waste_card}
-<section class="trust-strip"><span>{icon('shield')}</span><div><strong>Einfach und datensparsam</strong><small>Keine App-Store-Anmeldung und kein WhatsApp-Konto erforderlich.</small></div></section>"""
+"""
     return page(settings.get("seiten_titel") or "Ahnsen hilft", content, body_class="home-view")
 
 
