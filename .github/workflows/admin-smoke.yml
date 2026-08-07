@@ -25,6 +25,7 @@ jobs:
       VAPID_PRIVATE_KEY: test-private-key
       VAPID_SUBJECT: mailto:test@example.com
       COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,6 +42,9 @@ jobs:
             dgh_dashboard.py \
             muelltermine_dashboard.py \
             gemeinde_dashboard.py \
+            push_dashboard.py \
+            warning_dashboard.py \
+            warning_service.py \
             system_dashboard.py \
             system_diagnostics.py
       - name: Render all administration pages
@@ -54,9 +58,13 @@ jobs:
           from gemeinde_dashboard import gemeinde_dashboard
           from muelltermine_dashboard import muelltermine_dashboard
           from pwa_core import startup
+          from push_dashboard import push_dashboard_page
+          from pwa_crud import PUSH_BROADCAST_CATEGORIES
           from system_dashboard import system_dashboard_page
           from system_diagnostics import get_push_test_targets, run_system_checks
           from veranstaltungen_dashboard import veranstaltungen_dashboard
+          from warning_dashboard import warning_dashboard_page
+          from warning_service import get_warning_stats
 
           startup()
           save_meldung(
@@ -78,6 +86,8 @@ jobs:
               "dgh": dgh_dashboard(),
               "waste": muelltermine_dashboard(),
               "content": gemeinde_dashboard(get_gemeinde_einstellungen()),
+              "push": push_dashboard_page(PUSH_BROADCAST_CATEGORIES),
+              "warnings": warning_dashboard_page([], [], get_warning_stats()),
               "system": system_dashboard_page(diagnostic_report, get_push_test_targets()),
           }
 
@@ -97,11 +107,21 @@ jobs:
           assert "Inhalte & Erscheinungsbild" in content_html
           assert "WhatsApp-Bot</h2>" not in content_html
 
+          push_html = pages["push"].body.decode("utf-8")
+          assert "Amtliche Warnungen" in push_html and "/intern/warnungen" in push_html
+
+          warning_html = pages["warnings"].body.decode("utf-8")
+          assert "Warnzentrale Ahnsen" in warning_html
+          assert "Deutscher Wetterdienst" in warning_html
+          assert "Bundeswarnportal" in warning_html
+          assert "Quellen jetzt prüfen" in warning_html
+
           system_html = pages["system"].body.decode("utf-8")
           assert "System & Diagnose" in system_html
           assert "Vollständigen Systemtest starten" in system_html
           assert "Test-Push senden" in system_html
           assert "Test-E-Mail senden" in system_html
+          assert "Amtlicher Warnmonitor" in system_html
 
           print("Administration smoke tests passed")
           PY
