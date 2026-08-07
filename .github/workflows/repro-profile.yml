@@ -1,0 +1,69 @@
+name: Reproduce profile 500
+
+on:
+  push:
+    branches:
+      - agent/fix-profile-500
+
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./profile-repro.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      VAPID_PUBLIC_KEY: test-public-key
+      VAPID_PRIVATE_KEY: test-private-key
+      VAPID_SUBJECT: mailto:test@example.com
+      COOKIE_SECURE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Render realistic profile
+        run: |
+          python - <<'PY'
+          from crud import save_meldung, get_meldungen_fuer_benutzer
+          from dgh_crud import save_dgh_termin, get_dgh_termine_fuer_benutzer
+          from pwa_core import startup
+          from pwa_crud import create_user, update_user_profile, has_push_subscription
+          from pwa_account_ui import profile_page
+          from push_service import push_configured
+
+          startup()
+          user = create_user('profiltest@example.com', 'SehrSicheresPasswort123!', 'Profil Test', '05722 123')
+          prefs = {
+              'push_meldungen': True,
+              'push_dgh': True,
+              'push_muell': True,
+              'push_veranstaltungen': True,
+              'push_aktuelles': True,
+              'push_buergerinfo': True,
+              'push_vereine': True,
+              'push_feuerwehr': True,
+              'push_verkehr': True,
+              'push_warnungen': True,
+          }
+          update_user_profile(user.id, 'Profil Test', '05722 123', True, prefs)
+          save_meldung('AHN-PROFILE-TEST', {'art':'Straßenlaterne defekt','ort':'Schulstraße 5','beschreibung':'Testbeschreibung lang genug','foto_bytes':None}, 'PWA', pwa_user_id=user.id)
+          save_dgh_termin('31.12.2099','18:00 Uhr','Testfeier','Profil Test','05722 123','', status='Anfrage', email='profiltest@example.com', pwa_user_id=user.id)
+          from pwa_crud import get_user_by_id
+          fresh = get_user_by_id(user.id)
+          response = profile_page(
+              fresh,
+              get_meldungen_fuer_benutzer(user.id),
+              get_dgh_termine_fuer_benutzer(user.id),
+              has_push_subscription(user.id),
+              push_configured(),
+          )
+          html = response.body.decode('utf-8')
+          assert response.status_code == 200
+          assert 'Welche Nachrichten möchtest du?' in html
+          assert 'AHN-PROFILE-TEST' in html
+          assert 'Testfeier' in html
+          print('PROFILE_RENDER_OK', len(html))
+          PY
