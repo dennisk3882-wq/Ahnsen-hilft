@@ -52,15 +52,15 @@ jobs:
           from warning_service import _parse_bbk_rss, _parse_dwd_zip, init_warning_db
           from warning_ui import warning_page
 
-          cap = b'''<?xml version="1.0" encoding="UTF-8"?>
-          <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>DWD-TEST-1</identifier><sent>2026-08-07T09:00:00+00:00</sent><msgType>Alert</msgType><info><language>de-DE</language><event>STARKES GEWITTER</event><headline>Amtliche Warnung vor starkem Gewitter</headline><severity>Moderate</severity><onset>2026-08-07T10:00:00+00:00</onset><expires>2026-08-07T12:00:00+00:00</expires><description>Starkregen und Sturmböen möglich.</description><instruction>Aufenthalt im Freien vermeiden.</instruction><area><areaDesc>Gemeinde Ahnsen</areaDesc></area></info></alert>'''
+          cap = '''<?xml version="1.0" encoding="UTF-8"?>
+          <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>DWD-TEST-1</identifier><sent>2026-08-07T09:00:00+00:00</sent><msgType>Alert</msgType><info><language>de-DE</language><event>STARKES GEWITTER</event><headline>Amtliche Warnung vor starkem Gewitter</headline><severity>Moderate</severity><onset>2026-08-07T10:00:00+00:00</onset><expires>2026-08-07T12:00:00+00:00</expires><description>Starkregen und Sturmböen möglich.</description><instruction>Aufenthalt im Freien vermeiden.</instruction><area><areaDesc>Gemeinde Ahnsen</areaDesc></area></info></alert>'''.encode('utf-8')
           buf = io.BytesIO()
           with zipfile.ZipFile(buf, 'w') as zf:
               zf.writestr('warning.xml', cap)
           dwd = _parse_dwd_zip(buf.getvalue())
           assert len(dwd) == 1 and dwd[0]['category'] == 'push_unwetter' and dwd[0]['level'] == 2
 
-          rss = b'''<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item><title>Gefahr durch Rauchentwicklung - Landkreis Schaumburg</title><link>https://warnung.bund.de/test</link><description>Amtliche Warnung wegen eines Grossbrandes.</description><pubDate>Fri, 07 Aug 2026 09:00:00 +0200</pubDate><guid>BBK-TEST-1</guid></item></channel></rss>'''
+          rss = '''<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item><title>Gefahr durch Rauchentwicklung - Landkreis Schaumburg</title><link>https://warnung.bund.de/test</link><description>Amtliche Warnung wegen eines Großbrandes.</description><pubDate>Fri, 07 Aug 2026 09:00:00 +0200</pubDate><guid>BBK-TEST-1</guid></item></channel></rss>'''.encode('utf-8')
           bbk = _parse_bbk_rss(rss)
           assert len(bbk) == 1 and bbk[0]['category'] == 'push_bevoelkerungsschutz'
           init_warning_db()
