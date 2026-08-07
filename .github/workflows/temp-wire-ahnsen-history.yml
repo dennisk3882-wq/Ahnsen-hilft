@@ -30,16 +30,18 @@ jobs:
               text = text.replace(import_anchor, import_anchor + '\nfrom ahnsen_history import history_content\n', 1)
 
           func_anchor = 'def info_page(kind: str, settings: dict) -> HTMLResponse:\n    config = '
-          func_replacement = '''def info_page(kind: str, settings: dict) -> HTMLResponse:
-    if kind == "ueber-ahnsen":
-        return page(
-            "Über Ahnsen",
-            history_content(),
-            active="home",
-            description="Ahnsen von den Anfängen bis heute – vollständige Ortsgeschichte bis 2026",
-            body_class="history-view",
-        )
-    config = '''
+          func_replacement = (
+              'def info_page(kind: str, settings: dict) -> HTMLResponse:\n'
+              '    if kind == "ueber-ahnsen":\n'
+              '        return page(\n'
+              '            "Über Ahnsen",\n'
+              '            history_content(),\n'
+              '            active="home",\n'
+              '            description="Ahnsen von den Anfängen bis heute – vollständige Ortsgeschichte bis 2026",\n'
+              '            body_class="history-view",\n'
+              '        )\n'
+              '    config = '
+          )
           if 'history_content()' not in text:
               if func_anchor not in text:
                   raise SystemExit('info_page-Anker in pwa_ui.py fehlt')
@@ -50,13 +52,14 @@ jobs:
           test = smoke.read_text(encoding='utf-8')
           test = test.replace('from pwa_ui import home_page\n', 'from pwa_ui import home_page, info_page\n', 1)
           anchor = '          assert "Ahnsen" in html and "Mängel melden" in html\n'
-          extra = '''          history_html = info_page("ueber-ahnsen", {}).body.decode()
-          assert "Ahnsens Geschichte beginnt nicht 1256" in history_html
-          assert "Der Dreißigjährige Krieg" in history_html
-          assert "Bevölkerungsentwicklung im Langzeitblick" in history_html
-          assert "Quellen und Literatur" in history_html
-          assert "1.455 Einwohner" in history_html
-'''
+          extra = (
+              '          history_html = info_page("ueber-ahnsen", {}).body.decode()\n'
+              '          assert "Ahnsens Geschichte beginnt nicht 1256" in history_html\n'
+              '          assert "Der Dreißigjährige Krieg" in history_html\n'
+              '          assert "Bevölkerungsentwicklung im Langzeitblick" in history_html\n'
+              '          assert "Quellen und Literatur" in history_html\n'
+              '          assert "1.455 Einwohner" in history_html\n'
+          )
           if 'history_html = info_page("ueber-ahnsen", {})' not in test:
               if anchor not in test:
                   raise SystemExit('Smoke-Test-Anker fehlt')
