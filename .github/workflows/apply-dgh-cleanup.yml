@@ -1,0 +1,38 @@
+name: Apply DGH cleanup
+
+on:
+  push:
+    branches:
+      - agent/dgh-clean-public-view
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/dgh-clean-public-view
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply requested DGH cleanup
+        run: python scripts/apply_dgh_cleanup.py
+      - name: Verify Python
+        run: python -m py_compile pwa_account_ui.py
+      - name: Verify removed UI blocks
+        run: |
+          ! grep -q 'dgh-availability-grid' pwa_account_ui.py
+          ! grep -q 'Kalender-Vorschau' pwa_account_ui.py
+          ! grep -q 'Schnellauswahl' pwa_account_ui.py
+          ! grep -q 'Nächste freie Tage' pwa_account_ui.py
+      - name: Commit product change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'DGH-Übersicht auf Kalender fokussieren'
+          git push origin HEAD:agent/dgh-clean-public-view
