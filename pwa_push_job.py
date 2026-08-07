@@ -12,7 +12,15 @@ from pwa_crud import (
     mark_delivery_sent,
 )
 from push_service import push_configured, send_user_notification
+from system_diagnostics import init_system_diagnostics_db, record_system_event
 from veranstaltungen_crud import init_veranstaltungen_db
+
+
+def _record(status: str, message: str, details=None) -> None:
+    try:
+        record_system_event("muell_cron", status, message, details or {})
+    except Exception as error:
+        print("Cron-Status konnte nicht protokolliert werden:", repr(error))
 
 
 def run() -> int:
@@ -22,49 +30,66 @@ def run() -> int:
     init_muelltermine_db()
     init_gemeinde_db()
     init_pwa_db()
+    init_system_diagnostics_db()
 
-    if not push_configured():
-        print("VAPID-Schlüssel fehlen; Push-Job beendet.")
-        return 0
+    try:
+        if not push_configured():
+            message = "VAPID-Schlüssel fehlen; Push-Job beendet."
+            _record("error", message)
+            print(message)
+            return 0
 
-    now = __import__("datetime").datetime.now(ZoneInfo("Europe/Berlin"))
-    if now.hour != 18:
-        print("Außerhalb des Erinnerungsfensters; Push-Job beendet.")
-        return 0
+        now = __import__("datetime").datetime.now(ZoneInfo("Europe/Berlin"))
+        if now.hour != 18:
+            message = "Stündlicher Kontrolllauf erfolgreich; außerhalb des Erinnerungsfensters."
+            _record("ok", message, {"berlin_hour": now.hour})
+            print("Außerhalb des Erinnerungsfensters; Push-Job beendet.")
+            return 0
 
-    tomorrow = now.date() + timedelta(days=1)
-    terms = [
-        item
-        for item in get_naechste_muelltermine(limit=30)
-        if getattr(item, "datum", None) == tomorrow
-    ]
-    if not terms:
-        print("Morgen ist keine Müllabfuhr eingetragen.")
-        return 0
+        tomorrow = now.date() + timedelta(days=1)
+        terms = [
+            item
+            for item in get_naechste_muelltermine(limit=30)
+            if getattr(item, "datum", None) == tomorrow
+        ]
+        if not terms:
+            message = "18-Uhr-Lauf erfolgreich; morgen ist keine Müllabfuhr eingetragen."
+            _record("ok", message, {"date": tomorrow.isoformat(), "delivered": 0})
+            print("Morgen ist keine Müllabfuhr eingetragen.")
+            return 0
 
-    kinds = ", ".join(
-        sorted({str(getattr(item, "abfuhrarten", "Müllabfuhr")) for item in terms})
-    )
-    delivery_key = f"muell:{tomorrow.isoformat()}:{kinds}"
-    delivered = 0
-
-    for user in get_users_with_waste_push():
-        if delivery_already_sent(user.id, delivery_key):
-            continue
-        sent = send_user_notification(
-            user.id,
-            "Müllabfuhr morgen",
-            f"Morgen wird in Ahnsen abgeholt: {kinds}.",
-            "/muelltermine-info",
-            f"muell-{tomorrow.isoformat()}",
-            "push_muell",
+        kinds = ", ".join(
+            sorted({str(getattr(item, "abfuhrarten", "Müllabfuhr")) for item in terms})
         )
-        if sent:
-            mark_delivery_sent(user.id, delivery_key)
-            delivered += 1
+        delivery_key = f"muell:{tomorrow.isoformat()}:{kinds}"
+        delivered = 0
 
-    print(f"Müllabfuhr-Push an {delivered} Konten versendet.")
-    return delivered
+        for user in get_users_with_waste_push():
+            if delivery_already_sent(user.id, delivery_key):
+                continue
+            sent = send_user_notification(
+                user.id,
+                "Müllabfuhr morgen",
+                f"Morgen wird in Ahnsen abgeholt: {kinds}.",
+                "/muelltermine-info",
+                f"muell-{tomorrow.isoformat()}",
+                "push_muell",
+            )
+            if sent:
+                mark_delivery_sent(user.id, delivery_key)
+                delivered += 1
+
+        message = f"18-Uhr-Lauf erfolgreich; Müllabfuhr-Push an {delivered} Konten versendet."
+        _record(
+            "ok",
+            message,
+            {"date": tomorrow.isoformat(), "kinds": kinds, "delivered": delivered},
+        )
+        print(f"Müllabfuhr-Push an {delivered} Konten versendet.")
+        return delivered
+    except Exception as error:
+        _record("error", f"Cronjob abgebrochen: {type(error).__name__}: {str(error)[:500]}")
+        raise
 
 
 if __name__ == "__main__":

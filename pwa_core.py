@@ -32,7 +32,7 @@ from dgh_crud import (
     save_dgh_termin,
     set_dgh_status,
 )
-from email_service import send_dgh_email, send_email
+from email_service import send_dgh_email, send_email, send_test_email
 from gemeinde_crud import get_gemeinde_einstellungen, init_gemeinde_db
 from muelltermine_crud import get_naechste_muelltermine, init_muelltermine_db
 from pwa_account_ui import (
@@ -71,6 +71,13 @@ from pwa_ui import (
 )
 from veranstaltungen_crud import get_aktive_veranstaltungen, init_veranstaltungen_db
 from push_dashboard import push_dashboard_page
+from system_dashboard import system_dashboard_page
+from system_diagnostics import (
+    get_push_test_targets,
+    init_system_diagnostics_db,
+    record_system_event,
+    run_system_checks,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -104,6 +111,7 @@ def startup() -> None:
     init_muelltermine_db()
     init_gemeinde_db()
     init_pwa_db()
+    init_system_diagnostics_db()
 
 
 def _public_data() -> dict:
@@ -738,6 +746,93 @@ async def admin_push_send(request: Request, background_tasks: BackgroundTasks):
         url=f"/intern/push?hinweis={quote('Push-Versand wurde gestartet. Es erhalten ihn nur Nutzer, die diese Kategorie aktiviert haben.')}",
         status_code=303,
     )
+
+
+@app.get("/intern/system")
+async def admin_system_page(request: Request, voll: int = 0, hinweis: str = "", fehler: str = ""):
+    legacy.check_dashboard_login(request)
+    report = run_system_checks(app, request=request, deep=bool(voll))
+    return system_dashboard_page(
+        report,
+        get_push_test_targets(),
+        hinweis=hinweis,
+        fehler=fehler,
+    )
+
+
+@app.post("/intern/system/test-push")
+async def admin_system_test_push(request: Request):
+    legacy.check_dashboard_login(request)
+    form = await request.form()
+    try:
+        user_id = int(str(form.get("user_id") or "0"))
+    except ValueError:
+        user_id = 0
+    user = get_user_by_id(user_id)
+    if not user:
+        return RedirectResponse(url="/intern/system?fehler=Ungültiges%20Push-Zielkonto.", status_code=303)
+    sent = send_user_notification(
+        user.id,
+        "Ahnsen hilft – Test-Push",
+        "Systemtest erfolgreich: Push-Nachrichten erreichen dieses Gerät.",
+        "/profil",
+        f"system-test-{int(time.time())}",
+    )
+    if sent:
+        try:
+            record_system_event(
+                "test_push",
+                "ok",
+                f"Test-Push an {user.email} auf {sent} Gerät(e) versendet.",
+                {"user_id": user.id, "devices": sent},
+            )
+        except Exception:
+            pass
+        return RedirectResponse(
+            url=f"/intern/system?hinweis={quote(f'Test-Push wurde an {sent} Gerät(e) des ausgewählten Kontos versendet.')}",
+            status_code=303,
+        )
+    try:
+        record_system_event(
+            "test_push",
+            "error",
+            f"Test-Push an {user.email} konnte an kein Gerät zugestellt werden.",
+            {"user_id": user.id},
+        )
+    except Exception:
+        pass
+    return RedirectResponse(
+        url="/intern/system?fehler=Test-Push%20konnte%20an%20kein%20registriertes%20Gerät%20zugestellt%20werden.",
+        status_code=303,
+    )
+
+
+@app.post("/intern/system/test-email")
+async def admin_system_test_email(request: Request):
+    legacy.check_dashboard_login(request)
+    try:
+        send_test_email()
+        try:
+            record_system_event("test_email", "ok", "Test-E-Mail wurde erfolgreich an EMAIL_TO versendet.")
+        except Exception:
+            pass
+        return RedirectResponse(
+            url="/intern/system?hinweis=Test-E-Mail%20wurde%20erfolgreich%20an%20die%20konfigurierte%20Verwaltungsadresse%20versendet.",
+            status_code=303,
+        )
+    except Exception as error:
+        try:
+            record_system_event(
+                "test_email",
+                "error",
+                f"Test-E-Mail fehlgeschlagen: {type(error).__name__}: {str(error)[:500]}",
+            )
+        except Exception:
+            pass
+        return RedirectResponse(
+            url=f"/intern/system?fehler={quote('Test-E-Mail fehlgeschlagen: ' + str(error)[:180])}",
+            status_code=303,
+        )
 
 
 @app.get("/pwa.css")

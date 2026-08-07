@@ -21,6 +21,9 @@ jobs:
       DASHBOARD_PASSWORD: test-password
       DASHBOARD_SESSION_SECRET: dashboard-test-secret
       PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      VAPID_PUBLIC_KEY: test-public-key
+      VAPID_PRIVATE_KEY: test-private-key
+      VAPID_SUBJECT: mailto:test@example.com
       COOKIE_SECURE: "false"
     steps:
       - uses: actions/checkout@v4
@@ -37,10 +40,13 @@ jobs:
             veranstaltungen_dashboard.py \
             dgh_dashboard.py \
             muelltermine_dashboard.py \
-            gemeinde_dashboard.py
+            gemeinde_dashboard.py \
+            system_dashboard.py \
+            system_diagnostics.py
       - name: Render all administration pages
         run: |
           python - <<'PY'
+          import pwa_main
           from crud import save_meldung
           from dashboard import dashboard_page, meldung_detail_page
           from dgh_dashboard import dgh_dashboard
@@ -48,6 +54,8 @@ jobs:
           from gemeinde_dashboard import gemeinde_dashboard
           from muelltermine_dashboard import muelltermine_dashboard
           from pwa_core import startup
+          from system_dashboard import system_dashboard_page
+          from system_diagnostics import get_push_test_targets, run_system_checks
           from veranstaltungen_dashboard import veranstaltungen_dashboard
 
           startup()
@@ -62,6 +70,7 @@ jobs:
               "PWA | Name: Test Nutzer | E-Mail: test@example.com",
           )
 
+          diagnostic_report = run_system_checks(pwa_main.app, deep=False)
           pages = {
               "dashboard": dashboard_page(),
               "detail": meldung_detail_page("AHN-ADMIN-SMOKE"),
@@ -69,6 +78,7 @@ jobs:
               "dgh": dgh_dashboard(),
               "waste": muelltermine_dashboard(),
               "content": gemeinde_dashboard(get_gemeinde_einstellungen()),
+              "system": system_dashboard_page(diagnostic_report, get_push_test_targets()),
           }
 
           for name, response in pages.items():
@@ -86,6 +96,12 @@ jobs:
           content_html = pages["content"].body.decode("utf-8")
           assert "Inhalte & Erscheinungsbild" in content_html
           assert "WhatsApp-Bot</h2>" not in content_html
+
+          system_html = pages["system"].body.decode("utf-8")
+          assert "System & Diagnose" in system_html
+          assert "Vollständigen Systemtest starten" in system_html
+          assert "Test-Push senden" in system_html
+          assert "Test-E-Mail senden" in system_html
 
           print("Administration smoke tests passed")
           PY

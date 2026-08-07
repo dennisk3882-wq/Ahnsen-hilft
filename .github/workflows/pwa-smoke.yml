@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m py_compile *.py
           node --check static/pwa.js
-      - name: Validate PWA, accounts, DGH and push
+      - name: Validate PWA, accounts, DGH, push and diagnostics
         run: |
           python - <<'PY'
           import asyncio
@@ -51,6 +51,7 @@ jobs:
               verify_password,
           )
           from pwa_ui import home_page
+          from system_diagnostics import run_system_checks
 
           startup()
           init_pwa_db()
@@ -63,6 +64,7 @@ jobs:
               "/api/push/public-key", "/api/push/subscribe",
               "/api/push/unsubscribe", "/manifest.webmanifest",
               "/service-worker.js", "/verwaltung", "/intern/maengel",
+              "/intern/system", "/intern/system/test-push", "/intern/system/test-email",
           }
           assert required <= paths, sorted(required - paths)
           assert "/webhook" not in paths
@@ -112,6 +114,16 @@ jobs:
           manifest = asyncio.run(pwa_main.manifest_v5())
           assert b"DGH anfragen" in manifest.body and b"Mein Profil" in manifest.body
           assert b"ahnsen-app-v5-512.png" in manifest.body
+
+          diagnostic_report = run_system_checks(pwa_main.app, deep=False)
+          assert diagnostic_report["summary"]["error"] == 0, [
+              item for item in diagnostic_report["checks"] if item["status"] == "error"
+          ]
+          diagnostic_keys = {item["key"] for item in diagnostic_report["checks"]}
+          assert {
+              "database", "database_write", "accounts", "reports", "events", "dgh", "waste",
+              "push", "geolocation", "geocoder", "service_worker", "manifest", "security", "cron",
+          } <= diagnostic_keys
 
           import whatsapp
           response = whatsapp.send_whatsapp_message("123", "test")
