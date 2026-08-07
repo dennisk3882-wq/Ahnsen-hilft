@@ -1,0 +1,104 @@
+name: Apply official warning center
+
+on:
+  push:
+    branches:
+      - agent/official-warning-center
+    paths:
+      - scripts/apply_warning_center.py
+      - warning_service.py
+      - warning_ui.py
+      - warning_dashboard.py
+      - static/warning.css
+      - .github/workflows/apply-warning-center.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./warning-integration.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      VAPID_PUBLIC_KEY: test-public-key
+      VAPID_PRIVATE_KEY: test-private-key
+      VAPID_SUBJECT: mailto:test@example.com
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/official-warning-center
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Apply integration
+        run: python scripts/apply_warning_center.py
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile Python and JavaScript
+        run: |
+          python -m py_compile *.py scripts/apply_warning_center.py
+          node --check static/pwa.js
+      - name: Validate warning parsers and pages
+        run: |
+          python - <<'PY'
+          import io
+          import zipfile
+          from warning_service import _parse_bbk_rss, _parse_dwd_zip, init_warning_db
+          from warning_ui import warning_page
+
+          cap = b'''<?xml version="1.0" encoding="UTF-8"?>
+          <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>DWD-TEST-1</identifier><sent>2026-08-07T09:00:00+00:00</sent><msgType>Alert</msgType><info><language>de-DE</language><event>STARKES GEWITTER</event><headline>Amtliche Warnung vor starkem Gewitter</headline><severity>Moderate</severity><onset>2026-08-07T10:00:00+00:00</onset><expires>2026-08-07T12:00:00+00:00</expires><description>Starkregen und Sturmböen möglich.</description><instruction>Aufenthalt im Freien vermeiden.</instruction><area><areaDesc>Gemeinde Ahnsen</areaDesc></area></info></alert>'''
+          buf = io.BytesIO()
+          with zipfile.ZipFile(buf, 'w') as zf:
+              zf.writestr('warning.xml', cap)
+          dwd = _parse_dwd_zip(buf.getvalue())
+          assert len(dwd) == 1 and dwd[0]['category'] == 'push_unwetter' and dwd[0]['level'] == 2
+
+          rss = b'''<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item><title>Gefahr durch Rauchentwicklung - Landkreis Schaumburg</title><link>https://warnung.bund.de/test</link><description>Amtliche Warnung wegen eines Grossbrandes.</description><pubDate>Fri, 07 Aug 2026 09:00:00 +0200</pubDate><guid>BBK-TEST-1</guid></item></channel></rss>'''
+          bbk = _parse_bbk_rss(rss)
+          assert len(bbk) == 1 and bbk[0]['category'] == 'push_bevoelkerungsschutz'
+          init_warning_db()
+          html = warning_page([], {'sources': {}}).body.decode('utf-8')
+          assert 'Warnmonitor aktiv' in html and 'Keine aktive amtliche Warnung' in html
+          print('Warning parser/UI validation passed')
+          PY
+      - name: Validate integrated routes and profile
+        run: |
+          python - <<'PY'
+          import pwa_main
+          from pwa_core import startup
+          from pwa_crud import create_user, get_user_by_id, update_user_profile
+          from pwa_account_ui import profile_page
+          from warning_service import get_warning_stats
+
+          startup()
+          paths = {getattr(route, 'path', '') for route in pwa_main.app.router.routes}
+          assert {'/warnungen', '/intern/warnungen', '/intern/warnungen/pruefen', '/warning.css'} <= paths
+          user = create_user('warningtest@example.com', 'SehrSicheresPasswort123!', 'Warn Test')
+          prefs = {'push_meldungen': True, 'push_dgh': True, 'push_unwetter': True, 'push_bevoelkerungsschutz': True, 'push_hochwasser': True}
+          update_user_profile(user.id, 'Warn Test', '', False, prefs, 3)
+          fresh = get_user_by_id(user.id)
+          assert fresh.push_unwetter and fresh.push_bevoelkerungsschutz and fresh.push_hochwasser and fresh.warn_min_level == 3
+          html = profile_page(fresh, [], [], False, True).body.decode('utf-8')
+          assert 'Wetter &amp; Unwetter (DWD)' in html and 'Mindest-Warnstufe' in html
+          stats = get_warning_stats()
+          assert 'sources' in stats
+          print('Integrated warning center validation passed')
+          PY
+      - name: Commit integrated product changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pwa_core.py pwa_ui.py pwa_account_ui.py intern_ui.py push_dashboard.py pwa_push_job.py system_diagnostics.py
+          if git diff --cached --quiet; then
+            echo "No generated product changes"
+          else
+            git commit -m "Integrate official warning center into PWA and administration"
+            git push origin HEAD:agent/official-warning-center
+          fi
