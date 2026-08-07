@@ -1,0 +1,56 @@
+name: Apply system diagnostics
+
+on:
+  push:
+    branches:
+      - agent/system-diagnose-dashboard
+    paths:
+      - scripts/apply_system_diagnostics.py
+      - .github/workflows/apply-system-diagnostics.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/system-diagnose-dashboard
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Apply integration
+        run: python scripts/apply_system_diagnostics.py
+      - name: Compile Python modules
+        run: |
+          python -m py_compile \
+            system_diagnostics.py \
+            system_dashboard.py \
+            intern_ui.py \
+            email_service.py \
+            pwa_push_job.py \
+            pwa_core.py
+      - name: Validate workflow YAML text and PWA JavaScript
+        run: |
+          node --check static/pwa.js
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('.github/workflows/pwa-smoke.yml', '.github/workflows/admin-smoke.yml'):
+              text = Path(name).read_text(encoding='utf-8')
+              assert 'System & Diagnose' in (Path('system_dashboard.py').read_text(encoding='utf-8'))
+              assert '\t' not in text, name
+          print('Static validation passed')
+          PY
+      - name: Commit integrated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add intern_ui.py email_service.py pwa_push_job.py pwa_core.py .github/workflows/pwa-smoke.yml .github/workflows/admin-smoke.yml
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "Integrate live system diagnostics into administration"
+            git push origin HEAD:agent/system-diagnose-dashboard
+          fi
