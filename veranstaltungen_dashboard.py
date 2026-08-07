@@ -131,6 +131,7 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
             .event-form-card h2,.event-list-card h2 {{ margin:0 0 8px; }}
             .event-card-intro {{ margin:0 0 18px; color:var(--admin-muted); line-height:1.5; }}
             .event-form {{ display:grid; gap:12px; }}
+            .event-push-warning {{ display:grid; gap:4px; margin:0 0 13px; padding:12px 13px; border:1px solid #efd99b; border-radius:14px; color:#79530e; background:#fff7dd; font-size:12px; line-height:1.45; }}
             .event-form-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }}
             .event-field {{ display:grid; gap:6px; }}
             .event-field.full {{ grid-column:1 / -1; }}
@@ -190,7 +191,8 @@ def veranstaltungen_dashboard(bearbeiten_id=None):
                 <section class="box event-form-card" id="veranstaltungsformular">
                     <h2>{form_title}</h2>
                     <p class="event-card-intro">Alle Angaben können später jederzeit angepasst werden.</p>
-                    <form class="event-form" method="post" action="{form_action}" enctype="multipart/form-data">
+                    <div class="event-push-warning"><strong>🔔 Push-Hinweis</strong><span>Beim Öffnen von „Bearbeiten“ wird noch nichts versendet. Erst beim Speichern erhalten Nutzer mit aktivierter Veranstaltungs-Kategorie eine Push-Nachricht.</span></div>
+                    <form class="event-form" method="post" action="{form_action}" enctype="multipart/form-data" onsubmit="return confirm('Veranstaltung speichern? Nutzer mit aktivierter Kategorie Veranstaltungen erhalten anschließend eine Push-Nachricht.')">
                         <div class="event-form-grid">
                             <label class="event-field full"><span>Titel *</span><input name="titel" value="{escape(titel)}" required placeholder="z. B. Sommerfest der Feuerwehr"></label>
                             <label class="event-field"><span>Datum</span><input name="datum" value="{escape(datum)}" placeholder="12.07.2026"></label>

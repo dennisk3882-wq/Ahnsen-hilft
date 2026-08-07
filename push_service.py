@@ -5,7 +5,12 @@ import os
 
 from pywebpush import WebPushException, webpush
 
-from pwa_crud import delete_push_subscription, get_push_subscriptions_for_user
+from pwa_crud import (
+    delete_push_subscription,
+    get_push_subscriptions_for_user,
+    get_users_for_push_category,
+    user_wants_push,
+)
 
 
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "").strip()
@@ -27,8 +32,11 @@ def send_user_notification(
     body: str,
     url: str = "/profil",
     tag: str = "ahnsen-hilft",
+    category: str | None = None,
 ) -> int:
     if not user_id or not push_configured():
+        return 0
+    if category and not user_wants_push(user_id, category):
         return 0
 
     payload = json.dumps(
@@ -67,4 +75,19 @@ def send_user_notification(
         except Exception as error:
             print("Push-Nachricht konnte nicht versendet werden:", repr(error))
 
+    return sent
+
+
+def send_category_notification(
+    category: str,
+    title: str,
+    body: str,
+    url: str = "/",
+    tag: str = "ahnsen-hilft",
+) -> int:
+    sent = 0
+    for user in get_users_for_push_category(category):
+        sent += send_user_notification(
+            user.id, title, body, url, tag, category=category
+        )
     return sent

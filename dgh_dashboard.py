@@ -43,9 +43,10 @@ def _status_select(term):
         for value in ("Anfrage", "Bestätigt", "Abgelehnt")
     )
     return f"""
-    <form class="dgh-status-form" method="post" action="/dgh/status/{term.id}">
+    <form class="dgh-status-form" method="post" action="/dgh/status/{term.id}" onsubmit="return confirm('Status wirklich ändern? Wenn der Bürger Push für DGH-Anfragen aktiviert hat, erhält er direkt eine Benachrichtigung.')">
         <select name="status" aria-label="Status für Termin {term.id}">{options}</select>
         <button type="submit">Speichern</button>
+        <small class="dgh-push-hint">🔔 Push bei Statusänderung</small>
     </form>
     """
 
@@ -244,6 +245,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
             .dgh-layout {{ display:grid; grid-template-columns:minmax(330px,.68fr) minmax(0,1.32fr); gap:20px; align-items:start; }}
             .dgh-form-card {{ position:sticky; top:118px; }}
             .dgh-form {{ display:grid; gap:11px; }}
+            .dgh-push-hint {{ grid-column:1/-1; color:#8a6115; font-size:10px; font-weight:850; }}
             .dgh-form-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }}
             .dgh-field {{ display:grid; gap:6px; }}
             .dgh-field.full {{ grid-column:1/-1; }}

@@ -71,6 +71,14 @@ def _status_class(status: str) -> str:
     return "open"
 
 
+def _push_toggle(user, field: str, label: str, description: str) -> str:
+    checked = " checked" if bool(getattr(user, field, False)) else ""
+    return (
+        f'<label class="consent switch-row push-pref"><input name="{escape(field)}" type="checkbox" value="ja"{checked}>'
+        f'<span><strong>{escape(label)}</strong><small>{escape(description)}</small></span></label>'
+    )
+
+
 def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: bool, push_configured: bool, message: str = "", error: str = "") -> HTMLResponse:
     report_cards = []
     for item in list(reports)[:20]:
@@ -97,8 +105,32 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
         push_text = "Push ist im Code vorbereitet, auf dem Server fehlen noch die VAPID-Schlüssel."
     push_buttons = '<button class="primary-button" id="enable-push" type="button">Push aktivieren</button><button class="secondary-button" id="disable-push" type="button">Auf diesem Gerät deaktivieren</button>' if push_configured else '<span class="muted">Serverkonfiguration erforderlich</span>'
 
+    push_preferences = f"""
+      <div class="push-pref-groups">
+        <div class="push-pref-group"><h3>Meine Vorgänge</h3>
+          {_push_toggle(user, 'push_meldungen', 'Mängelmeldungen', 'Push bei Statusänderungen deiner eigenen Meldungen.')}
+          {_push_toggle(user, 'push_dgh', 'DGH-Anfragen', 'Push bei Zu-, Absage oder anderer Statusänderung deiner DGH-Anfrage.')}
+        </div>
+        <div class="push-pref-group"><h3>Dorfleben</h3>
+          {_push_toggle(user, 'push_veranstaltungen', 'Veranstaltungen', 'Neue und geänderte Termine in Ahnsen.')}
+          {_push_toggle(user, 'push_aktuelles', 'Aktuelles aus Ahnsen', 'Neuigkeiten und aktuelle Hinweise aus dem Ort.')}
+          {_push_toggle(user, 'push_vereine', 'Vereine & Dorfleben', 'Mitteilungen von Vereinen und zum Dorfleben.')}
+        </div>
+        <div class="push-pref-group"><h3>Service & Sicherheit</h3>
+          {_push_toggle(user, 'push_muell', 'Müllabfuhr', 'Erinnerung am Vortag an die nächste Abholung.')}
+          {_push_toggle(user, 'push_buergerinfo', 'Bürgerinformationen', 'Wichtige Informationen der Gemeinde.')}
+          {_push_toggle(user, 'push_verkehr', 'Verkehr & Straßensperrungen', 'Sperrungen, Baustellen und wichtige Verkehrshinweise.')}
+          {_push_toggle(user, 'push_feuerwehr', 'Feuerwehr & Sicherheit', 'Sicherheitsrelevante Hinweise und Informationen der Feuerwehr.')}
+          {_push_toggle(user, 'push_warnungen', 'Wichtige Warnungen', 'Dringende Warn- und Gefahrenhinweise für Ahnsen.')}
+        </div>
+      </div>
+    """
+
     content = f"""
 {_extra_css()}
+<style>
+.push-settings-title{margin-top:22px}.push-settings-title p{margin:6px 0 0;color:#66736a;line-height:1.5}.push-pref-groups{display:grid;gap:14px}.push-pref-group{padding:15px;border:1px solid #dfe7dc;border-radius:18px;background:#f8faf5}.push-pref-group h3{margin:0 0 10px;font-size:16px}.push-pref{align-items:flex-start!important;margin:7px 0!important;padding:10px!important;border-radius:13px;background:#fff}.push-pref>span{display:grid;gap:3px}.push-pref strong{font-size:14px}.push-pref small{color:#6e786f;line-height:1.35}.push-pref input{margin-top:3px}.profile-settings form{display:grid;gap:12px}
+</style>
 <section class="profile-hero">
   <div class="profile-avatar">{escape((user.name or 'A')[:1].upper())}</div>
   <div><span class="eyebrow">Mein Ahnsen</span><h1>{escape(user.name)}</h1><p>{escape(user.email)}</p></div>
@@ -111,8 +143,9 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
     <form method="post" action="/profil">
       <label class="field"><span>Name *</span><input name="name" maxlength="120" required value="{escape(user.name or '')}"></label>
       <label class="field"><span>Telefon</span><input name="telefon" maxlength="60" value="{escape(user.telefon or '')}"></label>
-      <label class="consent switch-row"><input name="push_muell" type="checkbox" value="ja"{' checked' if user.push_muell else ''}><span>Müllabfuhr-Erinnerung am Vortag per Push erhalten</span></label>
-      <button class="primary-button" type="submit">Profil speichern</button>
+      <div class="section-title push-settings-title"><span class="eyebrow">Push-Einstellungen</span><h2>Welche Nachrichten möchtest du?</h2><p>Du entscheidest für jede Kategorie einzeln. Zusätzlich muss Browser-Push auf diesem Gerät aktiviert sein.</p></div>
+      {push_preferences}
+      <button class="primary-button" type="submit">Profil & Push-Auswahl speichern</button>
     </form>
   </article>
   <article class="content-card push-card">
