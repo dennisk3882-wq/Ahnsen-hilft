@@ -24,6 +24,9 @@ PUSH_PREFERENCE_DEFAULTS = {
     "push_feuerwehr": False,
     "push_verkehr": False,
     "push_warnungen": False,
+    "push_unwetter": False,
+    "push_bevoelkerungsschutz": False,
+    "push_hochwasser": False,
 }
 
 PUSH_PREFERENCE_FIELDS = {
@@ -36,7 +39,10 @@ PUSH_PREFERENCE_FIELDS = {
     "push_vereine": "Vereine & Dorfleben",
     "push_feuerwehr": "Feuerwehr & Sicherheit",
     "push_verkehr": "Verkehr & Straßensperrungen",
-    "push_warnungen": "Wichtige Warnungen",
+    "push_warnungen": "Wichtige Hinweise der Verwaltung",
+    "push_unwetter": "Amtliche Wetter- & Unwetterwarnungen",
+    "push_bevoelkerungsschutz": "Amtliche Bevölkerungsschutz-Warnungen",
+    "push_hochwasser": "Hochwasser- & Überflutungswarnungen",
 }
 
 PUSH_BROADCAST_CATEGORIES = {
@@ -53,6 +59,11 @@ PUSH_BROADCAST_CATEGORIES = {
     )
 }
 
+OFFICIAL_WARNING_CATEGORIES = {
+    key: PUSH_PREFERENCE_FIELDS[key]
+    for key in ("push_unwetter", "push_bevoelkerungsschutz", "push_hochwasser")
+}
+
 
 def init_pwa_db() -> None:
     Base.metadata.create_all(bind=engine)
@@ -67,6 +78,14 @@ def init_pwa_db() -> None:
                 f"ALTER TABLE pwa_users ADD COLUMN {column} BOOLEAN NOT NULL DEFAULT {sql_default}"
             )
         print(f"Spalte pwa_users.{column} hinzugefügt.")
+
+    existing = {column["name"] for column in inspect(engine).get_columns("pwa_users")}
+    if "warn_min_level" not in existing:
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                "ALTER TABLE pwa_users ADD COLUMN warn_min_level INTEGER NOT NULL DEFAULT 2"
+            )
+        print("Spalte pwa_users.warn_min_level hinzugefügt.")
 
 
 def normalize_email(value: str) -> str:
@@ -127,6 +146,10 @@ def create_user(email: str, password: str, name: str, telefon: str = "") -> PWAU
             push_feuerwehr=False,
             push_verkehr=False,
             push_warnungen=False,
+            push_unwetter=False,
+            push_bevoelkerungsschutz=False,
+            push_hochwasser=False,
+            warn_min_level=2,
             erstellt_am=datetime.utcnow(),
             aktualisiert_am=datetime.utcnow(),
         )
@@ -175,6 +198,7 @@ def update_user_profile(
     telefon: str,
     push_muell: bool,
     push_preferences: dict[str, bool] | None = None,
+    warn_min_level: int = 2,
 ) -> PWAUser | None:
     db = SessionLocal()
     try:
@@ -186,6 +210,11 @@ def update_user_profile(
             preferences["push_muell"] = bool(push_muell)
             for field in PUSH_PREFERENCE_DEFAULTS:
                 setattr(user, field, bool(preferences.get(field, False)))
+            try:
+                level = int(warn_min_level)
+            except (TypeError, ValueError):
+                level = 2
+            user.warn_min_level = max(1, min(level, 4))
             user.aktualisiert_am = datetime.utcnow()
             db.commit()
             db.refresh(user)
