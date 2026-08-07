@@ -168,11 +168,11 @@ SOURCES = [
     (13, 'Gemeinde Ahnsen: „Einwohnerzahlen“, Ortschronik.', 'https://www.ahnsen-schaumburg.de/assets/downloads/Einwohnerzahlen.pdf'),
     (14, 'Gemeinde Ahnsen: „Bürgermeister und Rat“, Ortschronik.', 'https://www.ahnsen-schaumburg.de/assets/downloads/B%C3%BCrgermeister%20und%20Rat.pdf'),
     (15, 'Hermann Eggers: „Die Ahnser Neue Mühle“, Gemeinde Ahnsen.', 'https://www.ahnsen-schaumburg.de/historie/Chronik17f.pdf'),
-    (16, 'Günter Doering: „Das Eilser Minchen“, Gemeinde Ahnsen, sowie Bad Eilsener Kleinbahn – historische Streckendaten.', 'https://www.ahnsen-schaumburg.de/historie/Chronik17h.pdf'),
+    (16, 'Günter Doering: „Das Eilser Minchen“, Gemeinde Ahnsen, sowie Bad Eilsener Kleinbahn – historische Streckendaten. Weitere in der PDF genannte Quelle: https://de.wikipedia.org/wiki/Bad_Eilsener_Kleinbahn', 'https://www.ahnsen-schaumburg.de/historie/Chronik17h.pdf'),
     (17, 'Günter Doering: „Brandschutz und Feuerwehr“, Gemeinde Ahnsen.', 'https://www.ahnsen-schaumburg.de/assets/downloads/Feuerwehr.pdf'),
     (18, 'Statistische Ämter des Bundes und der Länder: Gemeindeverzeichnis Ahnsen, Stand 31.03.2026.', 'https://www.statistikportal.de/de/gemeindeverzeichnis/03257001'),
     (19, 'Samtgemeinde Eilsen: Chronik und Entstehung der Samtgemeinde.', 'https://www.samtgemeinde-eilsen.de/content/samtgemeinde/'),
-    (20, 'Landkreis Schaumburg: Geschichte des Landkreises; Portal Niedersachsen: Geschichte Schaumburgs.', 'https://www.schaumburg.de/Landkreis/'),
+    (20, 'Landkreis Schaumburg: Geschichte des Landkreises; Portal Niedersachsen: Geschichte Schaumburgs. Weitere in der PDF genannte Quelle: https://www.niedersachsen.de/startseite/land_leute/die_geschichte/geschichte_der_regionen/schaumburg/-19605.html', 'https://www.schaumburg.de/Landkreis/'),
     (21, 'Gemeinde Ahnsen: Gemeinderat – Zusammensetzung seit der konstituierenden Sitzung vom 25.11.2021.', 'https://www.ahnsen-schaumburg.de/gemeinde/gemeinderat/'),
     (22, 'Gemeinde Ahnsen: Startseite, Ortsdaten, Infrastruktur und Vereinsübersicht.', 'https://www.ahnsen-schaumburg.de/'),
     (23, 'Wikimedia Commons: „Ahnsen in SHG.svg“, Lagekarte von Ahnsen im Landkreis Schaumburg; Datei mit freien Lizenzen / Public-Domain-Freigaben.', 'https://commons.wikimedia.org/wiki/File:Ahnsen_in_SHG.svg'),
@@ -230,7 +230,7 @@ def history_content() -> str:
 <div class="history-page" id="geschichte-oben">
 <section class="history-hero"><a class="back-link" href="/">← Start</a><span class="history-kicker">Ortsgeschichte · Stand 7. August 2026</span><h1>Ahnsen<br>von den Anfängen bis heute</h1><p>Eine Ortsgeschichte von den frühesten Spuren bis 2026 – vollständig nach dem bereitgestellten Bericht, ergänzt um eine mobile Zeitleiste und eine grafische Bevölkerungsentwicklung.</p><div class="history-hero-art"><span>{_svg('stone')}</span><span>{_svg('doc')}</span><span>{_svg('mill')}</span><span>{_svg('train')}</span></div></section>
 <div class="history-meta"><div><small>Erste bekannte Nennung</small><strong>1256 · Adenhusen</strong></div><div><small>Fläche</small><strong>3,43 km²</strong></div><div><small>Einwohner</small><strong>1.022</strong></div><div><small>Samtgemeinde</small><strong>Eilsen</strong></div></div>
-<div class="history-note">Der Bericht unterscheidet bewusst zwischen urkundlich oder archäologisch belegten Fakten und späteren heimatgeschichtlichen Rekonstruktionen. Zahlen in eckigen Klammern verweisen auf das Quellenverzeichnis am Ende.</div>
+<div class="history-note"><strong>Leseschlüssel:</strong> Der Bericht unterscheidet bewusst zwischen urkundlich oder archäologisch belegten Fakten und späteren heimatgeschichtlichen Rekonstruktionen. Zahlen in eckigen Klammern verweisen auf das Quellenverzeichnis am Ende.<br><br>Erstellt auf Grundlage der Ahnser Ortschronik, amtlicher Statistik und weiterer regionalhistorischer Quellen. Die Lagekarte der Originalausgabe zeigt Ahnsen im Landkreis Schaumburg; Karte: Wikimedia Commons, TUBS/Hagar66, CC BY bzw. Public-Domain-Freigaben – Details im Quellenverzeichnis.</div>
 {_visual_intro()}
 <section class="history-toc" id="geschichte-inhalt"><h2>Inhalt</h2><div class="history-toc-grid">{toc}</div></section>
 {''.join(chapters)}
