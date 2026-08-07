@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import os
+import threading
+import time
 from pathlib import Path
 
+import requests
 from fastapi import HTTPException
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.routing import APIRoute
@@ -13,6 +17,17 @@ ICON_VERSION = "v5"
 SERVICE_WORKER_VERSION = "v6"
 ICON_SOURCE = STATIC_DIR / "icon-ahnsen.svg"
 ICON_SIZES = {180, 192, 512}
+GEOCODER_REVERSE_URL = os.getenv(
+    "GEOCODER_REVERSE_URL",
+    "https://nominatim.openstreetmap.org/reverse",
+)
+GEOCODER_USER_AGENT = os.getenv(
+    "GEOCODER_USER_AGENT",
+    "Ahnsen-hilft/1.0 (+https://ahnsen-hilft.onrender.com)",
+)
+_GEOCODER_LOCK = threading.Lock()
+_GEOCODER_LAST_REQUEST = 0.0
+_LOCATION_CACHE: dict[tuple[float, float], str] = {}
 
 
 def _icon_path(size: int) -> Path:
@@ -40,6 +55,112 @@ def _ensure_icons() -> None:
 
 
 _ensure_icons()
+
+
+def _format_reverse_address(payload: dict) -> str:
+    address = payload.get("address") or {}
+    street = next(
+        (
+            str(address.get(key) or "").strip()
+            for key in ("road", "pedestrian", "residential", "path", "footway")
+            if str(address.get(key) or "").strip()
+        ),
+        "",
+    )
+    house_number = str(address.get("house_number") or "").strip()
+    locality = next(
+        (
+            str(address.get(key) or "").strip()
+            for key in ("village", "town", "city", "municipality")
+            if str(address.get(key) or "").strip()
+        ),
+        "",
+    )
+
+    street_line = " ".join(part for part in (street, house_number) if part).strip()
+    if street_line and locality:
+        return f"{street_line}, {locality}"[:180]
+    if street_line:
+        return street_line[:180]
+
+    display_name = str(payload.get("display_name") or "").strip()
+    if display_name:
+        parts = [part.strip() for part in display_name.split(",") if part.strip()]
+        return ", ".join(parts[:3])[:180]
+    return ""
+
+
+def reverse_location(lat: float, lon: float):
+    """Resolve a user-triggered GPS coordinate into a human-readable address."""
+    global _GEOCODER_LAST_REQUEST
+
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise HTTPException(status_code=400, detail="Ungültige GPS-Koordinaten")
+
+    cache_key = (round(lat, 5), round(lon, 5))
+    cached = _LOCATION_CACHE.get(cache_key)
+    if cached:
+        return JSONResponse({"address": cached, "source": "OpenStreetMap"})
+
+    with _GEOCODER_LOCK:
+        cached = _LOCATION_CACHE.get(cache_key)
+        if cached:
+            return JSONResponse({"address": cached, "source": "OpenStreetMap"})
+
+        wait_seconds = 1.05 - (time.monotonic() - _GEOCODER_LAST_REQUEST)
+        if wait_seconds > 0:
+            time.sleep(wait_seconds)
+
+        try:
+            response = requests.get(
+                GEOCODER_REVERSE_URL,
+                params={
+                    "lat": f"{lat:.6f}",
+                    "lon": f"{lon:.6f}",
+                    "format": "jsonv2",
+                    "addressdetails": 1,
+                    "accept-language": "de",
+                    "zoom": 18,
+                },
+                headers={
+                    "User-Agent": GEOCODER_USER_AGENT,
+                    "Accept": "application/json",
+                },
+                timeout=6,
+            )
+        except requests.RequestException as error:
+            raise HTTPException(
+                status_code=502,
+                detail="Adresse konnte gerade nicht ermittelt werden",
+            ) from error
+        finally:
+            _GEOCODER_LAST_REQUEST = time.monotonic()
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=502,
+                detail="Adressdienst ist vorübergehend nicht erreichbar",
+            )
+
+        try:
+            payload = response.json()
+        except ValueError as error:
+            raise HTTPException(
+                status_code=502,
+                detail="Adressdienst hat keine gültige Antwort geliefert",
+            ) from error
+
+        address = _format_reverse_address(payload)
+        if not address:
+            raise HTTPException(
+                status_code=404,
+                detail="Für diesen Standort wurde keine Adresse gefunden",
+            )
+
+        if len(_LOCATION_CACHE) >= 500:
+            _LOCATION_CACHE.clear()
+        _LOCATION_CACHE[cache_key] = address
+        return JSONResponse({"address": address, "source": "OpenStreetMap"})
 
 
 async def manifest_v5():
@@ -185,6 +306,77 @@ if (typeof document !== 'undefined') {
 """
 
 
+_LOCATION_HELPER = r"""
+if (typeof document !== 'undefined') {
+  (() => {
+    const setupLocationLookup = () => {
+      const button = document.getElementById('use-location');
+      const status = document.getElementById('location-status');
+      if (!button || !status || button.dataset.addressLookupReady === '1') return;
+      button.dataset.addressLookupReady = '1';
+
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        if (!navigator.geolocation) {
+          status.textContent = 'Standortfunktion wird von diesem Gerät nicht unterstützt.';
+          return;
+        }
+
+        button.disabled = true;
+        status.textContent = 'Standort wird ermittelt …';
+
+        navigator.geolocation.getCurrentPosition(
+          async position => {
+            const latValue = position.coords.latitude.toFixed(6);
+            const lonValue = position.coords.longitude.toFixed(6);
+            const latitude = document.getElementById('latitude');
+            const longitude = document.getElementById('longitude');
+            const locationInput = document.querySelector('input[name="ort"]');
+
+            if (latitude) latitude.value = latValue;
+            if (longitude) longitude.value = lonValue;
+            status.textContent = 'Adresse wird aus dem Standort ermittelt …';
+
+            try {
+              const response = await fetch(
+                `/api/location/address?lat=${encodeURIComponent(latValue)}&lon=${encodeURIComponent(lonValue)}`,
+                { credentials: 'same-origin' }
+              );
+              if (!response.ok) throw new Error('Adresse nicht verfügbar');
+              const data = await response.json();
+              if (!data.address || !locationInput) throw new Error('Adresse nicht verfügbar');
+
+              locationInput.value = data.address;
+              locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+              locationInput.dispatchEvent(new Event('change', { bubbles: true }));
+              status.innerHTML = 'Adresse automatisch erkannt · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap-Mitwirkende</a>';
+            } catch (_error) {
+              status.textContent = 'GPS wurde gespeichert. Die Adresse konnte nicht automatisch erkannt werden – bitte den Ort kurz ergänzen.';
+            } finally {
+              button.disabled = false;
+            }
+          },
+          () => {
+            status.textContent = 'Standort konnte nicht übernommen werden. Bitte Standortfreigabe prüfen oder den Ort manuell eintragen.';
+            button.disabled = false;
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+      }, true);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupLocationLookup, { once: true });
+    } else {
+      setupLocationLookup();
+    }
+  })();
+}
+"""
+
+
 async def pwa_javascript_v6():
     source = (STATIC_DIR / "pwa.js").read_text(encoding="utf-8")
     source = source.replace("ahnsen-hilft-public-v3", "ahnsen-hilft-public-v6")
@@ -204,7 +396,7 @@ async def pwa_javascript_v6():
         1,
     )
     return Response(
-        source + _PUSH_HELPER,
+        source + _PUSH_HELPER + _LOCATION_HELPER,
         media_type="application/javascript; charset=utf-8",
         headers={
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -234,6 +426,12 @@ for route in reversed(
             legacy_icon,
             methods=["GET"],
             name="legacy_icon_v5",
+        ),
+        APIRoute(
+            "/api/location/address",
+            reverse_location,
+            methods=["GET"],
+            name="reverse_location",
         ),
         APIRoute(
             "/pwa.js",
