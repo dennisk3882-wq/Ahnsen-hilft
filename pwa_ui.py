@@ -11,7 +11,10 @@ ICONS = {
     "home": "⌂", "report": "⚠", "calendar": "▣", "waste": "♻",
     "people": "●●", "news": "▤", "building": "⌂", "more": "•••",
     "search": "⌕", "pin": "⌖", "camera": "▣", "check": "✓",
-    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎", "fire": "🚒",
+    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",
+    "fire": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15V8h10l3 3h3a2 2 0 0 1 2 2v2"/><path d="M5 8V5h8v3M8 5V3h4v2M2 15h20M13 11h3"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>',
+    "info": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>',
+    "village": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 8 6l5.5 5v8h-11zM6 19v-5h4v5"/><path d="M17 19V9M14.5 12 17 7l2.5 5M13.5 15l3.5-6 3.5 6"/></svg>',
 }
 
 
@@ -87,6 +90,7 @@ def home_page(data: dict) -> HTMLResponse:
         ("report", "Mängel melden", "Direkt mit Foto und Standort.", "/mangel-melden"), ("calendar", "Veranstaltungen", "Was ist los in Ahnsen?", "/veranstaltungen"),
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
         ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
+        ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-ahnsen"),
         ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
         ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),
     ]
@@ -160,7 +164,7 @@ def waste_page(terms: Iterable) -> HTMLResponse:
 
 
 def info_page(kind: str, settings: dict) -> HTMLResponse:
-    config = {"vereine": ("Vereine & Gruppen", "Gemeinschaft", "people", settings.get("vereine", "")), "aktuelles": ("Aktuelles aus Ahnsen", "Neuigkeiten", "news", settings.get("aktuelles", "")), "ansprechpartner": ("Ansprechpartner", "Kontakt", "phone", settings.get("ansprechpartner", "")), "feuerwehr": ("Feuerwehr Ahnsen", "Sicherheit & Ehrenamt", "shield", settings.get("feuerwehr_text", "")), "buergerinformationen": ("Bürgerinformationen", "Gut informiert", "news", settings.get("buergerinfo_text", "")), "ueber-ahnsen": ("Über Ahnsen", "Unser Dorf", "home", settings.get("ueber_ahnsen_text", ""))}
+    config = {"vereine": ("Vereine & Gruppen", "Gemeinschaft", "people", settings.get("vereine", "")), "aktuelles": ("Aktuelles aus Ahnsen", "Neuigkeiten", "news", settings.get("aktuelles", "")), "ansprechpartner": ("Ansprechpartner", "Kontakt", "phone", settings.get("ansprechpartner", "")), "feuerwehr": ("Feuerwehr Ahnsen", "Sicherheit & Ehrenamt", "fire", settings.get("feuerwehr_text", "")), "buergerinformationen": ("Bürgerinformationen", "Gut informiert", "info", settings.get("buergerinfo_text", "")), "ueber-ahnsen": ("Über Ahnsen", "Unser Dorf", "village", settings.get("ueber_ahnsen_text", ""))}
     title, eyebrow, key, raw = config.get(kind, config["buergerinformationen"]); entries = _entries(raw)
     cards = "".join(f'<article class="info-card"><span class="info-icon">{icon(key)}</span><h2>{escape(t)}</h2><p>{escape(d or "Weitere Informationen folgen.")}</p></article>' for t, d in entries)
     if not cards: cards = f'<article class="info-card wide"><span class="info-icon">{icon(key)}</span><h2>{escape(title)}</h2><p>{escape(str(raw or "Dieser Bereich wird gerade gepflegt."))}</p></article>'
@@ -168,7 +172,7 @@ def info_page(kind: str, settings: dict) -> HTMLResponse:
 
 
 def more_page(settings: dict) -> HTMLResponse:
-    items = [("Bürgerinformationen", "/buergerinformationen", "news", "Hinweise der Gemeinde"), ("Über Ahnsen", "/ueber-ahnsen", "home", "Unser Dorf"), ("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]
+    items = [("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]
     links = "".join(f'<a class="menu-row" href="{href}"><span>{icon(key)}</span><div><strong>{label}</strong><small>{desc}</small></div>{icon("arrow")}</a>' for label, href, key, desc in items)
     return page("Mehr", f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Weitere Bereiche</span><h1>Mehr aus Ahnsen</h1></section><section class="menu-list">{links}</section><section class="install-panel"><span>{icon("download")}</span><div><strong>Ahnsen hilft installieren</strong><small>Über das Browser-Menü zum Startbildschirm hinzufügen.</small></div></section>', active="more")
 
