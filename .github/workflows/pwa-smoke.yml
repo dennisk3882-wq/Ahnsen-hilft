@@ -150,7 +150,8 @@ jobs:
 
           html = home_page({"einstellungen": {}, "veranstaltungen": [], "muelltermine": [], "warnungen": [], "warning_stats": {}}).body.decode()
           assert "Ahnsen" in html and "Mängel melden" in html
-          assert "Warnmonitor für Ahnsen aktiv" in html and "/warnungen" in html
+          assert "Warnmonitor für Ahnsen aktiv" not in html and "Einfach und datensparsam" not in html
+          assert "Warnlage" in html and "/warnungen" in html
           assert Path("static/pwa-extra.css").stat().st_size > 500
           assert Path("static/warning.css").stat().st_size > 500
           assert Path("static/pwa.js").stat().st_size > 1000
