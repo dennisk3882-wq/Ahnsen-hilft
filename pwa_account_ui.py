@@ -105,6 +105,12 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
         push_text = "Push ist im Code vorbereitet, auf dem Server fehlen noch die VAPID-Schlüssel."
     push_buttons = '<button class="primary-button" id="enable-push" type="button">Push aktivieren</button><button class="secondary-button" id="disable-push" type="button">Auf diesem Gerät deaktivieren</button>' if push_configured else '<span class="muted">Serverkonfiguration erforderlich</span>'
 
+    warn_min_level = max(1, min(int(getattr(user, "warn_min_level", 2) or 2), 4))
+    warn_level_options = "".join(
+        f'<option value="{level}"{" selected" if warn_min_level == level else ""}>{label}</option>'
+        for level, label in ((1, "Alle Warnstufen"), (2, "Ab Stufe 2 · wichtige Warnungen"), (3, "Ab Stufe 3 · Unwetter / ernste Gefahr"), (4, "Nur Stufe 4 · extreme Gefahr"))
+    )
+
     push_preferences = f"""
       <div class="push-pref-groups">
         <div class="push-pref-group"><h3>Meine Vorgänge</h3>
@@ -116,12 +122,19 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
           {_push_toggle(user, 'push_aktuelles', 'Aktuelles aus Ahnsen', 'Neuigkeiten und aktuelle Hinweise aus dem Ort.')}
           {_push_toggle(user, 'push_vereine', 'Vereine & Dorfleben', 'Mitteilungen von Vereinen und zum Dorfleben.')}
         </div>
+        <div class="push-pref-group"><h3>Amtliche Warnungen</h3>
+          {_push_toggle(user, 'push_unwetter', 'Wetter & Unwetter (DWD)', 'Gewitter, Starkregen, Sturm, Hagel, Glätte und weitere amtliche Wetterwarnungen.')}
+          {_push_toggle(user, 'push_bevoelkerungsschutz', 'Bevölkerungsschutz', 'Amtliche Gefahrenmeldungen z. B. zu Großbränden, Rauch, Gefahrstoffen oder Infrastruktur.')}
+          {_push_toggle(user, 'push_hochwasser', 'Hochwasser & Überflutung', 'Passende amtliche Hochwasser- und Überflutungswarnungen aus den angebundenen Quellen.')}
+          <label class="field"><span>Mindest-Warnstufe</span><select name="warn_min_level">{warn_level_options}</select><small>Standard ist Stufe 2. Entwarnungen werden unabhängig davon zugestellt, wenn die Kategorie aktiviert ist.</small></label>
+          <a class="secondary-button" href="/warnungen">Aktuelle Warnlage ansehen</a>
+        </div>
         <div class="push-pref-group"><h3>Service & Sicherheit</h3>
           {_push_toggle(user, 'push_muell', 'Müllabfuhr', 'Erinnerung am Vortag an die nächste Abholung.')}
           {_push_toggle(user, 'push_buergerinfo', 'Bürgerinformationen', 'Wichtige Informationen der Gemeinde.')}
           {_push_toggle(user, 'push_verkehr', 'Verkehr & Straßensperrungen', 'Sperrungen, Baustellen und wichtige Verkehrshinweise.')}
           {_push_toggle(user, 'push_feuerwehr', 'Feuerwehr & Sicherheit', 'Sicherheitsrelevante Hinweise und Informationen der Feuerwehr.')}
-          {_push_toggle(user, 'push_warnungen', 'Wichtige Warnungen', 'Dringende Warn- und Gefahrenhinweise für Ahnsen.')}
+          {_push_toggle(user, 'push_warnungen', 'Wichtige Hinweise der Verwaltung', 'Manuelle dringende Hinweise, die die Verwaltung über Ahnsen hilft versendet.')}
         </div>
       </div>
     """

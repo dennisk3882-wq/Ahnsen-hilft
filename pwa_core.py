@@ -72,6 +72,16 @@ from pwa_ui import (
 from veranstaltungen_crud import get_aktive_veranstaltungen, init_veranstaltungen_db
 from push_dashboard import push_dashboard_page
 from system_dashboard import system_dashboard_page
+from warning_dashboard import warning_dashboard_page
+from warning_ui import warning_page
+from warning_service import (
+    get_active_warnings,
+    get_recent_warnings,
+    get_warning_stats,
+    init_warning_db,
+    poll_warning_sources,
+    start_warning_monitor,
+)
 from system_diagnostics import (
     get_push_test_targets,
     init_system_diagnostics_db,
@@ -112,6 +122,8 @@ def startup() -> None:
     init_gemeinde_db()
     init_pwa_db()
     init_system_diagnostics_db()
+    init_warning_db()
+    start_warning_monitor()
 
 
 def _public_data() -> dict:
@@ -121,6 +133,8 @@ def _public_data() -> dict:
         "dgh_termine": get_alle_dgh_termine(),
         "freie_dgh_tage": get_freie_tage(anzahl_tage=90),
         "muelltermine": get_naechste_muelltermine(limit=24),
+        "warnungen": get_active_warnings(limit=5),
+        "warning_stats": get_warning_stats(),
     }
 
 
@@ -240,6 +254,11 @@ async def pwa_home():
     return home_page(_public_data())
 
 
+@app.get("/warnungen")
+async def public_warnings():
+    return warning_page(get_active_warnings(limit=30), get_warning_stats())
+
+
 @app.get("/registrieren")
 async def register_page(request: Request, next: str = "/profil"):
     if _current_user(request):
@@ -339,16 +358,22 @@ async def update_profile(request: Request):
         "push_meldungen", "push_dgh", "push_muell", "push_veranstaltungen",
         "push_aktuelles", "push_buergerinfo", "push_vereine",
         "push_feuerwehr", "push_verkehr", "push_warnungen",
+        "push_unwetter", "push_bevoelkerungsschutz", "push_hochwasser",
     )
     push_preferences = {
         field: _trim(form.get(field), 10) == "ja" for field in push_fields
     }
+    try:
+        warn_min_level = max(1, min(int(str(form.get("warn_min_level") or "2")), 4))
+    except ValueError:
+        warn_min_level = 2
     update_user_profile(
         user.id,
         name,
         _trim(form.get("telefon"), 60),
         push_preferences["push_muell"],
         push_preferences,
+        warn_min_level,
     )
     return RedirectResponse(url="/profil?hinweis=Profil%20wurde%20gespeichert.", status_code=303)
 
@@ -714,6 +739,32 @@ async def admin_dgh_status(request: Request, background_tasks: BackgroundTasks, 
     return RedirectResponse(url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}", status_code=303)
 
 
+@app.get("/intern/warnungen")
+async def admin_warnings_page(request: Request, hinweis: str = "", fehler: str = ""):
+    legacy.check_dashboard_login(request)
+    return warning_dashboard_page(
+        get_active_warnings(limit=30),
+        get_recent_warnings(limit=80),
+        get_warning_stats(),
+        hinweis=hinweis,
+        fehler=fehler,
+    )
+
+
+@app.post("/intern/warnungen/pruefen")
+async def admin_warnings_poll(request: Request):
+    legacy.check_dashboard_login(request)
+    result = poll_warning_sources(send_push=True)
+    failed = [name for name, state in result.get("sources", {}).items() if state.get("status") != "ok"]
+    if failed:
+        return RedirectResponse(
+            url=f"/intern/warnungen?fehler={quote('Warnquellen teilweise nicht erreichbar: ' + ', '.join(failed))}",
+            status_code=303,
+        )
+    info = f"Warnquellen geprüft: {result.get('new', 0)} neu, {result.get('changed', 0)} aktualisiert, {result.get('pushed_devices', 0)} Push-Zustellung(en)."
+    return RedirectResponse(url=f"/intern/warnungen?hinweis={quote(info)}", status_code=303)
+
+
 @app.get("/intern/push")
 async def admin_push_page(request: Request, hinweis: str = "", fehler: str = ""):
     legacy.check_dashboard_login(request)
@@ -845,6 +896,11 @@ async def pwa_extra_css():
     return FileResponse(STATIC_DIR / "pwa-extra.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
 
 
+@app.get("/warning.css")
+async def warning_css():
+    return FileResponse(STATIC_DIR / "warning.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
 @app.get("/pwa.js")
 async def pwa_javascript():
     return FileResponse(STATIC_DIR / "pwa.js", media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
@@ -880,6 +936,7 @@ async def manifest():
             "shortcuts": [
                 {"name": "Mangel melden", "url": "/mangel-melden", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
                 {"name": "DGH anfragen", "url": "/dgh-anfrage", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
+                {"name": "Warnungen", "url": "/warnungen", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
                 {"name": "Mein Profil", "url": "/profil", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},
             ],
         },
@@ -891,7 +948,7 @@ async def manifest():
 async def service_worker():
     script = """
 const CACHE = 'ahnsen-hilft-pwa-v2';
-const CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/pwa.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];
+const CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/warning.css?v=1', '/pwa.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });

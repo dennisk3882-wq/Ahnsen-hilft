@@ -15,6 +15,7 @@ from config import DATABASE_URL, EMAIL_PASSWORD, EMAIL_TO, EMAIL_USER
 from database import Base, SessionLocal, engine
 from pwa_models import PWAUser, PushSubscription
 from push_service import VAPID_SUBJECT, push_configured
+from warning_service import get_warning_stats, init_warning_db, probe_warning_sources
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -195,6 +196,7 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
     """
 
     init_system_diagnostics_db()
+    init_warning_db()
     started = time.perf_counter()
     checks: list[dict[str, Any]] = []
     routes = _route_map(app)
@@ -224,7 +226,7 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
         )
 
     def check_webserver():
-        required = {"/", "/health", "/verwaltung", "/intern/maengel", "/intern/push"}
+        required = {"/", "/health", "/verwaltung", "/intern/maengel", "/intern/push", "/warnungen", "/intern/warnungen"}
         missing = sorted(required - set(routes))
         if missing:
             return "error", "Fehlende Kernrouten: " + ", ".join(missing)
@@ -278,6 +280,7 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
             "id", "email", "password_hash", "aktiv", "push_muell", "push_meldungen",
             "push_dgh", "push_veranstaltungen", "push_aktuelles", "push_buergerinfo",
             "push_vereine", "push_feuerwehr", "push_verkehr", "push_warnungen",
+            "push_unwetter", "push_bevoelkerungsschutz", "push_hochwasser", "warn_min_level",
         }
         missing = sorted(required - columns)
         if missing:
@@ -345,6 +348,35 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
         return "ok", f"VAPID vollständig; {subscription_count} Push-Gerät(e) registriert."
 
     add("push", "Browser-Push", "Dienste", check_push)
+
+    def check_warning_monitor():
+        stats = get_warning_stats()
+        sources = stats.get("sources") or {}
+        states = [sources.get(name, {}).get("status", "unknown") for name in ("DWD", "BBK")]
+        if states.count("error") == 2:
+            return "error", "DWD und Bundeswarnportal waren bei der letzten Warnabfrage nicht erreichbar."
+        if "error" in states:
+            return "warn", "Eine amtliche Warnquelle war bei der letzten Abfrage nicht erreichbar; die andere Quelle läuft weiter."
+        if "unknown" in states:
+            return "warn", "Warnmonitor ist eingerichtet; nach dem ersten automatischen Lauf werden beide Quellen bewertet."
+        return "ok", f"Amtlicher Warnmonitor aktiv; {stats.get('active', 0)} aktive Warnung(en), {stats.get('total', 0)} insgesamt gespeichert."
+
+    add("warning_monitor", "Amtlicher Warnmonitor", "Dienste", check_warning_monitor)
+
+    if deep:
+        probes = probe_warning_sources()
+        for source, label in (("DWD", "DWD Warnquelle"), ("BBK", "Bundeswarnportal / BBK")):
+            probe = probes.get(source) or {}
+            checks.append(
+                _result(
+                    f"warning_source_{source.lower()}",
+                    label,
+                    "Dienste",
+                    probe.get("status", "error"),
+                    probe.get("detail", "Keine Antwort"),
+                    int(probe.get("duration_ms", 0) or 0),
+                )
+            )
 
     def check_geolocation():
         script_path = STATIC_DIR / "pwa.js"

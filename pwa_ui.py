@@ -42,7 +42,7 @@ def _bottom_nav(active: str) -> str:
 def page(title: str, content: str, *, active: str = "home", description: str = "Digitale Bürgerplattform für Ahnsen", show_header: bool = True, body_class: str = "") -> HTMLResponse:
     header = f'<header class="topbar">{_brand()}<button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></header>' if show_header else ""
     html = f"""<!doctype html><html lang="de"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#174936"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ahnsen hilft"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><title>{escape(title)} · Ahnsen hilft</title></head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#174936"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ahnsen hilft"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · Ahnsen hilft</title></head>
 <body class="{escape(body_class)}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script></body></html>"""
     return HTMLResponse(html)
 
@@ -68,6 +68,7 @@ def _days(value) -> str:
 
 def home_page(data: dict) -> HTMLResponse:
     settings, events, waste = data.get("einstellungen", {}), data.get("veranstaltungen", []), data.get("muelltermine", [])
+    warnings = list(data.get("warnungen", []) or [])
     greeting = "Guten Morgen" if datetime.now().hour < 11 else "Guten Tag" if datetime.now().hour < 18 else "Guten Abend"
     next_event = events[0] if events else None
     event_hint = f"{escape(getattr(next_event, 'titel', '') or 'Nächster Termin')} · {escape(_date(getattr(next_event, 'datum', '')))}" if next_event else "Neue Termine aus dem Dorf"
@@ -76,15 +77,24 @@ def home_page(data: dict) -> HTMLResponse:
         waste_card = f'<section class="notice-card"><span class="notice-icon">{icon("bell")}</span><div><small>Nächste Müllabfuhr · {escape(_days(value))}</small><strong>{escape(getattr(item, "abfuhrarten", "") or "Müllabfuhr")}</strong><span>{escape(_date(value))}</span></div><a href="/muelltermine-info">{icon("arrow")}</a></section>'
     else:
         waste_card = f'<section class="notice-card empty-notice"><span class="notice-icon">{icon("waste")}</span><div><small>Müllabfuhr</small><strong>Noch keine Termine eingetragen</strong></div><a href="/muelltermine-info">{icon("arrow")}</a></section>'
+    if warnings:
+        highest = max(int(getattr(item, "level", 2) or 2) for item in warnings)
+        top_warning = sorted(warnings, key=lambda item: int(getattr(item, "level", 2) or 2), reverse=True)[0]
+        warn_class = " danger-warning" if highest >= 3 else " active-warning"
+        warning_card = f'<a class="home-warning-monitor{warn_class}" href="/warnungen"><span class="warning-monitor-dot"></span><div><strong>⚠ Amtliche Warnung für Ahnsen</strong><small>{escape(getattr(top_warning, "title", "Warnlage prüfen"))}</small></div><span class="card-arrow">{icon("arrow")}</span></a>'
+    else:
+        warning_card = f'<a class="home-warning-monitor" href="/warnungen"><span class="warning-monitor-dot"></span><div><strong>Warnmonitor für Ahnsen aktiv</strong><small>DWD- und Bevölkerungsschutz-Warnungen werden automatisch überwacht. Push kannst du im Profil aktivieren.</small></div><span class="card-arrow">{icon("arrow")}</span></a>'
     services = [
         ("report", "Mängel melden", "Direkt mit Foto und Standort.", "/mangel-melden"), ("calendar", "Veranstaltungen", "Was ist los in Ahnsen?", "/veranstaltungen"),
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
         ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
+        ("shield", "Warnungen", "Amtliche Warnlage für Ahnsen.", "/warnungen"),
     ]
     cards = "".join(f'<a class="service-card{" featured" if key == "report" else ""}" href="{href}"><span class="service-icon">{icon(key)}</span><div><h3>{title}</h3><p>{text}</p></div><span class="card-arrow">{icon("arrow")}</span></a>' for key, title, text, href in services)
     content = f"""
 <section class="hero-card"><div class="hero-image" role="img" aria-label="Dorfansicht von Ahnsen"></div><div class="hero-overlay"><span class="hero-kicker">Willkommen in Ahnsen</span><h1>Digital. Direkt.<br>Gemeinsam.</h1><p>Alles Wichtige aus dem Dorf in einer App.</p></div></section>
 <section class="greeting-row"><div><span class="eyebrow">{escape(greeting)} 👋</span><h2>Schön, dass du da bist.</h2></div><a class="today-card" href="/veranstaltungen"><span>{icon('calendar')}</span><div><small>Heute in Ahnsen</small><strong>{event_hint}</strong></div>{icon('arrow')}</a></section>
+{warning_card}
 <section class="service-grid" aria-label="Digitale Dienste">{cards}</section>{waste_card}
 <section class="trust-strip"><span>{icon('shield')}</span><div><strong>Einfach und datensparsam</strong><small>Keine App-Store-Anmeldung und kein WhatsApp-Konto erforderlich.</small></div></section>"""
     return page(settings.get("seiten_titel") or "Ahnsen hilft", content, body_class="home-view")
@@ -158,7 +168,7 @@ def info_page(kind: str, settings: dict) -> HTMLResponse:
 
 
 def more_page(settings: dict) -> HTMLResponse:
-    items = [("Ansprechpartner", "/ansprechpartner", "phone", "Wichtige Kontakte"), ("Feuerwehr", "/feuerwehr", "shield", "Sicherheit und Ehrenamt"), ("Bürgerinformationen", "/buergerinformationen", "news", "Hinweise der Gemeinde"), ("Über Ahnsen", "/ueber-ahnsen", "home", "Unser Dorf"), ("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]
+    items = [("Ansprechpartner", "/ansprechpartner", "phone", "Wichtige Kontakte"), ("Feuerwehr", "/feuerwehr", "shield", "Sicherheit und Ehrenamt"), ("Warnlage", "/warnungen", "bell", "Amtliche Wetter- und Gefahrenwarnungen"), ("Bürgerinformationen", "/buergerinformationen", "news", "Hinweise der Gemeinde"), ("Über Ahnsen", "/ueber-ahnsen", "home", "Unser Dorf"), ("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]
     links = "".join(f'<a class="menu-row" href="{href}"><span>{icon(key)}</span><div><strong>{label}</strong><small>{desc}</small></div>{icon("arrow")}</a>' for label, href, key, desc in items)
     return page("Mehr", f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Weitere Bereiche</span><h1>Mehr aus Ahnsen</h1></section><section class="menu-list">{links}</section><section class="install-panel"><span>{icon("download")}</span><div><strong>Ahnsen hilft installieren</strong><small>Über das Browser-Menü zum Startbildschirm hinzufügen.</small></div></section>', active="more")
 
