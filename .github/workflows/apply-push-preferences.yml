@@ -23,6 +23,18 @@ jobs:
           python-version: "3.11"
       - name: Apply implementation
         run: python scripts/apply_push_preferences.py
+      - name: Fix f-string JavaScript braces
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("push_dashboard.py")
+          text = path.read_text(encoding="utf-8")
+          old = "category?.addEventListener('change',()=>{const option=category.options[category.selectedIndex];if(option?.dataset.url)url.value=option.dataset.url;});"
+          new = "category?.addEventListener('change',()=>{{const option=category.options[category.selectedIndex];if(option?.dataset.url)url.value=option.dataset.url;}});"
+          if old not in text:
+              raise SystemExit("Expected JavaScript snippet not found")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
       - name: Compile changed Python modules
         run: |
           python -m py_compile \
