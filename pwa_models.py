@@ -24,6 +24,10 @@ class PWAUser(Base):
     push_feuerwehr = Column(Boolean, default=False, nullable=False)
     push_verkehr = Column(Boolean, default=False, nullable=False)
     push_warnungen = Column(Boolean, default=False, nullable=False)
+    push_unwetter = Column(Boolean, default=False, nullable=False)
+    push_bevoelkerungsschutz = Column(Boolean, default=False, nullable=False)
+    push_hochwasser = Column(Boolean, default=False, nullable=False)
+    warn_min_level = Column(Integer, default=2, nullable=False)
     erstellt_am = Column(DateTime, default=datetime.utcnow, nullable=False)
     aktualisiert_am = Column(DateTime, default=datetime.utcnow, nullable=False)
 
