@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m py_compile *.py
           node --check static/pwa.js
-      - name: Validate PWA, accounts, DGH, push and diagnostics
+      - name: Validate PWA, accounts, DGH, push, profile and diagnostics
         run: |
           python - <<'PY'
           import asyncio
@@ -42,15 +42,18 @@ jobs:
           import pwa_main
           from crud import get_meldungen_fuer_benutzer, save_meldung
           from dgh_crud import get_dgh_termine_fuer_benutzer, save_dgh_termin
+          from pwa_account_ui import profile_page
           from pwa_core import startup
           from pwa_crud import (
               create_user,
+              get_user_by_id,
               has_push_subscription,
               init_pwa_db,
               upsert_push_subscription,
               verify_password,
           )
           from pwa_ui import home_page
+          from push_service import push_configured
           from system_diagnostics import run_system_checks
 
           startup()
@@ -95,6 +98,18 @@ jobs:
               "Smoke test",
           )
           assert has_push_subscription(user.id)
+
+          profile_html = profile_page(
+              get_user_by_id(user.id),
+              get_meldungen_fuer_benutzer(user.id),
+              get_dgh_termine_fuer_benutzer(user.id),
+              has_push_subscription(user.id),
+              push_configured(),
+          ).body.decode()
+          assert "Welche Nachrichten möchtest du?" in profile_html
+          assert "AHN-TEST-ACCOUNT" in profile_html
+          assert "Testfeier" in profile_html
+          assert "Wichtige Warnungen" in profile_html
 
           html = home_page({"einstellungen": {}, "veranstaltungen": [], "muelltermine": []}).body.decode()
           assert "Ahnsen" in html and "Mängel melden" in html
