@@ -6,14 +6,67 @@ import hmac
 import os
 from datetime import datetime
 
+from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
 from database import Base, SessionLocal, engine
 from pwa_models import PWAUser, PushDelivery, PushSubscription
 
 
+PUSH_PREFERENCE_DEFAULTS = {
+    "push_meldungen": True,
+    "push_dgh": True,
+    "push_muell": False,
+    "push_veranstaltungen": False,
+    "push_aktuelles": False,
+    "push_buergerinfo": False,
+    "push_vereine": False,
+    "push_feuerwehr": False,
+    "push_verkehr": False,
+    "push_warnungen": False,
+}
+
+PUSH_PREFERENCE_FIELDS = {
+    "push_meldungen": "Status eigener Mängelmeldungen",
+    "push_dgh": "Status eigener DGH-Anfragen",
+    "push_muell": "Müllabfuhr",
+    "push_veranstaltungen": "Veranstaltungen",
+    "push_aktuelles": "Aktuelles aus Ahnsen",
+    "push_buergerinfo": "Bürgerinformationen",
+    "push_vereine": "Vereine & Dorfleben",
+    "push_feuerwehr": "Feuerwehr & Sicherheit",
+    "push_verkehr": "Verkehr & Straßensperrungen",
+    "push_warnungen": "Wichtige Warnungen",
+}
+
+PUSH_BROADCAST_CATEGORIES = {
+    key: PUSH_PREFERENCE_FIELDS[key]
+    for key in (
+        "push_veranstaltungen",
+        "push_aktuelles",
+        "push_buergerinfo",
+        "push_vereine",
+        "push_feuerwehr",
+        "push_verkehr",
+        "push_warnungen",
+        "push_muell",
+    )
+}
+
+
 def init_pwa_db() -> None:
     Base.metadata.create_all(bind=engine)
+
+    existing = {column["name"] for column in inspect(engine).get_columns("pwa_users")}
+    for column, default in PUSH_PREFERENCE_DEFAULTS.items():
+        if column in existing:
+            continue
+        sql_default = "TRUE" if default else "FALSE"
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                f"ALTER TABLE pwa_users ADD COLUMN {column} BOOLEAN NOT NULL DEFAULT {sql_default}"
+            )
+        print(f"Spalte pwa_users.{column} hinzugefügt.")
 
 
 def normalize_email(value: str) -> str:
@@ -65,6 +118,15 @@ def create_user(email: str, password: str, name: str, telefon: str = "") -> PWAU
             telefon=str(telefon or "").strip()[:60],
             aktiv=True,
             push_muell=False,
+            push_meldungen=True,
+            push_dgh=True,
+            push_veranstaltungen=False,
+            push_aktuelles=False,
+            push_buergerinfo=False,
+            push_vereine=False,
+            push_feuerwehr=False,
+            push_verkehr=False,
+            push_warnungen=False,
             erstellt_am=datetime.utcnow(),
             aktualisiert_am=datetime.utcnow(),
         )
@@ -107,14 +169,23 @@ def get_user_by_id(user_id: int | None) -> PWAUser | None:
         db.close()
 
 
-def update_user_profile(user_id: int, name: str, telefon: str, push_muell: bool) -> PWAUser | None:
+def update_user_profile(
+    user_id: int,
+    name: str,
+    telefon: str,
+    push_muell: bool,
+    push_preferences: dict[str, bool] | None = None,
+) -> PWAUser | None:
     db = SessionLocal()
     try:
         user = db.query(PWAUser).filter(PWAUser.id == user_id).first()
         if user:
             user.name = str(name or "").strip()[:120]
             user.telefon = str(telefon or "").strip()[:60]
-            user.push_muell = bool(push_muell)
+            preferences = dict(push_preferences or {})
+            preferences["push_muell"] = bool(push_muell)
+            for field in PUSH_PREFERENCE_DEFAULTS:
+                setattr(user, field, bool(preferences.get(field, False)))
             user.aktualisiert_am = datetime.utcnow()
             db.commit()
             db.refresh(user)
@@ -207,6 +278,38 @@ def has_push_subscription(user_id: int) -> bool:
             .filter(PushSubscription.user_id == user_id)
             .count()
             > 0
+        )
+    finally:
+        db.close()
+
+
+def user_wants_push(user_id: int, category: str) -> bool:
+    if category not in PUSH_PREFERENCE_DEFAULTS:
+        return False
+    db = SessionLocal()
+    try:
+        user = (
+            db.query(PWAUser)
+            .filter(PWAUser.id == user_id)
+            .filter(PWAUser.aktiv.is_(True))
+            .first()
+        )
+        return bool(user and getattr(user, category, False))
+    finally:
+        db.close()
+
+
+def get_users_for_push_category(category: str) -> list[PWAUser]:
+    if category not in PUSH_PREFERENCE_DEFAULTS:
+        return []
+    db = SessionLocal()
+    try:
+        column = getattr(PWAUser, category)
+        return (
+            db.query(PWAUser)
+            .filter(PWAUser.aktiv.is_(True))
+            .filter(column.is_(True))
+            .all()
         )
     finally:
         db.close()

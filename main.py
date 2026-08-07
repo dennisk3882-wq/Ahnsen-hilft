@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
 
 import mimetypes
@@ -82,6 +82,7 @@ from gemeinde_crud import (
 from gemeinde_dashboard import gemeinde_dashboard
 from homepage_import import lade_alte_homepage_inhalte
 from veranstaltungen_crud import get_veranstaltung
+from push_service import send_category_notification
 
 
 app = FastAPI()
@@ -593,6 +594,7 @@ async def veranstaltungen_intern(
 
 @app.post("/veranstaltungen/neue")
 async def neue_veranstaltung(
+    background_tasks: BackgroundTasks,
     titel: str = Form(...),
     datum: str = Form(""),
     uhrzeit: str = Form(""),
@@ -608,7 +610,7 @@ async def neue_veranstaltung(
     if bild:
         bild_bytes = await bild.read()
 
-    save_veranstaltung(
+    event = save_veranstaltung(
         titel=titel,
         datum=datum,
         uhrzeit=uhrzeit,
@@ -618,6 +620,15 @@ async def neue_veranstaltung(
         ansprechpartner=ansprechpartner,
         bild_bytes=bild_bytes,
     )
+    if event and event.aktiv == "Ja":
+        background_tasks.add_task(
+            send_category_notification,
+            "push_veranstaltungen",
+            f"Neue Veranstaltung: {event.titel}",
+            f"{event.datum or 'Termin folgt'} · {event.uhrzeit or 'Uhrzeit folgt'} · {event.ort or 'Ahnsen'}",
+            "/veranstaltungen",
+            f"veranstaltung-{event.id}",
+        )
 
     return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
@@ -625,6 +636,7 @@ async def neue_veranstaltung(
 @app.post("/veranstaltungen/bearbeiten/{veranstaltung_id}")
 async def veranstaltung_bearbeiten(
     veranstaltung_id: int,
+    background_tasks: BackgroundTasks,
     titel: str = Form(...),
     datum: str = Form(""),
     uhrzeit: str = Form(""),
@@ -640,7 +652,7 @@ async def veranstaltung_bearbeiten(
     if bild and bild.filename:
         bild_bytes = await bild.read()
 
-    update_veranstaltung(
+    event = update_veranstaltung(
         veranstaltung_id=veranstaltung_id,
         titel=titel,
         datum=datum,
@@ -651,6 +663,15 @@ async def veranstaltung_bearbeiten(
         ansprechpartner=ansprechpartner,
         bild_bytes=bild_bytes,
     )
+    if event and event.aktiv == "Ja":
+        background_tasks.add_task(
+            send_category_notification,
+            "push_veranstaltungen",
+            f"Veranstaltung aktualisiert: {event.titel}",
+            f"{event.datum or 'Termin folgt'} · {event.uhrzeit or 'Uhrzeit folgt'} · {event.ort or 'Ahnsen'}",
+            "/veranstaltungen",
+            f"veranstaltung-update-{event.id}",
+        )
 
     return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 

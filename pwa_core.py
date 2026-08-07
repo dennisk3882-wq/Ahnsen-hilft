@@ -54,8 +54,9 @@ from pwa_crud import (
     update_user_profile,
     upsert_push_subscription,
     verify_password,
+    PUSH_BROADCAST_CATEGORIES,
 )
-from push_service import public_key, push_configured, send_user_notification
+from push_service import public_key, push_configured, send_category_notification, send_user_notification
 from pwa_ui import (
     admin_login_page,
     events_page,
@@ -69,6 +70,7 @@ from pwa_ui import (
     waste_page,
 )
 from veranstaltungen_crud import get_aktive_veranstaltungen, init_veranstaltungen_db
+from push_dashboard import push_dashboard_page
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -325,11 +327,20 @@ async def update_profile(request: Request):
     name = _trim(form.get("name"), 120)
     if not name:
         return RedirectResponse(url="/profil?fehler=Bitte%20gib%20deinen%20Namen%20an.", status_code=303)
+    push_fields = (
+        "push_meldungen", "push_dgh", "push_muell", "push_veranstaltungen",
+        "push_aktuelles", "push_buergerinfo", "push_vereine",
+        "push_feuerwehr", "push_verkehr", "push_warnungen",
+    )
+    push_preferences = {
+        field: _trim(form.get(field), 10) == "ja" for field in push_fields
+    }
     update_user_profile(
         user.id,
         name,
         _trim(form.get("telefon"), 60),
-        _trim(form.get("push_muell"), 10) == "ja",
+        push_preferences["push_muell"],
+        push_preferences,
     )
     return RedirectResponse(url="/profil?hinweis=Profil%20wurde%20gespeichert.", status_code=303)
 
@@ -666,6 +677,7 @@ async def admin_report_status(request: Request, background_tasks: BackgroundTask
             f"{ticket} ist jetzt: {neuer_status}.",
             "/profil",
             f"meldung-{ticket}",
+            "push_meldungen",
         )
     return RedirectResponse(url="/intern/maengel", status_code=303)
 
@@ -689,8 +701,43 @@ async def admin_dgh_status(request: Request, background_tasks: BackgroundTasks, 
             f"Deine Anfrage für {item.datum} ist jetzt: {status}.",
             "/profil",
             f"dgh-{item.id}",
+            "push_dgh",
         )
     return RedirectResponse(url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}", status_code=303)
+
+
+@app.get("/intern/push")
+async def admin_push_page(request: Request, hinweis: str = "", fehler: str = ""):
+    legacy.check_dashboard_login(request)
+    return push_dashboard_page(PUSH_BROADCAST_CATEGORIES, hinweis=hinweis, fehler=fehler)
+
+
+@app.post("/intern/push/senden")
+async def admin_push_send(request: Request, background_tasks: BackgroundTasks):
+    legacy.check_dashboard_login(request)
+    form = await request.form()
+    category = _trim(form.get("category"), 80)
+    title = _trim(form.get("title"), 120)
+    body = _trim(form.get("body"), 500)
+    url = _safe_next(form.get("url"), "/")
+    if category not in PUSH_BROADCAST_CATEGORIES:
+        return RedirectResponse(url="/intern/push?fehler=Ungültige%20Push-Kategorie.", status_code=303)
+    if not title or not body:
+        return RedirectResponse(url="/intern/push?fehler=Titel%20und%20Nachricht%20sind%20erforderlich.", status_code=303)
+    if not push_configured():
+        return RedirectResponse(url="/intern/push?fehler=Push%20ist%20auf%20dem%20Server%20nicht%20konfiguriert.", status_code=303)
+    background_tasks.add_task(
+        send_category_notification,
+        category,
+        title,
+        body,
+        url,
+        f"admin-{category}",
+    )
+    return RedirectResponse(
+        url=f"/intern/push?hinweis={quote('Push-Versand wurde gestartet. Es erhalten ihn nur Nutzer, die diese Kategorie aktiviert haben.')}",
+        status_code=303,
+    )
 
 
 @app.get("/pwa.css")

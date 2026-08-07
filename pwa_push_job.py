@@ -57,6 +57,7 @@ def run() -> int:
             f"Morgen wird in Ahnsen abgeholt: {kinds}.",
             "/muelltermine-info",
             f"muell-{tomorrow.isoformat()}",
+            "push_muell",
         )
         if sent:
             mark_delivery_sent(user.id, delivery_key)

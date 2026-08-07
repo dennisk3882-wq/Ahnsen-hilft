@@ -74,10 +74,11 @@ def _status_form(ticket, current):
         for status in ("Offen", "In Bearbeitung", "Erledigt")
     )
     return f"""
-    <form class="admin-status-form" method="get" action="/status">
+    <form class="admin-status-form" method="get" action="/status" onsubmit="return confirm('Status wirklich ändern? Wenn der Bürger Push für eigene Mängel aktiviert hat, erhält er direkt eine Benachrichtigung.')">
         <input type="hidden" name="ticket" value="{escape(ticket)}">
         <select name="neuer_status" aria-label="Status für {escape(ticket)}">{options}</select>
         <button type="submit">Speichern</button>
+        <small class="admin-push-hint">🔔 Push bei Statusänderung</small>
     </form>
     """
 
@@ -242,6 +243,7 @@ def dashboard_page(suche="", status_filter="", zeitraum=""):
             .admin-view-button {{ min-height:39px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:8px 12px; border:1px solid var(--admin-line); border-radius:12px; color:var(--admin-forest); background:#f6f9f3; font-size:12px; font-weight:850; text-decoration:none; }}
             .admin-view-button svg {{ width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }}
             .admin-status-form {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; align-items:center; }}
+            .admin-push-hint {{ grid-column:1/-1; color:#8a6115; font-size:10px; font-weight:850; }}
             .admin-status-form select {{ min-height:39px !important; margin:0 !important; padding:8px 10px !important; font-size:12px !important; }}
             .admin-status-form button {{ min-height:39px !important; margin:0 !important; padding:8px 10px !important; font-size:11px !important; }}
 
