@@ -129,15 +129,6 @@ if (typeof document === 'undefined') {
       nav.appendChild(profile);
     }
 
-    const menu = document.querySelector('.menu-list');
-    if (menu && !menu.querySelector('a[href="/profil"]')) {
-      const row = document.createElement('a');
-      row.className = 'menu-row profile-menu-link';
-      row.href = '/profil';
-      row.innerHTML = '<span><span class="glyph" aria-hidden="true">●</span></span><div><strong>Mein Profil</strong><small>Eigene Meldungen, DGH-Anfragen und Push</small></div><span class="glyph" aria-hidden="true">›</span>';
-      menu.prepend(row);
-    }
-
     let installPrompt = null;
     const installButton = document.getElementById('install-app');
     if (installButton) {
