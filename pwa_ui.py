@@ -6,6 +6,8 @@ from typing import Iterable
 
 from fastapi.responses import HTMLResponse
 
+from ahnsen_history import history_content
+
 
 ICONS = {
     "home": "⌂", "report": "⚠", "calendar": "▣", "waste": "♻",
@@ -164,6 +166,14 @@ def waste_page(terms: Iterable) -> HTMLResponse:
 
 
 def info_page(kind: str, settings: dict) -> HTMLResponse:
+    if kind == "ueber-ahnsen":
+        return page(
+            "Über Ahnsen",
+            history_content(),
+            active="home",
+            description="Ahnsen von den Anfängen bis heute – vollständige Ortsgeschichte bis 2026",
+            body_class="history-view",
+        )
     config = {"vereine": ("Vereine & Gruppen", "Gemeinschaft", "people", settings.get("vereine", "")), "aktuelles": ("Aktuelles aus Ahnsen", "Neuigkeiten", "news", settings.get("aktuelles", "")), "ansprechpartner": ("Ansprechpartner", "Kontakt", "phone", settings.get("ansprechpartner", "")), "feuerwehr": ("Feuerwehr Ahnsen", "Sicherheit & Ehrenamt", "fire", settings.get("feuerwehr_text", "")), "buergerinformationen": ("Bürgerinformationen", "Gut informiert", "info", settings.get("buergerinfo_text", "")), "ueber-ahnsen": ("Über Ahnsen", "Unser Dorf", "village", settings.get("ueber_ahnsen_text", ""))}
     title, eyebrow, key, raw = config.get(kind, config["buergerinformationen"]); entries = _entries(raw)
     cards = "".join(f'<article class="info-card"><span class="info-icon">{icon(key)}</span><h2>{escape(t)}</h2><p>{escape(d or "Weitere Informationen folgen.")}</p></article>' for t, d in entries)
