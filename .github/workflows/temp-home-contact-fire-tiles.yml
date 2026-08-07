@@ -10,13 +10,13 @@ permissions:
 
 jobs:
   update-ui:
-    if: github.actor != 'github-actions[bot]'
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/home-contact-fire-tiles
-      - name: Move profile, contacts and fire brigade links
+      - name: Move links
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -24,45 +24,28 @@ jobs:
           ui = Path('pwa_ui.py')
           text = ui.read_text(encoding='utf-8')
 
-          old_icons = '    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",\n'
-          new_icons = '    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎", "fire": "🚒",\n'
-          if old_icons not in text:
-              raise SystemExit('Icon-Zeile nicht gefunden')
-          text = text.replace(old_icons, new_icons, 1)
-
-          old_services = '''        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
-        ("shield", "Warnungen", "Amtliche Warnlage für Ahnsen.", "/warnungen"),
-'''
-          new_services = '''        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
-        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
-        ("shield", "Warnungen", "Amtliche Warnlage für Ahnsen.", "/warnungen"),
-'''
-          if old_services not in text:
-              raise SystemExit('Service-Liste nicht gefunden')
-          text = text.replace(old_services, new_services, 1)
-
-          old_more = '    items = [("Ansprechpartner", "/ansprechpartner", "phone", "Wichtige Kontakte"), ("Feuerwehr", "/feuerwehr", "shield", "Sicherheit und Ehrenamt"), ("Warnlage", "/warnungen", "bell", "Amtliche Wetter- und Gefahrenwarnungen"), ("Bürgerinformationen", "/buergerinformationen", "news", "Hinweise der Gemeinde"), ("Über Ahnsen", "/ueber-ahnsen", "home", "Unser Dorf"), ("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]\n'
-          new_more = '    items = [("Warnlage", "/warnungen", "bell", "Amtliche Wetter- und Gefahrenwarnungen"), ("Bürgerinformationen", "/buergerinformationen", "news", "Hinweise der Gemeinde"), ("Über Ahnsen", "/ueber-ahnsen", "home", "Unser Dorf"), ("Meldestatus", "/meldestatus", "search", "Bearbeitungsstand prüfen"), ("Verwaltung", "/verwaltung", "building", "Geschützter Bereich"), ("Datenschutz", "/datenschutz", "shield", "Datenverarbeitung"), ("Impressum", "/impressum", "news", "Anbieterkennzeichnung")]\n'
-          if old_more not in text:
-              raise SystemExit('Mehr-Menü nicht gefunden')
-          text = text.replace(old_more, new_more, 1)
+          replacements = [
+              ('    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",\n',
+               '    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎", "fire": "🚒",\n'),
+              ('        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),\n        ("shield", "Warnungen", "Amtliche Warnlage für Ahnsen.", "/warnungen"),\n',
+               '        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),\n        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),\n        ("shield", "Warnungen", "Amtliche Warnlage für Ahnsen.", "/warnungen"),\n'),
+              ('    items = [("Ansprechpartner", "/ansprechpartner", "phone", "Wichtige Kontakte"), ("Feuerwehr", "/feuerwehr", "shield", "Sicherheit und Ehrenamt"), ("Warnlage", "/warnungen", "bell", "Amtliche Wetter- und Gefahrenwarnungen"),',
+               '    items = [("Warnlage", "/warnungen", "bell", "Amtliche Wetter- und Gefahrenwarnungen"),'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit('Erwarteter UI-Baustein nicht gefunden')
+              text = text.replace(old, new, 1)
           ui.write_text(text, encoding='utf-8')
 
           js = Path('static/pwa.js')
           script = js.read_text(encoding='utf-8')
-          old_profile_menu = '''    const menu = document.querySelector('.menu-list');
-    if (menu && !menu.querySelector('a[href="/profil"]')) {
-      const row = document.createElement('a');
-      row.className = 'menu-row profile-menu-link';
-      row.href = '/profil';
-      row.innerHTML = '<span><span class="glyph" aria-hidden="true">●</span></span><div><strong>Mein Profil</strong><small>Eigene Meldungen, DGH-Anfragen und Push</small></div><span class="glyph" aria-hidden="true">›</span>';
-      menu.prepend(row);
-    }
-
-'''
-          if old_profile_menu not in script:
+          start = script.find("    const menu = document.querySelector('.menu-list');\n")
+          end_marker = "\n    let installPrompt = null;"
+          end = script.find(end_marker, start)
+          if start == -1 or end == -1:
               raise SystemExit('Profil-Eintrag im Mehr-Menü nicht gefunden')
-          script = script.replace(old_profile_menu, '', 1)
+          script = script[:start] + "    let installPrompt = null;" + script[end + len(end_marker):]
           js.write_text(script, encoding='utf-8')
           PY
       - name: Validate files
