@@ -14,6 +14,7 @@ from pwa_crud import (
 from push_service import push_configured, send_user_notification
 from system_diagnostics import init_system_diagnostics_db, record_system_event
 from veranstaltungen_crud import init_veranstaltungen_db
+from warning_service import init_warning_db, poll_warning_sources
 
 
 def _record(status: str, message: str, details=None) -> None:
@@ -31,8 +32,14 @@ def run() -> int:
     init_gemeinde_db()
     init_pwa_db()
     init_system_diagnostics_db()
+    init_warning_db()
 
     try:
+        warning_result = poll_warning_sources(send_push=True)
+        print(
+            f"Amtliche Warnquellen geprüft: {warning_result.get('new', 0)} neu, "
+            f"{warning_result.get('pushed_devices', 0)} Push-Zustellung(en)."
+        )
         if not push_configured():
             message = "VAPID-Schlüssel fehlen; Push-Job beendet."
             _record("error", message)

@@ -88,6 +88,7 @@ def push_dashboard_page(categories: dict[str, str], hinweis: str = "", fehler: s
             <article><h3>DGH-Anfragen</h3><p>Zu- und Absagen sowie Statusänderungen gehen nur an den Antragsteller, sofern aktiviert.</p></article>
             <article><h3>Veranstaltungen</h3><p>Neue und bearbeitete aktive Veranstaltungen werden automatisch an Veranstaltungs-Abonnenten gesendet.</p></article>
             <article><h3>Müllabfuhr</h3><p>Die Erinnerung läuft weiterhin automatisch am Vortag um 18 Uhr.</p></article>
+            <article><h3>Amtliche Warnungen</h3><p>DWD und Bundeswarnportal werden automatisch überwacht. Verwaltung und Bürger sehen die Warnlage in einer eigenen Zentrale.</p><p><a href="/intern/warnungen">Warnzentrale öffnen →</a></p></article>
           </aside>
         </div>
       </main>
