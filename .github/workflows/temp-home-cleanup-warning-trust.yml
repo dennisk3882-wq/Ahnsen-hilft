@@ -24,7 +24,6 @@ jobs:
           path = Path('pwa_ui.py')
           lines = path.read_text(encoding='utf-8').splitlines()
 
-          # If there is no active warning, no separate monitor card is shown.
           warning_if = next((i for i, line in enumerate(lines) if line == '    if warnings:'), None)
           if warning_if is None:
               raise SystemExit('Warnungsblock nicht gefunden')
@@ -42,7 +41,8 @@ jobs:
           trust_idx = next((i for i, line in enumerate(lines) if '<section class="trust-strip">' in line and 'Einfach und datensparsam' in line), None)
           if trust_idx is None:
               raise SystemExit('Datensparsam-Hinweis nicht gefunden')
-          del lines[trust_idx]
+          # Die schließenden Triple-Quotes gehören in derselben Zeile zum content-String.
+          lines[trust_idx] = '"""'
 
           text = '\n'.join(lines) + '\n'
           if marker in text or 'Einfach und datensparsam' in text:
