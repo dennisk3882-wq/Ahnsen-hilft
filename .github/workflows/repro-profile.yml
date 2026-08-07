@@ -5,6 +5,9 @@ on:
     branches:
       - agent/fix-profile-500
 
+permissions:
+  contents: write
+
 jobs:
   repro:
     runs-on: ubuntu-latest
@@ -20,10 +23,17 @@ jobs:
       COOKIE_SECURE: "false"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-profile-500
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt
+      - name: Apply profile fix
+        run: python scripts/fix_profile_css.py
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile profile module
+        run: python -m py_compile pwa_account_ui.py pwa_core.py
       - name: Render realistic profile
         run: |
           python - <<'PY'
@@ -67,3 +77,14 @@ jobs:
           assert 'Testfeier' in html
           print('PROFILE_RENDER_OK', len(html))
           PY
+      - name: Commit product fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pwa_account_ui.py
+          if git diff --cached --quiet; then
+            echo "No product changes"
+          else
+            git commit -m "Fix profile push settings rendering"
+            git push origin HEAD:agent/fix-profile-500
+          fi
