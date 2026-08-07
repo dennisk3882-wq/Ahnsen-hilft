@@ -25,22 +25,25 @@ jobs:
           text = path.read_text(encoding='utf-8')
 
           old_icons = '    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎", "fire": "🚒",\n'
-          new_icons = '''    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",
-    "fire": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15V8h10l3 3h3a2 2 0 0 1 2 2v2"/><path d="M5 8V5h8v3M8 5V3h4v2M2 15h20M13 11h3"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>',
-    "info": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>',
-    "village": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 8 6l5.5 5v8h-11zM6 19v-5h4v5"/><path d="M17 19V9M14.5 12 17 7l2.5 5M13.5 15l3.5-6 3.5 6"/></svg>',
-'''
+          new_icons = (
+              '    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",\n'
+              '    "fire": \'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15V8h10l3 3h3a2 2 0 0 1 2 2v2"/><path d="M5 8V5h8v3M8 5V3h4v2M2 15h20M13 11h3"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>\',\n'
+              '    "info": \'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>\',\n'
+              '    "village": \'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 8 6l5.5 5v8h-11zM6 19v-5h4v5"/><path d="M17 19V9M14.5 12 17 7l2.5 5M13.5 15l3.5-6 3.5 6"/></svg>\',\n'
+          )
           if old_icons not in text:
               raise SystemExit('Icon-Zeile nicht gefunden')
           text = text.replace(old_icons, new_icons, 1)
 
-          old_services = '''        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
-        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
-'''
-          new_services = '''        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
-        ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-ahnsen"),
-        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
-'''
+          old_services = (
+              '        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),\n'
+              '        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),\n'
+          )
+          new_services = (
+              '        ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),\n'
+              '        ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-ahnsen"),\n'
+              '        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),\n'
+          )
           if old_services not in text:
               raise SystemExit('Service-Kacheln nicht gefunden')
           text = text.replace(old_services, new_services, 1)
