@@ -1,0 +1,61 @@
+name: Temporary home cleanup warning trust
+
+on:
+  push:
+    branches:
+      - agent/home-cleanup-warning-trust
+
+permissions:
+  contents: write
+
+jobs:
+  update-ui:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/home-cleanup-warning-trust
+      - name: Remove redundant home elements
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('pwa_ui.py')
+          lines = path.read_text(encoding='utf-8').splitlines()
+
+          # If there is no active warning, no separate monitor card is shown.
+          warning_if = next((i for i, line in enumerate(lines) if line == '    if warnings:'), None)
+          if warning_if is None:
+              raise SystemExit('Warnungsblock nicht gefunden')
+          if warning_if == 0 or lines[warning_if - 1] != '    warning_card = ""':
+              lines.insert(warning_if, '    warning_card = ""')
+
+          marker = 'Warnmonitor für Ahnsen aktiv'
+          monitor_idx = next((i for i, line in enumerate(lines) if marker in line), None)
+          if monitor_idx is None:
+              raise SystemExit('Inaktiven Warnmonitor nicht gefunden')
+          if monitor_idx == 0 or lines[monitor_idx - 1].strip() != 'else:':
+              raise SystemExit('Zugehörigen else-Block nicht gefunden')
+          del lines[monitor_idx - 1:monitor_idx + 1]
+
+          trust_idx = next((i for i, line in enumerate(lines) if '<section class="trust-strip">' in line and 'Einfach und datensparsam' in line), None)
+          if trust_idx is None:
+              raise SystemExit('Datensparsam-Hinweis nicht gefunden')
+          del lines[trust_idx]
+
+          text = '\n'.join(lines) + '\n'
+          if marker in text or 'Einfach und datensparsam' in text:
+              raise SystemExit('Zu entfernende Inhalte sind noch vorhanden')
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Validate Python
+        run: python -m py_compile pwa_ui.py
+      - name: Commit changes
+        run: |
+          rm .github/workflows/temp-home-cleanup-warning-trust.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pwa_ui.py .github/workflows/temp-home-cleanup-warning-trust.yml
+          git commit -m "Startseite von redundanten Hinweisen bereinigen"
+          git push origin HEAD:agent/home-cleanup-warning-trust
