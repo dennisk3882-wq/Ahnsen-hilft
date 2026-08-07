@@ -99,3 +99,24 @@ Zeit:
 """
     )
     _send_message(msg)
+
+
+
+def send_test_email():
+    """Send a neutral diagnostic email only to the configured administration inbox."""
+    msg = EmailMessage()
+    msg["Subject"] = "Ahnsen hilft – Systemtest E-Mail"
+    msg["From"] = EMAIL_USER
+    msg["To"] = EMAIL_TO
+    msg.set_content(
+        f"""Ahnsen hilft Systemtest
+
+Diese Nachricht wurde im Verwaltungsbereich unter System & Diagnose bewusst ausgelöst.
+
+Zeit:
+{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
+
+Wenn diese E-Mail angekommen ist, funktionieren SMTP-Anmeldung und Versand.
+"""
+    )
+    _send_message(msg)

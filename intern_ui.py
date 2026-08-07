@@ -8,6 +8,7 @@ _ICONS = {
     "muell": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14"/><path d="M10 11v6m4-6v6"/></svg>""",
     "gemeindeseite": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2m4 0h10M4 18h7m4 0h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>""",
     "push": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>""",
+    "system": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="9"/></svg>""",
     "app": """<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M9 5h6m-4 14h2"/></svg>""",
     "logout": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>""",
 }
@@ -44,6 +45,7 @@ def intern_nav(active=""):
         ("muell", "/intern/muelltermine", "Müllabfuhr"),
         ("gemeindeseite", "/intern/gemeindeseite", "Inhalte"),
         ("push", "/intern/push", "Push"),
+        ("system", "/intern/system", "System"),
     ]
 
     links = []
@@ -753,7 +755,7 @@ def intern_nav_css():
             right:10px;
             bottom:max(10px, env(safe-area-inset-bottom));
             display:grid;
-            grid-template-columns:repeat(6, minmax(0,1fr));
+            grid-template-columns:repeat(7, minmax(0,1fr));
             gap:4px;
             padding:7px;
             border:1px solid rgba(210,222,208,.92);
