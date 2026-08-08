@@ -74,6 +74,8 @@ from push_dashboard import push_dashboard_page
 from system_dashboard import system_dashboard_page
 from warning_dashboard import warning_dashboard_page
 from warning_ui import warning_page
+from community_crud import audit_event, init_community_db, save_preference
+from community_routes import configure_community_routes, router as community_router
 from warning_service import (
     get_active_warnings,
     get_recent_warnings,
@@ -123,6 +125,7 @@ def startup() -> None:
     init_pwa_db()
     init_system_diagnostics_db()
     init_warning_db()
+    init_community_db()
     start_warning_monitor()
 
 
@@ -247,6 +250,16 @@ def _send_dgh_email_safely(reference: str, data: dict) -> None:
         send_dgh_email(reference, data)
     except Exception as error:
         print("DGH-Anfrage gespeichert, E-Mail konnte nicht gesendet werden:", repr(error))
+
+
+configure_community_routes(
+    current_user=_current_user,
+    require_user=_require_user,
+    trim=_trim,
+    admin_guard=legacy.check_dashboard_login,
+    send_user_notification=send_user_notification,
+)
+app.include_router(community_router)
 
 
 @app.get("/")
@@ -374,6 +387,18 @@ async def update_profile(request: Request):
         push_preferences["push_muell"],
         push_preferences,
         warn_min_level,
+    )
+    try:
+        digest_hour = int(str(form.get("digest_hour") or "18"))
+    except ValueError:
+        digest_hour = 18
+    save_preference(
+        user.id,
+        language=_trim(form.get("language"), 10) or None,
+        push_mode=_trim(form.get("push_mode"), 20) or None,
+        digest_hour=digest_hour,
+        quiet_start=_trim(form.get("quiet_start"), 5) or None,
+        quiet_end=_trim(form.get("quiet_end"), 5) or None,
     )
     return RedirectResponse(url="/profil?hinweis=Profil%20wurde%20gespeichert.", status_code=303)
 
@@ -635,14 +660,14 @@ async def push_unsubscribe(request: Request):
 @app.get("/verwaltung")
 async def administration(request: Request):
     if legacy._session_ist_gueltig(request):
-        return RedirectResponse(url="/intern/maengel", status_code=303)
+        return RedirectResponse(url="/intern/cockpit", status_code=303)
     return RedirectResponse(url="/verwaltung/login", status_code=303)
 
 
 @app.get("/verwaltung/login")
 async def administration_login(request: Request):
     if legacy._session_ist_gueltig(request):
-        return RedirectResponse(url="/intern/maengel", status_code=303)
+        return RedirectResponse(url="/intern/cockpit", status_code=303)
     return admin_login_page()
 
 
@@ -667,7 +692,7 @@ async def administration_login_submit(request: Request):
         response = admin_login_page("Benutzername oder Passwort ist nicht korrekt.")
         response.status_code = 401
         return response
-    response = RedirectResponse(url="/intern/maengel", status_code=303)
+    response = RedirectResponse(url="/intern/cockpit", status_code=303)
     response.set_cookie(
         key=legacy.SESSION_COOKIE,
         value=legacy._neue_session(),
@@ -689,7 +714,7 @@ async def administration_logout():
 @app.get("/intern")
 async def intern_redirect(request: Request):
     if legacy._session_ist_gueltig(request):
-        return RedirectResponse(url="/intern/maengel", status_code=303)
+        return RedirectResponse(url="/intern/cockpit", status_code=303)
     return RedirectResponse(url="/verwaltung/login", status_code=303)
 
 
@@ -712,6 +737,8 @@ async def admin_report_status(request: Request, background_tasks: BackgroundTask
             f"meldung-{ticket}",
             "push_meldungen",
         )
+    if report and old_status != neuer_status:
+        audit_event("Verwaltung", "Mängelstatus geändert", "meldung", ticket, f"{old_status or '-'} → {neuer_status}")
     return RedirectResponse(url="/intern/maengel", status_code=303)
 
 
@@ -736,6 +763,8 @@ async def admin_dgh_status(request: Request, background_tasks: BackgroundTasks, 
             f"dgh-{item.id}",
             "push_dgh",
         )
+    if item and old_status != status:
+        audit_event("Verwaltung", "DGH-Status geändert", "dgh", str(item.id), f"{old_status or '-'} → {status}")
     return RedirectResponse(url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}", status_code=303)
 
 
@@ -896,6 +925,16 @@ async def pwa_extra_css():
     return FileResponse(STATIC_DIR / "pwa-extra.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
 
 
+@app.get("/community.css")
+async def community_css():
+    return FileResponse(STATIC_DIR / "community.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/community.js")
+async def community_javascript():
+    return FileResponse(STATIC_DIR / "community.js", media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
 @app.get("/warning.css")
 async def warning_css():
     return FileResponse(STATIC_DIR / "warning.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
@@ -947,8 +986,8 @@ async def manifest():
 @app.get("/service-worker.js")
 async def service_worker():
     script = """
-const CACHE = 'ahnsen-hilft-pwa-v2';
-const CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/warning.css?v=1', '/pwa.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];
+const CACHE = 'ahnsen-hilft-pwa-v3';
+const CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=1', '/warning.css?v=1', '/pwa.js?v=1', '/community.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });

@@ -15,6 +15,8 @@ from push_service import push_configured, send_user_notification
 from system_diagnostics import init_system_diagnostics_db, record_system_event
 from veranstaltungen_crud import init_veranstaltungen_db
 from warning_service import init_warning_db, poll_warning_sources
+from community_crud import init_community_db
+from smart_push import dispatch_due_digests
 
 
 def _record(status: str, message: str, details=None) -> None:
@@ -33,6 +35,7 @@ def run() -> int:
     init_pwa_db()
     init_system_diagnostics_db()
     init_warning_db()
+    init_community_db()
 
     try:
         warning_result = poll_warning_sources(send_push=True)
@@ -47,6 +50,9 @@ def run() -> int:
             return 0
 
         now = __import__("datetime").datetime.now(ZoneInfo("Europe/Berlin"))
+        digest_delivered = dispatch_due_digests(send_user_notification)
+        if digest_delivered:
+            print(f"Smart-Push-Zusammenfassung an {digest_delivered} Konten versendet.")
         if now.hour != 18:
             message = "Stündlicher Kontrolllauf erfolgreich; außerhalb des Erinnerungsfensters."
             _record("ok", message, {"berlin_hour": now.hour})

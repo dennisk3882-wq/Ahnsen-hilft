@@ -33,11 +33,20 @@ def send_user_notification(
     url: str = "/profil",
     tag: str = "ahnsen-hilft",
     category: str | None = None,
+    _force_immediate: bool = False,
 ) -> int:
     if not user_id or not push_configured():
         return 0
     if category and not user_wants_push(user_id, category):
         return 0
+    if category and not _force_immediate:
+        try:
+            from smart_push import enqueue_digest_notification, notification_strategy
+            if notification_strategy(user_id, category) != "sofort":
+                enqueue_digest_notification(user_id, category, title, body, url, tag)
+                return 1
+        except Exception as error:
+            print("Smart-Push konnte nicht geprüft werden; Nachricht wird sofort versendet:", repr(error))
 
     payload = json.dumps(
         {
