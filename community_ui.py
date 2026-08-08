@@ -142,7 +142,7 @@ def politics_page(items) -> HTMLResponse:
         )
     if not rows:
         rows.append('<div class="community-empty"><strong>Noch keine Einträge veröffentlicht.</strong><p>Hier erscheinen künftig Ratssitzungen, Tagesordnungen, Beschlüsse und kommunalpolitische Informationen.</p></div>')
-    content = f"""{COMMUNITY_CSS}{_heading('Transparenz','Politik & Rat','Sitzungen, Beschlüsse und Informationen aus der kommunalen Politik.')}
+    content = f"""<!-- Politik & Rat -->{COMMUNITY_CSS}{_heading('Transparenz','Politik & Rat','Sitzungen, Beschlüsse und Informationen aus der kommunalen Politik.')}
 <section class="community-hero"><div class="community-grid"><div><span class="eyebrow">Nächste Sitzungen</span><h2>Gemeinderat im Blick</h2><p>Termine, Tagesordnungen und Beschlüsse werden hier gebündelt. Externe Originalquellen bleiben verlinkt, wenn sie vorhanden sind.</p></div><div><span class="eyebrow">Verständlich</span><h2>Was wird entschieden?</h2><p>Wichtige Themen können mit einer kurzen Zusammenfassung ergänzt werden, ohne die amtlichen Originalunterlagen zu ersetzen.</p></div></div></section><section class="civic-list">{''.join(rows)}</section>"""
     return page("Politik & Rat", content, active="home", body_class="community-view")
 
