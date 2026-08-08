@@ -133,9 +133,11 @@ def politics_page(items) -> HTMLResponse:
     rows = []
     for item in items:
         source = f'<a class="secondary-button small-button" href="{escape(item.source_url)}" target="_blank" rel="noopener">Originalquelle</a>' if item.source_url else ""
+        date_chip = f'<span class="community-chip">📅 {escape(item.date_text)}</span>' if item.date_text else ""
+        location_chip = f'<span class="community-chip">📍 {escape(item.location)}</span>' if item.location else ""
         rows.append(
             f'<article class="community-card civic-item"><span class="civic-kind">{escape(item.kind)}</span><h2>{escape(item.title)}</h2>'
-            f'<div class="community-meta">{f"<span class=\"community-chip\">📅 {escape(item.date_text)}</span>" if item.date_text else ""}{f"<span class=\"community-chip\">📍 {escape(item.location)}</span>" if item.location else ""}</div>'
+            f'<div class="community-meta">{date_chip}{location_chip}</div>'
             f'<p>{escape(item.body)}</p>{source}</article>'
         )
     if not rows:
