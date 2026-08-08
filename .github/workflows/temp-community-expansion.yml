@@ -1,0 +1,282 @@
+name: Temporary community platform expansion
+
+on:
+  push:
+    branches:
+      - agent/community-platform-expansion
+
+permissions:
+  contents: write
+
+jobs:
+  expand-platform:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/community-platform-expansion
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Patch existing application modules
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if new in text:
+                  return
+              if old not in text:
+                  raise SystemExit(f'{label}: anchor not found in {path}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          # pwa_core: imports + startup + router registration + profile prefs + static assets + cockpit redirects + audit.
+          replace_once(
+              'pwa_core.py',
+              'from warning_ui import warning_page\n',
+              'from warning_ui import warning_page\nfrom community_crud import audit_event, init_community_db, save_preference\nfrom community_routes import configure_community_routes, router as community_router\n',
+              'community imports',
+          )
+          replace_once(
+              'pwa_core.py',
+              '    init_warning_db()\n    start_warning_monitor()\n',
+              '    init_warning_db()\n    init_community_db()\n    start_warning_monitor()\n',
+              'community startup',
+          )
+          replace_once(
+              'pwa_core.py',
+              '\n\n@app.get("/")\nasync def pwa_home():\n',
+              '''\n\nconfigure_community_routes(\n    current_user=_current_user,\n    require_user=_require_user,\n    trim=_trim,\n    admin_guard=legacy.check_dashboard_login,\n    send_user_notification=send_user_notification,\n)\napp.include_router(community_router)\n\n\n@app.get("/")\nasync def pwa_home():\n''',
+              'community router',
+          )
+          replace_once(
+              'pwa_core.py',
+              '''    update_user_profile(\n        user.id,\n        name,\n        _trim(form.get("telefon"), 60),\n        push_preferences["push_muell"],\n        push_preferences,\n        warn_min_level,\n    )\n    return RedirectResponse(url="/profil?hinweis=Profil%20wurde%20gespeichert.", status_code=303)\n''',
+              '''    update_user_profile(\n        user.id,\n        name,\n        _trim(form.get("telefon"), 60),\n        push_preferences["push_muell"],\n        push_preferences,\n        warn_min_level,\n    )\n    try:\n        digest_hour = int(str(form.get("digest_hour") or "18"))\n    except ValueError:\n        digest_hour = 18\n    save_preference(\n        user.id,\n        language=_trim(form.get("language"), 10) or None,\n        push_mode=_trim(form.get("push_mode"), 20) or None,\n        digest_hour=digest_hour,\n        quiet_start=_trim(form.get("quiet_start"), 5) or None,\n        quiet_end=_trim(form.get("quiet_end"), 5) or None,\n    )\n    return RedirectResponse(url="/profil?hinweis=Profil%20wurde%20gespeichert.", status_code=303)\n''',
+              'profile preferences',
+          )
+          replace_once(
+              'pwa_core.py',
+              '        return RedirectResponse(url="/intern/maengel", status_code=303)\n    return RedirectResponse(url="/verwaltung/login", status_code=303)\n\n\n@app.get("/verwaltung/login")',
+              '        return RedirectResponse(url="/intern/cockpit", status_code=303)\n    return RedirectResponse(url="/verwaltung/login", status_code=303)\n\n\n@app.get("/verwaltung/login")',
+              'verwaltung cockpit redirect',
+          )
+          replace_once(
+              'pwa_core.py',
+              '        return RedirectResponse(url="/intern/maengel", status_code=303)\n    return admin_login_page()\n',
+              '        return RedirectResponse(url="/intern/cockpit", status_code=303)\n    return admin_login_page()\n',
+              'login cockpit redirect',
+          )
+          replace_once(
+              'pwa_core.py',
+              '    response = RedirectResponse(url="/intern/maengel", status_code=303)\n',
+              '    response = RedirectResponse(url="/intern/cockpit", status_code=303)\n',
+              'login submit cockpit redirect',
+          )
+          replace_once(
+              'pwa_core.py',
+              '        return RedirectResponse(url="/intern/maengel", status_code=303)\n    return RedirectResponse(url="/verwaltung/login", status_code=303)\n\n\n@app.get("/status")',
+              '        return RedirectResponse(url="/intern/cockpit", status_code=303)\n    return RedirectResponse(url="/verwaltung/login", status_code=303)\n\n\n@app.get("/status")',
+              'intern cockpit redirect',
+          )
+          replace_once(
+              'pwa_core.py',
+              '''    if report and old_status != neuer_status and report.pwa_user_id:\n        background_tasks.add_task(\n            send_user_notification,\n            report.pwa_user_id,\n            "Status deiner Meldung geändert",\n            f"{ticket} ist jetzt: {neuer_status}.",\n            "/profil",\n            f"meldung-{ticket}",\n            "push_meldungen",\n        )\n    return RedirectResponse(url="/intern/maengel", status_code=303)\n''',
+              '''    if report and old_status != neuer_status and report.pwa_user_id:\n        background_tasks.add_task(\n            send_user_notification,\n            report.pwa_user_id,\n            "Status deiner Meldung geändert",\n            f"{ticket} ist jetzt: {neuer_status}.",\n            "/profil",\n            f"meldung-{ticket}",\n            "push_meldungen",\n        )\n    if report and old_status != neuer_status:\n        audit_event("Verwaltung", "Mängelstatus geändert", "meldung", ticket, f"{old_status or '-'} → {neuer_status}")\n    return RedirectResponse(url="/intern/maengel", status_code=303)\n''',
+              'audit report status',
+          )
+          replace_once(
+              'pwa_core.py',
+              '''    if item and old_status != status and item.pwa_user_id:\n        background_tasks.add_task(\n            send_user_notification,\n            item.pwa_user_id,\n            "DGH-Anfrage aktualisiert",\n            f"Deine Anfrage für {item.datum} ist jetzt: {status}.",\n            "/profil",\n            f"dgh-{item.id}",\n            "push_dgh",\n        )\n    return RedirectResponse(url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}", status_code=303)\n''',
+              '''    if item and old_status != status and item.pwa_user_id:\n        background_tasks.add_task(\n            send_user_notification,\n            item.pwa_user_id,\n            "DGH-Anfrage aktualisiert",\n            f"Deine Anfrage für {item.datum} ist jetzt: {status}.",\n            "/profil",\n            f"dgh-{item.id}",\n            "push_dgh",\n        )\n    if item and old_status != status:\n        audit_event("Verwaltung", "DGH-Status geändert", "dgh", str(item.id), f"{old_status or '-'} → {status}")\n    return RedirectResponse(url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}", status_code=303)\n''',
+              'audit dgh status',
+          )
+          replace_once(
+              'pwa_core.py',
+              '''@app.get("/pwa-extra.css")\nasync def pwa_extra_css():\n    return FileResponse(STATIC_DIR / "pwa-extra.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})\n\n\n@app.get("/warning.css")\n''',
+              '''@app.get("/pwa-extra.css")\nasync def pwa_extra_css():\n    return FileResponse(STATIC_DIR / "pwa-extra.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})\n\n\n@app.get("/community.css")\nasync def community_css():\n    return FileResponse(STATIC_DIR / "community.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})\n\n\n@app.get("/community.js")\nasync def community_javascript():\n    return FileResponse(STATIC_DIR / "community.js", media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})\n\n\n@app.get("/warning.css")\n''',
+              'community static routes',
+          )
+          replace_once(
+              'pwa_core.py',
+              "const CACHE = 'ahnsen-hilft-pwa-v2';\nconst CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/warning.css?v=1', '/pwa.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];",
+              "const CACHE = 'ahnsen-hilft-pwa-v3';\nconst CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=1', '/warning.css?v=1', '/pwa.js?v=1', '/community.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];",
+              'service worker assets',
+          )
+
+          # pwa_ui: icons, header actions, global assets, home search and new service tiles.
+          replace_once(
+              'pwa_ui.py',
+              '    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",\n',
+              '''    "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",\n    "search2": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>',\n    "map": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15m6-12v15"/></svg>',\n    "message": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H8l-4 4z"/><path d="M8 9h8m-8 4h5"/></svg>',\n    "idea": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18h6m-5 3h4"/><path d="M8.5 15c-1.5-1.1-2.5-2.9-2.5-5a6 6 0 1 1 12 0c0 2.1-1 3.9-2.5 5-.8.6-1.2 1.1-1.4 2h-4.2c-.2-.9-.6-1.4-1.4-2z"/></svg>',\n    "politics": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 21h18M12 3 3 7h18z"/></svg>',\n    "neighbor": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-8l8-6 8 6v8"/><path d="M9 20v-5h6v5M7 7V4h3"/></svg>',\n''',
+              'new public icons',
+          )
+          replace_once(
+              'pwa_ui.py',
+              '''    header = f'<header class="topbar">{_brand()}<button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></header>' if show_header else ""\n    html = f"""<!doctype html><html lang="de"><head>\n<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#174936"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ahnsen hilft"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · Ahnsen hilft</title></head>\n<body class="{escape(body_class)}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script></body></html>"""\n''',
+              '''    language_options = '<option value="de">DE</option><option value="en">EN</option><option value="pl">PL</option><option value="uk">UA</option><option value="tr">TR</option>'\n    header = f'<header class="topbar">{_brand()}<div class="topbar-community-actions"><label class="language-picker"><span class="sr-only">Sprache</span><select id="platform-language" aria-label="Sprache auswählen">{language_options}</select></label><a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden>{icon("message")}<span class="message-badge" hidden></span></a><button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></div></header>' if show_header else ""\n    html = f"""<!doctype html><html lang="de"><head>\n<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#174936"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ahnsen hilft"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=1"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · Ahnsen hilft</title></head>\n<body class="{escape(body_class)}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=1" defer></script></body></html>"""\n''',
+              'global language and messages header',
+          )
+          replace_once(
+              'pwa_ui.py',
+              '''        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),\n        ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),\n''',
+              '''        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),\n        ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),\n        ("map", "Mängelkarte", "Öffentliche Meldungen auf der Dorfkarte.", "/karte"),\n        ("idea", "Ideen für Ahnsen", "Vorschlagen, unterstützen und kommentieren.", "/ideen"),\n        ("politics", "Politik & Rat", "Sitzungen, Beschlüsse und Informationen.", "/politik-rat"),\n        ("neighbor", "Nachbarschaftshilfe", "Hilfe im Dorf suchen oder anbieten.", "/nachbarschaft"),\n''',
+              'new home tiles',
+          )
+          replace_once(
+              'pwa_ui.py',
+              '''{warning_card}\n<section class="service-grid" aria-label="Digitale Dienste">{cards}</section>{waste_card}\n''',
+              '''{warning_card}\n<form class="home-search" method="get" action="/suche"><input name="q" aria-label="Suche" placeholder="Was suchst du? Müll, DGH, Rat, Feuerwehr …"><button type="submit" aria-label="Suchen">⌕</button></form>\n<section class="service-grid" aria-label="Digitale Dienste">{cards}</section>{waste_card}\n''',
+              'home intelligent search',
+          )
+
+          # pwa_account_ui: complete citizen cockpit and smart notification preferences.
+          replace_once(
+              'pwa_account_ui.py',
+              'def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: bool, push_configured: bool, message: str = "", error: str = "") -> HTMLResponse:\n    report_cards = []\n    for item in list(reports)[:20]:\n',
+              '''def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: bool, push_configured: bool, message: str = "", error: str = "") -> HTMLResponse:\n    from community_crud import count_unread_messages, get_preference\n    reports = list(reports)\n    dgh_requests = list(dgh_requests)\n    preference = get_preference(user.id)\n    unread_messages = count_unread_messages(user.id)\n    report_cards = []\n    for item in reports[:20]:\n''',
+              'profile preload community data',
+          )
+          replace_once(
+              'pwa_account_ui.py',
+              '    for item in list(dgh_requests)[:20]:\n',
+              '    for item in dgh_requests[:20]:\n',
+              'profile dgh list',
+          )
+          replace_once(
+              'pwa_account_ui.py',
+              '''{_alert(message, success=True)}{_alert(error)}\n<section class="profile-grid">\n''',
+              '''{_alert(message, success=True)}{_alert(error)}\n<section class="profile-overview-links">\n  <a class="profile-overview-link" href="/nachrichten"><span class="eyebrow">Postfach</span><strong>{unread_messages}</strong><span>ungelesene Nachrichten</span></a>\n  <a class="profile-overview-link" href="#meine-meldungen"><span class="eyebrow">Mängel</span><strong>{len(reports)}</strong><span>eigene Meldungen</span></a>\n  <a class="profile-overview-link" href="#meine-dgh"><span class="eyebrow">DGH</span><strong>{len(dgh_requests)}</strong><span>eigene Anfragen</span></a>\n  <a class="profile-overview-link" href="/ideen"><span class="eyebrow">Beteiligung</span><strong>Ideen</strong><span>mitmachen & unterstützen</span></a>\n  <a class="profile-overview-link" href="/nachbarschaft"><span class="eyebrow">Dorf</span><strong>Hilfe</strong><span>Nachbarschaftshilfe</span></a>\n</section>\n<section class="profile-grid">\n''',
+              'profile summary links',
+          )
+          replace_once(
+              'pwa_account_ui.py',
+              '''      {push_preferences}\n      <button class="primary-button" type="submit">Profil & Push-Auswahl speichern</button>\n''',
+              '''      {push_preferences}\n      <div class="smart-push-box"><h3>Intelligente Benachrichtigungen</h3><p>Dringende Warnungen und Status deiner eigenen Vorgänge kommen immer sofort. Für normale Dorfmeldungen kannst du sofortige Zustellung oder eine gebündelte Zusammenfassung wählen.</p><div class="smart-push-grid"><label class="field"><span>Zustellung normaler Hinweise</span><select name="push_mode"><option value="sofort"{" selected" if getattr(preference,"push_mode","sofort") == "sofort" else ""}>Sofort</option><option value="taeglich"{" selected" if getattr(preference,"push_mode","") == "taeglich" else ""}>Tägliche Zusammenfassung</option><option value="woechentlich"{" selected" if getattr(preference,"push_mode","") == "woechentlich" else ""}>Wöchentliche Zusammenfassung</option></select></label><label class="field"><span>Uhrzeit Zusammenfassung</span><input name="digest_hour" type="number" min="0" max="23" value="{getattr(preference,"digest_hour",18)}"></label><label class="field"><span>Ruhezeit ab</span><input name="quiet_start" type="time" value="{escape(getattr(preference,"quiet_start","22:00"))}"></label><label class="field"><span>Ruhezeit bis</span><input name="quiet_end" type="time" value="{escape(getattr(preference,"quiet_end","07:00"))}"></label><input type="hidden" name="language" value="{escape(getattr(preference,"language","de"))}"></div></div>\n      <button class="primary-button" type="submit">Profil & Push-Auswahl speichern</button>\n''',
+              'smart push profile',
+          )
+          replace_once(
+              'pwa_account_ui.py',
+              '<section class="content-card profile-section"><div class="section-title"><span class="eyebrow">Mängelmelder</span><h2>Meine Meldungen</h2></div>',
+              '<section class="content-card profile-section" id="meine-meldungen"><div class="section-title"><span class="eyebrow">Mängelmelder</span><h2>Meine Meldungen</h2></div>',
+              'profile report anchor id',
+          )
+          replace_once(
+              'pwa_account_ui.py',
+              '<section class="content-card profile-section"><div class="section-title"><span class="eyebrow">Dorfgemeinschaftshaus</span><h2>Meine DGH-Anfragen</h2></div>',
+              '<section class="content-card profile-section" id="meine-dgh"><div class="section-title"><span class="eyebrow">Dorfgemeinschaftshaus</span><h2>Meine DGH-Anfragen</h2></div>',
+              'profile dgh anchor id',
+          )
+
+          # Push service: digest queue for non-critical categories.
+          replace_once(
+              'push_service.py',
+              '''def send_user_notification(\n    user_id: int | None,\n    title: str,\n    body: str,\n    url: str = "/profil",\n    tag: str = "ahnsen-hilft",\n    category: str | None = None,\n) -> int:\n''',
+              '''def send_user_notification(\n    user_id: int | None,\n    title: str,\n    body: str,\n    url: str = "/profil",\n    tag: str = "ahnsen-hilft",\n    category: str | None = None,\n    _force_immediate: bool = False,\n) -> int:\n''',
+              'push force immediate signature',
+          )
+          replace_once(
+              'push_service.py',
+              '''    if category and not user_wants_push(user_id, category):\n        return 0\n\n    payload = json.dumps(\n''',
+              '''    if category and not user_wants_push(user_id, category):\n        return 0\n    if category and not _force_immediate:\n        try:\n            from smart_push import enqueue_digest_notification, notification_strategy\n            if notification_strategy(user_id, category) != "sofort":\n                enqueue_digest_notification(user_id, category, title, body, url, tag)\n                return 1\n        except Exception as error:\n            print("Smart-Push konnte nicht geprüft werden; Nachricht wird sofort versendet:", repr(error))\n\n    payload = json.dumps(\n''',
+              'push digest strategy',
+          )
+
+          # Hourly job: initialize community data and dispatch due digests.
+          replace_once(
+              'pwa_push_job.py',
+              'from warning_service import init_warning_db, poll_warning_sources\n',
+              'from warning_service import init_warning_db, poll_warning_sources\nfrom community_crud import init_community_db\nfrom smart_push import dispatch_due_digests\n',
+              'cron community imports',
+          )
+          replace_once(
+              'pwa_push_job.py',
+              '    init_warning_db()\n\n    try:\n',
+              '    init_warning_db()\n    init_community_db()\n\n    try:\n',
+              'cron community init',
+          )
+          replace_once(
+              'pwa_push_job.py',
+              '''        now = __import__("datetime").datetime.now(ZoneInfo("Europe/Berlin"))\n        if now.hour != 18:\n''',
+              '''        now = __import__("datetime").datetime.now(ZoneInfo("Europe/Berlin"))\n        digest_delivered = dispatch_due_digests(send_user_notification)\n        if digest_delivered:\n            print(f"Smart-Push-Zusammenfassung an {digest_delivered} Konten versendet.")\n        if now.hour != 18:\n''',
+              'cron digest dispatch',
+          )
+
+          # Admin nav: expose cockpit and expansion modules; make long nav horizontally scrollable.
+          replace_once(
+              'intern_ui.py',
+              '    "logout": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>""",\n',
+              '''    "logout": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>""",\n    "cockpit": """<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>""",\n    "nachrichten": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 4z"/><path d="M8 9h8m-8 4h5"/></svg>""",\n    "ideen": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4"/><path d="M8.5 15c-1.5-1.1-2.5-2.9-2.5-5a6 6 0 1 1 12 0c0 2.1-1 3.9-2.5 5-.8.6-1.2 1.1-1.4 2h-4.2c-.2-.9-.6-1.4-1.4-2z"/></svg>""",\n    "berichte": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5z"/><path d="M8 8h8m-8 4h8m-8 4h5"/></svg>""",\n''',
+              'admin new icons',
+          )
+          replace_once(
+              'intern_ui.py',
+              '''    eintraege = [\n        ("maengel", "/intern/maengel", "Mängel"),\n''',
+              '''    eintraege = [\n        ("cockpit", "/intern/cockpit", "Cockpit"),\n        ("maengel", "/intern/maengel", "Mängel"),\n''',
+              'admin cockpit nav',
+          )
+          replace_once(
+              'intern_ui.py',
+              '''        ("push", "/intern/push", "Push"),\n        ("system", "/intern/system", "System"),\n''',
+              '''        ("push", "/intern/push", "Push"),\n        ("nachrichten", "/intern/nachrichten", "Nachrichten"),\n        ("ideen", "/intern/ideen", "Beteiligung"),\n        ("berichte", "/intern/berichte", "Berichte"),\n        ("system", "/intern/system", "System"),\n''',
+              'admin expansion nav',
+          )
+          replace_once(
+              'intern_ui.py',
+              '        <a class="internal-brand" href="/intern/maengel" aria-label="Ahnsen hilft Verwaltung">\n',
+              '        <a class="internal-brand" href="/intern/cockpit" aria-label="Ahnsen hilft Verwaltung">\n',
+              'admin brand cockpit',
+          )
+          replace_once(
+              'intern_ui.py',
+              '    .internal-nav-links {\n',
+              '    .internal-nav-links {\n        overflow-x:auto !important;\n        scrollbar-width:thin;\n',
+              'admin nav scroll',
+          )
+
+          # community.js: use municipality part for existing brand without breaking visual typography.
+          cjs = Path('static/community.js')
+          text = cjs.read_text(encoding='utf-8')
+          text = text.replace("document.querySelectorAll('[data-platform-name]').forEach(el => el.textContent = data.platform_name || 'Ahnsen hilft');", "document.querySelectorAll('[data-platform-municipality]').forEach(el => el.textContent = data.municipality_name || 'Ahnsen');")
+          cjs.write_text(text, encoding='utf-8')
+
+          # mark brand elements for white-label update while keeping strong/em styling.
+          replace_once(
+              'pwa_ui.py',
+              '<span class="brand-copy"><strong>Ahnsen</strong><em>hilft</em><small>Dein Dorf. Unsere Gemeinschaft.</small></span>',
+              '<span class="brand-copy"><strong data-platform-municipality>Ahnsen</strong><em>hilft</em><small data-platform-claim>Dein Dorf. Unsere Gemeinschaft.</small></span>',
+              'white label brand markers',
+          )
+          PY
+      - name: Validate syntax and core pages
+        run: |
+          python -m py_compile community_models.py community_crud.py community_search.py community_ui.py community_dashboard.py community_routes.py smart_push.py pwa_core.py pwa_ui.py pwa_account_ui.py push_service.py pwa_push_job.py intern_ui.py
+          python - <<'PY'
+          import os
+          os.environ.setdefault('DATABASE_URL', 'sqlite:////tmp/ahnsen-community-smoke.db')
+          import community_crud
+          community_crud.init_community_db()
+          from community_ui import search_page, ideas_page, neighbor_page, politics_page, public_map_page
+          assert 'Was suchst du?' in search_page('', []).body.decode()
+          assert 'Ideen für Ahnsen' in ideas_page([], False).body.decode()
+          assert 'Nachbarschaftshilfe' in neighbor_page([], False).body.decode()
+          assert 'Politik & Rat' in politics_page([]).body.decode()
+          assert 'public-map' in public_map_page([]).body.decode()
+          from pwa_ui import home_page
+          html = home_page({'einstellungen': {}, 'veranstaltungen': [], 'muelltermine': [], 'warnungen': []}).body.decode()
+          for text in ('Mängelkarte','Ideen für Ahnsen','Politik & Rat','Nachbarschaftshilfe','platform-language','message-center-link'):
+              assert text in html, text
+          print('Community platform smoke passed')
+          PY
+      - name: Commit application changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pwa_core.py pwa_ui.py pwa_account_ui.py push_service.py pwa_push_job.py intern_ui.py static/community.js
+          git commit -m "Bürgerplattform um Suche Konto Karte Nachrichten Beteiligung und Cockpit erweitern"
+          git push origin HEAD:agent/community-platform-expansion
