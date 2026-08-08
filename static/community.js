@@ -98,7 +98,7 @@
       const data = await response.json();
       document.documentElement.style.setProperty('--forest', data.primary_color || '#174936');
       document.documentElement.style.setProperty('--sage', data.accent_color || '#8da77a');
-      document.querySelectorAll('[data-platform-name]').forEach(el => el.textContent = data.platform_name || 'Ahnsen hilft');
+      document.querySelectorAll('[data-platform-municipality]').forEach(el => el.textContent = data.municipality_name || 'Ahnsen');
       document.querySelectorAll('[data-platform-claim]').forEach(el => el.textContent = data.claim || 'Dein Dorf. Unsere Gemeinschaft.');
     } catch (_) {}
   };

@@ -14,6 +14,12 @@ ICONS = {
     "people": "●●", "news": "▤", "building": "⌂", "more": "•••",
     "search": "⌕", "pin": "⌖", "camera": "▣", "check": "✓",
     "arrow": "›", "bell": "●", "shield": "◇", "download": "↓", "phone": "☎",
+    "search2": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>',
+    "map": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15m6-12v15"/></svg>',
+    "message": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H8l-4 4z"/><path d="M8 9h8m-8 4h5"/></svg>',
+    "idea": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18h6m-5 3h4"/><path d="M8.5 15c-1.5-1.1-2.5-2.9-2.5-5a6 6 0 1 1 12 0c0 2.1-1 3.9-2.5 5-.8.6-1.2 1.1-1.4 2h-4.2c-.2-.9-.6-1.4-1.4-2z"/></svg>',
+    "politics": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 21h18M12 3 3 7h18z"/></svg>',
+    "neighbor": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-8l8-6 8 6v8"/><path d="M9 20v-5h6v5M7 7V4h3"/></svg>',
     "fire": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15V8h10l3 3h3a2 2 0 0 1 2 2v2"/><path d="M5 8V5h8v3M8 5V3h4v2M2 15h20M13 11h3"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>',
     "info": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>',
     "village": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 8 6l5.5 5v8h-11zM6 19v-5h4v5"/><path d="M17 19V9M14.5 12 17 7l2.5 5M13.5 15l3.5-6 3.5 6"/></svg>',
@@ -30,7 +36,7 @@ def _brand() -> str:
       <span class="brand-crest" aria-hidden="true">
         <svg viewBox="0 0 64 72"><path class="crest-shape" d="M7 5h50v34c0 16-12 24-25 29C19 63 7 55 7 39z"/><path class="crest-hill" d="M8 45c11-10 22-8 28-3 7-7 13-8 20-3v4c0 13-10 20-24 25C18 63 8 56 8 43z"/><path class="crest-house" d="m20 42 12-10 12 10v14H20z"/><path class="crest-roof" d="m17 43 15-13 15 13"/><path class="crest-door" d="M29 47h6v9h-6z"/><path class="crest-tree" d="M47 20v21M42 25l5-7 5 7M41 32l6-8 6 8"/><path class="crest-tower" d="M19 20h8v18h-8zM18 20l5-8 5 8"/></svg>
       </span>
-      <span class="brand-copy"><strong>Ahnsen</strong><em>hilft</em><small>Dein Dorf. Unsere Gemeinschaft.</small></span>
+      <span class="brand-copy"><strong data-platform-municipality>Ahnsen</strong><em>hilft</em><small data-platform-claim>Dein Dorf. Unsere Gemeinschaft.</small></span>
     </a>"""
 
 
@@ -45,10 +51,11 @@ def _bottom_nav(active: str) -> str:
 
 
 def page(title: str, content: str, *, active: str = "home", description: str = "Digitale Bürgerplattform für Ahnsen", show_header: bool = True, body_class: str = "") -> HTMLResponse:
-    header = f'<header class="topbar">{_brand()}<button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></header>' if show_header else ""
+    language_options = '<option value="de">DE</option><option value="en">EN</option><option value="pl">PL</option><option value="uk">UA</option><option value="tr">TR</option>'
+    header = f'<header class="topbar">{_brand()}<div class="topbar-community-actions"><label class="language-picker"><span class="sr-only">Sprache</span><select id="platform-language" aria-label="Sprache auswählen">{language_options}</select></label><a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden>{icon("message")}<span class="message-badge" hidden></span></a><button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></div></header>' if show_header else ""
     html = f"""<!doctype html><html lang="de"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#174936"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ahnsen hilft"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · Ahnsen hilft</title></head>
-<body class="{escape(body_class)}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script></body></html>"""
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#174936"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ahnsen hilft"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=1"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · Ahnsen hilft</title></head>
+<body class="{escape(body_class)}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=1" defer></script></body></html>"""
     return HTMLResponse(html)
 
 
@@ -95,12 +102,17 @@ def home_page(data: dict) -> HTMLResponse:
         ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-ahnsen"),
         ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
         ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),
+        ("map", "Mängelkarte", "Öffentliche Meldungen auf der Dorfkarte.", "/karte"),
+        ("idea", "Ideen für Ahnsen", "Vorschlagen, unterstützen und kommentieren.", "/ideen"),
+        ("politics", "Politik & Rat", "Sitzungen, Beschlüsse und Informationen.", "/politik-rat"),
+        ("neighbor", "Nachbarschaftshilfe", "Hilfe im Dorf suchen oder anbieten.", "/nachbarschaft"),
     ]
     cards = "".join(f'<a class="service-card{" featured" if key == "report" else ""}" href="{href}"><span class="service-icon">{icon(key)}</span><div><h3>{title}</h3><p>{text}</p></div><span class="card-arrow">{icon("arrow")}</span></a>' for key, title, text, href in services)
     content = f"""
 <section class="hero-card"><div class="hero-image" role="img" aria-label="Dorfansicht von Ahnsen"></div><div class="hero-overlay"><span class="hero-kicker">Willkommen in Ahnsen</span><h1>Digital. Direkt.<br>Gemeinsam.</h1><p>Alles Wichtige aus dem Dorf in einer App.</p></div></section>
 <section class="greeting-row"><div><span class="eyebrow">{escape(greeting)} 👋</span><h2>Schön, dass du da bist.</h2></div><a class="today-card" href="/veranstaltungen"><span>{icon('calendar')}</span><div><small>Heute in Ahnsen</small><strong>{event_hint}</strong></div>{icon('arrow')}</a></section>
 {warning_card}
+<form class="home-search" method="get" action="/suche"><input name="q" aria-label="Suche" placeholder="Was suchst du? Müll, DGH, Rat, Feuerwehr …"><button type="submit" aria-label="Suchen">⌕</button></form>
 <section class="service-grid" aria-label="Digitale Dienste">{cards}</section>{waste_card}
 """
     return page(settings.get("seiten_titel") or "Ahnsen hilft", content, body_class="home-view")

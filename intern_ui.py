@@ -12,6 +12,10 @@ _ICONS = {
     "system": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="9"/></svg>""",
     "app": """<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M9 5h6m-4 14h2"/></svg>""",
     "logout": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>""",
+    "cockpit": """<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>""",
+    "nachrichten": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 4z"/><path d="M8 9h8m-8 4h5"/></svg>""",
+    "ideen": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4"/><path d="M8.5 15c-1.5-1.1-2.5-2.9-2.5-5a6 6 0 1 1 12 0c0 2.1-1 3.9-2.5 5-.8.6-1.2 1.1-1.4 2h-4.2c-.2-.9-.6-1.4-1.4-2z"/></svg>""",
+    "berichte": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5z"/><path d="M8 8h8m-8 4h8m-8 4h5"/></svg>""",
 }
 
 
@@ -40,6 +44,7 @@ def intern_nav(active=""):
         active = "maengel"
 
     eintraege = [
+        ("cockpit", "/intern/cockpit", "Cockpit"),
         ("maengel", "/intern/maengel", "Mängel"),
         ("veranstaltungen", "/intern/veranstaltungen", "Termine"),
         ("dgh", "/intern/dgh", "DGH"),
@@ -47,6 +52,9 @@ def intern_nav(active=""):
         ("gemeindeseite", "/intern/gemeindeseite", "Inhalte"),
         ("warnungen", "/intern/warnungen", "Warnlage"),
         ("push", "/intern/push", "Push"),
+        ("nachrichten", "/intern/nachrichten", "Nachrichten"),
+        ("ideen", "/intern/ideen", "Beteiligung"),
+        ("berichte", "/intern/berichte", "Berichte"),
         ("system", "/intern/system", "System"),
     ]
 
@@ -67,7 +75,7 @@ def intern_nav(active=""):
 
     return f"""
     <header class="internal-nav">
-        <a class="internal-brand" href="/intern/maengel" aria-label="Ahnsen hilft Verwaltung">
+        <a class="internal-brand" href="/intern/cockpit" aria-label="Ahnsen hilft Verwaltung">
             {_crest()}
             <span class="internal-brand-copy">
                 <span><strong>Ahnsen</strong><em>hilft</em></span>
@@ -239,6 +247,8 @@ def intern_nav_css():
     }
 
     .internal-nav-links {
+        overflow-x:auto !important;
+        scrollbar-width:thin;
         display:flex !important;
         min-width:0 !important;
         align-items:center !important;
