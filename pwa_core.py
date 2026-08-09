@@ -80,6 +80,7 @@ from system_dashboard import system_dashboard_page
 from warning_dashboard import warning_dashboard_page
 from warning_ui import warning_page
 from community_crud import audit_event, init_community_db, save_preference
+from ratsarchive_service import init_ratsarchive_db
 from community_routes import configure_community_routes, router as community_router
 from platform_runtime import get_platform_snapshot
 from translation_service import init_translation_db
@@ -133,6 +134,7 @@ def startup() -> None:
     init_system_diagnostics_db()
     init_warning_db()
     init_community_db()
+    init_ratsarchive_db()
     init_translation_db()
     cfg = get_platform_snapshot()
     app.title = f"{cfg['platform_name']} PWA"

@@ -5,7 +5,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from community_crud import (
     SUPPORTED_LANGUAGES,
@@ -61,6 +61,17 @@ from crud import suche_meldungen
 from gemeinde_crud import set_gemeinde_einstellung
 from platform_runtime import get_platform_snapshot
 from ratsinfo_service import get_ratsinfo_snapshot
+from ratsarchive_service import (
+    MAX_PDF_BYTES,
+    add_archive_document,
+    add_archive_document_from_url,
+    create_archive_meeting,
+    delete_archive_document,
+    delete_archive_meeting,
+    get_admin_archive,
+    get_archive_document,
+    update_archive_meeting,
+)
 from translation_service import provider_status, translate_texts
 
 
@@ -282,6 +293,23 @@ async def public_politics(q: str = "", jahr: str = ""):
     )
 
 
+@router.get("/politik-rat/dokument/{document_id}")
+async def public_politics_document(document_id: int):
+    document = get_archive_document(document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+    filename = quote(str(document.get("filename") or "ratsdokument.pdf"))
+    return Response(
+        content=document["data"],
+        media_type=document.get("mime_type") or "application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
+            "Cache-Control": "public, max-age=3600",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 @router.get("/api/politik-rat")
 async def public_politics_data(q: str = "", jahr: str = ""):
     return JSONResponse(
@@ -426,9 +454,124 @@ async def admin_neighbor_status(request: Request, post_id: int, background_tasks
 
 
 @router.get("/intern/politik")
-async def admin_politics(request: Request):
+async def admin_politics(request: Request, hinweis: str = ""):
     _admin(request)
-    return admin_politics_page(get_civic_items(include_inactive=True))
+    return admin_politics_page(get_civic_items(include_inactive=True), get_admin_archive(), message=hinweis)
+
+
+async def _store_archive_uploads(form, meeting_id: int) -> tuple[int, list[str]]:
+    added = 0
+    errors = []
+    kind = _clean(form.get("document_kind"), 100) or "Niederschrift / Protokoll"
+    document_title = _clean(form.get("document_title"), 300)
+    document_source_url = _clean(form.get("document_source_url"), 1000)
+    for upload in form.getlist("documents"):
+        filename = str(getattr(upload, "filename", "") or "").strip()
+        if not filename:
+            continue
+        try:
+            data = await upload.read(MAX_PDF_BYTES + 1)
+            _id, created = add_archive_document(
+                meeting_id,
+                kind=kind,
+                title=document_title or filename,
+                filename=filename,
+                data=data,
+                source_url=document_source_url,
+            )
+            added += 1 if created else 0
+        except Exception as error:
+            errors.append(f"{filename}: {str(error)[:160]}")
+    direct_url = _clean(form.get("document_url"), 1000)
+    if direct_url:
+        try:
+            _id, created = add_archive_document_from_url(
+                meeting_id,
+                kind=kind,
+                title=document_title,
+                url=direct_url,
+            )
+            added += 1 if created else 0
+        except Exception as error:
+            errors.append(f"URL-Import: {str(error)[:180]}")
+    return added, errors
+
+
+@router.post("/intern/politik/archiv")
+async def admin_create_archive_meeting(request: Request):
+    _admin(request)
+    form = await request.form()
+    try:
+        meeting_id = create_archive_meeting(
+            date_text=_clean(form.get("meeting_date"), 10),
+            time_text=_clean(form.get("meeting_time"), 5),
+            title=_clean(form.get("title"), 300),
+            organization=_clean(form.get("organization"), 200),
+            location=_clean(form.get("location"), 240),
+            summary=_clean(form.get("summary"), 12000),
+            source_url=_clean(form.get("source_url"), 1000),
+            published=form.get("published") == "on",
+        )
+    except Exception as error:
+        return RedirectResponse(url="/intern/politik?hinweis=" + quote(f"Sitzung konnte nicht gespeichert werden: {str(error)[:180]}"), status_code=303)
+    added, errors = await _store_archive_uploads(form, meeting_id)
+    audit_event("Verwaltung", "Ratssitzung archiviert", "council_meeting", str(meeting_id), f"{added} Dokumente")
+    message = f"Sitzung gespeichert · {added} neue PDF-Datei(en)."
+    if errors:
+        message += " Hinweise: " + " | ".join(errors[:3])
+    return RedirectResponse(url="/intern/politik?hinweis=" + quote(message), status_code=303)
+
+
+@router.post("/intern/politik/archiv/{meeting_id}")
+async def admin_update_archive_meeting(request: Request, meeting_id: int):
+    _admin(request)
+    form = await request.form()
+    try:
+        updated = update_archive_meeting(
+            meeting_id,
+            date_text=_clean(form.get("meeting_date"), 10),
+            time_text=_clean(form.get("meeting_time"), 5),
+            title=_clean(form.get("title"), 300),
+            organization=_clean(form.get("organization"), 200),
+            location=_clean(form.get("location"), 240),
+            summary=_clean(form.get("summary"), 12000),
+            source_url=_clean(form.get("source_url"), 1000),
+            published=form.get("published") == "on",
+        )
+    except Exception as error:
+        return RedirectResponse(url="/intern/politik?hinweis=" + quote(f"Änderung fehlgeschlagen: {str(error)[:180]}"), status_code=303)
+    if updated:
+        audit_event("Verwaltung", "Ratssitzung bearbeitet", "council_meeting", str(meeting_id))
+    return RedirectResponse(url="/intern/politik?hinweis=" + quote("Sitzung aktualisiert." if updated else "Sitzung nicht gefunden."), status_code=303)
+
+
+@router.post("/intern/politik/archiv/{meeting_id}/dokument")
+async def admin_add_archive_document(request: Request, meeting_id: int):
+    _admin(request)
+    form = await request.form()
+    added, errors = await _store_archive_uploads(form, meeting_id)
+    if added:
+        audit_event("Verwaltung", "Ratsdokument hinzugefügt", "council_meeting", str(meeting_id), f"{added} Dokumente")
+    message = f"{added} neue PDF-Datei(en) gespeichert."
+    if errors:
+        message += " Hinweise: " + " | ".join(errors[:3])
+    return RedirectResponse(url="/intern/politik?hinweis=" + quote(message), status_code=303)
+
+
+@router.post("/intern/politik/dokument/{document_id}/loeschen")
+async def admin_delete_archive_document(request: Request, document_id: int):
+    _admin(request)
+    if delete_archive_document(document_id):
+        audit_event("Verwaltung", "Ratsdokument gelöscht", "council_document", str(document_id))
+    return RedirectResponse(url="/intern/politik?hinweis=" + quote("Dokument entfernt."), status_code=303)
+
+
+@router.post("/intern/politik/archiv/{meeting_id}/loeschen")
+async def admin_delete_archive_meeting(request: Request, meeting_id: int):
+    _admin(request)
+    if delete_archive_meeting(meeting_id):
+        audit_event("Verwaltung", "Ratssitzung gelöscht", "council_meeting", str(meeting_id))
+    return RedirectResponse(url="/intern/politik?hinweis=" + quote("Archiv-Sitzung entfernt."), status_code=303)
 
 
 @router.post("/intern/politik")

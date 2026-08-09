@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from ratsarchive_service import get_archive_snapshot
+
 
 OFFICIAL_INFO_URL = "https://www.samtgemeinde-eilsen.de/content/samtgemeinde/politik/ratsinformationssystem.html"
 OFFICIAL_PORTAL_URL = "https://samtgemeinde-eilsen.ratsinfomanagement.net/"
@@ -271,6 +273,12 @@ def _base_snapshot() -> dict:
 
 
 def get_ratsinfo_snapshot(*, query: str = "", year: str = "") -> dict:
+    local = get_archive_snapshot(query=query, year=year, lookback_years=DEFAULT_LOOKBACK_YEARS)
+    if local.get("meeting_count_all") or not OPARL_SYSTEM_URL:
+        result = _base_snapshot()
+        result.update(local)
+        return result
+
     now = time.monotonic()
     with _cache_lock:
         cached = _cache.get("snapshot")

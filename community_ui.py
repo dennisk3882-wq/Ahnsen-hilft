@@ -138,7 +138,9 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
     query = str(ratsinfo.get("query") or "")
     selected_year = ratsinfo.get("selected_year")
     years = list(ratsinfo.get("years") or [])
+    archive_mode = ratsinfo.get("mode") == "local" and bool(ratsinfo.get("available"))
     auto_mode = ratsinfo.get("mode") == "oparl" and bool(ratsinfo.get("available"))
+    data_mode = archive_mode or auto_mode
 
     def document_buttons(documents: list[dict]) -> str:
         buttons = []
@@ -148,8 +150,11 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
             download = escape(str(document.get("download_url") or document.get("url") or ""), quote=True)
             if not download:
                 continue
+            local = bool(document.get("local"))
+            attrs = ' download' if local else ' target="_blank" rel="noopener"'
+            label = "PDF aus dem lokalen Ratsarchiv herunterladen" if local else "Originaldatei der Samtgemeinde herunterladen ↗"
             buttons.append(
-                f'<a class="council-doc download" href="{download}" target="_blank" rel="noopener"><span>↓</span><span><small>{kind}</small><strong>{name}</strong><em>Originaldatei der Samtgemeinde herunterladen ↗</em></span></a>'
+                f'<a class="council-doc download" href="{download}"{attrs}><span>↓</span><span><small>{kind}</small><strong>{name}</strong><em>{label}</em></span></a>'
             )
         return "".join(buttons)
 
@@ -182,6 +187,8 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
         organization = str(meeting.get("organization") or f"Gemeinderat {municipality}")
         location = str(meeting.get("location") or "")
         document_area = document_buttons(documents)
+        summary = str(meeting.get("summary") or "")
+        archive_note = "Die veröffentlichten PDF-Unterlagen liegen im lokalen Ratsarchiv von Ahnsen hilft und werden direkt von dieser PWA ausgeliefert." if archive_mode else "Alle Sitzungsdetails bleiben in Ahnsen hilft. Nur ein Dokument-Download öffnet die amtliche Originaldatei."
         meeting_cards.append(
             f"""<article class="council-meeting-card">
                 <div class="council-date-box"><strong>{escape(str(meeting.get("date_label") or "Termin"))}</strong><small>{escape(str(meeting.get("time_label") or ""))}</small></div>
@@ -192,8 +199,9 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
                         {f'<span class="community-chip">📍 {escape(location)}</span>' if location else ''}
                         <span class="community-chip">Amtliche Quelle</span>
                     </div>
-                    <div class="council-internal-note">Alle Sitzungsdetails bleiben in Ahnsen hilft. Nur ein Dokument-Download öffnet die amtliche Originaldatei.</div>
-                    {f'<div class="council-doc-grid">{document_area}</div>' if document_area else '<p class="council-doc-empty">Für diese Sitzung wurden über die Schnittstelle noch keine öffentlichen Dateien geliefert.</p>'}
+                    {f'<p>{escape(summary)}</p>' if summary else ''}
+                    <div class="council-internal-note">{escape(archive_note)}</div>
+                    {f'<div class="council-doc-grid">{document_area}</div>' if document_area else '<p class="council-doc-empty">Für diese Sitzung ist noch kein öffentliches PDF hinterlegt.</p>'}
                     {agenda_block(agenda)}
                 </div>
             </article>"""
@@ -201,8 +209,8 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
 
     if meeting_cards:
         meeting_area = "".join(meeting_cards)
-    elif auto_mode:
-        meeting_area = '<div class="community-empty"><strong>Keine Sitzung im gewählten Filter gefunden.</strong><p>Ändere Jahr oder Suchbegriff. Die amtlichen Daten werden automatisch aus dem Ratsinformationssystem übernommen.</p></div>'
+    elif data_mode:
+        meeting_area = '<div class="community-empty"><strong>Keine Sitzung im gewählten Filter gefunden.</strong><p>Ändere Jahr oder Suchbegriff. Neu archivierte Sitzungen erscheinen hier automatisch.</p></div>'
     else:
         meeting_area = """<section class="council-source-empty">
             <div class="council-source-icon">🏛️</div>
@@ -226,12 +234,15 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
         active = " active" if selected_year == year else ""
         year_links.append(f'<a class="council-year{active}" href="/politik-rat?jahr={year}&q={escape(query, quote=True)}">{year}</a>')
 
-    source_badge = '<span class="community-chip done">● Amtliche Sitzungsdaten automatisch synchronisiert</span>' if auto_mode else '<span class="community-chip warn">● Automatischer Datenabruf noch nicht freigeschaltet</span>'
-    status_text = (
-        f'{ratsinfo.get("meeting_count_all", len(meetings))} Sitzungen aus der amtlichen Schnittstelle verfügbar.'
-        if auto_mode
-        else 'Die Oberfläche bleibt vollständig in Ahnsen hilft; für das vollständige Archiv wird noch eine freigegebene amtliche Datenschnittstelle benötigt.'
-    )
+    if archive_mode:
+        source_badge = '<span class="community-chip done">● Lokales Ratsarchiv aktiv</span>'
+        status_text = f'{ratsinfo.get("meeting_count_all", len(meetings))} veröffentlichte Sitzungen im lokalen Archiv.'
+    elif auto_mode:
+        source_badge = '<span class="community-chip done">● Amtliche Sitzungsdaten automatisch synchronisiert</span>'
+        status_text = f'{ratsinfo.get("meeting_count_all", len(meetings))} Sitzungen aus der amtlichen Schnittstelle verfügbar.'
+    else:
+        source_badge = '<span class="community-chip warn">● Ratsarchiv wird aufgebaut</span>'
+        status_text = 'Die Oberfläche bleibt vollständig in Ahnsen hilft.'
 
     styles = """
     <style>
@@ -249,10 +260,10 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
     <div class="council-portal">
       <section class="council-source">
         <div><span class="eyebrow">Amtliche Ratsinformationen</span><h2>Gemeinderat {escape(municipality)} im Überblick</h2><p>Durchsuche Sitzungen, öffentliche Tagesordnungen, Beschlüsse und Niederschriften direkt hier in Ahnsen hilft. Du verlässt den Politikbereich nur dann, wenn du bewusst eine amtliche Originaldatei herunterlädst.</p><div class="community-meta">{source_badge}</div></div>
-        <div class="council-source-side"><span class="eyebrow">Datenstatus</span><strong>{'5-Jahres-Archiv aktiv' if auto_mode else 'Archiv wartet auf amtliche Datenschnittstelle'}</strong><small>{escape(status_text)}</small><small>Zeitraum: etwa {ratsinfo.get('lookback_years', 5)} Jahre · Filter: {escape(str(ratsinfo.get('organization_match') or municipality))}</small></div>
+        <div class="council-source-side"><span class="eyebrow">Datenstatus</span><strong>{'Lokales 5-Jahres-Archiv aktiv' if archive_mode else ('5-Jahres-Archiv aktiv' if auto_mode else 'Ratsarchiv wird aufgebaut')}</strong><small>{escape(status_text)}</small><small>Zeitraum: etwa {ratsinfo.get('lookback_years', 5)} Jahre · Filter: {escape(str(ratsinfo.get('organization_match') or municipality))}</small></div>
       </section>
       <section class="council-filter"><form class="council-search" method="get" action="/politik-rat"><input type="search" name="q" maxlength="120" value="{escape(query, quote=True)}" placeholder="Sitzungen durchsuchen, z. B. Haushalt, Straße, DGH …"><input type="hidden" name="jahr" value="{escape(str(selected_year or ''), quote=True)}"><button type="submit">Suchen</button></form><div class="council-years">{''.join(year_links)}</div></section>
-      <div class="council-section-head"><div><span class="eyebrow">Sitzungsarchiv</span><h2>Amtliche Sitzungen & Dokumente</h2><p>{'Gefilterte Ergebnisse aus der amtlichen Schnittstelle – vollständig innerhalb von Ahnsen hilft.' if auto_mode else 'Suche und Jahresfilter bleiben hier in Ahnsen hilft. Sobald die Samtgemeinde einen freigegebenen maschinenlesbaren Datenzugang bereitstellt, wird das vollständige 5-Jahres-Archiv automatisch eingeblendet.'}</p></div><span class="council-result-count">{len(meetings)} Treffer</span></div>
+      <div class="council-section-head"><div><span class="eyebrow">Sitzungsarchiv</span><h2>Amtliche Sitzungen & Dokumente</h2><p>{'Gespeicherte öffentliche Sitzungen und PDF-Unterlagen – vollständig innerhalb von Ahnsen hilft.' if archive_mode else ('Gefilterte Ergebnisse aus der amtlichen Schnittstelle – vollständig innerhalb von Ahnsen hilft.' if auto_mode else 'Suche und Jahresfilter bleiben hier in Ahnsen hilft.')}</p></div><span class="council-result-count">{len(meetings)} Treffer</span></div>
       <section class="council-meetings">{meeting_area}</section>
       <section class="council-editorial"><div class="council-section-head"><div><span class="eyebrow">Zusätzliche Informationen</span><h2>Hinweise aus der Gemeinde</h2><p>Redaktionelle Erläuterungen ergänzen die amtlichen Unterlagen, ersetzen sie aber nicht.</p></div></div><div class="civic-list">{local_area}</div></section>
     </div>"""
