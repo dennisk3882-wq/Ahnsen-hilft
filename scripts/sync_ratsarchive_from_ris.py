@@ -19,6 +19,10 @@ ORGANIZATION = "Gemeinderat Ahnsen"
 CURRENT_TERM_START = "2021-11-01"
 SEED_DIR = Path(__file__).resolve().parents[1] / "static" / "ratsarchive-seed"
 MANIFEST_PATH = SEED_DIR / "manifest.json"
+LEGACY_LOCAL_PROTOCOLS = {
+    ("2022-11-23", 5): "2022-11-23_protokoll_5_sitzung.pdf",
+    ("2023-03-02", 6): "2023-03-02_protokoll_6_sitzung.pdf",
+}
 
 SESSION_RE = re.compile(r"Gemeinderat\s+Ahnsen,\s*(\d+)\.\s*Sitzung", re.I)
 DATE_RE = re.compile(r"\b(\d{2})\.(\d{2})\.(20\d{2})\b")
@@ -149,11 +153,7 @@ async def _collect_meeting_links(page, years: int) -> list[dict]:
             if not session_match or not date_match:
                 continue
             date_iso = _iso_date(date_match.group(0))
-            if not date_iso.startswith(str(visible_year)):
-                continue
-            # The current Ahnsen council term starts in November 2021. This keeps
-            # the requested sessions 1..18 while future terms continue naturally.
-            if date_iso < CURRENT_TERM_START:
+            if not date_iso.startswith(str(visible_year)) or date_iso < CURRENT_TERM_START:
                 continue
             time_match = TIME_RE.search(label)
             key = f"{date_iso}:{session_match.group(1)}"
@@ -217,7 +217,6 @@ async def _read_meeting(context, meeting: dict) -> dict:
         if not minutes:
             return base_item
 
-        # SD.NET may expose more than one public revision. Prefer the last entry.
         document = minutes[-1]
         response = await context.request.get(document["url"], timeout=35000)
         if not response.ok:
@@ -262,14 +261,14 @@ async def _read_meeting(context, meeting: dict) -> dict:
 
 def _load_existing_manifest() -> dict:
     if not MANIFEST_PATH.exists():
-        return {"schema_version": 1, "source": BASE_URL, "organization": ORGANIZATION, "meetings": []}
+        return {"schema_version": 2, "source": BASE_URL, "organization": ORGANIZATION, "meetings": []}
     try:
         data = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         if isinstance(data, dict) and isinstance(data.get("meetings"), list):
             return data
     except Exception:
         pass
-    return {"schema_version": 1, "source": BASE_URL, "organization": ORGANIZATION, "meetings": []}
+    return {"schema_version": 2, "source": BASE_URL, "organization": ORGANIZATION, "meetings": []}
 
 
 def _preserve_existing_pdf(item: dict, existing: dict | None) -> dict:
@@ -283,6 +282,35 @@ def _preserve_existing_pdf(item: dict, existing: dict | None) -> dict:
         merged[key] = existing.get(key, merged.get(key))
     merged["title"] = existing.get("title") or merged["title"]
     merged["summary"] = existing.get("summary") or merged["summary"]
+    return merged
+
+
+def _attach_bundled_legacy_pdf(item: dict) -> dict:
+    if item.get("filename"):
+        return item
+    filename = LEGACY_LOCAL_PROTOCOLS.get((str(item.get("date") or ""), int(item.get("session_number") or 0)))
+    if not filename:
+        return item
+    path = SEED_DIR / filename
+    if not path.exists():
+        return item
+    data = path.read_bytes()
+    if not data.startswith(b"%PDF-"):
+        return item
+    merged = dict(item)
+    merged.update(
+        {
+            "filename": filename,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size_bytes": len(data),
+            "minutes_status": "legacy_local_pdf",
+            "summary": (
+                str(item.get("summary") or "")
+                + " Eine bereits vorhandene öffentliche Archivkopie des Protokolls bleibt lokal verfügbar; "
+                  "der tägliche Abgleich selbst verwendet ausschließlich das offizielle Ratsinformationssystem."
+            ),
+        }
+    )
     return merged
 
 
@@ -319,6 +347,7 @@ async def run(years: int) -> int:
                 continue
 
             item = _preserve_existing_pdf(item, existing.get(key))
+            item = _attach_bundled_legacy_pdf(item)
             data = item.pop("_data", None)
             if data is not None and item.get("filename"):
                 target = SEED_DIR / str(item["filename"])
@@ -329,8 +358,6 @@ async def run(years: int) -> int:
 
         await browser.close()
 
-    # Current-term records are authoritative from the public annual list. Old
-    # pre-November-2021 records are intentionally excluded from this PWA view.
     valid_keys = {f"{meeting['date']}:{meeting['session_number']}" for meeting in meetings}
     merged = {key: value for key, value in merged.items() if key in valid_keys}
 
@@ -346,7 +373,7 @@ async def run(years: int) -> int:
     with_pdf = sum(1 for item in manifest["meetings"] if item.get("filename"))
     print(
         f"RIS-Sync: {len(meetings)} Sitzungen im aktuellen Ratszeitraum, "
-        f"{with_pdf} mit lokal archiviertem öffentlichen PDF, {downloaded} PDF-Abrufe in diesem Lauf."
+        f"{with_pdf} mit lokal archiviertem PDF, {downloaded} neue amtliche PDF-Abrufe in diesem Lauf."
     )
     print("Sitzungsnummern:", [item.get("session_number") for item in manifest["meetings"]])
     if errors:
