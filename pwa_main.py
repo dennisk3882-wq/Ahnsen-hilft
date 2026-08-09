@@ -493,3 +493,12 @@ if not getattr(app.state, "waste_center_installed", False):
     for _waste_route in reversed(list(_waste_router.routes)):
         app.router.routes.insert(0, _waste_route)
     app.state.waste_center_installed = True
+
+# DGH-Zentrale: replace only the public DGH overview route. The existing
+# request submission, validation, success page and administration routes stay
+# in pwa_core unchanged.
+from dgh_center import router as _dgh_center_router
+if not getattr(app.state, "dgh_center_installed", False):
+    for _dgh_route in reversed(list(_dgh_center_router.routes)):
+        app.router.routes.insert(0, _dgh_route)
+    app.state.dgh_center_installed = True
