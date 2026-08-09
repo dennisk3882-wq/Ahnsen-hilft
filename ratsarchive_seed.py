@@ -13,6 +13,17 @@ SEED_DIR = BASE_DIR / "static" / "ratsarchive-seed"
 
 OFFICIAL_PROTOCOLS = (
     {
+        "date": "2026-05-05",
+        "time": "19:30",
+        "title": "Öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen",
+        "organization": "Gemeinderat Ahnsen",
+        "location": "Dorfgemeinschaftshaus Ahnsen, 31708 Ahnsen, Versammlungsraum",
+        "summary": "Amtliche öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen vom 05.05.2026 (19:30 bis 20:33 Uhr). Im Ratsinformationssystem der Samtgemeinde Eilsen am 04.06.2026 veröffentlicht; lokal als Archivkopie des öffentlich ausgelesenen amtlichen Inhalts bereitgestellt.",
+        "source_page": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZS0b_zYl2QMJ3h4RM5bBmzA",
+        "source_pdf": "https://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf",
+        "filename": "2026-05-05_oeffentliche_niederschrift_gemeinderat_ahnsen.pdf",
+    },
+    {
         "date": "2023-03-02",
         "title": "Protokoll über die 6. Sitzung des Gemeinderates der Gemeinde Ahnsen",
         "organization": "Gemeinderat Ahnsen",
@@ -36,7 +47,7 @@ OFFICIAL_PROTOCOLS = (
 
 
 def _existing_meeting_id(seed: dict) -> int | None:
-    meeting_date = datetime.fromisoformat(seed["date"])
+    meeting_date = datetime.fromisoformat(seed["date"] + ("T" + seed["time"] if seed.get("time") else ""))
     db = SessionLocal()
     try:
         item = (
@@ -63,7 +74,7 @@ def seed_official_ratsarchive() -> dict:
             if meeting_id is None:
                 meeting_id = create_archive_meeting(
                     date_text=seed["date"],
-                    time_text="",
+                    time_text=seed.get("time", ""),
                     title=seed["title"],
                     organization=seed["organization"],
                     location=seed["location"],
