@@ -16,26 +16,42 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install requests
-      - name: Search official public RIS through reader
+      - name: Fetch exact official 2026 Ahnsen protocol
         run: |
           python - <<'PY'
-          import requests, urllib.parse
-          s=requests.Session(); s.headers['User-Agent']='Mozilla/5.0 Ahnsen-hilft research'
-          base='https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net'
-          paths=[
-            '/gremien',
-            '/recherche',
-            '/recherche?terms='+urllib.parse.quote('Gemeinderat Ahnsen'),
-            '/recherche?terms='+urllib.parse.quote('Niederschrift Gemeinderat Ahnsen'),
-            '/recherche?terms='+urllib.parse.quote('Ahnsen 2026'),
-            '/recherche?terms='+urllib.parse.quote('Niederschrift Ahnsen 2026'),
-          ]
-          for path in paths:
-            u=base+path
+          import requests
+          token='UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62'
+          filename='Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf'
+          rel=f'/sdnetrim/{token}/{filename}'
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/138 Safari/537.36','Accept':'application/pdf,*/*;q=0.8'})
+          for scheme in ('http','https'):
+            u=f'{scheme}://samtgemeinde-eilsen.ratsinfomanagement.net{rel}'
             try:
-              r=s.get(u,timeout=90)
-              print('\n===',path,'=== STATUS',r.status_code,'LEN',len(r.content))
-              text=r.text.replace('\x00','')
-              print(text[:25000])
-            except Exception as e: print('ERR',path,repr(e))
+              r=s.get(u,timeout=60,allow_redirects=True)
+              print('DIRECT',scheme,'STATUS',r.status_code,'FINAL',r.url,'TYPE',r.headers.get('content-type'),'LEN',len(r.content),'HEAD',r.content[:8])
+              if r.status_code==200 and r.content.startswith(b'%PDF-'):
+                open('/tmp/latest.pdf','wb').write(r.content)
+                open('/tmp/source.txt','w').write(u)
+                print('GOT_ORIGINAL',u)
+                break
+            except Exception as e: print('DIRECT_ERR',scheme,repr(e))
+          else:
+            print('NO_DIRECT_PDF')
+
+          tops='http://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZS0b_zYl2QMJ3h4RM5bBmzA'
+          try:
+            r=requests.get('https://r.jina.ai/'+tops,timeout=90)
+            print('TOPS_READER',r.status_code,len(r.content)); print(r.text[:12000])
+          except Exception as e: print('TOPS_ERR',repr(e))
+
+          jina='https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net'+rel
+          try:
+            r=requests.get(jina,headers={'Accept':'application/pdf'},timeout=90)
+            print('JINA_PDF',r.status_code,r.headers.get('content-type'),len(r.content),r.content[:20])
+            print(r.text[:1000] if not r.content.startswith(b'%PDF-') else 'JINA_RETURNED_PDF')
+          except Exception as e: print('JINA_ERR',repr(e))
           PY
+          if [ -f /tmp/latest.pdf ]; then
+            file /tmp/latest.pdf
+            sha256sum /tmp/latest.pdf
+          fi
