@@ -1,0 +1,126 @@
+name: Waste center smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: waste-center-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./waste-center-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      VAPID_PUBLIC_KEY: test-public-key
+      VAPID_PRIVATE_KEY: test-private-key
+      VAPID_SUBJECT: mailto:test@example.com
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile waste center
+        run: |
+          python -m py_compile waste_preferences.py waste_center.py pwa_entry.py pwa_push_job.py pwa_push_job_v2.py
+      - name: Validate waste center, route override and reminder slots
+        run: |
+          python - <<'PY'
+          from datetime import date, datetime
+          from types import SimpleNamespace
+          from zoneinfo import ZoneInfo
+
+          import pwa_entry
+          from pwa_core import startup
+          from pwa_crud import create_user, get_user_by_id
+          from pwa_push_job_v2 import _reminder_target
+          from waste_center import render_waste_center
+          from waste_preferences import get_waste_reminder_time, set_waste_push_setting
+
+          startup()
+
+          waste_get_routes = [
+              route for route in pwa_entry.app.router.routes
+              if getattr(route, "path", "") == "/muelltermine-info"
+              and "GET" in (getattr(route, "methods", set()) or set())
+          ]
+          assert waste_get_routes
+          assert waste_get_routes[0].name == "waste_center_page", [route.name for route in waste_get_routes]
+          assert any(
+              getattr(route, "path", "") == "/api/muell/push-einstellung"
+              and "POST" in (getattr(route, "methods", set()) or set())
+              for route in pwa_entry.app.router.routes
+          )
+
+          user = create_user(
+              "waste-center@example.com",
+              "SehrSicheresPasswort123!",
+              "Müll Test",
+              "05722 123",
+          )
+          saved = set_waste_push_setting(user.id, True, "20:00")
+          assert saved["enabled"] is True
+          assert saved["reminder_time"] == "20:00"
+          assert get_waste_reminder_time(user.id) == "20:00"
+          assert get_user_by_id(user.id).push_muell is True
+
+          terms = [
+              SimpleNamespace(
+                  datum=date(2026, 8, 10),
+                  abfuhrarten="Restabfall",
+                  feiertagsabweichung="Nein",
+              ),
+              SimpleNamespace(
+                  datum=date(2026, 8, 12),
+                  abfuhrarten="Bioabfall, Leichtverpackungen",
+                  feiertagsabweichung="Ja",
+              ),
+              SimpleNamespace(
+                  datum=date(2026, 8, 17),
+                  abfuhrarten="Altpapier",
+                  feiertagsabweichung="Nein",
+              ),
+          ]
+          html = render_waste_center(
+              terms,
+              get_user_by_id(user.id),
+              subscription_exists=True,
+              push_available=True,
+          ).body.decode()
+          for expected in (
+              "Abfall-Zentrale",
+              "Nächste Abfuhr",
+              "Nie wieder die Tonne vergessen",
+              "Am Vorabend um 18:00 Uhr",
+              "Am Vorabend um 20:00 Uhr",
+              "Am Abholtag um 06:30 Uhr",
+              "/muelltermine.ics",
+              "Alle Termine",
+              "Feiertagsverschiebung",
+              "/api/muell/push-einstellung",
+          ):
+              assert expected in html, expected
+
+          berlin = ZoneInfo("Europe/Berlin")
+          at_18 = _reminder_target(datetime(2026, 8, 9, 18, 0, tzinfo=berlin), "18:00")
+          at_20 = _reminder_target(datetime(2026, 8, 9, 20, 0, tzinfo=berlin), "20:00")
+          at_0630 = _reminder_target(datetime(2026, 8, 10, 6, 30, tzinfo=berlin), "06:30")
+          recovery = _reminder_target(datetime(2026, 8, 10, 7, 0, tzinfo=berlin), "06:30")
+          assert at_18 == (date(2026, 8, 10), "morgen")
+          assert at_20 == (date(2026, 8, 10), "morgen")
+          assert at_0630 == (date(2026, 8, 10), "heute")
+          assert recovery == (date(2026, 8, 10), "heute")
+          assert _reminder_target(datetime(2026, 8, 10, 12, 0, tzinfo=berlin), "18:00") is None
+
+          print("Waste center smoke tests passed")
+          PY
