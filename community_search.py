@@ -136,6 +136,7 @@ def intelligent_search(query: str, limit: int = 30) -> list[dict]:
             ),
             "url": f"/politik-rat?q={quote(query)}",
             "kind": "ratssitzung",
+            "fixed_score": 12,
         })
 
     for row in get_ideas(limit=100):
