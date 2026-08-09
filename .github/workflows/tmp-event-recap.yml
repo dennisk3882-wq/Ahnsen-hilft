@@ -1,0 +1,32 @@
+name: Temporary event recap enhancement
+on:
+  push:
+    branches: [agent/event-recap-gallery]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/event-recap-gallery
+          fetch-depth: 0
+      - name: Apply event recap enhancement
+        run: python scripts/apply_event_recap.py
+      - name: Validate Python
+        run: |
+          python -m py_compile veranstaltungen_models.py veranstaltungen_crud.py veranstaltungen_dashboard.py main.py pwa_ui.py
+          grep -q 'Aktuelle und vergangene Veranstaltungen.' pwa_ui.py
+          grep -q 'Vergangene Veranstaltungen' veranstaltungen_dashboard.py
+          grep -q 'rueckblick_bilder_json' veranstaltungen_models.py
+          grep -q '_veranstaltung_ist_kommend' main.py
+      - name: Remove temporary helpers and commit
+        run: |
+          rm scripts/apply_event_recap.py .github/workflows/tmp-event-recap.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add veranstaltungen_models.py veranstaltungen_crud.py veranstaltungen_dashboard.py main.py pwa_ui.py scripts/apply_event_recap.py .github/workflows/tmp-event-recap.yml
+          git commit -m 'Veranstaltungsarchiv mit Rückblick und Fotogalerie erweitern'
+          git push origin HEAD:agent/event-recap-gallery
