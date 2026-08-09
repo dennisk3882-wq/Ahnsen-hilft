@@ -1,0 +1,23 @@
+name: Temporary Ratsinfo browser probe
+on:
+  push:
+    branches: [agent/ahnsen-protokolle-direkt]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Browser probe Eilsen RIM
+        shell: bash
+        run: |
+          set -x
+          google-chrome --version || chromium --version || true
+          BROWSER=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          echo "BROWSER=$BROWSER"
+          "$BROWSER" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=20000 --dump-dom 'https://samtgemeinde-eilsen.ratsinfomanagement.net/sitzungen' > /tmp/rim.html || true
+          echo '--- DOM HEAD ---'
+          head -c 12000 /tmp/rim.html
+          echo
+          echo '--- HREFS ---'
+          grep -oE 'href="[^"]+"' /tmp/rim.html | head -n 200 || true
