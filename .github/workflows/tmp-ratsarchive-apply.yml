@@ -12,6 +12,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/local-ratsarchiv
+      - name: Fix helper quoting
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/apply_ratsarchive.py')
+          s=p.read_text()
+          s=s.replace("archive_cards.append(f'''<article", 'archive_cards.append(f\"\"\"<article', 1)
+          s=s.replace("        </article>''')", '        </article>\"\"\")', 1)
+          s=s.replace("    body = f'''<section>", '    body = f\"\"\"<section>', 1)
+          s=s.replace("</article></section>'''\n    return _page", '</article></section>\"\"\"\n    return _page', 1)
+          p.write_text(s)
+          PY
       - name: Apply local ratsarchive patch
         run: python .github/apply_ratsarchive.py
       - name: Validate modules
