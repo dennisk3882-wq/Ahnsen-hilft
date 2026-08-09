@@ -1,0 +1,68 @@
+name: Temporary inspect old Ahnsen session packages
+on:
+  push:
+    branches: [agent/ratsarchive-autosync]
+permissions:
+  contents: write
+jobs:
+  inspect:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ratsarchive-autosync
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright pypdf
+      - run: python -m playwright install --with-deps chromium
+      - name: Inspect packages for sessions 14-16
+        run: |
+          cat > /tmp/inspect_packages.py <<'PY'
+          import asyncio, io, json, re, sys
+          sys.path.insert(0,'.')
+          from pypdf import PdfReader
+          from playwright.async_api import async_playwright
+          from scripts.sync_ratsarchive_from_ris import BASE_URL,_wait_for_public_page,_collect_meeting_links,_anchors
+
+          async def main():
+              report=[]
+              async with async_playwright() as p:
+                  b=await p.chromium.launch(headless=False,args=['--disable-dev-shm-usage'])
+                  c=await b.new_context(locale='de-DE',viewport={'width':1440,'height':1100})
+                  page=await c.new_page(); await page.goto(BASE_URL,wait_until='domcontentloaded',timeout=45000); await _wait_for_public_page(page)
+                  meetings=await _collect_meeting_links(page,6)
+                  for m in meetings:
+                      if m['session_number'] not in (14,15,16): continue
+                      p2=await c.new_page(); await p2.goto(m['source_page'],wait_until='domcontentloaded',timeout=40000); await p2.wait_for_timeout(700)
+                      links=await _anchors(p2)
+                      packs=[a for a in links if 'gesamtes sitzungspaket' in a.get('label','').casefold() and '/sdnetrim/' in a['url']]
+                      item={'meeting':m,'packages':[]}
+                      for pack in packs:
+                          r=await c.request.get(pack['url'],timeout=35000); data=await r.body()
+                          pages=[]
+                          reader=PdfReader(io.BytesIO(data))
+                          for idx,pdfpage in enumerate(reader.pages):
+                              text=(pdfpage.extract_text() or '')
+                              folded=text.casefold()
+                              if any(term in folded for term in ('niederschrift','protokoll','anwesend','sitzungsbeginn','eröffnung der sitzung')):
+                                  pages.append({'page':idx+1,'text':text[:6000]})
+                          item['packages'].append({'url':pack['url'],'bytes':len(data),'pages_total':len(reader.pages),'matching_pages':pages})
+                      report.append(item)
+                      await p2.close()
+                  await b.close()
+              print(json.dumps(report,ensure_ascii=False,indent=2))
+          asyncio.run(main())
+          PY
+          xvfb-run -a python /tmp/inspect_packages.py
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          rm -f .github/workflows/tmp-inspect-session-packages.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Temporäre Sitzungspaket-Prüfung entfernen' || true
+          git pull --rebase origin agent/ratsarchive-autosync || true
+          git push origin HEAD:agent/ratsarchive-autosync
