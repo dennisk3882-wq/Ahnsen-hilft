@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import re
 from html import unescape
+from urllib.parse import quote
 
 from ahnsen_history import history_content
 from community_crud import get_civic_items, get_ideas, get_neighbor_posts
 from gemeinde_crud import get_gemeinde_einstellungen
 from veranstaltungen_crud import get_aktive_veranstaltungen
 from platform_runtime import apply_static_branding, get_platform_snapshot
+from ratsinfo_service import get_ratsinfo_snapshot
 
 
 SERVICE_INDEX = [
@@ -102,6 +104,38 @@ def intelligent_search(query: str, limit: int = 30) -> list[dict]:
             "text": f"{item.kind} {item.date_text} {item.location} {item.body}",
             "url": "/politik-rat",
             "kind": "politik",
+        })
+
+    ratsinfo = get_ratsinfo_snapshot(query=query)
+    for meeting in ratsinfo.get("meetings") or []:
+        agenda_text = " ".join(
+            " ".join(
+                [
+                    str(point.get("number") or ""),
+                    str(point.get("name") or ""),
+                    str(point.get("result") or ""),
+                    str(point.get("resolution_text") or ""),
+                ]
+            )
+            for point in meeting.get("agenda") or []
+        )
+        document_text = " ".join(
+            f"{document.get('kind', '')} {document.get('name', '')}"
+            for document in meeting.get("documents") or []
+        )
+        candidates.append({
+            "title": str(meeting.get("name") or "Ratssitzung"),
+            "text": " ".join(
+                [
+                    str(meeting.get("organization") or ""),
+                    str(meeting.get("date_label") or ""),
+                    str(meeting.get("location") or ""),
+                    document_text,
+                    agenda_text,
+                ]
+            ),
+            "url": f"/politik-rat?q={quote(query)}",
+            "kind": "ratssitzung",
         })
 
     for row in get_ideas(limit=100):

@@ -115,7 +115,7 @@ def home_page(data: dict) -> HTMLResponse:
         ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),
         ("map", "Mängelkarte", "Öffentliche Meldungen auf der Dorfkarte.", "/karte"),
         ("idea", "Ideen für Ahnsen", "Vorschlagen, unterstützen und kommentieren.", "/ideen"),
-        ("politics", "Politik & Rat", "Sitzungen, Beschlüsse und Informationen.", "/politik-rat"),
+        ("politics", "Politik & Rat", "Sitzungen, Protokolle und Beschlüsse.", "/politik-rat"),
         ("neighbor", "Nachbarschaftshilfe", "Hilfe im Dorf suchen oder anbieten.", "/nachbarschaft"),
     ]
     cards = "".join(f'<a class="service-card{" featured" if key == "report" else ""}" href="{href}"><span class="service-icon">{icon(key)}</span><div><h3>{title}</h3><p>{text}</p></div><span class="card-arrow">{icon("arrow")}</span></a>' for key, title, text, href in services)
