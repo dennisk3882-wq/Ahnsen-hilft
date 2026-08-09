@@ -8,16 +8,31 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Browser probe Eilsen RIM
+      - name: Probe official SD.NET public webservices
         shell: bash
         run: |
-          set -x
-          google-chrome --version || chromium --version || true
-          BROWSER=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
-          echo "BROWSER=$BROWSER"
-          "$BROWSER" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=20000 --dump-dom 'https://samtgemeinde-eilsen.ratsinfomanagement.net/sitzungen' > /tmp/rim.html || true
-          echo '--- DOM HEAD ---'
-          head -c 12000 /tmp/rim.html
-          echo
-          echo '--- HREFS ---'
-          grep -oE 'href="[^"]+"' /tmp/rim.html | head -n 200 || true
+          python - <<'PY'
+          import requests
+          base='https://samtgemeinde-eilsen.ratsinfomanagement.net'
+          paths=[
+            '/webservice/',
+            '/webservice/portalsuche',
+            '/webservice/portalsuche/',
+            '/webservice/portalsearch',
+            '/webservice/portalsearch/',
+            '/webservice/portalSearch',
+            '/webservice/recherche',
+            '/webservice/search',
+            '/webservice/suche',
+            '/webservice/oparl/v1.1/body/1',
+          ]
+          headers={'User-Agent':'Ahnsen-hilft/1.0','Accept':'application/json,application/xml,text/xml,text/plain,*/*'}
+          for p in paths:
+              try:
+                  r=requests.get(base+p,headers=headers,timeout=12,allow_redirects=False)
+                  print('\nPATH',p)
+                  print('STATUS',r.status_code,'TYPE',r.headers.get('content-type'),'LOC',r.headers.get('location'))
+                  print('BODY',r.text.replace('\n',' ')[:1800])
+              except Exception as e:
+                  print('\nPATH',p,'ERROR',repr(e))
+          PY
