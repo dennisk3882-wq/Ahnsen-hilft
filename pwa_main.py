@@ -484,3 +484,12 @@ if not any(getattr(_route, "name", "") == "pwa_home_mobility" for _route in app.
         APIRoute("/", _home_with_mobility, methods=["GET"], name="pwa_home_mobility"),
     )
 app.state.mobility_installed = True
+
+# Abfall-Zentrale: install the modern waste routes directly in the production
+# application. This intentionally keeps the long-established Render start
+# command `uvicorn pwa_main:app` working; no separate entrypoint is required.
+from waste_center import router as _waste_router
+if not getattr(app.state, "waste_center_installed", False):
+    for _waste_route in reversed(list(_waste_router.routes)):
+        app.router.routes.insert(0, _waste_route)
+    app.state.waste_center_installed = True
