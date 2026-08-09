@@ -1,10 +1,9 @@
 if (typeof document === 'undefined') {
-  const CACHE = 'ahnsen-hilft-public-v4';
+  const CACHE = 'ahnsen-hilft-public-v3';
   const CORE = [
     '/',
     '/pwa.css?v=1',
     '/pwa-extra.css?v=1',
-    '/bottom-nav.css?v=1',
     '/pwa/icon-192.png',
     '/pwa/icon-512.png',
     '/assets/ahnsen-startseite.png',
@@ -13,7 +12,6 @@ if (typeof document === 'undefined') {
   const CACHEABLE = new Set([
     '/pwa.css',
     '/pwa-extra.css',
-    '/bottom-nav.css',
     '/pwa/icon-192.png',
     '/pwa/icon-512.png',
     '/assets/ahnsen-startseite.png',
@@ -106,11 +104,6 @@ if (typeof document === 'undefined') {
     extraCss.href = '/pwa-extra.css?v=1';
     document.head.appendChild(extraCss);
 
-    const bottomNavCss = document.createElement('link');
-    bottomNavCss.rel = 'stylesheet';
-    bottomNavCss.href = '/bottom-nav.css?v=1';
-    document.head.appendChild(bottomNavCss);
-
     const offlineBanner = document.getElementById('offline-banner');
     const updateNetworkState = () => {
       if (offlineBanner) offlineBanner.hidden = navigator.onLine;
@@ -121,7 +114,7 @@ if (typeof document === 'undefined') {
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/pwa.js?worker=4', { scope: '/' }).catch(() => {});
+        navigator.serviceWorker.register('/pwa.js?worker=3', { scope: '/' }).catch(() => {});
       });
     }
 
