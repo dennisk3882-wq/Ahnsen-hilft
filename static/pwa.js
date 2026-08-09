@@ -144,7 +144,7 @@ if (typeof document === 'undefined') {
         { key: 'calendar', href: '/veranstaltungen', label: 'Termine', description: 'Kalender', paths: ['/veranstaltungen'] },
         { key: 'mobility', href: '/mobilitaet', label: 'Mobilität', description: 'Bus & Fahrt', paths: ['/mobilitaet'] },
         { key: 'waste', href: '/muelltermine-info', label: 'Müll', description: 'Abfuhr', paths: ['/muelltermine-info', '/muelltermine.ics'] },
-        { key: 'dgh', href: '/dgh-mieten', label: 'DGH', description: 'Belegung', paths: ['/dgh-mieten'] },
+        { key: 'dgh', href: '/dgh-mieten', label: 'DGH', description: 'Belegung', paths: ['/dgh-mieten', '/dgh-anfrage', '/dgh-anfrage-erfolgreich'] },
         { key: 'politics', href: '/politik-rat', label: 'Politik', description: 'Rat & Protokolle', paths: ['/politik-rat'] },
         { key: 'people', href: '/vereine', label: 'Vereine', description: 'Gruppen', paths: ['/vereine', '/feuerwehr'] },
         { key: 'news', href: '/aktuelles', label: 'Aktuelles', description: 'Neuigkeiten', paths: ['/aktuelles', '/buergerinformationen'] },
