@@ -1,0 +1,74 @@
+name: Translation and navigation smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: translation-ui-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./translation-smoke.db
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile translation runtime
+        run: |
+          python -m py_compile translation_service.py pwa_main.py
+      - name: Validate batching, fallback marker and PWA cache refresh
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from unittest.mock import patch
+
+          import translation_service as service
+
+          calls = []
+
+          def fake_post(url, texts, source, target):
+              calls.append((url, list(texts), source, target))
+              return [f"EN:{text}" for text in texts]
+
+          with patch.object(service, "_provider_urls", return_value=["https://provider.example/translate"]), \
+               patch.object(service, "_post_translate", side_effect=fake_post), \
+               patch.object(service, "_cache_get", return_value=None), \
+               patch.object(service, "_cache_put"):
+              result = service.translate_texts(
+                  ["Bus & Mobilität", "Nächste Abfahrten", "Verfügbarkeit prüfen"],
+                  target="en",
+                  source="de",
+              )
+
+          assert result["degraded"] is False, result
+          assert result["failed"] == 0, result
+          assert result["translations"] == [
+              "EN:Bus & Mobilität",
+              "EN:Nächste Abfahrten",
+              "EN:Verfügbarkeit prüfen",
+          ]
+          assert len(calls) == 1, calls
+          assert len(calls[0][1]) == 3, calls
+
+          css = Path("static/pwa.css").read_text(encoding="utf-8")
+          assert ".bottom-nav:not(.nav-slider){visibility:hidden" in css
+          assert "legacy-nav-fallback" in css
+
+          main = Path("pwa_main.py").read_text(encoding="utf-8")
+          assert 'SERVICE_WORKER_VERSION = "v8"' in main
+          assert "public-v8" in main
+
+          community = Path("static/community.js").read_text(encoding="utf-8")
+          assert "data.degraded" in community
+          assert "'/api/uebersetzen'" in community
+          print("Translation/navigation smoke tests passed")
+          PY
