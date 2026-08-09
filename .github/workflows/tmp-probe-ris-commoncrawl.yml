@@ -16,34 +16,51 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install requests
-      - name: Query public Common Crawl URL index
+      - name: Query public URL indexes for official RIS paths
         run: |
           python - <<'PY'
           import json, requests
-          coll = requests.get('https://index.commoncrawl.org/collinfo.json', timeout=30).json()
-          indexes = [x['id'] for x in coll if x.get('id','').startswith('CC-MAIN-2026')][:8]
-          print('INDEXES', indexes)
-          target='samtgemeinde-eilsen.ratsinfomanagement.net/*'
-          found=[]
-          for idx in indexes:
-              url=f'https://index.commoncrawl.org/{idx}-index'
+          domain='samtgemeinde-eilsen.ratsinfomanagement.net'
+          s=requests.Session(); s.headers['User-Agent']='Ahnsen-hilft research/1.0'
+
+          print('=== COMMON CRAWL ===')
+          coll=s.get('https://index.commoncrawl.org/collinfo.json',timeout=30).json()
+          for meta in [x for x in coll if x.get('id','').startswith('CC-MAIN-2026')][:7]:
+              idx=meta['id']
               try:
-                  r=requests.get(url, params={'url':target,'output':'json','filter':'status:200','collapse':'urlkey'}, timeout=60)
-                  print('QUERY', idx, r.status_code, len(r.text))
-                  if r.status_code != 200:
-                      print(r.text[:500]); continue
-                  rows=[]
-                  for line in r.text.splitlines():
-                      try: row=json.loads(line)
-                      except: continue
-                      u=row.get('url','')
-                      if any(k in u.lower() for k in ['pdf','download','sitz','tops','termin','dokument','file','doc']):
-                          rows.append(row)
-                  print('MATCHES', idx, len(rows))
-                  for row in rows[:200]:
-                      print(json.dumps({k:row.get(k) for k in ['url','timestamp','mime','digest','filename','offset','length']}, ensure_ascii=False))
-                  found += rows
-              except Exception as e:
-                  print('ERR', idx, repr(e))
-          print('TOTAL_MATCHES',len(found))
+                  r=s.get(f'https://index.commoncrawl.org/{idx}-index',params={'url':domain,'matchType':'domain','output':'json','filter':'status:200','collapse':'urlkey'},timeout=60)
+                  print('CC',idx,r.status_code,len(r.text))
+                  if r.status_code==200:
+                      for line in r.text.splitlines()[:500]:
+                          try: row=json.loads(line)
+                          except: continue
+                          u=row.get('url','')
+                          if any(k in u.lower() for k in ['pdf','download','sitz','tops','termin','dokument','file','doc']):
+                              print('CCURL',row.get('timestamp'),row.get('mime'),u)
+              except Exception as e: print('CCERR',idx,repr(e))
+
+          print('=== WAYBACK ===')
+          try:
+              r=s.get('https://web.archive.org/cdx/search/cdx',params={'url':domain+'/*','output':'json','fl':'timestamp,original,statuscode,mimetype,digest','filter':'statuscode:200','from':'2026','to':'2026','collapse':'urlkey'},timeout=90)
+              print('WB',r.status_code,len(r.text))
+              if r.status_code==200:
+                  rows=r.json()
+                  print('WBROWS',len(rows)-1 if rows else 0)
+                  for row in rows[1:1000]:
+                      u=row[1]
+                      if any(k in u.lower() for k in ['pdf','download','sitz','tops','termin','dokument','file','doc']): print('WBURL',*row[:4])
+              else: print(r.text[:1000])
+          except Exception as e: print('WBERR',repr(e))
+
+          print('=== URLSCAN ===')
+          try:
+              r=s.get('https://urlscan.io/api/v1/search/',params={'q':'domain:'+domain,'size':100},timeout=60)
+              print('US',r.status_code,len(r.text))
+              if r.status_code==200:
+                  data=r.json(); print('USRESULTS',len(data.get('results',[])))
+                  for item in data.get('results',[]):
+                      page=item.get('page') or {}; task=item.get('task') or {}
+                      print('USURL',task.get('time'),page.get('url') or task.get('url'))
+              else: print(r.text[:1000])
+          except Exception as e: print('USERR',repr(e))
           PY
