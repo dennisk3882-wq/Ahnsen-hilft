@@ -104,17 +104,6 @@ def _admin(request: Request):
 
 def _public_report_points() -> list[dict]:
     gps_pattern = re.compile(r"GPS-Position:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)")
-    email_pattern = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
-    phone_pattern = re.compile(r"(?<!\w)(?:\+49|0)[\d\s()/.\-]{6,}\d")
-
-    def public_description(value) -> str:
-        text = str(value or "")
-        text = gps_pattern.sub(" ", text)
-        text = email_pattern.sub("[Kontakt entfernt]", text)
-        text = phone_pattern.sub("[Kontakt entfernt]", text)
-        text = re.sub(r"\s+", " ", text).strip(" -–—,;")
-        return text[:260]
-
     points = []
     for item in suche_meldungen()[:300]:
         description = str(getattr(item, "beschreibung", "") or "")
@@ -140,7 +129,6 @@ def _public_report_points() -> list[dict]:
             "category": category,
             "ort": location[:100] or get_platform_snapshot()["municipality_name"],
             "status": str(getattr(item, "status", "Offen") or "Offen")[:40],
-            "description": public_description(description),
             "date": created.isoformat() if created else "",
             "date_label": created.strftime("%d.%m.%Y") if created else "",
         })
