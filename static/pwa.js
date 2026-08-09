@@ -283,3 +283,90 @@ if (typeof document === 'undefined') {
     }
   })();
 }
+
+// Hard guard for the message badge. /pwa.js is served with no-store by the
+// production entrypoint, so this path does not depend on a cached community
+// stylesheet or community script. A red badge is only rendered after the
+// server has explicitly returned an unread count greater than zero.
+if (typeof document !== 'undefined') {
+  (() => {
+    let badgeRequest = 0;
+
+    const hideBadge = (link, badge) => {
+      if (badge) {
+        badge.textContent = '';
+        badge.hidden = true;
+        badge.style.setProperty('display', 'none', 'important');
+      }
+      if (link) link.removeAttribute('aria-label');
+    };
+
+    const refreshMessageBadge = async () => {
+      const link = document.getElementById('message-center-link');
+      if (!link) return;
+      const badge = link.querySelector('.message-badge');
+      const requestId = ++badgeRequest;
+
+      hideBadge(link, badge);
+
+      try {
+        const response = await fetch(`/api/me/unread-count?_=${Date.now()}`, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store',
+            'Pragma': 'no-cache'
+          }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (requestId !== badgeRequest) return;
+
+        const loggedIn = Boolean(data && data.loggedIn);
+        const count = Math.max(0, Number(data && data.count) || 0);
+
+        link.hidden = !loggedIn;
+        if (loggedIn) {
+          link.style.removeProperty('display');
+          link.setAttribute('aria-label', count > 0 ? `Nachrichten, ${count} ungelesen` : 'Nachrichten');
+        } else {
+          link.style.setProperty('display', 'none', 'important');
+          hideBadge(link, badge);
+          return;
+        }
+
+        if (badge && count > 0) {
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.hidden = false;
+          badge.style.setProperty('display', 'grid', 'important');
+        } else {
+          hideBadge(link, badge);
+          if (loggedIn) link.setAttribute('aria-label', 'Nachrichten');
+        }
+      } catch (_error) {
+        if (requestId !== badgeRequest) return;
+        hideBadge(link, badge);
+      }
+    };
+
+    const setupMessageBadgeGuard = () => {
+      const link = document.getElementById('message-center-link');
+      if (!link || link.dataset.badgeGuardReady === '1') return;
+      link.dataset.badgeGuardReady = '1';
+      const badge = link.querySelector('.message-badge');
+      hideBadge(link, badge);
+      refreshMessageBadge();
+      window.addEventListener('pageshow', refreshMessageBadge);
+      window.addEventListener('focus', refreshMessageBadge);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refreshMessageBadge();
+      });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupMessageBadgeGuard, { once: true });
+    } else {
+      setupMessageBadgeGuard();
+    }
+  })();
+}
