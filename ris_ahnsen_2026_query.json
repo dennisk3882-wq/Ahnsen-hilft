@@ -1,0 +1,358 @@
+{
+  "controls": {
+    "inputs": [
+      {
+        "type": "text",
+        "name": "terms",
+        "id": null,
+        "value": null,
+        "placeholder": "Suchbegriffe"
+      },
+      {
+        "type": "submit",
+        "name": null,
+        "id": null,
+        "value": "",
+        "placeholder": null
+      },
+      {
+        "type": "text",
+        "name": "username",
+        "id": "username-339843807",
+        "value": null,
+        "placeholder": null
+      },
+      {
+        "type": "password",
+        "name": "password",
+        "id": "password-339843807",
+        "value": null,
+        "placeholder": null
+      },
+      {
+        "type": "submit",
+        "name": "Submit",
+        "id": null,
+        "value": "Anmelden",
+        "placeholder": null
+      },
+      {
+        "type": "hidden",
+        "name": "csrftoken",
+        "id": null,
+        "value": "f5c6cdbe47f0fab2b7e0686ce7e6a201a64c47917bd893fb3aed061419d40148",
+        "placeholder": null
+      },
+      {
+        "type": "text",
+        "name": "terms",
+        "id": null,
+        "value": null,
+        "placeholder": "Suchbegriffe"
+      },
+      {
+        "type": "submit",
+        "name": null,
+        "id": null,
+        "value": "",
+        "placeholder": null
+      },
+      {
+        "type": "text",
+        "name": "username",
+        "id": "username-1616320542",
+        "value": null,
+        "placeholder": null
+      },
+      {
+        "type": "password",
+        "name": "password",
+        "id": "password-1616320542",
+        "value": null,
+        "placeholder": null
+      },
+      {
+        "type": "submit",
+        "name": "Submit",
+        "id": null,
+        "value": "Anmelden",
+        "placeholder": null
+      },
+      {
+        "type": "hidden",
+        "name": "csrftoken",
+        "id": null,
+        "value": "f5c6cdbe47f0fab2b7e0686ce7e6a201a64c47917bd893fb3aed061419d40148",
+        "placeholder": null
+      },
+      {
+        "type": "hidden",
+        "name": "reqid",
+        "id": null,
+        "value": "e1254b1223ab8e5a9adb83b3eb3df153",
+        "placeholder": null
+      },
+      {
+        "type": "text",
+        "name": "terms",
+        "id": "terms",
+        "value": "",
+        "placeholder": "Suchbegriffe"
+      },
+      {
+        "type": "text",
+        "name": "keywords",
+        "id": "keywords",
+        "value": "",
+        "placeholder": "Stichwörter"
+      },
+      {
+        "type": "checkbox",
+        "name": "exakt",
+        "id": "exakt",
+        "value": "1",
+        "placeholder": null
+      },
+      {
+        "type": "date",
+        "name": "datefrom",
+        "id": "DPC_from",
+        "value": "JJJJ-MM-TT",
+        "placeholder": null
+      },
+      {
+        "type": "date",
+        "name": "dateto",
+        "id": "DPC_to",
+        "value": "JJJJ-MM-TT",
+        "placeholder": null
+      },
+      {
+        "type": "checkbox",
+        "name": "doktyp_all",
+        "id": "doktyp_all",
+        "value": null,
+        "placeholder": null
+      },
+      {
+        "type": "checkbox",
+        "name": "doktyp[]",
+        "id": "doktyp_t",
+        "value": "T",
+        "placeholder": null
+      },
+      {
+        "type": "checkbox",
+        "name": "doktyp[]",
+        "id": "doktyp_e",
+        "value": "E",
+        "placeholder": null
+      },
+      {
+        "type": "checkbox",
+        "name": "doktyp[]",
+        "id": "doktyp_b",
+        "value": "B",
+        "placeholder": null
+      },
+      {
+        "type": "checkbox",
+        "name": "doktyp[]",
+        "id": "doktyp_n",
+        "value": "N",
+        "placeholder": null
+      },
+      {
+        "type": "checkbox",
+        "name": "searchall",
+        "id": "searchall",
+        "value": null,
+        "placeholder": "Stichwörter"
+      },
+      {
+        "type": "number",
+        "name": "count",
+        "id": "count",
+        "value": "",
+        "placeholder": null
+      },
+      {
+        "type": "hidden",
+        "name": "csrftoken",
+        "id": null,
+        "value": "f5c6cdbe47f0fab2b7e0686ce7e6a201a64c47917bd893fb3aed061419d40148",
+        "placeholder": null
+      },
+      {
+        "type": "submit",
+        "name": null,
+        "id": null,
+        "value": "Anzeigen",
+        "placeholder": null
+      }
+    ],
+    "selects": [
+      {
+        "name": "typ",
+        "id": "typ",
+        "options": [
+          [
+            "- Alle -",
+            "-1"
+          ],
+          [
+            "\n                                Dokumente                            ",
+            "0"
+          ],
+          [
+            "\n                                    Anlagen                                ",
+            "1"
+          ],
+          [
+            "\n                                    Personen                                ",
+            "2"
+          ],
+          [
+            "\n                                    News und Downloads                                ",
+            "3"
+          ]
+        ]
+      },
+      {
+        "name": "idgremium",
+        "id": "idgremium",
+        "options": [
+          [
+            "- Alle Gremien -",
+            "-1"
+          ],
+          [
+            "\n                                    Samtgemeinderat                                ",
+            "34"
+          ],
+          [
+            "\n                                    Bau- und Umweltausschuss Samtgemeinde Eilsen                                ",
+            "48"
+          ],
+          [
+            "\n                                    Feuerschutzausschuss Samtgemeinde Eilsen                                ",
+            "52"
+          ],
+          [
+            "\n                                    Finanzausschuss Samtgemeinde Eilsen                                ",
+            "53"
+          ],
+          [
+            "\n                                    Jugend- und Sportausschuss Samtgemeinde Eilsen                                ",
+            "55"
+          ],
+          [
+            "\n                                    Samtgemeindeausschuss                                ",
+            "57"
+          ],
+          [
+            "\n                                    Schulausschuss Samtgemeinde Eilsen                                ",
+            "56"
+          ],
+          [
+            "\n                                    Gemeinderat Ahnsen                                ",
+            "35"
+          ],
+          [
+            "\n                                    Gemeinderat Bad Eilsen\n                                ",
+            "36"
+          ],
+          [
+            "\n                                    Ausschuss für Bauvorhaben und Umweltfragen/ Senioren, Jugend und Sport Bad Eilsen                                ",
+            "41"
+          ],
+          [
+            "\n                                    Ausschuss für Fremdenverkehr Bad Eilsen                                ",
+            "43"
+          ],
+          [
+            "\n                                    Verwaltungsausschuss Bad Eilsen                                ",
+            "46"
+          ],
+          [
+            "\n                                    Gemeinderat Buchholz                                ",
+            "37"
+          ],
+          [
+            "\n                                    Gemeinderat Heeßen                                ",
+            "32"
+          ],
+          [
+            "\n                                    Gemeinderat Luhden                                ",
+            "33"
+          ],
+          [
+            "\n                                    Bau- und Umweltausschuss Luhden                                ",
+            "39"
+          ],
+          [
+            "\n                                    Sport- und Kulturausschuss Luhden                                ",
+            "40"
+          ],
+          [
+            "\n                                    Verwaltungsausschuss Luhden                                ",
+            "58"
+          ],
+          [
+            "\n                                    bis 31.12.2024: Gruppe SPD und Bündnis 90/Grünen Heeßen                                ",
+            "60"
+          ],
+          [
+            "\n                                    bis 31.12.2024: Gruppe SPD-Bündnis90/Die Grünen-WLS-Kurlanc                                ",
+            "62"
+          ],
+          [
+            "\n                                    bis 31.12.2024: Gruppe WLS/SPD Luhden                                ",
+            "61"
+          ],
+          [
+            "\n                                    bis 24.11.2021: Bau- und Umweltausschuss Luhden                                ",
+            "50"
+          ],
+          [
+            "\n                                    bis 18.11.2021: Bauausschuss Bad Eilsen                                ",
+            "47"
+          ],
+          [
+            "\n                                    bis 18.11.2021: Finanzausschuss Bad Eilsen                                ",
+            "45"
+          ],
+          [
+            "\n                                    bis 18.11.2021: Jugend- und Sportausschuss Bad Eilsen                                ",
+            "44"
+          ],
+          [
+            "\n                                    bis 30.10.2021: Bau- und Umweltausschuss \nAhnsen                                ",
+            "38"
+          ],
+          [
+            "\n                                    bis 31.10.2016: Ausschuss für Bauvorhaben Bad Eilsen                                ",
+            "42"
+          ],
+          [
+            "\n                                    bis 31.10.2016: Jugend- , Sport- und Kulturausschuss Luhden                                ",
+            "59"
+          ],
+          [
+            "\n                                    bis 31.10.2011: Bauausschuss Heeßen                                ",
+            "49"
+          ],
+          [
+            "\n                                    bis 31.10.2011: Finanzausschuss Heeßen                                ",
+            "54"
+          ]
+        ]
+      }
+    ]
+  },
+  "result_text": "Zum Seiteninhalt springen.\nZur Hauptnavigation springen.\nZum Seitenabschluss mit Inhaltsangabe springen.\nZur Anmeldung springen.\nZur Schaltfläche zum Wechseln des Kontrastschemas springen.\n\nRatsinfosystem\n\nRecherche für Bürger, Politik und Verwaltung.\n\nBildmotiv in dieser Region: Blick auf das Rathaus der Samtgemeinde Eilsen mit umliegenden herbstlichen Blattwerk.\n\nBild: © Samtgemeinde Eilsen\n\nRatsinfosystem\n»\nRecherche\nStartseite\nNews\nÄmter\nGremien\nFraktionen\nPersonen\nVorlagen\nSitzungen\nRecherche\nAnmeldung\n\nBenutzername\n\nKennwort\n\nKennwort vergessen?\n\nRecherche\n\nIn diesem Formular können Sie die Auswahlkriterien der Recherche einschränken. Bitte füllen Sie die Formularfelder bei Bedarf aus.\n\nSuchkriterien\nSuchbegriffe \nStichwörter \nSuchtyp\n- Alle -\nDokumente\nAnlagen\nPersonen\nNews und Downloads\n Genaue Suche\nGremium\n- Alle Gremien -\nSamtgemeinderat\nBau- und Umweltausschuss Samtgemeinde Eilsen\nFeuerschutzausschuss Samtgemeinde Eilsen\nFinanzausschuss Samtgemeinde Eilsen\nJugend- und Sportausschuss Samtgemeinde Eilsen\nSamtgemeindeausschuss\nSchulausschuss Samtgemeinde Eilsen\nGemeinderat Ahnsen\nGemeinderat Bad Eilsen\nAusschuss für Bauvorhaben und Umweltfragen/ Senioren, Jugend und Sport Bad Eilsen\nAusschuss für Fremdenverkehr Bad Eilsen\nVerwaltungsausschuss Bad Eilsen\nGemeinderat Buchholz\nGemeinderat Heeßen\nGemeinderat Luhden\nBau- und Umweltausschuss Luhden\nSport- und Kulturausschuss Luhden\nVerwaltungsausschuss Luhden\nbis 31.12.2024: Gruppe SPD und Bündnis 90/Grünen Heeßen\nbis 31.12.2024: Gruppe SPD-Bündnis90/Die Grünen-WLS-Kurlanc\nbis 31.12.2024: Gruppe WLS/SPD Luhden\nbis 24.11.2021: Bau- und Umweltausschuss Luhden\nbis 18.11.2021: Bauausschuss Bad Eilsen\nbis 18.11.2021: Finanzausschuss Bad Eilsen\nbis 18.11.2021: Jugend- und Sportausschuss Bad Eilsen\nbis 30.10.2021: Bau- und Umweltausschuss Ahnsen\nbis 31.10.2016: Ausschuss für Bauvorhaben Bad Eilsen\nbis 31.10.2016: Jugend- , Sport- und Kulturausschuss Luhden\nbis 31.10.2011: Bauausschuss Heeßen\nbis 31.10.2011: Finanzausschuss Heeßen\nZeitraum von\nZeitraum bis\nArt des Dokuments\n Alle Dokumente\n Vorlagen\n Einladungen\n Beschlüsse\n Niederschriften\n Vollständig anzeigen\nErgebnisse pro Seite \nRecherche Info\n\nSie können gezielt nach einem oder mehreren Suchbegriffen oder ganzen Textpassagen suchen.\n\nStandardmäßig werden nur Wörter gesucht, die mit Ihrem eingegebenen Suchbegriff beginnen.\n\n[ bau ] liefert etwa Baustelle zurück, nicht aber Abbau.\n\nMöchten Sie, dass Ihr Suchbegriff an einer beliebigen Stelle eines Wortes vorkommen kann, müssen Sie ein * voranstellen.\n\n[ *bau ] liefert Baustelle und Abbau zurück.\n\nVerwenden Sie die Option \"genaue Suche\", um den Suchbegriff als ganzes Wort zu finden. Ohne diese Option wird der Suchbegriff als Wortfragment verstanden.\n\n[ haus ] findet mit dieser Option Haus, aber nicht Rathaus\n\nVerwenden Sie doppelte Anführungszeichen, um nach Textpassagen zu suchen. Eine Textpassage muss genau der Schreibweise entsprechen, wie sie im Text vorliegt.\n\n[ \"Dies ist eine Passage\" ]\n\nVerwenden Sie Leerzeichen, um Suchbegriffe mit UND zu verknüpfen.\n\n[ Begriff1 Begriff2 ]\n\nVerwenden Sie 'O' (großes 'O') oder '|' (senkrechter Strich), um Suchbegriffe mit ODER zu verknüpfen.\n\n[ Begriff1 O Begriff2 ]     [ Begriff1 | Begriff2 ]\n\nVerwenden Sie 'N' oder '-' (Minus), um den nachfolgenden Suchbegriff aus der Suche auszuschließen.\n\n[ Begriff1 N Begriff2 ]     [ Begriff1 - Begriff2 ]\n\n© 2026 STERNBERG Software GmbH & Co. KG, Bielefeld\n\nImpressum | Datenschutzerklärung | Barrierefreiheit",
+  "links": [],
+  "downloads": [],
+  "result_url": "https://samtgemeinde-eilsen.ratsinfomanagement.net/recherche",
+  "result_title": "Recherche - Ratsinfosystem"
+}
