@@ -105,12 +105,17 @@ jobs:
               "Am Vorabend um 18:00 Uhr",
               "Am Vorabend um 20:00 Uhr",
               "Am Abholtag um 06:30 Uhr",
+              "Abfuhrkalender hinzufügen",
               "/muelltermine.ics",
               "Alle Termine",
-              "Feiertagsverschiebung",
+              "Feiertag",
+              "waste-filter-shell",
               "/api/muell/push-einstellung",
           ):
               assert expected in html, expected
+          assert "Erinnern lassen" not in html
+          assert "Gelbe Tonne" in html
+          assert "Restmüll" in html
 
           berlin = ZoneInfo("Europe/Berlin")
           at_18 = _reminder_target(datetime(2026, 8, 9, 18, 0, tzinfo=berlin), "18:00")
