@@ -35,19 +35,10 @@ jobs:
           import pwa_main
           import mobility_routes as mobility
 
-          print("pwa_main:", pwa_main.__file__)
-          print("mobility:", mobility.__file__)
-          print("mobility router:", [getattr(route, "path", "") for route in mobility.router.routes])
-          print("installed flag:", getattr(pwa_main.app.state, "mobility_installed", False))
           paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
-          print("Mobility app paths before direct include:", sorted(path for path in paths if "mobil" in path))
-          if "/mobilitaet" not in paths:
-              pwa_main.app.include_router(mobility.router)
-              pwa_main.app.router.routes.insert(0, mobility.APIRoute("/", mobility._home_with_mobility, methods=["GET"], name="pwa_home_mobility"))
-          paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
-          print("Mobility app paths after direct include:", sorted(path for path in paths if "mobil" in path))
           assert "/mobilitaet" in paths
           assert "/api/mobilitaet" in paths
+          assert getattr(pwa_main.app.state, "mobility_installed", False)
           assert next(route for route in pwa_main.app.router.routes if getattr(route, "path", "") == "/").name == "pwa_home_mobility"
 
           mobility._platform_center = lambda: (52.258, 9.099)
