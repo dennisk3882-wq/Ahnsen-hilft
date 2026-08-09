@@ -1,0 +1,43 @@
+name: Temporary Ratsinfo apply
+on:
+  push:
+    branches: [agent/ratsinfo-portal]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ratsinfo-portal
+          fetch-depth: 0
+      - name: Apply Ratsportal enhancement
+        run: python scripts/apply_ratsinfo_portal.py
+      - name: Validate Python and core markers
+        run: |
+          python -m py_compile ratsinfo_service.py community_routes.py community_ui.py community_search.py pwa_ui.py
+          grep -q '/api/politik-rat' community_routes.py
+          grep -q 'Amtliche Sitzungen & Dokumente' community_ui.py
+          grep -q 'RATSINFO_OPARL_SYSTEM_URL' ratsinfo_service.py
+          grep -q 'Sitzungen, Protokolle und Beschlüsse.' pwa_ui.py
+      - name: Validate network-free fallback
+        env:
+          RATSINFO_OPARL_SYSTEM_URL: ""
+        run: |
+          python - <<'PY'
+          import ratsinfo_service as service
+          snapshot = service.get_ratsinfo_snapshot()
+          assert snapshot['mode'] == 'portal'
+          assert snapshot['oparl_configured'] is False
+          assert len(snapshot['years']) >= 5
+          PY
+      - name: Remove temporary helpers and commit
+        run: |
+          rm scripts/apply_ratsinfo_portal.py .github/workflows/tmp-ratsinfo-apply.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ratsinfo_service.py community_routes.py community_ui.py community_search.py pwa_ui.py .github/workflows/ratsinfo-smoke.yml scripts/apply_ratsinfo_portal.py .github/workflows/tmp-ratsinfo-apply.yml
+          git commit -m 'Politikbereich als Ratsportal mit OParl vorbereiten'
+          git push origin HEAD:agent/ratsinfo-portal
