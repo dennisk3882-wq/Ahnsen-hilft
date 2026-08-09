@@ -1,0 +1,73 @@
+name: Temporary diagnose old Ahnsen minutes
+on:
+  push:
+    branches: [agent/ratsarchive-autosync]
+permissions:
+  contents: write
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ratsarchive-autosync
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright pypdf
+      - run: python -m playwright install --with-deps chromium
+      - name: Diagnose session 16
+        run: |
+          cat > /tmp/diagnose.py <<'PY'
+          import asyncio, json, sys
+          sys.path.insert(0,'.')
+          from scripts.sync_ratsarchive_from_ris import BASE_URL, _wait_for_public_page, _collect_meeting_links, _anchors
+          from playwright.async_api import async_playwright
+          
+          async def main():
+              async with async_playwright() as p:
+                  b=await p.chromium.launch(headless=False,args=['--disable-dev-shm-usage'])
+                  c=await b.new_context(locale='de-DE',viewport={'width':1440,'height':1100})
+                  page=await c.new_page()
+                  await page.goto(BASE_URL,wait_until='domcontentloaded',timeout=45000)
+                  await _wait_for_public_page(page)
+                  meetings=await _collect_meeting_links(page,6)
+                  target=next(m for m in meetings if m['session_number']==16 and m['date']=='2025-09-16')
+                  p2=await c.new_page()
+                  await p2.goto(target['source_page'],wait_until='domcontentloaded',timeout=40000)
+                  await p2.wait_for_timeout(1500)
+                  body=await p2.locator('body').inner_text()
+                  print('TARGET',json.dumps(target,ensure_ascii=False))
+                  print('BODY\n',body[:20000])
+                  print('ANCHORS\n',json.dumps(await _anchors(p2),ensure_ascii=False,indent=2)[:40000])
+                  extras=[]
+                  for sel in ('[onclick]','button','iframe','object','embed'):
+                      loc=p2.locator(sel)
+                      for i in range(await loc.count()):
+                          el=loc.nth(i)
+                          try:
+                              extras.append({
+                                  'tag':await el.evaluate('(e)=>e.tagName'),
+                                  'text':' '.join((await el.inner_text()).split())[:500],
+                                  'title':await el.get_attribute('title'),
+                                  'aria':await el.get_attribute('aria-label'),
+                                  'onclick':await el.get_attribute('onclick'),
+                                  'src':await el.get_attribute('src'),
+                                  'data':await el.get_attribute('data'),
+                              })
+                          except Exception: pass
+                  print('EXTRAS\n',json.dumps(extras,ensure_ascii=False,indent=2)[:40000])
+                  await b.close()
+          asyncio.run(main())
+          PY
+          xvfb-run -a python /tmp/diagnose.py
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          rm -f .github/workflows/tmp-diagnose-ris-old-minutes.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Temporäre RIS-Diagnose entfernen' || true
+          git push origin HEAD:agent/ratsarchive-autosync
