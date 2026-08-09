@@ -114,33 +114,3 @@ assert 'def _text_sha256' in sync
 assert 'def _preserve_identical_official_pdf' in sync
 assert '"text_sha256": _text_sha256(extracted)' in sync
 sync_path.write_text(sync, encoding='utf-8')
-
-workflow_path = Path('.github/workflows/ratsarchive-sync.yml')
-workflow = workflow_path.read_text(encoding='utf-8')
-old = '''          for item in meetings:
-              assert item.get('organization') == 'Gemeinderat Ahnsen'
-              key = (item.get('date'), item.get('session_number'))
-              assert key not in seen, f'Doppelter Sitzungseintrag: {key}'
-              seen.add(key)
-              path = base / item['filename']
-              assert path.is_file(), f'PDF fehlt: {path}'
-              assert path.read_bytes().startswith(b'%PDF-'), f'Ungültige PDF: {path}'
-          print(f'{len(meetings)} amtliche Ahnsen-Niederschriften validiert.')
-'''
-new = '''          pdf_count = 0
-          for item in meetings:
-              assert item.get('organization') == 'Gemeinderat Ahnsen'
-              key = (item.get('date'), item.get('session_number'))
-              assert key not in seen, f'Doppelter Sitzungseintrag: {key}'
-              seen.add(key)
-              filename = str(item.get('filename') or '').strip()
-              if not filename:
-                  continue
-              path = base / filename
-              assert path.is_file(), f'PDF fehlt: {path}'
-              assert path.read_bytes().startswith(b'%PDF-'), f'Ungültige PDF: {path}'
-              pdf_count += 1
-          print(f'{len(meetings)} Ahnsen-Sitzungen und {pdf_count} lokal archivierte PDFs validiert.')
-'''
-assert old in workflow, 'workflow validation anchor missing'
-workflow_path.write_text(workflow.replace(old, new), encoding='utf-8')
