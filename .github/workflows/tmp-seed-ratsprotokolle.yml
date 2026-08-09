@@ -1,0 +1,63 @@
+name: Temporary seed Ahnsen protocols
+on:
+  push:
+    branches: [agent/seed-two-ratsprotokolle]
+permissions:
+  contents: write
+jobs:
+  seed:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/seed-two-ratsprotokolle
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download official Ahnsen protocol PDFs
+        run: |
+          mkdir -p static/ratsarchive-seed
+          curl --fail --location --retry 3 --retry-delay 2 --user-agent 'Mozilla/5.0 Ahnsen-hilft archive import' \
+            'https://www.ahnsen-schaumburg.de/assets/downloads/2023/Protokoll%206ste%2002-03-23.pdf' \
+            --output 'static/ratsarchive-seed/2023-03-02_protokoll_6_sitzung.pdf'
+          curl --fail --location --retry 3 --retry-delay 2 --user-agent 'Mozilla/5.0 Ahnsen-hilft archive import' \
+            'https://www.ahnsen-schaumburg.de/assets/downloads/w7e6610121d0a0005415f9d2662eb225/Protokoll%2023.11.2022.pdf' \
+            --output 'static/ratsarchive-seed/2022-11-23_protokoll_5_sitzung.pdf'
+      - name: Verify and wire startup import
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          files = [
+              Path('static/ratsarchive-seed/2023-03-02_protokoll_6_sitzung.pdf'),
+              Path('static/ratsarchive-seed/2022-11-23_protokoll_5_sitzung.pdf'),
+          ]
+          for path in files:
+              data = path.read_bytes()
+              assert data.startswith(b'%PDF-'), f'not a PDF: {path}'
+              assert len(data) > 1000, f'PDF unexpectedly small: {path}'
+              print(path, len(data))
+
+          path = Path('pwa_core.py')
+          text = path.read_text(encoding='utf-8')
+          old_import = 'from ratsarchive_service import init_ratsarchive_db\n'
+          new_import = old_import + 'from ratsarchive_seed import seed_official_ratsarchive\n'
+          if 'from ratsarchive_seed import seed_official_ratsarchive' not in text:
+              assert old_import in text
+              text = text.replace(old_import, new_import, 1)
+          old_start = '    init_ratsarchive_db()\n    init_translation_db()'
+          new_start = '    init_ratsarchive_db()\n    seed_official_ratsarchive()\n    init_translation_db()'
+          if '    seed_official_ratsarchive()' not in text:
+              assert old_start in text
+              text = text.replace(old_start, new_start, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          python -m py_compile ratsarchive_seed.py ratsarchive_service.py ratsarchive_models.py pwa_core.py
+      - name: Remove temporary workflow and commit
+        run: |
+          rm -f .github/workflows/tmp-seed-ratsprotokolle.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Zwei offizielle Ahnsener Ratsprotokolle ins Archiv übernehmen'
+          git push origin HEAD:agent/seed-two-ratsprotokolle
