@@ -1,0 +1,29 @@
+name: Temporary Ratsinfo probe
+on:
+  push:
+    branches: [agent/ratsinfo-internal-only]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe official Eilsen RIS endpoints
+        shell: bash
+        run: |
+          python - <<'PY'
+          import requests
+          base='https://samtgemeinde-eilsen.ratsinfomanagement.net'
+          paths=['/','/termine','/recherche','/webservice/oparl/v1.1','/webservice/oparl/v1.1/','/webservice/oparl/v1.1/body/1','/webservice/oparl/v1.0/body/1']
+          headers={'User-Agent':'Mozilla/5.0 Ahnsen-hilft/1.0','Accept':'application/json,text/html;q=0.9,*/*;q=0.8'}
+          for path in paths:
+              url=base+path
+              try:
+                  r=requests.get(url,headers=headers,timeout=12,allow_redirects=True)
+                  print('\nURL', url)
+                  print('STATUS',r.status_code,'FINAL',r.url,'TYPE',r.headers.get('content-type'))
+                  text=r.text.replace('\n',' ')[:800]
+                  print('BODY',text)
+              except Exception as e:
+                  print('\nURL',url,'ERROR',repr(e))
+          PY
