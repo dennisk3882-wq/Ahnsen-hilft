@@ -1,0 +1,55 @@
+name: Temporary ratsarchive functional test
+on:
+  push:
+    branches: [agent/local-ratsarchiv]
+permissions:
+  contents: write
+jobs:
+  test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:////tmp/ratsarchive-test.db
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/local-ratsarchiv
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Exercise local archive end to end
+        run: |
+          python - <<'PY'
+          from io import BytesIO
+          from pypdf import PdfWriter
+          from ratsarchive_service import (
+              add_archive_document, create_archive_meeting, delete_archive_document,
+              delete_archive_meeting, get_admin_archive, get_archive_document,
+              get_archive_snapshot, init_ratsarchive_db,
+          )
+          init_ratsarchive_db()
+          mid=create_archive_meeting(date_text='2026-05-05', time_text='19:00', title='Gemeinderat Ahnsen', organization='Gemeinderat Ahnsen', location='Dorfgemeinschaftshaus Ahnsen', summary='Haushalt und Dorfentwicklung', source_url='https://example.invalid/source', published=True)
+          out=BytesIO(); w=PdfWriter(); w.add_blank_page(width=595,height=842); w.add_metadata({'/Title':'Niederschrift'}); w.write(out)
+          did,created=add_archive_document(mid,kind='Niederschrift / Protokoll',title='Niederschrift 05.05.2026',filename='niederschrift.pdf',data=out.getvalue(),source_url='https://example.invalid/file.pdf')
+          assert created and did
+          snap=get_archive_snapshot(query='Haushalt',year='2026')
+          assert snap['meeting_count_all']==1 and len(snap['meetings'])==1
+          assert snap['meetings'][0]['documents'][0]['download_url']==f'/politik-rat/dokument/{did}'
+          blob=get_archive_document(did); assert blob and blob['data'].startswith(b'%PDF-')
+          admin=get_admin_archive(); assert admin and admin[0]['id']==mid
+          assert delete_archive_document(did)
+          assert delete_archive_meeting(mid)
+          print('functional ratsarchive test ok')
+          PY
+      - name: Remove this temporary workflow
+        if: always()
+        run: |
+          rm -f .github/workflows/tmp-ratsarchive-functional.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Temporären Ratsarchiv-Funktionstest entfernen'
+            git push origin HEAD:agent/local-ratsarchiv
+          fi
