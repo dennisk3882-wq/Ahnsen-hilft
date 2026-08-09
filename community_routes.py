@@ -60,6 +60,7 @@ from community_ui import (
 from crud import suche_meldungen
 from gemeinde_crud import set_gemeinde_einstellung
 from platform_runtime import get_platform_snapshot
+from ratsinfo_service import get_ratsinfo_snapshot
 from translation_service import provider_status, translate_texts
 
 
@@ -272,8 +273,23 @@ async def neighbor_contact(request: Request, post_id: int, background_tasks: Bac
 
 
 @router.get("/politik-rat")
-async def public_politics():
-    return politics_page(get_civic_items())
+async def public_politics(q: str = "", jahr: str = ""):
+    query = _clean(q, 120)
+    year = _clean(jahr, 4)
+    return politics_page(
+        get_civic_items(),
+        get_ratsinfo_snapshot(query=query, year=year),
+    )
+
+
+@router.get("/api/politik-rat")
+async def public_politics_data(q: str = "", jahr: str = ""):
+    return JSONResponse(
+        get_ratsinfo_snapshot(
+            query=_clean(q, 120),
+            year=_clean(jahr, 4),
+        )
+    )
 
 
 @router.post("/api/sprache")
