@@ -32,15 +32,15 @@ jobs:
         run: pip install -r requirements.txt
       - name: Compile waste center
         run: |
-          python -m py_compile waste_preferences.py waste_center.py pwa_entry.py pwa_push_job.py pwa_push_job_v2.py
-      - name: Validate waste center, route override and reminder slots
+          python -m py_compile waste_preferences.py waste_center.py pwa_main.py pwa_entry.py pwa_push_job.py pwa_push_job_v2.py
+      - name: Validate waste center, production route and reminder slots
         run: |
           python - <<'PY'
           from datetime import date, datetime
           from types import SimpleNamespace
           from zoneinfo import ZoneInfo
 
-          import pwa_entry
+          import pwa_main
           from pwa_core import startup
           from pwa_crud import create_user, get_user_by_id
           from pwa_push_job_v2 import _reminder_target
@@ -50,16 +50,17 @@ jobs:
           startup()
 
           waste_get_routes = [
-              route for route in pwa_entry.app.router.routes
+              route for route in pwa_main.app.router.routes
               if getattr(route, "path", "") == "/muelltermine-info"
               and "GET" in (getattr(route, "methods", set()) or set())
           ]
           assert waste_get_routes
           assert waste_get_routes[0].name == "waste_center_page", [route.name for route in waste_get_routes]
+          assert getattr(pwa_main.app.state, "waste_center_installed", False) is True
           assert any(
               getattr(route, "path", "") == "/api/muell/push-einstellung"
               and "POST" in (getattr(route, "methods", set()) or set())
-              for route in pwa_entry.app.router.routes
+              for route in pwa_main.app.router.routes
           )
 
           user = create_user(
@@ -122,5 +123,5 @@ jobs:
           assert recovery == (date(2026, 8, 10), "heute")
           assert _reminder_target(datetime(2026, 8, 10, 12, 0, tzinfo=berlin), "18:00") is None
 
-          print("Waste center smoke tests passed")
+          print("Waste center production-route smoke tests passed")
           PY
