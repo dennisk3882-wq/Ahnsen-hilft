@@ -1,0 +1,88 @@
+name: Translation fallback smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./translation-fallback-smoke.db
+      MYMEMORY_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate fallback and cache
+        run: |
+          python -m py_compile translation_service.py
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          db = Path("translation-fallback-smoke.db")
+          if db.exists():
+              db.unlink()
+
+          import translation_service as ts
+
+          calls = []
+
+          class FakeResponse:
+              def __init__(self, params):
+                  self.params = params
+
+              def raise_for_status(self):
+                  return None
+
+              def json(self):
+                  text = self.params["q"]
+                  translations = {
+                      "Was können wir verbessern?": "What can we improve?",
+                      "Bitte auswählen": "Please select",
+                  }
+                  return {
+                      "responseStatus": 200,
+                      "responseData": {"translatedText": translations.get(text, "EN: " + text)},
+                  }
+
+          def fake_get(url, *, params=None, headers=None, timeout=None):
+              assert url == "https://api.mymemory.translated.net/get"
+              assert params["langpair"] == "de|en"
+              assert len(params["q"].encode("utf-8")) <= 500
+              calls.append(params["q"])
+              return FakeResponse(params)
+
+          ts._provider_urls = lambda: []
+          ts.requests.get = fake_get
+
+          result = ts.translate_texts(
+              ["Was können wir verbessern?", "Bitte auswählen"],
+              target="en",
+              source="auto",
+          )
+          assert result["translations"] == ["What can we improve?", "Please select"], result
+          assert result["provider"] == "api.mymemory.translated.net", result
+          assert result["degraded"] is False, result
+          assert result["failed"] == 0, result
+          assert len(calls) == 2, calls
+
+          second = ts.translate_texts(
+              ["Was können wir verbessern?", "Bitte auswählen"],
+              target="en",
+              source="auto",
+          )
+          assert second["translations"] == result["translations"]
+          assert second["cached"] == 2, second
+          assert len(calls) == 2, "second request should be served entirely from cache"
+
+          chunks = ts._split_utf8_bytes("ä" * 700)
+          assert len(chunks) > 1
+          assert all(len(chunk.encode("utf-8")) <= 450 for chunk in chunks)
+          print("Translation fallback smoke tests passed")
+          PY
