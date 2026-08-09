@@ -47,15 +47,20 @@ jobs:
           meetings = manifest.get('meetings', [])
           assert meetings, 'Manifest enthält keine Sitzungen.'
           seen = set()
+          pdf_count = 0
           for item in meetings:
               assert item.get('organization') == 'Gemeinderat Ahnsen'
               key = (item.get('date'), item.get('session_number'))
               assert key not in seen, f'Doppelter Sitzungseintrag: {key}'
               seen.add(key)
-              path = base / item['filename']
+              filename = str(item.get('filename') or '').strip()
+              if not filename:
+                  continue
+              path = base / filename
               assert path.is_file(), f'PDF fehlt: {path}'
               assert path.read_bytes().startswith(b'%PDF-'), f'Ungültige PDF: {path}'
-          print(f'{len(meetings)} amtliche Ahnsen-Niederschriften validiert.')
+              pdf_count += 1
+          print(f'{len(meetings)} Ahnsen-Sitzungen und {pdf_count} lokal archivierte PDFs validiert.')
           PY
 
       - name: Nur echte Änderungen veröffentlichen
