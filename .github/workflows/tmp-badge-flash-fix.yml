@@ -1,0 +1,39 @@
+name: Temporary badge flash fix
+
+on:
+  push:
+    branches: [agent/fix-badge-flash]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-badge-flash
+      - name: Patch initial badge state and asset versions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('pwa_ui.py')
+          s = p.read_text(encoding='utf-8')
+          old = '<a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden>{icon("message")}<span class="message-badge" hidden></span></a>'
+          new = '<a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden style="display:none!important">{icon("message")}<span class="message-badge" hidden style="display:none!important"></span></a>'
+          if old not in s:
+              raise SystemExit('message badge pattern not found')
+          s = s.replace(old, new, 1)
+          s = s.replace('/community.css?v=2', '/community.css?v=3')
+          s = s.replace('/community.js?v=2', '/community.js?v=3')
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Remove temporary workflow and commit fix
+        run: |
+          rm .github/workflows/tmp-badge-flash-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pwa_ui.py .github/workflows/tmp-badge-flash-fix.yml
+          git commit -m "Nachrichten-Badge ohne Ladeblitz rendern"
+          git push origin HEAD:agent/fix-badge-flash
