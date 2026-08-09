@@ -18,7 +18,7 @@ OFFICIAL_PROTOCOLS = (
         "title": "Öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen",
         "organization": "Gemeinderat Ahnsen",
         "location": "Dorfgemeinschaftshaus Ahnsen, 31708 Ahnsen, Versammlungsraum",
-        "summary": "Amtliche öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen vom 05.05.2026 (19:30 bis 20:33 Uhr). Im Ratsinformationssystem der Samtgemeinde Eilsen am 04.06.2026 veröffentlicht; lokal als Archivkopie des öffentlich ausgelesenen amtlichen Inhalts bereitgestellt.",
+        "summary": "Amtliche öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen vom 05.05.2026 (19:30 bis 20:40 Uhr). Original-PDF aus dem Ratsinformationssystem der Samtgemeinde Eilsen, dort am 04.06.2026 exportiert und unverändert als lokale Archivkopie bereitgestellt.",
         "source_page": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZS0b_zYl2QMJ3h4RM5bBmzA",
         "source_pdf": "https://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf",
         "filename": "2026-05-05_oeffentliche_niederschrift_gemeinderat_ahnsen.pdf",
