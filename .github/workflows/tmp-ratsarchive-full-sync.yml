@@ -1,0 +1,44 @@
+name: Temporary full Ahnsen ratsarchive sync
+on:
+  push:
+    branches: [agent/ratsarchive-autosync]
+permissions:
+  contents: write
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ratsarchive-autosync
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright pypdf
+      - run: python -m playwright install --with-deps chromium
+      - name: Run official RIS sync
+        run: xvfb-run -a python scripts/sync_ratsarchive_from_ris.py --years 6
+      - name: Validate result
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p=pathlib.Path('static/ratsarchive-seed/manifest.json')
+          data=json.loads(p.read_text(encoding='utf-8'))
+          meetings=data.get('meetings', [])
+          nums={int(m['session_number']) for m in meetings if str(m.get('session_number','')).isdigit()}
+          print('meetings', len(meetings))
+          print('sessions', sorted(nums))
+          print('missing 1-18', [n for n in range(1,19) if n not in nums])
+          assert len(meetings) >= 10
+          assert all((pathlib.Path('static/ratsarchive-seed')/m['filename']).exists() for m in meetings)
+          PY
+      - name: Remove temporary workflow and commit synced archive
+        if: always()
+        run: |
+          rm -f .github/workflows/tmp-ratsarchive-full-sync.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Ahnsener Ratsarchiv aus offiziellem RIS synchronisieren' || true
+          git push origin HEAD:agent/ratsarchive-autosync
