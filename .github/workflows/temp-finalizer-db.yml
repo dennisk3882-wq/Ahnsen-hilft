@@ -39,12 +39,9 @@ jobs:
           from pathlib import Path
           p = Path('pwa_main.py')
           text = p.read_text(encoding='utf-8')
-          marker = '''\n\n# FastAPI resolves matching routes in registration order. Insert the corrected\n# endpoints before the legacy routes imported from pwa_core.\n'''
-          guard = '''\n\n# Keep all feature routers available in the production entry point. Earlier\n# versions of this compatibility module could expose only the legacy pwa_core\n# routes depending on import order. Re-include the community router only when\n# its canonical endpoint is missing; this is idempotent and preserves route\n# ordering for the versioned manifest/icon overrides below.\nfrom community_routes import router as _community_router\nif not any(getattr(route, "path", "") == "/api/uebersetzen" for route in app.router.routes):\n    app.include_router(_community_router)\n'''
-          if guard.strip() not in text:
-              if marker not in text:
-                  raise SystemExit('pwa_main route insertion marker not found')
-              text = text.replace(marker, guard + marker, 1)
+          guard = '''\n\n# Ensure every community feature route is present in the actual production\n# application. APIRouter routes are safe to append directly because they are\n# already fully configured APIRoute instances. Missing routes only are added,\n# so the compatibility layer stays idempotent.\nfrom community_routes import router as _community_router\nfor _feature_route in _community_router.routes:\n    _feature_path = getattr(_feature_route, "path", "")\n    _feature_methods = frozenset(getattr(_feature_route, "methods", set()) or set())\n    if not any(\n        getattr(_existing_route, "path", "") == _feature_path\n        and frozenset(getattr(_existing_route, "methods", set()) or set()) == _feature_methods\n        for _existing_route in app.router.routes\n    ):\n        app.router.routes.append(_feature_route)\n'''
+          if 'for _feature_route in _community_router.routes:' not in text:
+              text = text.rstrip() + guard + '\n'
           p.write_text(text, encoding='utf-8')
           PY
       - name: Validate code and runtime routes
