@@ -150,12 +150,14 @@ def politics_page(items, ratsinfo: dict | None = None) -> HTMLResponse:
         party_key = "spd" if party.startswith("SPD") else "cdu" if party.startswith("CDU") else "other"
         role = str(member.get("role") or "Ratsmitglied")
         note = str(member.get("note") or "").strip()
+        role_badge = f'<span class="council-role">{escape(role)}</span>' if role != "Ratsmitglied" else ""
+        note_html = f'<p class="council-person-note">{escape(note)}</p>' if note else ""
         council_member_cards.append(
-            f"""<article class=\"council-person\">
-              <div class=\"council-person-head\"><span class=\"council-party {party_key}\">{escape(party)}</span>{f'<span class=\"council-role\">{escape(role)}</span>' if role != 'Ratsmitglied' else ''}</div>
+            f"""<article class="council-person">
+              <div class="council-person-head"><span class="council-party {party_key}">{escape(party)}</span>{role_badge}</div>
               <h3>{escape(str(member.get('name') or 'Ratsmitglied'))}</h3>
-              <div class=\"council-person-facts\"><span><small>Alter</small><strong>{escape(str(member.get('age') or 'nicht öffentlich verifiziert'))}</strong></span><span><small>Wohnort</small><strong>{escape(str(member.get('residence') or municipality))}</strong></span></div>
-              {f'<p class=\"council-person-note\">{escape(note)}</p>' if note else ''}
+              <div class="council-person-facts"><span><small>Alter</small><strong>{escape(str(member.get('age') or 'nicht öffentlich verifiziert'))}</strong></span><span><small>Wohnort</small><strong>{escape(str(member.get('residence') or municipality))}</strong></span></div>
+              {note_html}
             </article>"""
         )
     council_members_area = "".join(council_member_cards)
