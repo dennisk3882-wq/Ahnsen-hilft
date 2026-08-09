@@ -166,17 +166,48 @@
     state.observer.observe(document.body, {childList:true, subtree:true});
   };
 
-  const setupMessages = async () => {
+  const refreshMessages = async () => {
     const link = document.getElementById('message-center-link');
     if (!link) return;
+    const badge = link.querySelector('.message-badge');
+
+    // Never keep an old badge visible while the current unread count is unknown.
+    if (badge) {
+      badge.textContent = '';
+      badge.hidden = true;
+    }
+
     try {
-      const response = await fetch('/api/me/unread-count', {credentials:'same-origin'});
-      if (!response.ok) return;
+      const response = await fetch('/api/me/unread-count', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {'Cache-Control': 'no-cache'}
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       link.hidden = !data.loggedIn;
-      const badge = link.querySelector('.message-badge');
-      if (badge) { badge.textContent = data.count > 99 ? '99+' : String(data.count || ''); badge.hidden = !data.count; }
-    } catch (_) {}
+      const count = Number(data.count || 0);
+      if (badge) {
+        badge.textContent = count > 99 ? '99+' : (count > 0 ? String(count) : '');
+        badge.hidden = count <= 0;
+      }
+    } catch (_) {
+      // On an API/cache error an old red dot is more misleading than no badge.
+      if (badge) {
+        badge.textContent = '';
+        badge.hidden = true;
+      }
+    }
+  };
+
+  const setupMessages = () => {
+    if (!document.getElementById('message-center-link')) return;
+    refreshMessages();
+    window.addEventListener('pageshow', refreshMessages);
+    window.addEventListener('focus', refreshMessages);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshMessages();
+    });
   };
 
   const setupBrand = async () => {
