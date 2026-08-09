@@ -1,0 +1,71 @@
+name: Temporary finalizer with test database
+
+on:
+  push:
+    branches:
+      - agent/i18n-white-label-complete
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:////tmp/ahnsen-i18n-finalizer.db
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/i18n-white-label-complete
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Execute corrected finalizer patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          lines = Path('.github/workflows/temp-run-finalizer-fixed.yml').read_text(encoding='utf-8').splitlines()
+          start = next(i for i, line in enumerate(lines) if line.strip() == '- name: Run finalizer patch and normalize generated imports')
+          run_line = next(i for i in range(start + 1, len(lines)) if lines[i].strip() == 'run: |')
+          end = next(i for i in range(run_line + 1, len(lines)) if lines[i].startswith('      - name: Validate code and application import'))
+          body = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines[run_line + 1:end]) + '\n'
+          Path('/tmp/finalizer-patch.sh').write_text(body, encoding='utf-8')
+          PY
+          bash -euo pipefail /tmp/finalizer-patch.sh
+      - name: Validate code and runtime routes
+        run: |
+          python -m py_compile platform_runtime.py translation_service.py community_crud.py community_routes.py community_dashboard.py community_search.py community_ui.py intern_ui.py warning_service.py warning_ui.py warning_dashboard.py pwa_ui.py pwa_core.py pwa_main.py push_service.py smart_push.py pwa_push_job.py email_service.py muelltermine_parser.py
+          node --check static/community.js
+          node --check static/pwa.js
+          python - <<'PY'
+          import asyncio
+          import pwa_main
+          from platform_runtime import get_platform_snapshot
+          cfg = get_platform_snapshot()
+          assert cfg['platform_name']
+          assert cfg['platform_slug']
+          assert cfg['pwa_icon_192_url']
+          assert cfg['apple_touch_icon_url']
+          paths = {getattr(route, 'path', '') for route in pwa_main.app.routes}
+          for required in ('/api/uebersetzen', '/api/uebersetzen/status', '/intern/plattform', '/ueber-gemeinde', '/manifest.webmanifest', '/pwa.js'):
+              assert required in paths, required
+          manifest = asyncio.run(pwa_main.manifest_v5())
+          assert cfg['platform_name'].encode() in manifest.body
+          js = asyncio.run(pwa_main.pwa_javascript_v6())
+          assert js.status_code == 200
+          print('white-label/i18n runtime smoke ok')
+          PY
+      - name: Commit final integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gemeinde_crud.py platform_runtime.py community_dashboard.py community_routes.py static/community.js push_service.py smart_push.py pwa_push_job.py email_service.py muelltermine_parser.py warning_ui.py warning_dashboard.py pwa_ui.py pwa_core.py pwa_main.py static/pwa.js
+          if git diff --cached --quiet; then
+            echo "No production changes to commit"
+            exit 0
+          fi
+          git commit -m "White-Label und Vollübersetzung finalisieren"
+          git push origin HEAD:agent/i18n-white-label-complete
