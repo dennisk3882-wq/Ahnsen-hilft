@@ -1,0 +1,101 @@
+name: Temporary browser Eilsen RIS public access
+on:
+  push:
+    branches: [agent/import-current-2026-ris-protokoll]
+permissions:
+  contents: write
+jobs:
+  browse:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/import-current-2026-ris-protokoll
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright pypdf
+      - run: python -m playwright install --with-deps chromium
+      - name: Browse public RIS normally with JavaScript
+        run: |
+          cat > /tmp/browse_ris.py <<'PY'
+          import asyncio, json, re
+          from pathlib import Path
+          from urllib.parse import urljoin
+          from playwright.async_api import async_playwright
+
+          BASE='https://samtgemeinde-eilsen.ratsinfomanagement.net/'
+          async def main():
+              report={'steps':[], 'links':[]}
+              async with async_playwright() as p:
+                  browser=await p.chromium.launch(headless=False, args=['--disable-dev-shm-usage'])
+                  context=await browser.new_context(locale='de-DE', viewport={'width':1440,'height':1000})
+                  page=await context.new_page()
+                  try:
+                      await page.goto(BASE, wait_until='domcontentloaded', timeout=45000)
+                      for _ in range(12):
+                          await page.wait_for_timeout(2500)
+                          title=await page.title()
+                          text=(await page.locator('body').inner_text())[:5000]
+                          report['steps'].append({'url':page.url,'title':title,'preview':text[:600]})
+                          if 'Browser-Überprüfung' not in title and 'Browser wird überprüft' not in text:
+                              break
+                      report['after_waf']={'url':page.url,'title':await page.title(),'text':(await page.locator('body').inner_text())[:5000]}
+                      if 'Browser-Überprüfung' not in (await page.title()):
+                          await page.goto(urljoin(BASE,'recherche'), wait_until='domcontentloaded', timeout=45000)
+                          await page.wait_for_timeout(2500)
+                          # Fill a likely search field without relying on hidden/internal endpoints.
+                          inputs=page.locator('input')
+                          for i in range(await inputs.count()):
+                              el=inputs.nth(i)
+                              try:
+                                  typ=(await el.get_attribute('type') or '').lower()
+                                  name=await el.get_attribute('name') or ''
+                                  placeholder=await el.get_attribute('placeholder') or ''
+                                  if typ in ('','text','search') and (re.search(r'term|such|search',name,re.I) or re.search(r'such|recherche',placeholder,re.I)):
+                                      await el.fill('Ahnsen')
+                                      break
+                              except Exception: pass
+                          buttons=page.get_by_role('button')
+                          clicked=False
+                          for i in range(await buttons.count()):
+                              b=buttons.nth(i)
+                              try:
+                                  label=(await b.inner_text()).strip()
+                                  if re.search(r'such|recher',label,re.I):
+                                      await b.click(); clicked=True; break
+                              except Exception: pass
+                          if clicked:
+                              await page.wait_for_timeout(4000)
+                          body=(await page.locator('body').inner_text())[:100000]
+                          report['search']={'url':page.url,'title':await page.title(),'text':body}
+                          anchors=page.locator('a[href]')
+                          for i in range(await anchors.count()):
+                              a=anchors.nth(i)
+                              try:
+                                  label=' '.join((await a.inner_text()).split())
+                                  href=urljoin(page.url, await a.get_attribute('href'))
+                                  if re.search(r'ahnsen|niederschrift|protokoll|2026',label,re.I) or re.search(r'pdf|sdnetrim|tops',href,re.I):
+                                      report['links'].append({'label':label[:500],'url':href})
+                              except Exception: pass
+                          await page.screenshot(path='ris_browser_result.png', full_page=True)
+                  except Exception as e:
+                      report['error']=str(e)
+                  finally:
+                      await browser.close()
+              Path('ris_browser_report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+              print(json.dumps({'after_waf':report.get('after_waf'), 'links':report.get('links',[])[:30], 'error':report.get('error')},ensure_ascii=False,indent=2))
+          asyncio.run(main())
+          PY
+          xvfb-run -a python /tmp/browse_ris.py
+      - run: cat ris_browser_report.json
+      - name: Remove temporary browser workflow and commit report
+        if: always()
+        run: |
+          rm -f .github/workflows/tmp-browser-ris-public.yml ris_browser_result.png
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Regulären Browserzugriff auf Eilsen-RIS geprüft' || true
+          git push origin HEAD:agent/import-current-2026-ris-protokoll
