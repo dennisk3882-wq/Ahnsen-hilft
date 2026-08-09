@@ -6,10 +6,13 @@ import os
 import threading
 import time
 import unicodedata
-from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone
 from html import escape
 from typing import Any
+from urllib.parse import quote
 from xml.etree import ElementTree
+from zoneinfo import ZoneInfo
 
 import requests
 from fastapi import APIRouter
@@ -21,6 +24,7 @@ from pwa_ui import home_page, page
 
 
 router = APIRouter()
+LOCAL_TZ = ZoneInfo("Europe/Berlin")
 
 KNOWN_LINES = {
     "2132": {"title": "Bückeburg ↔ Bad Eilsen", "note": "über Ahnsen und Klinikum Schaumburg"},
@@ -38,14 +42,12 @@ BASE_STOPS = [
 
 _OSM_CACHE: dict[str, Any] = {"expires": 0.0, "stops": []}
 _OSM_LOCK = threading.Lock()
-_VEHICLE_CACHE: dict[str, Any] = {
-    "expires": 0.0,
-    "vehicles": [],
-    "status": "not-configured",
-    "message": "",
-    "updated_at": None,
-}
+_VEHICLE_CACHE: dict[str, Any] = {"expires": 0.0, "vehicles": [], "status": "not-configured", "message": "", "updated_at": None}
 _VEHICLE_LOCK = threading.Lock()
+_DEPARTURE_CACHE: dict[str, Any] = {"expires": 0.0, "departures": [], "estimated_vehicles": [], "status": "idle", "message": "", "updated_at": None, "provider": ""}
+_DEPARTURE_LOCK = threading.Lock()
+_STOP_ID_CACHE: dict[str, tuple[float, dict[str, Any] | None]] = {}
+_TRIP_CACHE: dict[str, tuple[float, dict[str, Any] | None]] = {}
 
 
 def _bus_icon() -> str:
@@ -60,18 +62,14 @@ def _norm(value: str) -> str:
 
 def _platform_center() -> tuple[float, float]:
     cfg = get_platform_snapshot()
-    lat = cfg.get("map_lat") or 52.258
-    lon = cfg.get("map_lon") or 9.099
     try:
-        return float(lat), float(lon)
+        return float(cfg.get("map_lat") or 52.258), float(cfg.get("map_lon") or 9.099)
     except (TypeError, ValueError):
         return 52.258, 9.099
 
 
 def _stop_match(name: str) -> str | None:
     value = _norm(name)
-    if not value:
-        return None
     if "theodor heuss" in value:
         return "theodor-heuss"
     if "wilhelmshohe" in value:
@@ -86,89 +84,73 @@ def _stop_match(name: str) -> str | None:
 
 
 def _get_osm_stops() -> list[dict[str, Any]]:
-    """Resolve stop coordinates only from public OpenStreetMap objects."""
     now = time.monotonic()
     if _OSM_CACHE["expires"] > now:
-        return list(_OSM_CACHE["stops"])
-
+        return [dict(item) for item in _OSM_CACHE["stops"]]
     with _OSM_LOCK:
-        now = time.monotonic()
-        if _OSM_CACHE["expires"] > now:
-            return list(_OSM_CACHE["stops"])
-
+        if _OSM_CACHE["expires"] > time.monotonic():
+            return [dict(item) for item in _OSM_CACHE["stops"]]
         center_lat, center_lon = _platform_center()
-        query = f"""
-[out:json][timeout:8];
-(
-  node["highway"="bus_stop"](around:5000,{center_lat:.6f},{center_lon:.6f});
-  node["public_transport"="platform"](around:5000,{center_lat:.6f},{center_lon:.6f});
-);
-out body;
-""".strip()
+        query = f'''[out:json][timeout:8];(
+node["highway"="bus_stop"](around:5000,{center_lat:.6f},{center_lon:.6f});
+node["public_transport"="platform"](around:5000,{center_lat:.6f},{center_lon:.6f});
+);out body;'''
         resolved: dict[str, dict[str, Any]] = {}
         try:
             response = requests.post(
                 os.getenv("MOBILITY_OVERPASS_URL", "https://overpass-api.de/api/interpreter"),
                 data={"data": query},
-                headers={
-                    "User-Agent": f"{get_platform_snapshot().get('platform_slug', 'citizen-platform')}/1.0 mobility",
-                    "Accept": "application/json",
-                },
+                headers={"User-Agent": f"{get_platform_snapshot().get('platform_slug', 'citizen-platform')}/1.0 mobility", "Accept": "application/json"},
                 timeout=10,
             )
             response.raise_for_status()
-            payload = response.json()
-            for element in payload.get("elements", []):
+            for element in response.json().get("elements", []):
                 tags = element.get("tags") or {}
                 name = str(tags.get("name") or tags.get("local_ref") or "").strip()
                 key = _stop_match(name)
                 if not key or key in resolved:
                     continue
                 try:
-                    lat = float(element["lat"])
-                    lon = float(element["lon"])
+                    lat, lon = float(element["lat"]), float(element["lon"])
                 except (KeyError, TypeError, ValueError):
                     continue
-                resolved[key] = {
-                    "lat": lat,
-                    "lon": lon,
-                    "osm_name": name,
-                    "ref": str(tags.get("ref") or ""),
-                    "ifopt": str(tags.get("ref:IFOPT") or tags.get("ref:ifopt") or ""),
-                }
+                resolved[key] = {"lat": lat, "lon": lon, "osm_name": name, "ref": str(tags.get("ref") or ""), "ifopt": str(tags.get("ref:IFOPT") or tags.get("ref:ifopt") or "")}
         except Exception:
-            resolved = {}
-
+            pass
         stops = []
         for base in BASE_STOPS:
             item = dict(base)
             item.update(resolved.get(base["key"], {}))
             stops.append(item)
-
-        _OSM_CACHE["stops"] = stops
-        _OSM_CACHE["expires"] = time.monotonic() + 6 * 60 * 60
-        return list(stops)
+        _OSM_CACHE.update({"stops": stops, "expires": time.monotonic() + 6 * 60 * 60})
+        return [dict(item) for item in stops]
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     radius = 6371.0
-    p1 = math.radians(lat1)
-    p2 = math.radians(lat2)
-    dp = math.radians(lat2 - lat1)
-    dl = math.radians(lon2 - lon1)
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp, dl = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
     a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * radius * math.asin(math.sqrt(a))
 
 
 def _route_map() -> dict[str, str]:
-    raw = os.getenv("MOBILITY_ROUTE_MAP_JSON", "").strip()
-    if not raw:
-        return {}
     try:
-        data = json.loads(raw)
-        return {str(key): str(value) for key, value in data.items()} if isinstance(data, dict) else {}
+        data = json.loads(os.getenv("MOBILITY_ROUTE_MAP_JSON", "") or "{}")
+        return {str(k): str(v) for k, v in data.items()} if isinstance(data, dict) else {}
     except ValueError:
         return {}
+
+
+def _dict_pick(data: dict[str, Any], *names: str) -> Any:
+    for name in names:
+        if name in data:
+            return data[name]
+    folded = {str(k).casefold(): v for k, v in data.items()}
+    for name in names:
+        if name.casefold() in folded:
+            return folded[name.casefold()]
+    return None
 
 
 def _vehicle_headers() -> dict[str, str]:
@@ -182,67 +164,44 @@ def _vehicle_headers() -> dict[str, str]:
     return headers
 
 
-def _dict_pick(data: dict[str, Any], *names: str) -> Any:
-    for name in names:
-        if name in data:
-            return data[name]
-    folded = {str(key).casefold(): value for key, value in data.items()}
-    for name in names:
-        if name.casefold() in folded:
-            return folded[name.casefold()]
-    return None
-
-
+# Stufe 2: nur echte, freigegebene Fahrzeugpositionen.
 def _parse_gtfsrt_json(payload: Any) -> list[dict[str, Any]]:
     if not isinstance(payload, dict):
         return []
-    entities = _dict_pick(payload, "Entity", "entity") or []
-    route_map = _route_map()
+    route_map, result = _route_map(), []
     center_lat, center_lon = _platform_center()
-    result = []
-
-    for entity in entities:
+    for entity in _dict_pick(payload, "Entity", "entity") or []:
         if not isinstance(entity, dict):
             continue
         vehicle = _dict_pick(entity, "Vehicle", "vehicle")
         if not isinstance(vehicle, dict):
             continue
-        trip = _dict_pick(vehicle, "Trip", "trip") or {}
-        position = _dict_pick(vehicle, "Position", "position") or {}
+        trip, position = _dict_pick(vehicle, "Trip", "trip") or {}, _dict_pick(vehicle, "Position", "position") or {}
         descriptor = _dict_pick(vehicle, "Vehicle", "vehicle") or {}
         if not isinstance(trip, dict) or not isinstance(position, dict):
             continue
-
         route_ref = str(_dict_pick(trip, "RouteId", "routeId", "route_id") or "").strip()
         line = route_map.get(route_ref, route_ref)
-        if line not in KNOWN_LINES and route_ref not in KNOWN_LINES:
+        if line not in KNOWN_LINES:
             continue
-        if line not in KNOWN_LINES and route_ref in KNOWN_LINES:
-            line = route_ref
-
         try:
-            lat = float(_dict_pick(position, "Latitude", "latitude", "lat"))
-            lon = float(_dict_pick(position, "Longitude", "longitude", "lon"))
+            lat, lon = float(_dict_pick(position, "Latitude", "latitude", "lat")), float(_dict_pick(position, "Longitude", "longitude", "lon"))
         except (TypeError, ValueError):
             continue
         if _haversine_km(center_lat, center_lon, lat, lon) > 35:
             continue
-
-        timestamp = _dict_pick(vehicle, "Timestamp", "timestamp")
-        result.append(
-            {
-                "id": str(_dict_pick(descriptor, "Id", "id", "Label", "label") or _dict_pick(entity, "Id", "id") or ""),
-                "line": line,
-                "route_ref": route_ref,
-                "trip_id": str(_dict_pick(trip, "TripId", "tripId", "trip_id") or ""),
-                "lat": lat,
-                "lon": lon,
-                "bearing": _dict_pick(position, "Bearing", "bearing"),
-                "speed": _dict_pick(position, "Speed", "speed"),
-                "timestamp": timestamp,
-                "direction": str(_dict_pick(trip, "DirectionId", "directionId", "direction_id") or ""),
-            }
-        )
+        result.append({
+            "id": str(_dict_pick(descriptor, "Id", "id", "Label", "label") or _dict_pick(entity, "Id", "id") or ""),
+            "line": line,
+            "route_ref": route_ref,
+            "trip_id": str(_dict_pick(trip, "TripId", "tripId", "trip_id") or ""),
+            "lat": lat, "lon": lon,
+            "bearing": _dict_pick(position, "Bearing", "bearing"),
+            "speed": _dict_pick(position, "Speed", "speed"),
+            "timestamp": _dict_pick(vehicle, "Timestamp", "timestamp"),
+            "direction": str(_dict_pick(trip, "DirectionId", "directionId", "direction_id") or ""),
+            "position_type": "exact",
+        })
     return result
 
 
@@ -263,9 +222,8 @@ def _parse_siri_vm(raw: bytes) -> list[dict[str, Any]]:
         root = ElementTree.fromstring(raw)
     except ElementTree.ParseError:
         return []
+    route_map, result = _route_map(), []
     center_lat, center_lon = _platform_center()
-    route_map = _route_map()
-    result = []
     for activity in root.iter():
         if _xml_local(activity.tag).casefold() != "vehicleactivity":
             continue
@@ -273,28 +231,20 @@ def _parse_siri_vm(raw: bytes) -> list[dict[str, Any]]:
         line = route_map.get(line_ref, line_ref)
         if line not in KNOWN_LINES:
             continue
-        lat_text = _first_xml_text(activity, {"Latitude"})
-        lon_text = _first_xml_text(activity, {"Longitude"})
         try:
-            lat, lon = float(lat_text), float(lon_text)
+            lat, lon = float(_first_xml_text(activity, {"Latitude"})), float(_first_xml_text(activity, {"Longitude"}))
         except (TypeError, ValueError):
             continue
         if _haversine_km(center_lat, center_lon, lat, lon) > 35:
             continue
-        result.append(
-            {
-                "id": _first_xml_text(activity, {"VehicleRef"}),
-                "line": line,
-                "route_ref": line_ref,
-                "trip_id": _first_xml_text(activity, {"DatedVehicleJourneyRef", "FramedVehicleJourneyRef"}),
-                "lat": lat,
-                "lon": lon,
-                "bearing": _first_xml_text(activity, {"Bearing"}),
-                "speed": "",
-                "timestamp": _first_xml_text(activity, {"RecordedAtTime"}),
-                "direction": _first_xml_text(activity, {"DirectionName", "DirectionRef", "DestinationName"}),
-            }
-        )
+        result.append({
+            "id": _first_xml_text(activity, {"VehicleRef"}), "line": line, "route_ref": line_ref,
+            "trip_id": _first_xml_text(activity, {"DatedVehicleJourneyRef", "FramedVehicleJourneyRef"}),
+            "lat": lat, "lon": lon, "bearing": _first_xml_text(activity, {"Bearing"}), "speed": "",
+            "timestamp": _first_xml_text(activity, {"RecordedAtTime"}),
+            "direction": _first_xml_text(activity, {"DirectionName", "DirectionRef", "DestinationName"}),
+            "position_type": "exact",
+        })
     return result
 
 
@@ -302,68 +252,309 @@ def _fetch_vehicles() -> tuple[list[dict[str, Any]], str, str, str | None]:
     endpoint = os.getenv("MOBILITY_VEHICLE_POSITIONS_URL", "").strip()
     if not endpoint:
         return [], "not-configured", "Offizielle Fahrzeugpositions-Schnittstelle noch nicht hinterlegt.", None
-
-    fmt = os.getenv("MOBILITY_VEHICLE_FORMAT", "auto").strip().casefold()
     try:
         response = requests.get(endpoint, headers=_vehicle_headers(), timeout=7)
         response.raise_for_status()
+        fmt = os.getenv("MOBILITY_VEHICLE_FORMAT", "auto").strip().casefold()
         content_type = response.headers.get("content-type", "").casefold()
-        if fmt in {"siri", "siri-vm", "xml"} or ("xml" in content_type and fmt == "auto"):
-            vehicles = _parse_siri_vm(response.content)
-        else:
-            vehicles = _parse_gtfsrt_json(response.json())
-        updated_at = datetime.now(timezone.utc).isoformat()
+        vehicles = _parse_siri_vm(response.content) if fmt in {"siri", "siri-vm", "xml"} or (fmt == "auto" and "xml" in content_type) else _parse_gtfsrt_json(response.json())
+        updated = datetime.now(timezone.utc).isoformat()
         if vehicles:
-            return vehicles, "ok", f"{len(vehicles)} Fahrzeugposition(en) im Raum Ahnsen empfangen.", updated_at
-        return [], "ok-empty", "Schnittstelle erreichbar, aktuell aber kein passendes Fahrzeug im Raum Ahnsen.", updated_at
+            return vehicles, "ok", f"{len(vehicles)} echte Fahrzeugposition(en) im Raum Ahnsen empfangen.", updated
+        return [], "ok-empty", "Schnittstelle erreichbar, aktuell aber kein passendes Fahrzeug im Raum Ahnsen.", updated
     except Exception as error:
         return [], "error", f"Fahrzeugpositions-Schnittstelle derzeit nicht erreichbar ({type(error).__name__}).", None
 
 
 def _vehicle_snapshot() -> dict[str, Any]:
-    now = time.monotonic()
-    if _VEHICLE_CACHE["expires"] > now:
+    if _VEHICLE_CACHE["expires"] > time.monotonic():
         return dict(_VEHICLE_CACHE)
     with _VEHICLE_LOCK:
-        now = time.monotonic()
-        if _VEHICLE_CACHE["expires"] > now:
+        if _VEHICLE_CACHE["expires"] > time.monotonic():
             return dict(_VEHICLE_CACHE)
         vehicles, status, message, updated_at = _fetch_vehicles()
-        _VEHICLE_CACHE.update(
-            {
-                "expires": time.monotonic() + 20,
-                "vehicles": vehicles,
-                "status": status,
-                "message": message,
-                "updated_at": updated_at,
-            }
-        )
+        _VEHICLE_CACHE.update({"expires": time.monotonic() + 20, "vehicles": vehicles, "status": status, "message": message, "updated_at": updated_at})
         return dict(_VEHICLE_CACHE)
+
+
+# Stufe 1: Abfahrten + eindeutig als Schätzung markierte Positionen.
+def _departure_api_base() -> str:
+    return os.getenv("MOBILITY_DEPARTURE_API_BASE", "https://v6.db.transport.rest").strip().rstrip("/")
+
+
+def _departure_provider() -> str:
+    return os.getenv("MOBILITY_DEPARTURE_PROVIDER", "DB Vendo / transport.rest").strip() or "Fahrplanauskunft"
+
+
+def _parse_iso(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=LOCAL_TZ)
+    return parsed.astimezone(LOCAL_TZ)
+
+
+def _line_number(line: Any) -> str:
+    if not isinstance(line, dict):
+        return ""
+    for candidate in (line.get("name"), line.get("fahrtNr"), line.get("id")):
+        digits = "".join(ch if ch.isdigit() else " " for ch in str(candidate or ""))
+        for token in digits.split():
+            if token in KNOWN_LINES:
+                return token
+    return ""
+
+
+def _location_candidates(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [x for x in payload if isinstance(x, dict)]
+    if isinstance(payload, dict):
+        for key in ("locations", "results", "stops"):
+            if isinstance(payload.get(key), list):
+                return [x for x in payload[key] if isinstance(x, dict)]
+    return []
+
+
+def _select_stop_candidate(stop: dict[str, Any], payload: Any) -> dict[str, Any] | None:
+    target, target_key = _norm(stop.get("name", "")), _stop_match(stop.get("name", ""))
+    center_lat = float(stop.get("lat") or _platform_center()[0])
+    center_lon = float(stop.get("lon") or _platform_center()[1])
+    best: tuple[float, dict[str, Any]] | None = None
+    for item in _location_candidates(payload):
+        if item.get("type") not in {None, "stop", "station"}:
+            continue
+        item_id, name = str(item.get("id") or "").strip(), str(item.get("name") or "").strip()
+        if not item_id or not name:
+            continue
+        location = item.get("location") or {}
+        try:
+            lat, lon = float(location.get("latitude")), float(location.get("longitude"))
+        except (TypeError, ValueError):
+            lat = lon = None
+        score, name_norm = 0.0, _norm(name)
+        if name_norm == target:
+            score += 120
+        if target_key and _stop_match(name) == target_key:
+            score += 90
+        if "ahnsen" in name_norm:
+            score += 35
+        if lat is not None and lon is not None:
+            distance = _haversine_km(center_lat, center_lon, lat, lon)
+            if distance > 25:
+                continue
+            score += max(0.0, 30.0 - distance * 3)
+        if best is None or score > best[0]:
+            best = (score, {"id": item_id, "name": name, "lat": lat, "lon": lon})
+    return best[1] if best else None
+
+
+def _resolve_departure_stop(stop: dict[str, Any]) -> dict[str, Any] | None:
+    try:
+        overrides = json.loads(os.getenv("MOBILITY_DEPARTURE_STOP_IDS_JSON", "") or "{}")
+    except ValueError:
+        overrides = {}
+    override = overrides.get(stop["key"]) if isinstance(overrides, dict) else None
+    if isinstance(override, str) and override.strip():
+        return {"id": override.strip(), "name": stop["name"], "lat": stop.get("lat"), "lon": stop.get("lon")}
+    if isinstance(override, dict) and str(override.get("id") or "").strip():
+        return {"id": str(override["id"]).strip(), "name": str(override.get("name") or stop["name"]), "lat": override.get("lat", stop.get("lat")), "lon": override.get("lon", stop.get("lon"))}
+    cached = _STOP_ID_CACHE.get(stop["key"])
+    if cached and cached[0] > time.monotonic():
+        return dict(cached[1]) if cached[1] else None
+    try:
+        response = requests.get(
+            f"{_departure_api_base()}/locations",
+            params={"query": stop["name"], "results": 8, "poi": "false", "addresses": "false", "language": "de"},
+            headers={"Accept": "application/json", "User-Agent": "Ahnsen-hilft/1.0 mobility-stage1"}, timeout=5,
+        )
+        response.raise_for_status()
+        resolved = _select_stop_candidate(stop, response.json())
+    except Exception:
+        resolved = None
+    _STOP_ID_CACHE[stop["key"]] = (time.monotonic() + (86400 if resolved else 600), resolved)
+    return dict(resolved) if resolved else None
+
+
+def _departure_items(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [x for x in payload if isinstance(x, dict)]
+    if isinstance(payload, dict) and isinstance(payload.get("departures"), list):
+        return [x for x in payload["departures"] if isinstance(x, dict)]
+    return []
+
+
+def _normalize_departure(raw: dict[str, Any], stop: dict[str, Any], source_stop: dict[str, Any]) -> dict[str, Any] | None:
+    line = _line_number(raw.get("line"))
+    if line not in KNOWN_LINES:
+        return None
+    when, planned = _parse_iso(raw.get("when") or raw.get("plannedWhen")), _parse_iso(raw.get("plannedWhen") or raw.get("when"))
+    if not when or not planned or when < datetime.now(LOCAL_TZ) - timedelta(minutes=3):
+        return None
+    try:
+        delay_seconds = int(raw.get("delay")) if raw.get("delay") is not None else int((when - planned).total_seconds())
+    except (TypeError, ValueError):
+        delay_seconds = None
+    return {
+        "stop_key": stop["key"], "stop_name": stop["name"], "source_stop_id": source_stop.get("id"),
+        "line": line, "direction": str(raw.get("direction") or raw.get("provenance") or "").strip(),
+        "when": when.isoformat(), "planned_when": planned.isoformat(), "time": when.strftime("%H:%M"), "planned_time": planned.strftime("%H:%M"),
+        "delay_seconds": delay_seconds, "delay_minutes": int(round(delay_seconds / 60)) if delay_seconds is not None else None,
+        "minutes": max(0, int(math.ceil((when - datetime.now(LOCAL_TZ)).total_seconds() / 60))),
+        "cancelled": bool(raw.get("cancelled")), "trip_id": str(raw.get("tripId") or "").strip(),
+        "realtime": raw.get("when") is not None and (raw.get("delay") is not None or raw.get("plannedWhen") is not None),
+        "raw_stopovers": raw.get("stopovers") if isinstance(raw.get("stopovers"), list) else None,
+    }
+
+
+def _fetch_trip(trip_id: str) -> dict[str, Any] | None:
+    if not trip_id:
+        return None
+    cached = _TRIP_CACHE.get(trip_id)
+    if cached and cached[0] > time.monotonic():
+        return cached[1]
+    try:
+        response = requests.get(
+            f"{_departure_api_base()}/trips/{quote(trip_id, safe='')}",
+            params={"stopovers": "true", "remarks": "false", "language": "de"},
+            headers={"Accept": "application/json", "User-Agent": "Ahnsen-hilft/1.0 mobility-stage1"}, timeout=5,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        trip = payload.get("trip") if isinstance(payload, dict) and isinstance(payload.get("trip"), dict) else payload
+        if not isinstance(trip, dict):
+            trip = None
+    except Exception:
+        trip = None
+    _TRIP_CACHE[trip_id] = (time.monotonic() + (60 if trip else 30), trip)
+    return trip
+
+
+def _stopover_time(item: dict[str, Any]) -> datetime | None:
+    return _parse_iso(item.get("departure") or item.get("arrival") or item.get("plannedDeparture") or item.get("plannedArrival"))
+
+
+def _stopover_location(item: dict[str, Any]) -> tuple[float, float] | None:
+    location = ((item.get("stop") or {}).get("location") or {})
+    try:
+        return float(location.get("latitude")), float(location.get("longitude"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _estimated_position(stopovers: list[dict[str, Any]], now: datetime) -> tuple[float, float, str, str] | None:
+    points = []
+    for stopover in stopovers:
+        if not isinstance(stopover, dict):
+            continue
+        event_time, location = _stopover_time(stopover), _stopover_location(stopover)
+        if event_time and location:
+            points.append((event_time, location[0], location[1], str((stopover.get("stop") or {}).get("name") or "").strip()))
+    points.sort(key=lambda x: x[0])
+    for left, right in zip(points, points[1:]):
+        if left[0] <= now <= right[0]:
+            duration = max(1.0, (right[0] - left[0]).total_seconds())
+            ratio = min(1.0, max(0.0, (now - left[0]).total_seconds() / duration))
+            return left[1] + (right[1] - left[1]) * ratio, left[2] + (right[2] - left[2]) * ratio, left[3], right[3]
+    return None
+
+
+def _fetch_departures() -> tuple[list[dict[str, Any]], list[dict[str, Any]], str, str, str | None]:
+    stops, departures, resolved_count, errors = _get_osm_stops(), [], 0, 0
+
+    def load_stop(stop: dict[str, Any]) -> tuple[bool, list[dict[str, Any]]]:
+        source_stop = _resolve_departure_stop(stop)
+        if not source_stop:
+            return False, []
+        try:
+            response = requests.get(
+                f"{_departure_api_base()}/stops/{quote(str(source_stop['id']), safe='')}/departures",
+                params={"duration": 180, "results": 14, "stopovers": "true", "remarks": "true", "language": "de"},
+                headers={"Accept": "application/json", "User-Agent": "Ahnsen-hilft/1.0 mobility-stage1"}, timeout=5,
+            )
+            response.raise_for_status()
+            items = []
+            for raw in _departure_items(response.json()):
+                item = _normalize_departure(raw, stop, source_stop)
+                if item:
+                    items.append(item)
+            return True, items
+        except Exception:
+            return True, []
+
+    with ThreadPoolExecutor(max_workers=min(5, len(stops) or 1)) as pool:
+        futures = [pool.submit(load_stop, stop) for stop in stops]
+        for future in as_completed(futures):
+            try:
+                resolved, items = future.result()
+            except Exception:
+                resolved, items = False, []
+            resolved_count += int(resolved)
+            errors += int(not resolved)
+            departures.extend(items)
+
+    unique = {(x["stop_key"], x["line"], x["when"], x["direction"]): x for x in departures}
+    departures = sorted(unique.values(), key=lambda x: x["when"])
+    estimates, seen, now = [], set(), datetime.now(LOCAL_TZ)
+    center_lat, center_lon = _platform_center()
+    for item in departures:
+        trip_id = item.get("trip_id") or ""
+        if not trip_id or trip_id in seen or len(estimates) >= 6:
+            continue
+        seen.add(trip_id)
+        stopovers = item.pop("raw_stopovers", None) or []
+        if len(stopovers) < 2:
+            stopovers = (_fetch_trip(trip_id) or {}).get("stopovers") or []
+        position = _estimated_position(stopovers, now)
+        if not position:
+            continue
+        lat, lon, from_name, to_name = position
+        if _haversine_km(center_lat, center_lon, lat, lon) <= 35:
+            estimates.append({"id": f"estimate-{trip_id}", "trip_id": trip_id, "line": item["line"], "lat": lat, "lon": lon, "direction": item.get("direction") or "", "position_type": "estimated", "basis": "Fahrplan/Echtzeitprognose", "between": [from_name, to_name], "timestamp": datetime.now(timezone.utc).isoformat()})
+    for item in departures:
+        item.pop("raw_stopovers", None)
+    updated = datetime.now(timezone.utc).isoformat()
+    if departures:
+        live_count = sum(1 for x in departures if x.get("realtime"))
+        message = f"{len(departures)} Abfahrten geladen" + (f", davon {live_count} mit Prognose/Echtzeitbezug." if live_count else ".")
+        return departures, estimates, "ok", message, updated
+    if resolved_count:
+        return [], [], "empty", "Haltestellen gefunden, aktuell aber keine passenden Abfahrten der Linien 2132, 2133 oder 2026 geliefert.", updated
+    if errors:
+        return [], [], "error", "Die Abfahrtsquelle konnte die Ahnsener Haltestellen derzeit nicht zuverlässig auflösen.", None
+    return [], [], "empty", "Aktuell sind keine Abfahrtsdaten verfügbar.", updated
+
+
+def _departure_snapshot() -> dict[str, Any]:
+    if _DEPARTURE_CACHE["expires"] > time.monotonic():
+        return dict(_DEPARTURE_CACHE)
+    with _DEPARTURE_LOCK:
+        if _DEPARTURE_CACHE["expires"] > time.monotonic():
+            return dict(_DEPARTURE_CACHE)
+        departures, estimates, status, message, updated_at = _fetch_departures()
+        try:
+            ttl = max(20, min(120, int(os.getenv("MOBILITY_DEPARTURE_CACHE_SECONDS", "45") or 45)))
+        except ValueError:
+            ttl = 45
+        _DEPARTURE_CACHE.update({"expires": time.monotonic() + ttl, "departures": departures, "estimated_vehicles": estimates, "status": status, "message": message, "updated_at": updated_at, "provider": _departure_provider()})
+        return dict(_DEPARTURE_CACHE)
 
 
 def _mobility_payload() -> dict[str, Any]:
     lat, lon = _platform_center()
-    vehicle = _vehicle_snapshot()
-    endpoint_configured = bool(os.getenv("MOBILITY_VEHICLE_POSITIONS_URL", "").strip())
+    exact, stage1 = _vehicle_snapshot(), _departure_snapshot()
     return {
         "center": {"lat": lat, "lon": lon, "zoom": int(get_platform_snapshot().get("map_zoom") or 15)},
         "stops": _get_osm_stops(),
         "lines": [{"line": key, **value} for key, value in KNOWN_LINES.items()],
-        "vehicles": vehicle["vehicles"],
-        "live_positions": {
-            "configured": endpoint_configured,
-            "status": vehicle["status"],
-            "message": vehicle["message"],
-            "updated_at": vehicle["updated_at"],
-            "provider": os.getenv("MOBILITY_VEHICLE_PROVIDER", "SHG Mobil / freigegebene Schnittstelle").strip(),
-            "format": os.getenv("MOBILITY_VEHICLE_FORMAT", "auto").strip(),
-        },
-        "trip_updates": {
-            "provider": "VBN / Connect GTFS-Realtime",
-            "status": "public-trip-updates",
-            "refresh_seconds": 60,
-            "note": "Öffentlich dokumentiert sind Prognosen/Verspätungen (TripUpdates); direkte GPS-Fahrzeugpositionen werden daraus nicht behauptet.",
-        },
+        "departures": stage1["departures"], "estimated_vehicles": stage1["estimated_vehicles"], "vehicles": exact["vehicles"],
+        "stage1": {"status": stage1["status"], "message": stage1["message"], "updated_at": stage1["updated_at"], "provider": stage1["provider"], "position_note": "Geschätzte Buspositionen werden aus Fahrplan-/Prognosezeiten zwischen bekannten Haltestellen interpoliert und immer mit ~ markiert."},
+        "live_positions": {"configured": bool(os.getenv("MOBILITY_VEHICLE_POSITIONS_URL", "").strip()), "status": exact["status"], "message": exact["message"], "updated_at": exact["updated_at"], "provider": os.getenv("MOBILITY_VEHICLE_PROVIDER", "SHG Mobil / freigegebene Schnittstelle").strip(), "format": os.getenv("MOBILITY_VEHICLE_FORMAT", "auto").strip()},
+        "vbn_realtime": {"provider": "VBN / Connect GTFS-Realtime", "documented_url": "https://gtfsr.vbn.de/gtfsr_connect.json", "refresh_seconds": 60, "note": "VBN veröffentlicht Prognosen/Verspätungen als GTFS-Realtime. Der Feed referenziert auf statische GTFS-Daten und wird nicht als GPS-Quelle ausgegeben."},
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -377,78 +568,55 @@ def _mobility_content() -> str:
     cfg = get_platform_snapshot()
     center_lat, center_lon = _platform_center()
     municipality = escape(cfg.get("municipality_name") or "Ahnsen")
-    bus_icon = _bus_icon()
-    lines_html = "".join(
-        f"""<article class="mob-line-card" data-line="{escape(line)}">
-          <span class="mob-line-badge">{escape(line)}</span>
-          <div><strong>{escape(data['title'])}</strong><small>{escape(data['note'])}</small></div>
-          <button class="mob-fav-line" type="button" data-favorite-line="{escape(line)}" aria-label="Linie {escape(line)} als Favorit speichern">☆</button>
-        </article>"""
-        for line, data in KNOWN_LINES.items()
-    )
-    return f"""
+    lines_html = "".join(f'''<article class="mob-line-card"><span class="mob-line-badge">{escape(line)}</span><div><strong>{escape(data["title"])}</strong><small>{escape(data["note"])}</small></div><button class="mob-fav-line" type="button" data-favorite-line="{escape(line)}">☆</button></article>''' for line, data in KNOWN_LINES.items())
+    return f'''
 <style>
-.mobility-view .app-main{{padding-bottom:110px}}
-.mobility-head{{display:grid;gap:10px;margin:0 0 16px}}.mobility-head h1{{margin:0;font-size:clamp(1.75rem,6vw,2.35rem);color:var(--forest)}}.mobility-head p{{margin:0;color:#536258;line-height:1.55}}
-.mob-stage{{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid rgba(31,91,65,.16);border-radius:18px;background:#f4f6ec;box-shadow:0 7px 24px rgba(43,72,57,.06)}}.mob-stage-icon{{width:42px;height:42px;border-radius:14px;background:var(--forest);color:white;display:grid;place-items:center;flex:0 0 auto}}.mob-stage div{{display:grid;gap:2px}}.mob-stage strong{{color:var(--forest)}}.mob-stage small{{color:#69756e;line-height:1.35}}.mob-stage.live{{background:#edf7ef;border-color:rgba(31,112,65,.25)}}.mob-stage.error{{background:#fff3eb;border-color:#e5b394}}
-.mob-map-card{{overflow:hidden;border-radius:22px;background:#fff;border:1px solid rgba(47,79,61,.12);box-shadow:0 12px 34px rgba(45,70,56,.08);margin:16px 0}}.mob-map-toolbar{{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px}}.mob-map-toolbar div{{display:grid;gap:2px}}.mob-map-toolbar strong{{color:var(--forest)}}.mob-map-toolbar small{{color:#768179}}.mob-live-dot{{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9ca8a0;margin-right:6px}}.mob-live-dot.on{{background:#2f8c54;box-shadow:0 0 0 5px rgba(47,140,84,.11)}}#mobility-map{{height:min(54vh,430px);min-height:330px;background:linear-gradient(135deg,#eef0e5,#e3eadf);position:relative}}.mob-map-loading{{position:absolute;inset:0;display:grid;place-items:center;padding:28px;text-align:center;color:#637069}}.mob-map-note{{padding:10px 14px;font-size:.78rem;color:#728078;background:#fafaf6;border-top:1px solid rgba(47,79,61,.09)}}
-.mob-section{{margin-top:18px}}.mob-section-head{{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:9px}}.mob-section-head h2{{margin:0;color:var(--forest);font-size:1.12rem}}.mob-section-head small{{color:#758178}}.mob-line-list,.mob-stop-list{{display:grid;gap:9px}}.mob-line-card,.mob-stop-row{{display:flex;align-items:center;gap:12px;padding:12px 13px;background:white;border:1px solid rgba(47,79,61,.12);border-radius:16px}}.mob-line-card>div,.mob-stop-row>div{{display:grid;gap:2px;min-width:0;flex:1}}.mob-line-card strong,.mob-stop-row strong{{color:#294d3b}}.mob-line-card small,.mob-stop-row small{{color:#768078;line-height:1.25}}.mob-line-badge{{min-width:58px;padding:7px 9px;border-radius:11px;background:var(--forest);color:white;font-weight:850;text-align:center;font-size:.85rem}}.mob-fav-line,.mob-fav-stop{{border:0;background:#f1f4ea;color:var(--forest);width:38px;height:38px;border-radius:12px;font-size:1.35rem;cursor:pointer}}.mob-fav-line.active,.mob-fav-stop.active{{background:#e4ecd7}}.mob-stop-mark{{width:32px;height:32px;border:2px solid var(--forest);border-radius:50%;display:grid;place-items:center;color:var(--forest);font-weight:850;flex:0 0 auto}}
-.mob-source-card{{display:grid;gap:9px;padding:15px 16px;margin-top:18px;border-radius:18px;background:#f7f4e9;border:1px solid rgba(47,79,61,.1)}}.mob-source-card strong{{color:var(--forest)}}.mob-source-card p{{margin:0;color:#66736b;font-size:.86rem;line-height:1.5}}.mob-source-tags{{display:flex;flex-wrap:wrap;gap:7px}}.mob-source-tags span{{font-size:.74rem;padding:5px 8px;border-radius:999px;background:#fff;border:1px solid rgba(47,79,61,.12);color:#53665a}}.mob-bus-marker{{width:44px;height:34px!important;border-radius:12px;background:#1f5b41;color:white;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.22);display:grid!important;place-items:center;font-weight:900;font-size:.7rem}}.mob-stop-marker{{width:18px;height:18px!important;border-radius:50%;background:#f8fbf4;border:4px solid #2f7957;box-shadow:0 2px 8px rgba(0,0,0,.15)}}
-@media(max-width:520px){{.mob-map-toolbar{{align-items:flex-start}}#mobility-map{{min-height:300px}}}}
+.mobility-view .app-main{{padding-bottom:110px}}.mobility-head{{display:grid;gap:10px;margin:0 0 16px}}.mobility-head h1{{margin:0;font-size:clamp(1.75rem,6vw,2.35rem);color:var(--forest)}}.mobility-head p{{margin:0;color:#536258;line-height:1.55}}
+.mob-stage{{display:flex;gap:12px;padding:14px 16px;border:1px solid rgba(31,91,65,.16);border-radius:18px;background:#f4f6ec;box-shadow:0 7px 24px rgba(43,72,57,.06)}}.mob-stage-icon{{width:42px;height:42px;border-radius:14px;background:var(--forest);color:#fff;display:grid;place-items:center;flex:0 0 auto}}.mob-stage div{{display:grid;gap:2px}}.mob-stage strong{{color:var(--forest)}}.mob-stage small{{color:#69756e;line-height:1.35}}.mob-stage.live{{background:#edf7ef}}.mob-stage.estimate{{background:#f8f5e8;border-color:#d8c994}}.mob-stage.error{{background:#fff3eb;border-color:#e5b394}}
+.mob-departures{{margin:16px 0;padding:15px;border-radius:22px;background:#fff;border:1px solid rgba(47,79,61,.12);box-shadow:0 12px 34px rgba(45,70,56,.07)}}.mob-dep-head{{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}}.mob-dep-head h2{{margin:0;color:var(--forest);font-size:1.16rem}}.mob-dep-head small{{display:block;color:#778279;margin-top:3px}}.mob-data-badge{{height:max-content;border-radius:999px;padding:5px 8px;background:#eef4e9;color:#41604c;font-size:.7rem;font-weight:780}}.mob-stop-tabs{{display:flex;gap:7px;overflow:auto;padding:1px 0 10px;scrollbar-width:none}}.mob-stop-tab{{white-space:nowrap;border:1px solid rgba(47,79,61,.15);background:#f8f8f2;color:#496052;border-radius:999px;padding:8px 11px;font-weight:720;font-size:.78rem}}.mob-stop-tab.active{{background:var(--forest);color:#fff}}.mob-dep-list{{display:grid;gap:8px}}.mob-dep-row{{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:10px;padding:11px;border-radius:15px;background:#fbfbf7;border:1px solid rgba(47,79,61,.09)}}.mob-dep-main{{min-width:0;display:grid;gap:3px}}.mob-dep-main strong,.mob-dep-main small{{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.mob-dep-main strong{{color:#294d3b}}.mob-dep-main small{{color:#78827b}}.mob-dep-time{{text-align:right;display:grid;gap:2px}}.mob-dep-time strong{{color:#254a38}}.mob-dep-time small{{font-size:.72rem;color:#758078}}.mob-delay{{justify-self:end;padding:3px 6px;border-radius:999px;background:#edf5e8;color:#316744;font-size:.68rem;font-weight:800}}.mob-delay.late{{background:#fff0e7;color:#9a4a20}}.mob-dep-empty{{padding:16px;border-radius:14px;background:#f7f5ed;color:#68746d;line-height:1.45}}
+.mob-map-card{{overflow:hidden;border-radius:22px;background:#fff;border:1px solid rgba(47,79,61,.12);box-shadow:0 12px 34px rgba(45,70,56,.08);margin:16px 0}}.mob-map-toolbar{{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px}}.mob-map-toolbar div{{display:grid;gap:2px}}.mob-map-toolbar strong{{color:var(--forest)}}.mob-map-toolbar small{{color:#768179}}.mob-live-dot{{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9ca8a0;margin-right:6px}}.mob-live-dot.on{{background:#2f8c54;box-shadow:0 0 0 5px rgba(47,140,84,.11)}}.mob-live-dot.estimate{{background:#b99a42;box-shadow:0 0 0 5px rgba(185,154,66,.12)}}#mobility-map{{height:min(54vh,430px);min-height:330px;background:linear-gradient(135deg,#eef0e5,#e3eadf);position:relative}}.mob-map-loading{{position:absolute;inset:0;display:grid;place-items:center;padding:28px;text-align:center;color:#637069}}.mob-map-note,.mob-map-legend{{padding:10px 14px;font-size:.76rem;color:#728078;background:#fafaf6;border-top:1px solid rgba(47,79,61,.09)}}.mob-map-legend{{display:flex;flex-wrap:wrap;gap:7px;border-top:0;padding-bottom:0}}.mob-map-legend span{{background:#fff;border:1px solid rgba(47,79,61,.1);border-radius:999px;padding:4px 7px}}
+.mob-section{{margin-top:18px}}.mob-section-head{{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:9px}}.mob-section-head h2{{margin:0;color:var(--forest);font-size:1.12rem}}.mob-section-head small{{color:#758178}}.mob-line-list,.mob-stop-list{{display:grid;gap:9px}}.mob-line-card,.mob-stop-row{{display:flex;align-items:center;gap:12px;padding:12px 13px;background:#fff;border:1px solid rgba(47,79,61,.12);border-radius:16px}}.mob-line-card>div,.mob-stop-row>div{{display:grid;gap:2px;min-width:0;flex:1}}.mob-line-card strong,.mob-stop-row strong{{color:#294d3b}}.mob-line-card small,.mob-stop-row small{{color:#768078}}.mob-line-badge{{min-width:58px;padding:7px 9px;border-radius:11px;background:var(--forest);color:#fff;font-weight:850;text-align:center;font-size:.85rem}}.mob-fav-line,.mob-fav-stop{{border:0;background:#f1f4ea;color:var(--forest);width:38px;height:38px;border-radius:12px;font-size:1.35rem}}.mob-fav-line.active,.mob-fav-stop.active{{background:#e4ecd7}}.mob-stop-mark{{width:32px;height:32px;border:2px solid var(--forest);border-radius:50%;display:grid;place-items:center;color:var(--forest);font-weight:850;flex:0 0 auto}}.mob-bus-marker{{width:48px;height:34px!important;border-radius:12px;background:#1f5b41;color:#fff;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.22);display:grid!important;place-items:center;font-weight:900;font-size:.68rem}}.mob-bus-marker.estimated{{background:#f4e7ad;color:#4d4327;border-style:dashed;border-color:#5f5537}}.mob-stop-marker{{width:18px;height:18px!important;border-radius:50%;background:#f8fbf4;border:4px solid #2f7957;box-shadow:0 2px 8px rgba(0,0,0,.15)}}.mob-source-card{{display:grid;gap:9px;padding:15px 16px;margin-top:18px;border-radius:18px;background:#f7f4e9;border:1px solid rgba(47,79,61,.1)}}.mob-source-card strong{{color:var(--forest)}}.mob-source-card p{{margin:0;color:#66736b;font-size:.86rem;line-height:1.5}}
 </style>
-<section class="page-heading compact mobility-head"><a class="back-link" href="/">← Start</a><span class="eyebrow">ÖPNV für {municipality}</span><h1>Bus &amp; Mobilität</h1><p>Haltestellen und Linien im Blick – mit einer vorbereiteten Stufe 2 für freigegebene echte Fahrzeugpositionen.</p></section>
-<section class="mob-stage" id="mob-stage"><span class="mob-stage-icon">{bus_icon}</span><div><strong id="mob-stage-title">Stufe 2 wird geprüft …</strong><small id="mob-stage-text">Status der offiziellen Fahrzeugpositions-Schnittstelle wird geladen.</small></div></section>
-<section class="mob-map-card"><div class="mob-map-toolbar"><div><strong>Karte {municipality}</strong><small><span class="mob-live-dot" id="mob-live-dot"></span><span id="mob-map-status">Haltestellen werden geladen</span></small></div><button class="secondary-button" id="mob-center" type="button">Auf Ahnsen zentrieren</button></div><div id="mobility-map" data-lat="{center_lat:.6f}" data-lon="{center_lon:.6f}"><div class="mob-map-loading">Karte wird geladen …</div></div><div class="mob-map-note">Karte: © OpenStreetMap-Mitwirkende. Bus-Symbole werden nur dann als „live“ gezeigt, wenn eine freigegebene Fahrzeugpositions-Schnittstelle Daten liefert.</div></section>
-<section class="mob-section"><div class="mob-section-head"><h2>Linien durch Ahnsen</h2><small>Stand Fahrplan 2026</small></div><div class="mob-line-list">{lines_html}</div></section>
-<section class="mob-section"><div class="mob-section-head"><h2>Haltestellen</h2><small>Favoriten bleiben auf diesem Gerät</small></div><div class="mob-stop-list" id="mob-stop-list"><div class="mob-stop-row"><div><strong>Wird geladen …</strong><small>Haltestellen aus öffentlichen Kartendaten</small></div></div></div></section>
-<section class="mob-source-card"><strong>Daten sauber getrennt</strong><div class="mob-source-tags"><span>VBN GTFS / GTFS-RT</span><span>OpenStreetMap</span><span>SHG Mobil Linien</span><span>Stufe-2-Adapter</span></div><p>VBN-Prognosen und Verspätungen sind keine GPS-Fahrzeugpositionen. Deshalb zeigt Ahnsen hilft keine erfundenen „Live-Busse“. Exakte Busmarker werden erst aktiviert, wenn ein freigegebener VehiclePositions-, SIRI-VM-, VDV- oder vergleichbarer Feed hinterlegt ist.</p></section>
+<section class="page-heading compact mobility-head"><a class="back-link" href="/">← Start</a><span class="eyebrow">ÖPNV für {municipality}</span><h1>Bus &amp; Mobilität</h1><p>Nächste Abfahrten, Verspätungen und klar gekennzeichnete Positionsschätzungen. Echte GPS-Positionen bleiben separat Stufe 2.</p></section>
+<section class="mob-stage" id="mob-stage"><span class="mob-stage-icon">{_bus_icon()}</span><div><strong id="mob-stage-title">Mobilitätsdaten werden geladen …</strong><small id="mob-stage-text">Stufe 1: Fahrplan/Echtzeit-Schätzung · Stufe 2: echte Fahrzeugposition.</small></div></section>
+<section class="mob-departures"><div class="mob-dep-head"><div><h2>Nächste Abfahrten</h2><small id="mob-dep-status">Fahrplandaten werden geladen …</small></div><span class="mob-data-badge" id="mob-dep-badge">Stufe 1</span></div><div class="mob-stop-tabs" id="mob-stop-tabs"></div><div class="mob-dep-list" id="mob-dep-list"><div class="mob-dep-empty">Abfahrten werden geladen …</div></div></section>
+<section class="mob-map-card"><div class="mob-map-toolbar"><div><strong>Karte {municipality}</strong><small><span class="mob-live-dot" id="mob-live-dot"></span><span id="mob-map-status">Haltestellen werden geladen</span></small></div><button class="secondary-button" id="mob-center" type="button">Auf Ahnsen zentrieren</button></div><div id="mobility-map"><div class="mob-map-loading">Karte wird geladen …</div></div><div class="mob-map-legend"><span>H = Haltestelle</span><span>~2132 = geschätzt</span><span>2132 GPS = echt</span></div><div class="mob-map-note">Das ~ vor einer Linie bedeutet ausdrücklich: aus Fahrplan/Prognose zwischen bekannten Haltestellen geschätzt, nicht GPS. Karte: © OpenStreetMap-Mitwirkende.</div></section>
+<section class="mob-section"><div class="mob-section-head"><h2>Linien durch Ahnsen</h2><small>lokale Auswahl</small></div><div class="mob-line-list">{lines_html}</div></section>
+<section class="mob-section"><div class="mob-section-head"><h2>Haltestellen</h2><small>Favoriten bleiben auf diesem Gerät</small></div><div class="mob-stop-list" id="mob-stop-list"><div class="mob-stop-row"><div><strong>Wird geladen …</strong></div></div></div></section>
+<section class="mob-source-card"><strong>Daten sauber getrennt</strong><p><b>Stufe 1</b> darf schätzen: aus bekannten Haltestellenzeiten und Prognose-/Verspätungsinformationen wird eine ungefähre Position interpoliert und immer mit <b>~</b> markiert. <b>Stufe 2</b> zeigt nur dann exakte Busmarker, wenn eine freigegebene Fahrzeugpositionsschnittstelle echte Koordinaten liefert.</p></section>
 <script>
 (() => {{
-  const state={{map:null,center:[{center_lat:.6f},{center_lon:.6f}],stops:[],vehicles:[]}};
-  const favKey='ahnsen-mobility-favorites-v1';
-  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[ch]));
-  const getFavs=()=>{{try{{return JSON.parse(localStorage.getItem(favKey)||'{{"lines":[],"stops":[]}}')}}catch(_){{return{{lines:[],stops:[]}}}}}};
-  const saveFavs=data=>localStorage.setItem(favKey,JSON.stringify(data));
-  const refreshFavoriteButtons=()=>{{const favs=getFavs();document.querySelectorAll('[data-favorite-line]').forEach(btn=>{{const active=(favs.lines||[]).includes(btn.dataset.favoriteLine);btn.classList.toggle('active',active);btn.textContent=active?'★':'☆'}});document.querySelectorAll('[data-favorite-stop]').forEach(btn=>{{const active=(favs.stops||[]).includes(btn.dataset.favoriteStop);btn.classList.toggle('active',active);btn.textContent=active?'★':'☆'}})}};
-  const toggleFavorite=(type,value)=>{{const favs=getFavs(),key=type==='line'?'lines':'stops',set=new Set(favs[key]||[]);set.has(value)?set.delete(value):set.add(value);favs[key]=Array.from(set);saveFavs(favs);refreshFavoriteButtons()}};
-  document.addEventListener('click',event=>{{const lineButton=event.target.closest('[data-favorite-line]');if(lineButton)toggleFavorite('line',lineButton.dataset.favoriteLine);const stopButton=event.target.closest('[data-favorite-stop]');if(stopButton)toggleFavorite('stop',stopButton.dataset.favoriteStop)}});refreshFavoriteButtons();
-  const ensureLeaflet=()=>new Promise((resolve,reject)=>{{if(window.L)return resolve();if(!document.querySelector('link[data-mob-leaflet]')){{const link=document.createElement('link');link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';link.dataset.mobLeaflet='1';document.head.appendChild(link)}}const existing=document.querySelector('script[data-mob-leaflet]');if(existing){{existing.addEventListener('load',resolve,{{once:true}});existing.addEventListener('error',reject,{{once:true}});return}}const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.defer=true;script.dataset.mobLeaflet='1';script.onload=resolve;script.onerror=reject;document.head.appendChild(script)}});
-  const initMap=async()=>{{try{{await ensureLeaflet();const el=document.getElementById('mobility-map');el.innerHTML='';state.map=L.map(el,{{zoomControl:true}}).setView(state.center,14);L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}}).addTo(state.map);document.getElementById('mob-center').addEventListener('click',()=>state.map.setView(state.center,14))}}catch(_){{document.getElementById('mobility-map').innerHTML='<div class="mob-map-loading">Die interaktive Karte konnte gerade nicht geladen werden. Haltestellen und Linien bleiben unten verfügbar.</div>'}}}};
-  const renderStops=stops=>{{const list=document.getElementById('mob-stop-list');list.innerHTML=stops.map(stop=>`<article class="mob-stop-row"><span class="mob-stop-mark">H</span><div><strong>${{escapeHtml(stop.name)}}</strong><small>Linien ${{(stop.lines||[]).join(', ')}}${{stop.lat?' · auf Karte':''}}</small></div><button class="mob-fav-stop" type="button" data-favorite-stop="${{escapeHtml(stop.key)}}" aria-label="${{escapeHtml(stop.name)}} als Favorit speichern">☆</button></article>`).join('');refreshFavoriteButtons();if(!state.map)return;stops.filter(stop=>Number.isFinite(stop.lat)&&Number.isFinite(stop.lon)).forEach(stop=>{{const icon=L.divIcon({{className:'',html:'<span class="mob-stop-marker"></span>',iconSize:[18,18],iconAnchor:[9,9]}});L.marker([stop.lat,stop.lon],{{icon}}).addTo(state.map).bindPopup(`<strong>${{escapeHtml(stop.name)}}</strong><br>Linien ${{(stop.lines||[]).join(', ')}}`)}})}};
-  let vehicleLayer=null;
-  const renderVehicles=vehicles=>{{if(!state.map)return;if(vehicleLayer)vehicleLayer.remove();vehicleLayer=L.layerGroup().addTo(state.map);vehicles.forEach(vehicle=>{{if(!Number.isFinite(vehicle.lat)||!Number.isFinite(vehicle.lon))return;const icon=L.divIcon({{className:'',html:`<span class="mob-bus-marker">${{escapeHtml(vehicle.line||'Bus')}}</span>`,iconSize:[44,34],iconAnchor:[22,17]}});const popup=`<strong>Linie ${{escapeHtml(vehicle.line||'—')}}</strong><br>Live-Position aus freigegebener Schnittstelle${{vehicle.direction?'<br>Richtung: '+escapeHtml(vehicle.direction):''}}`;L.marker([vehicle.lat,vehicle.lon],{{icon}}).addTo(vehicleLayer).bindPopup(popup)}})}};
-  const applyStatus=live=>{{const card=document.getElementById('mob-stage'),title=document.getElementById('mob-stage-title'),text=document.getElementById('mob-stage-text'),dot=document.getElementById('mob-live-dot'),mapStatus=document.getElementById('mob-map-status');card.classList.remove('live','error');dot.classList.remove('on');if(live.configured&&(live.status==='ok'||live.status==='ok-empty')){{card.classList.add('live');dot.classList.add('on');title.textContent='Stufe 2 · offizielle Live-Schnittstelle aktiv';text.textContent=live.message;mapStatus.textContent='Live-Fahrzeugdaten aktiv'}}else if(live.status==='error'){{card.classList.add('error');title.textContent='Stufe 2 · Schnittstelle vorübergehend nicht erreichbar';text.textContent=live.message;mapStatus.textContent='Live-Daten derzeit nicht verfügbar'}}else{{title.textContent='Stufe 2 vorbereitet · Freigabe der Fahrzeugdaten fehlt noch';text.textContent='Haltestellen und Linien funktionieren. Echte Buspositionen schalten sich nach Hinterlegung einer offiziellen Schnittstelle automatisch zu.';mapStatus.textContent='Haltestellenkarte · keine erfundenen Live-Positionen'}}}};
-  const loadData=async first=>{{try{{const response=await fetch('/api/mobilitaet',{{cache:'no-store',credentials:'same-origin'}});if(!response.ok)throw new Error('HTTP '+response.status);const data=await response.json();state.stops=data.stops||[];state.vehicles=data.vehicles||[];applyStatus(data.live_positions||{{}});if(first)renderStops(state.stops);renderVehicles(state.vehicles)}}catch(_){{document.getElementById('mob-stage').classList.add('error');document.getElementById('mob-stage-title').textContent='Mobilitätsdaten derzeit nicht erreichbar';document.getElementById('mob-stage-text').textContent='Bitte später erneut versuchen.'}}}};
-  (async()=>{{await initMap();await loadData(true);setInterval(()=>loadData(false),20000)}})();
+const S={{map:null,center:[{center_lat:.6f},{center_lon:.6f}],stops:[],departures:[],estimated:[],vehicles:[],selectedStop:'schule'}};let layer=null;const favKey='ahnsen-mobility-favorites-v1';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
+const favs=()=>{{try{{return JSON.parse(localStorage.getItem(favKey)||'{{"lines":[],"stops":[]}}')}}catch(_){{return{{lines:[],stops:[]}}}}}};const save=x=>localStorage.setItem(favKey,JSON.stringify(x));
+function refreshFavs(){{const f=favs();document.querySelectorAll('[data-favorite-line]').forEach(b=>{{const a=(f.lines||[]).includes(b.dataset.favoriteLine);b.classList.toggle('active',a);b.textContent=a?'★':'☆'}});document.querySelectorAll('[data-favorite-stop]').forEach(b=>{{const a=(f.stops||[]).includes(b.dataset.favoriteStop);b.classList.toggle('active',a);b.textContent=a?'★':'☆'}})}}
+function toggle(type,val){{const f=favs(),k=type==='line'?'lines':'stops',s=new Set(f[k]||[]);s.has(val)?s.delete(val):s.add(val);f[k]=[...s];save(f);refreshFavs()}}document.addEventListener('click',e=>{{const l=e.target.closest('[data-favorite-line]');if(l)toggle('line',l.dataset.favoriteLine);const s=e.target.closest('[data-favorite-stop]');if(s)toggle('stop',s.dataset.favoriteStop)}});refreshFavs();
+const leaflet=()=>new Promise((ok,no)=>{{if(window.L)return ok();if(!document.querySelector('link[data-mob-leaflet]')){{const x=document.createElement('link');x.rel='stylesheet';x.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';x.dataset.mobLeaflet='1';document.head.appendChild(x)}}const old=document.querySelector('script[data-mob-leaflet]');if(old){{old.addEventListener('load',ok,{{once:true}});old.addEventListener('error',no,{{once:true}});return}}const x=document.createElement('script');x.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';x.dataset.mobLeaflet='1';x.onload=ok;x.onerror=no;document.head.appendChild(x)}});
+async function initMap(){{try{{await leaflet();const el=document.getElementById('mobility-map');el.innerHTML='';S.map=L.map(el).setView(S.center,14);L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}}).addTo(S.map);document.getElementById('mob-center').onclick=()=>S.map.setView(S.center,14)}}catch(_){{document.getElementById('mobility-map').innerHTML='<div class="mob-map-loading">Karte konnte gerade nicht geladen werden.</div>'}}}}
+function renderStops(){{const list=document.getElementById('mob-stop-list');list.innerHTML=S.stops.map(s=>`<article class="mob-stop-row"><span class="mob-stop-mark">H</span><div><strong>${{esc(s.name)}}</strong><small>Linien ${{(s.lines||[]).join(', ')}}</small></div><button class="mob-fav-stop" data-favorite-stop="${{esc(s.key)}}">☆</button></article>`).join('');refreshFavs();if(S.map)S.stops.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)).forEach(s=>{{const i=L.divIcon({{className:'',html:'<span class="mob-stop-marker"></span>',iconSize:[18,18],iconAnchor:[9,9]}});L.marker([s.lat,s.lon],{{icon:i}}).addTo(S.map).bindPopup(`<strong>${{esc(s.name)}}</strong><br>Linien ${{(s.lines||[]).join(', ')}}`)}})}}
+function tabs(){{const el=document.getElementById('mob-stop-tabs');if(!S.stops.some(s=>s.key===S.selectedStop)&&S.stops[0])S.selectedStop=S.stops[0].key;el.innerHTML=S.stops.map(s=>`<button class="mob-stop-tab ${{s.key===S.selectedStop?'active':''}}" data-stop="${{esc(s.key)}}">${{esc(s.name.replace('Ahnsen, ','').replace('Klinikum Schaumburg','Klinikum'))}}</button>`).join('');el.querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=>{{S.selectedStop=b.dataset.stop;tabs();deps()}})}}
+function deps(){{const el=document.getElementById('mob-dep-list'),items=S.departures.filter(x=>x.stop_key===S.selectedStop).slice(0,8);if(!items.length){{el.innerHTML='<div class="mob-dep-empty">Für diese Haltestelle liegen aktuell keine passenden Abfahrten der Linien 2132, 2133 oder 2026 vor.</div>';return}}el.innerHTML=items.map(x=>{{const d=Number.isFinite(x.delay_minutes)?x.delay_minutes:null,chip=d===null?'':`<span class="mob-delay ${{d>1?'late':''}}">${{d>0?'+'+d:d}} Min.</span>`;return `<article class="mob-dep-row"><span class="mob-line-badge">${{esc(x.line)}}</span><div class="mob-dep-main"><strong>${{esc(x.direction||'Richtung laut Fahrplan')}}</strong><small>${{x.realtime?'Prognose · Plan '+esc(x.planned_time):'Fahrplan'}}${{x.cancelled?' · fällt aus':''}}</small></div><div class="mob-dep-time"><strong>${{esc(x.time)}}</strong><small>${{x.minutes<=0?'jetzt':'in '+x.minutes+' Min.'}}</small>${{chip}}</div></article>`}}).join('')}}
+function vehicles(){{if(!S.map)return;if(layer)layer.remove();layer=L.layerGroup().addTo(S.map);S.estimated.forEach(v=>{{if(!Number.isFinite(v.lat)||!Number.isFinite(v.lon))return;const i=L.divIcon({{className:'',html:`<span class="mob-bus-marker estimated">~${{esc(v.line)}}</span>`,iconSize:[48,34],iconAnchor:[24,17]}}),between=(v.between||[]).filter(Boolean).join(' → ');L.marker([v.lat,v.lon],{{icon:i}}).addTo(layer).bindPopup(`<strong>~ Linie ${{esc(v.line)}}</strong><br>geschätzte Position${{between?'<br>'+esc(between):''}}`)}});S.vehicles.forEach(v=>{{if(!Number.isFinite(v.lat)||!Number.isFinite(v.lon))return;const i=L.divIcon({{className:'',html:`<span class="mob-bus-marker">${{esc(v.line)}} GPS</span>`,iconSize:[48,34],iconAnchor:[24,17]}});L.marker([v.lat,v.lon],{{icon:i}}).addTo(layer).bindPopup(`<strong>Linie ${{esc(v.line)}}</strong><br>echte Fahrzeugposition`)}})}}
+function status(a,b){{const c=document.getElementById('mob-stage'),t=document.getElementById('mob-stage-title'),p=document.getElementById('mob-stage-text'),dot=document.getElementById('mob-live-dot'),m=document.getElementById('mob-map-status');c.classList.remove('live','estimate','error');dot.classList.remove('on','estimate');document.getElementById('mob-dep-status').textContent=a.message||'Abfahrtsstatus unbekannt';document.getElementById('mob-dep-badge').textContent=a.status==='ok'?'Stufe 1 aktiv':'Stufe 1';if(b.configured&&(b.status==='ok'||b.status==='ok-empty')){{c.classList.add('live');dot.classList.add('on');t.textContent='Stufe 2 · echte Fahrzeugpositionen aktiv';p.textContent=b.message;m.textContent=S.vehicles.length?'echte Positionen aktiv':'GPS-Schnittstelle aktiv'}}else if(S.estimated.length){{c.classList.add('estimate');dot.classList.add('estimate');t.textContent='Stufe 1 · Fahrplan- und Echtzeit-Schätzung aktiv';p.textContent='Buspositionen mit ~ sind berechnet, nicht per GPS gemessen. '+(a.message||'');m.textContent='~ geschätzte Buspositionen'}}else if(a.status==='ok'){{c.classList.add('estimate');t.textContent='Stufe 1 · nächste Abfahrten aktiv';p.textContent='Abfahrten und Verspätungen sind verfügbar; aktuell reicht die Datenlage nicht für eine Positionsschätzung.';m.textContent='Haltestellenkarte'}}else{{if(a.status==='error'||b.status==='error')c.classList.add('error');t.textContent='Stufe 1 vorbereitet';p.textContent=a.message||b.message||'Aktuelle Prognosedaten sind gerade nicht verfügbar.';m.textContent='Haltestellenkarte'}}}}
+async function load(first){{try{{const r=await fetch('/api/mobilitaet',{{cache:'no-store'}});if(!r.ok)throw Error();const d=await r.json();S.stops=d.stops||[];S.departures=d.departures||[];S.estimated=d.estimated_vehicles||[];S.vehicles=d.vehicles||[];if(first){{renderStops();tabs()}}deps();vehicles();status(d.stage1||{{}},d.live_positions||{{}})}}catch(_){{document.getElementById('mob-stage').classList.add('error');document.getElementById('mob-stage-title').textContent='Mobilitätsdaten derzeit nicht erreichbar'}}}}
+(async()=>{{await initMap();await load(true);setInterval(()=>load(false),30000)}})();
 }})();
 </script>
-"""
+'''
 
 
 @router.get("/mobilitaet")
 async def mobility_page():
-    return page(
-        "Bus & Mobilität",
-        _mobility_content(),
-        active="home",
-        description="Buslinien, Haltestellen und vorbereitete Live-Fahrzeugpositionen für Ahnsen.",
-        body_class="mobility-view",
-    )
+    return page("Bus & Mobilität", _mobility_content(), active="home", description="Abfahrten, Verspätungen, geschätzte und – sofern freigegeben – echte Fahrzeugpositionen für Ahnsen.", body_class="mobility-view")
 
 
 async def _home_with_mobility():
     from pwa_core import _public_data
-
     response = home_page(_public_data())
     html = response.body.decode("utf-8")
     if 'href="/mobilitaet"' in html:
         return response
-    card = (
-        '<a class="service-card" href="/mobilitaet"><span class="service-icon">'
-        + _bus_icon()
-        + '</span><div><h3>Bus &amp; Mobilität</h3><p>Haltestellen, Linien und Live-Status.</p></div>'
-        '<span class="card-arrow"><span class="glyph" aria-hidden="true">›</span></span></a>'
-    )
+    card = '<a class="service-card" href="/mobilitaet"><span class="service-icon">' + _bus_icon() + '</span><div><h3>Bus &amp; Mobilität</h3><p>Abfahrten, Verspätungen und Buspositionen.</p></div><span class="card-arrow"><span class="glyph" aria-hidden="true">›</span></span></a>'
     marker = '<section class="service-grid" aria-label="Digitale Dienste">'
     start = html.find(marker)
     if start >= 0:
@@ -459,7 +627,6 @@ async def _home_with_mobility():
 
 
 def install_mobility(app) -> None:
-    """Install mobility routes and the home-card compatibility override once."""
     if getattr(app.state, "mobility_installed", False):
         return
     app.state.mobility_installed = True
