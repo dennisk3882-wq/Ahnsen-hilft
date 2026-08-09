@@ -15,7 +15,7 @@ from platform_runtime import get_platform_snapshot
 
 
 ICON_VERSION = "v5"
-SERVICE_WORKER_VERSION = "v6"
+SERVICE_WORKER_VERSION = "v7"
 ICON_SOURCE = STATIC_DIR / "icon-ahnsen.svg"
 ICON_SIZES = {180, 192, 512}
 GEOCODER_REVERSE_URL = os.getenv(
@@ -384,7 +384,7 @@ if (typeof document !== 'undefined') {
 async def pwa_javascript_v6():
     cfg = get_platform_snapshot()
     source = (STATIC_DIR / "pwa.js").read_text(encoding="utf-8")
-    source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-v7")
+    source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-v8")
     source = source.replace("Ahnsen hilft", cfg["platform_name"])
     source = source.replace("/pwa/icon-192.png", cfg.get("pwa_icon_192_url") or "/pwa/ahnsen-app-v5-192.png")
     source = source.replace("/pwa/icon-512.png", cfg.get("pwa_icon_512_url") or "/pwa/ahnsen-app-v5-512.png")
