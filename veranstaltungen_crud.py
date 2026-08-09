@@ -1,8 +1,12 @@
 import base64
+import json
 
 from database import Base, engine, SessionLocal
 from veranstaltungen_models import Veranstaltung
 from sqlalchemy import inspect
+
+
+MAX_RUECKBLICK_BILDER = 12
 
 
 def init_veranstaltungen_db():
@@ -13,13 +17,59 @@ def init_veranstaltungen_db():
         for spalte in inspect(engine).get_columns("veranstaltungen")
     }
 
-    if "kategorie" not in vorhandene_spalten:
+    neue_spalten = {
+        "kategorie": "VARCHAR",
+        "rueckblick_text": "TEXT",
+        "rueckblick_bilder_json": "TEXT",
+    }
+    for spaltenname, sql_typ in neue_spalten.items():
+        if spaltenname in vorhandene_spalten:
+            continue
         with engine.begin() as conn:
             conn.exec_driver_sql(
-                "ALTER TABLE veranstaltungen ADD COLUMN kategorie VARCHAR"
+                f"ALTER TABLE veranstaltungen ADD COLUMN {spaltenname} {sql_typ}"
             )
+        print(f"Spalte veranstaltungen.{spaltenname} hinzugefügt.")
 
-        print("Spalte veranstaltungen.kategorie hinzugefügt.")
+
+def _gallery_laden(raw):
+    if not raw:
+        return []
+    try:
+        daten = json.loads(raw)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+    if not isinstance(daten, list):
+        return []
+    result = []
+    for eintrag in daten:
+        if not isinstance(eintrag, dict):
+            continue
+        mime = str(eintrag.get("mime") or "image/jpeg").strip().lower()
+        data = str(eintrag.get("data") or "").strip()
+        if mime not in {"image/jpeg", "image/png", "image/webp"} or not data:
+            continue
+        result.append({"mime": mime, "data": data})
+    return result[:MAX_RUECKBLICK_BILDER]
+
+
+def _gallery_neue_eintraege(bilder):
+    result = []
+    for eintrag in bilder or []:
+        try:
+            mime, bild_bytes = eintrag
+        except (TypeError, ValueError):
+            continue
+        mime = str(mime or "image/jpeg").strip().lower()
+        if mime not in {"image/jpeg", "image/png", "image/webp"} or not bild_bytes:
+            continue
+        result.append(
+            {
+                "mime": mime,
+                "data": base64.b64encode(bild_bytes).decode("utf-8"),
+            }
+        )
+    return result
 
 
 def save_veranstaltung(
@@ -31,6 +81,8 @@ def save_veranstaltung(
     beschreibung,
     ansprechpartner,
     bild_bytes=None,
+    rueckblick_text="",
+    rueckblick_bilder=None,
 ):
     db = SessionLocal()
 
@@ -40,6 +92,7 @@ def save_veranstaltung(
         if bild_bytes:
             bild_base64 = base64.b64encode(bild_bytes).decode("utf-8")
 
+        gallery = _gallery_neue_eintraege(rueckblick_bilder)[:MAX_RUECKBLICK_BILDER]
         veranstaltung = Veranstaltung(
             titel=titel,
             datum=datum,
@@ -49,6 +102,8 @@ def save_veranstaltung(
             beschreibung=beschreibung,
             ansprechpartner=ansprechpartner,
             bild_base64=bild_base64,
+            rueckblick_text=rueckblick_text or "",
+            rueckblick_bilder_json=json.dumps(gallery) if gallery else None,
             aktiv="Ja",
         )
 
@@ -139,11 +194,7 @@ def get_alle_veranstaltungen():
     db = SessionLocal()
 
     try:
-        return (
-            db.query(Veranstaltung)
-            .order_by(Veranstaltung.datum.asc())
-            .all()
-        )
+        return db.query(Veranstaltung).all()
 
     finally:
         db.close()
@@ -173,6 +224,9 @@ def update_veranstaltung(
     beschreibung,
     ansprechpartner,
     bild_bytes=None,
+    rueckblick_text="",
+    rueckblick_bilder=None,
+    rueckblick_bilder_loeschen=False,
 ):
     db = SessionLocal()
 
@@ -191,11 +245,21 @@ def update_veranstaltung(
             veranstaltung.kategorie = kategorie
             veranstaltung.beschreibung = beschreibung
             veranstaltung.ansprechpartner = ansprechpartner
+            veranstaltung.rueckblick_text = rueckblick_text or ""
 
             if bild_bytes:
                 veranstaltung.bild_base64 = base64.b64encode(
                     bild_bytes
                 ).decode("utf-8")
+
+            gallery = [] if rueckblick_bilder_loeschen else _gallery_laden(
+                getattr(veranstaltung, "rueckblick_bilder_json", None)
+            )
+            gallery.extend(_gallery_neue_eintraege(rueckblick_bilder))
+            gallery = gallery[-MAX_RUECKBLICK_BILDER:]
+            veranstaltung.rueckblick_bilder_json = (
+                json.dumps(gallery) if gallery else None
+            )
 
             db.commit()
             db.refresh(veranstaltung)

@@ -18,6 +18,8 @@ class Veranstaltung(Base):
     ansprechpartner = Column(String)
 
     bild_base64 = Column(Text, nullable=True)
+    rueckblick_text = Column(Text, nullable=True)
+    rueckblick_bilder_json = Column(Text, nullable=True)
 
     aktiv = Column(String, default="Ja")
     erstellt_am = Column(DateTime, default=datetime.utcnow)
