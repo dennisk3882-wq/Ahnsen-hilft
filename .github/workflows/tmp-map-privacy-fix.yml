@@ -1,0 +1,23 @@
+name: Temporary map privacy fix
+on:
+  push:
+    branches:
+      - agent/professional-defect-map
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/professional-defect-map
+      - run: python tmp_privacy_map_fix.py
+      - run: python -m py_compile community_routes.py community_ui.py pwa_main.py
+      - run: |
+          rm tmp_privacy_map_fix.py .github/workflows/tmp-map-privacy-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add community_routes.py community_ui.py tmp_privacy_map_fix.py .github/workflows/tmp-map-privacy-fix.yml
+          git commit -m "Mängelkarte datenschutzkonform detaillieren"
+          git push
