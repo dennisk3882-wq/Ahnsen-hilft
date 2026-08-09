@@ -58,6 +58,9 @@ from community_ui import (
     search_page,
 )
 from crud import suche_meldungen
+from gemeinde_crud import set_gemeinde_einstellung
+from platform_runtime import get_platform_snapshot
+from translation_service import provider_status, translate_texts
 
 
 router = APIRouter()
@@ -111,14 +114,14 @@ def _public_report_points() -> list[dict]:
             lon = round(float(match.group(2)), 3)
         except ValueError:
             continue
-        if not (51.5 <= lat <= 53.0 and 8.0 <= lon <= 10.5):
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
             continue
         location = re.sub(r"\b\d+[a-zA-Z]?\b", "", str(getattr(item, "ort", "") or "")).strip(" ,-")
         points.append({
             "lat": lat,
             "lon": lon,
             "art": str(getattr(item, "art", "Meldung") or "Meldung")[:100],
-            "ort": location[:100] or "Ahnsen",
+            "ort": location[:100] or get_platform_snapshot()["municipality_name"],
             "status": str(getattr(item, "status", "Offen") or "Offen")[:40],
         })
     return points
@@ -251,7 +254,7 @@ async def neighbor_contact(request: Request, post_id: int, background_tasks: Bac
             _send_user_notification,
             post.user_id,
             "Neue Nachricht zur Nachbarschaftshilfe",
-            "Jemand möchte Kontakt zu deinem Beitrag aufnehmen. Öffne dein Ahnsen-Postfach.",
+            f"Jemand möchte Kontakt zu deinem Beitrag aufnehmen. Öffne dein {get_platform_snapshot()['municipality_name']}-Postfach.",
             "/nachrichten",
             f"neighbor-contact-{post_id}-{user.id}",
             None,
@@ -278,21 +281,40 @@ async def save_language(request: Request):
     if user:
         save_preference(user.id, language=language)
     response = JSONResponse({"status": "ok", "language": language})
-    response.set_cookie("ahnsen_language", language, max_age=365 * 24 * 3600, samesite="lax", secure=request.url.scheme == "https")
+    response.set_cookie("platform_language", language, max_age=365 * 24 * 3600, samesite="lax", secure=request.url.scheme == "https")
+    response.delete_cookie("ahnsen_language")
     return response
+
+
+@router.post("/api/uebersetzen")
+async def public_translate(request: Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    texts = payload.get("texts") or payload.get("text") or []
+    if isinstance(texts, str):
+        texts = [texts]
+    if not isinstance(texts, list):
+        raise HTTPException(status_code=400, detail="texts muss eine Liste sein")
+    target = _clean(payload.get("target"), 10)
+    source = _clean(payload.get("source"), 10) or "auto"
+    try:
+        return translate_texts(texts, target=target, source=source)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@router.get("/api/uebersetzen/status")
+async def public_translation_status():
+    return provider_status()
 
 
 @router.get("/api/plattform")
 async def public_platform_config():
-    config = get_municipality_config()
-    return {
-        "platform_name": config.platform_name,
-        "municipality_name": config.municipality_name,
-        "claim": config.claim,
-        "postal_code": config.postal_code,
-        "primary_color": config.primary_color,
-        "accent_color": config.accent_color,
-    }
+    return get_platform_snapshot()
 
 
 @router.get("/intern/cockpit")
@@ -329,7 +351,7 @@ async def admin_send_message(request: Request, background_tasks: BackgroundTasks
         background_tasks.add_task(
             _send_user_notification,
             user_id,
-            "Neue Nachricht in Ahnsen hilft",
+            f"Neue Nachricht in {get_platform_snapshot()['platform_name']}",
             "Du hast eine neue persönliche Nachricht der Verwaltung.",
             "/nachrichten",
             f"mailbox-{int(datetime.utcnow().timestamp())}-{user_id}",
@@ -428,7 +450,7 @@ async def admin_generate_report(request: Request):
 @router.get("/intern/plattform")
 async def admin_platform(request: Request):
     _admin(request)
-    return platform_settings_page(get_municipality_config())
+    return platform_settings_page(get_platform_snapshot())
 
 
 @router.post("/intern/plattform")
@@ -441,5 +463,47 @@ async def admin_platform_save(request: Request):
         ("warning_terms", 500),
     )}
     config = update_municipality_config(values)
+    extras = {
+        "plattform_kurzname": _clean(form.get("short_name"), 30),
+        "plattform_beschreibung": _clean(form.get("description"), 300),
+        "standard_sprache": _clean(form.get("default_language"), 10),
+        "plattform_sprachen": _clean(form.get("languages"), 300),
+        "zeitzone": _clean(form.get("timezone"), 80),
+        "plattform_basis_url": _clean(form.get("public_base_url"), 500),
+        "plattform_slug": _clean(form.get("platform_slug"), 80),
+        "pwa_icon_192_url": _clean(form.get("pwa_icon_192_url"), 1000),
+        "pwa_icon_512_url": _clean(form.get("pwa_icon_512_url"), 1000),
+        "apple_touch_icon_url": _clean(form.get("apple_touch_icon_url"), 1000),
+        "ticket_prefix": _clean(form.get("ticket_prefix"), 8),
+        "karten_mittelpunkt_lat": _clean(form.get("map_lat"), 30),
+        "karten_mittelpunkt_lon": _clean(form.get("map_lon"), 30),
+        "karten_zoom": _clean(form.get("map_zoom"), 3),
+        "warnung_ortsname": _clean(form.get("warning_location_name"), 160),
+        "warnung_bereich": _clean(form.get("warning_area_label"), 240),
+        "warnung_suchbegriffe": _clean(form.get("warning_terms"), 500),
+        "bbk_mowas_rss_url": _clean(form.get("bbk_mowas_rss_url"), 1000),
+        "dwd_cap_index_url": _clean(form.get("dwd_cap_index_url"), 1000),
+        "uebersetzung_aktiv": "ja" if _clean(form.get("translation_enabled"), 10) == "ja" else "nein",
+        "uebersetzung_api_url": _clean(form.get("translation_api_url"), 1000),
+        "uebersetzung_fallback_url": _clean(form.get("translation_fallback_url"), 1000),
+        "geschichte_modus": _clean(form.get("history_mode"), 20),
+        "logo_bild_url": _clean(form.get("logo_url"), 1000),
+        "hero_bild_url": _clean(form.get("hero_image_url"), 1000),
+        "kontakt_name": _clean(form.get("contact_name"), 180),
+        "kontakt_adresse": _clean(form.get("contact_address"), 500),
+        "kontakt_email": _clean(form.get("contact_email"), 180),
+        "kontakt_telefon": _clean(form.get("contact_phone"), 80),
+        "externe_website_url": _clean(form.get("website_url"), 1000),
+        "footer_datenschutz_url": _clean(form.get("privacy_url"), 1000),
+        "footer_impressum_url": _clean(form.get("imprint_url"), 1000),
+    }
+    extras.update({
+        "seiten_titel": config.platform_name,
+        "logo_text": config.platform_name,
+        "hauptfarbe": config.primary_color,
+        "akzentfarbe": config.accent_color,
+    })
+    for key, value in extras.items():
+        set_gemeinde_einstellung(key, value)
     audit_event("Verwaltung", "Plattform-Konfiguration geändert", "municipality_config", str(config.id), config.platform_name)
-    return RedirectResponse(url="/intern/plattform", status_code=303)
+    return RedirectResponse(url="/intern/plattform?hinweis=" + quote("White-Label-Konfiguration gespeichert."), status_code=303)

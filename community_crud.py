@@ -29,6 +29,16 @@ SUPPORTED_LANGUAGES = {
     "pl": "Polski",
     "uk": "Українська",
     "tr": "Türkçe",
+    "fr": "Français",
+    "es": "Español",
+    "it": "Italiano",
+    "nl": "Nederlands",
+    "ro": "Română",
+    "cs": "Čeština",
+    "da": "Dansk",
+    "sv": "Svenska",
+    "ar": "العربية",
+    "ru": "Русский",
 }
 PUSH_MODES = {"sofort", "taeglich", "woechentlich"}
 
@@ -142,14 +152,20 @@ def create_message(
     category: str = "info",
     url: str = "/nachrichten",
     sender_user_id: int | None = None,
-    sender_label: str = "Gemeinde Ahnsen",
+    sender_label: str | None = None,
 ) -> CitizenMessage:
+    if not sender_label:
+        try:
+            from platform_runtime import get_platform_snapshot
+            sender_label = get_platform_snapshot().get("contact_name") or "Verwaltung"
+        except Exception:
+            sender_label = "Verwaltung"
     db = SessionLocal()
     try:
         item = CitizenMessage(
             user_id=user_id,
             sender_user_id=sender_user_id,
-            sender_label=str(sender_label or "Gemeinde Ahnsen")[:120],
+            sender_label=str(sender_label or "Verwaltung")[:120],
             subject=str(subject or "Nachricht")[:180],
             body=str(body or "")[:5000],
             category=str(category or "info")[:60],

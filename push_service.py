@@ -5,6 +5,7 @@ import os
 
 from pywebpush import WebPushException, webpush
 
+from platform_runtime import get_platform_snapshot
 from pwa_crud import (
     delete_push_subscription,
     get_push_subscriptions_for_user,
@@ -50,7 +51,7 @@ def send_user_notification(
 
     payload = json.dumps(
         {
-            "title": str(title or "Ahnsen hilft")[:120],
+            "title": str(title or get_platform_snapshot()["platform_name"])[:120],
             "body": str(body or "")[:500],
             "url": str(url or "/profil")[:500],
             "tag": str(tag or "ahnsen-hilft")[:120],

@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.routing import APIRoute
 
 from pwa_core import STATIC_DIR, app
+from platform_runtime import get_platform_snapshot
 
 
 ICON_VERSION = "v5"
@@ -23,7 +24,7 @@ GEOCODER_REVERSE_URL = os.getenv(
 )
 GEOCODER_USER_AGENT = os.getenv(
     "GEOCODER_USER_AGENT",
-    "Ahnsen-hilft/1.0 (+https://ahnsen-hilft.onrender.com)",
+    f"{get_platform_snapshot()['platform_slug']}/1.0 (+{get_platform_snapshot().get('public_base_url') or 'municipal-pwa'})",
 )
 _GEOCODER_LOCK = threading.Lock()
 _GEOCODER_LAST_REQUEST = 0.0
@@ -164,61 +165,37 @@ def reverse_location(lat: float, lon: float):
 
 
 async def manifest_v5():
-    icon_192 = f"/pwa/ahnsen-app-{ICON_VERSION}-192.png"
-    icon_512 = f"/pwa/ahnsen-app-{ICON_VERSION}-512.png"
+    cfg = get_platform_snapshot()
+    icon_192 = cfg.get("pwa_icon_192_url") or f"/pwa/ahnsen-app-{ICON_VERSION}-192.png"
+    icon_512 = cfg.get("pwa_icon_512_url") or f"/pwa/ahnsen-app-{ICON_VERSION}-512.png"
     return JSONResponse(
         {
-            "id": "/?app-id=ahnsen-hilft-v5",
-            "name": "Ahnsen hilft",
-            "short_name": "Ahnsen",
-            "description": "Digitale Bürgerplattform der Gemeinde Ahnsen",
-            "lang": "de-DE",
-            "start_url": "/?installed=v5",
+            "id": f"/?app-id={cfg['platform_slug']}",
+            "name": cfg["platform_name"],
+            "short_name": cfg["short_name"],
+            "description": cfg["description"],
+            "lang": cfg["default_language"],
+            "start_url": "/?installed=1",
             "scope": "/",
             "display": "standalone",
             "orientation": "portrait-primary",
             "background_color": "#fbf8f0",
-            "theme_color": "#174936",
+            "theme_color": cfg["primary_color"],
             "prefer_related_applications": False,
             "categories": ["government", "utilities", "social"],
             "icons": [
-                {
-                    "src": icon_192,
-                    "sizes": "192x192",
-                    "type": "image/png",
-                    "purpose": "any maskable",
-                },
-                {
-                    "src": icon_512,
-                    "sizes": "512x512",
-                    "type": "image/png",
-                    "purpose": "any maskable",
-                },
+                {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+                {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
             ],
             "shortcuts": [
-                {
-                    "name": "Mangel melden",
-                    "url": "/mangel-melden",
-                    "icons": [{"src": icon_192, "sizes": "192x192", "type": "image/png"}],
-                },
-                {
-                    "name": "DGH anfragen",
-                    "url": "/dgh-anfrage",
-                    "icons": [{"src": icon_192, "sizes": "192x192", "type": "image/png"}],
-                },
-                {
-                    "name": "Mein Profil",
-                    "url": "/profil",
-                    "icons": [{"src": icon_192, "sizes": "192x192", "type": "image/png"}],
-                },
+                {"name": "Mangel melden", "url": "/mangel-melden", "icons": [{"src": icon_192, "sizes": "192x192", "type": "image/png"}]},
+                {"name": "DGH anfragen", "url": "/dgh-anfrage", "icons": [{"src": icon_192, "sizes": "192x192", "type": "image/png"}]},
+                {"name": "Warnungen", "url": "/warnungen", "icons": [{"src": icon_192, "sizes": "192x192", "type": "image/png"}]},
+                {"name": "Mein Profil", "url": "/profil", "icons": [{"src": icon_192, "sizes": "192x192", "type": "image/png"}]},
             ],
         },
         media_type="application/manifest+json",
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache", "Expires": "0"},
     )
 
 
@@ -378,10 +355,12 @@ if (typeof document !== 'undefined') {
 
 
 async def pwa_javascript_v6():
+    cfg = get_platform_snapshot()
     source = (STATIC_DIR / "pwa.js").read_text(encoding="utf-8")
-    source = source.replace("ahnsen-hilft-public-v3", "ahnsen-hilft-public-v6")
-    source = source.replace("/pwa/icon-192.png", "/pwa/ahnsen-app-v5-192.png")
-    source = source.replace("/pwa/icon-512.png", "/pwa/ahnsen-app-v5-512.png")
+    source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-v7")
+    source = source.replace("Ahnsen hilft", cfg["platform_name"])
+    source = source.replace("/pwa/icon-192.png", cfg.get("pwa_icon_192_url") or "/pwa/ahnsen-app-v5-192.png")
+    source = source.replace("/pwa/icon-512.png", cfg.get("pwa_icon_512_url") or "/pwa/ahnsen-app-v5-512.png")
     source = source.replace("?worker=3", f"?worker={SERVICE_WORKER_VERSION}")
     source = source.replace(
         "          const registration = await navigator.serviceWorker.ready;\n",
@@ -396,7 +375,7 @@ async def pwa_javascript_v6():
         1,
     )
     return Response(
-        source + _PUSH_HELPER + _LOCATION_HELPER,
+        source + _PUSH_HELPER.replace("/pwa/ahnsen-app-v5-180.png", cfg.get("apple_touch_icon_url") or "/pwa/ahnsen-app-v5-180.png") + _LOCATION_HELPER,
         media_type="application/javascript; charset=utf-8",
         headers={
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -442,3 +421,19 @@ for route in reversed(
     ]
 ):
     app.router.routes.insert(0, route)
+
+# Ensure every community feature route is present in the actual production
+# application. APIRouter routes are safe to append directly because they are
+# already fully configured APIRoute instances. Missing routes only are added,
+# so the compatibility layer stays idempotent.
+from community_routes import router as _community_router
+for _feature_route in _community_router.routes:
+    _feature_path = getattr(_feature_route, "path", "")
+    _feature_methods = frozenset(getattr(_feature_route, "methods", set()) or set())
+    if not any(
+        getattr(_existing_route, "path", "") == _feature_path
+        and frozenset(getattr(_existing_route, "methods", set()) or set()) == _feature_methods
+        for _existing_route in app.router.routes
+    ):
+        app.router.routes.append(_feature_route)
+

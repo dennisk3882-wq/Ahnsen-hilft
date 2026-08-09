@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 
 from community_crud import SUPPORTED_LANGUAGES
 from pwa_ui import icon, page
+from platform_runtime import get_platform_snapshot
 
 
 COMMUNITY_CSS = """
@@ -148,13 +149,14 @@ def politics_page(items) -> HTMLResponse:
 
 
 def public_map_page(points: list[dict]) -> HTMLResponse:
+    cfg = get_platform_snapshot()
     safe_points = json.dumps(points, ensure_ascii=False).replace("</", "<\\/")
     content = f"""{COMMUNITY_CSS}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynMZqKOLMZIFmbxuQfDVT4I48HcI=" crossorigin="">
 {_heading('Digitaler Ortsplan','Mängelkarte','Öffentlich sichtbare Meldungen werden datensparsam und nur mit ungefährer Position dargestellt.')}
-<section class="map-wrap"><div class="map-legend"><span>🔴 Offen</span><span>🟡 In Bearbeitung</span><span>🟢 Erledigt</span></div><div id="public-map" aria-label="Karte von Ahnsen"></div><div class="map-note">Zum Schutz von Privatsphäre und Wohnadressen werden GPS-Positionen öffentlich gerundet. Namen, Kontaktdaten, interne Notizen und Fotos werden nicht angezeigt.</div></section>
+<section class="map-wrap"><div class="map-legend"><span>🔴 Offen</span><span>🟡 In Bearbeitung</span><span>🟢 Erledigt</span></div><div id="public-map" aria-label="Karte von {escape(cfg['municipality_name'])}"></div><div class="map-note">Zum Schutz von Privatsphäre und Wohnadressen werden GPS-Positionen öffentlich gerundet. Namen, Kontaktdaten, interne Notizen und Fotos werden nicht angezeigt.</div></section>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>(()=>{{const points={safe_points};const map=L.map('public-map').setView([52.258,9.099],15);L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{maxZoom:19,attribution:'&copy; OpenStreetMap-Mitwirkende'}}).addTo(map);const colors={{'Offen':'#b64a42','In Bearbeitung':'#c78a1b','Erledigt':'#287052'}};points.forEach(p=>{{const marker=L.circleMarker([p.lat,p.lon],{{radius:8,color:colors[p.status]||'#174936',weight:3,fillOpacity:.72}}).addTo(map);marker.bindPopup(`<strong>${{p.art}}</strong><br>${{p.ort}}<br><small>${{p.status}}</small>`);}});if(points.length){{const bounds=L.latLngBounds(points.map(p=>[p.lat,p.lon]));if(bounds.isValid())map.fitBounds(bounds.pad(.15),{{maxZoom:16}});}}}})();</script>"""
+<script>(()=>{{const points={safe_points};const map=L.map('public-map').setView([{cfg['map_lat']},{cfg['map_lon']}],{cfg['map_zoom']});L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{maxZoom:19,attribution:'&copy; OpenStreetMap-Mitwirkende'}}).addTo(map);const colors={{'Offen':'#b64a42','In Bearbeitung':'#c78a1b','Erledigt':'#287052'}};points.forEach(p=>{{const marker=L.circleMarker([p.lat,p.lon],{{radius:8,color:colors[p.status]||'#174936',weight:3,fillOpacity:.72}}).addTo(map);marker.bindPopup(`<strong>${{p.art}}</strong><br>${{p.ort}}<br><small>${{p.status}}</small>`);}});if(points.length){{const bounds=L.latLngBounds(points.map(p=>[p.lat,p.lon]));if(bounds.isValid())map.fitBounds(bounds.pad(.15),{{maxZoom:16}});}}}})();</script>"""
     return page("Mängelkarte", content, active="home", body_class="community-view")
 
 

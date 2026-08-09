@@ -7,6 +7,7 @@ from ahnsen_history import history_content
 from community_crud import get_civic_items, get_ideas, get_neighbor_posts
 from gemeinde_crud import get_gemeinde_einstellungen
 from veranstaltungen_crud import get_aktive_veranstaltungen
+from platform_runtime import apply_static_branding, get_platform_snapshot
 
 
 SERVICE_INDEX = [
@@ -71,9 +72,12 @@ def intelligent_search(query: str, limit: int = 30) -> list[dict]:
     if len(query) < 2:
         return []
 
+    cfg = get_platform_snapshot()
     candidates: list[dict] = []
     for title, text, url, kind in SERVICE_INDEX:
-        candidates.append({"title": title, "text": text, "url": url, "kind": kind})
+        if url == "/ueber-ahnsen":
+            url = "/ueber-gemeinde"
+        candidates.append({"title": apply_static_branding(title, cfg), "text": apply_static_branding(text, cfg), "url": url, "kind": kind})
 
     settings = get_gemeinde_einstellungen()
     for key, title, url in (
@@ -117,16 +121,22 @@ def intelligent_search(query: str, limit: int = 30) -> list[dict]:
             "kind": "nachbarschaft",
         })
 
-    history = _plain(history_content())
-    history_score = _score(query, "Geschichte Ahnsens", history)
-    if history_score:
-        candidates.append({
-            "title": "Geschichte Ahnsens",
-            "text": _snippet(history, query, 300),
-            "url": "/ueber-ahnsen",
-            "kind": "geschichte",
-            "fixed_score": history_score,
-        })
+    if cfg.get("history_mode") == "ahnsen" and cfg["municipality_name"].casefold() == "ahnsen":
+        history = _plain(history_content())
+        history_title = f"Geschichte {cfg['municipality_name']}s"
+        history_score = _score(query, history_title, history)
+        if history_score:
+            candidates.append({
+                "title": history_title,
+                "text": _snippet(history, query, 300),
+                "url": "/ueber-gemeinde",
+                "kind": "geschichte",
+                "fixed_score": history_score,
+            })
+    else:
+        about = str(settings.get("ueber_ahnsen_text") or settings.get("ueber_ahnsen_seite_text") or "")
+        if about:
+            candidates.append({"title": f"Über {cfg['municipality_name']}", "text": about, "url": "/ueber-gemeinde", "kind": "information"})
 
     results = []
     for candidate in candidates:

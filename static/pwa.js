@@ -61,7 +61,7 @@ if (typeof document === 'undefined') {
 
   self.addEventListener('push', event => {
     let data = {
-      title: 'Ahnsen hilft',
+      title: document.querySelector('meta[name=\"application-name\"]')?.content || document.title.split(' · ').pop() || 'Bürgerplattform',
       body: 'Es gibt eine neue Information.',
       url: '/profil',
       tag: 'ahnsen-hilft'
@@ -132,7 +132,7 @@ if (typeof document === 'undefined') {
     let installPrompt = null;
     const installButton = document.getElementById('install-app');
     if (installButton) {
-      installButton.setAttribute('aria-label', 'Ahnsen hilft installieren');
+      installButton.setAttribute('aria-label', `${document.title.split(' · ').pop() || 'Bürgerplattform'} installieren`);
       installButton.setAttribute('title', 'App installieren');
       installButton.innerHTML = `
         <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

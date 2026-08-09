@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from platform_runtime import get_platform_snapshot
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -54,10 +56,11 @@ def dispatch_due_digests(send_immediate) -> int:
         if len(pending) > len(preview):
             lines.append(f"• und {len(pending) - len(preview)} weitere Hinweise")
         period = "Wochen" if getattr(pref, "push_mode", "") == "woechentlich" else "Tages"
-        body = f"{period}zusammenfassung für Ahnsen: " + " ".join(lines)
+        cfg = get_platform_snapshot()
+        body = f"{period}zusammenfassung für {cfg['municipality_name']}: " + " ".join(lines)
         sent = send_immediate(
             user.id,
-            "Deine Ahnsen-Zusammenfassung",
+            f"Deine {cfg['municipality_name']}-Zusammenfassung",
             body,
             "/nachrichten",
             f"digest-{now.date().isoformat()}",

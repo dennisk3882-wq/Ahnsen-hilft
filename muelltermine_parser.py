@@ -1,3 +1,4 @@
+from platform_runtime import get_platform_snapshot
 import re
 from datetime import datetime
 from io import BytesIO
@@ -53,7 +54,7 @@ def _finde_adresse(text):
         if "ahnsen" in bereinigt.casefold() and re.search(r"\d{5}", bereinigt):
             return bereinigt
 
-    return "Ahnsen"
+    return get_platform_snapshot()["municipality_name"]
 
 
 def lese_muelltermine_aus_pdf(pdf_bytes):
@@ -80,7 +81,7 @@ def lese_muelltermine_aus_pdf(pdf_bytes):
 
     if "ahnsen" not in gesamter_text.casefold():
         raise ValueError(
-            "In der PDF wurde kein Abfuhrkalender für Ahnsen erkannt."
+            f"In der PDF wurde kein Abfuhrkalender für {get_platform_snapshot()['municipality_name']} erkannt."
         )
 
     adresse = _finde_adresse(gesamter_text)
@@ -130,7 +131,7 @@ def lese_muelltermine_aus_pdf(pdf_bytes):
     if len(sortierte_termine) < 12:
         raise ValueError(
             "Es wurden zu wenige Abfuhrtermine erkannt. "
-            "Bitte prüfe, ob es der AWS-Jahreskalender für Ahnsen ist."
+            f"Bitte prüfe, ob es der Jahreskalender für {get_platform_snapshot()['municipality_name']} ist."
         )
 
     jahre = {termin["datum"].year for termin in sortierte_termine}

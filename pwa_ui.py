@@ -7,6 +7,7 @@ from typing import Iterable
 from fastapi.responses import HTMLResponse
 
 from ahnsen_history import history_content
+from platform_runtime import apply_static_branding, get_platform_snapshot, platform_language_options
 
 
 ICONS = {
@@ -31,12 +32,16 @@ def icon(name: str) -> str:
 
 
 def _brand() -> str:
-    return """
-    <a class="brand" href="/" aria-label="Ahnsen hilft Startseite">
-      <span class="brand-crest" aria-hidden="true">
-        <svg viewBox="0 0 64 72"><path class="crest-shape" d="M7 5h50v34c0 16-12 24-25 29C19 63 7 55 7 39z"/><path class="crest-hill" d="M8 45c11-10 22-8 28-3 7-7 13-8 20-3v4c0 13-10 20-24 25C18 63 8 56 8 43z"/><path class="crest-house" d="m20 42 12-10 12 10v14H20z"/><path class="crest-roof" d="m17 43 15-13 15 13"/><path class="crest-door" d="M29 47h6v9h-6z"/><path class="crest-tree" d="M47 20v21M42 25l5-7 5 7M41 32l6-8 6 8"/><path class="crest-tower" d="M19 20h8v18h-8zM18 20l5-8 5 8"/></svg>
-      </span>
-      <span class="brand-copy"><strong data-platform-municipality>Ahnsen</strong><em>hilft</em><small data-platform-claim>Dein Dorf. Unsere Gemeinschaft.</small></span>
+    cfg = get_platform_snapshot()
+    logo = (
+        f'<span class="brand-crest custom-brand-logo" aria-hidden="true"><img src="{escape(cfg["logo_url"])}" alt=""></span>'
+        if cfg.get("logo_url")
+        else """<span class="brand-crest" aria-hidden="true"><svg viewBox="0 0 64 72"><path class="crest-shape" d="M7 5h50v34c0 16-12 24-25 29C19 63 7 55 7 39z"/><path class="crest-hill" d="M8 45c11-10 22-8 28-3 7-7 13-8 20-3v4c0 13-10 20-24 25C18 63 8 56 8 43z"/><path class="crest-house" d="m20 42 12-10 12 10v14H20z"/><path class="crest-roof" d="m17 43 15-13 15 13"/><path class="crest-door" d="M29 47h6v9h-6z"/><path class="crest-tree" d="M47 20v21M42 25l5-7 5 7M41 32l6-8 6 8"/><path class="crest-tower" d="M19 20h8v18h-8zM18 20l5-8 5 8"/></svg></span>"""
+    )
+    return f"""
+    <a class="brand" href="/" aria-label="{escape(cfg['platform_name'])} Startseite" translate="no">
+      {logo}
+      <span class="brand-copy"><strong data-platform-municipality>{escape(cfg['municipality_name'])}</strong><em data-platform-product>{escape(cfg['platform_name'].replace(cfg['municipality_name'], '').strip() or 'digital')}</em><small data-platform-claim>{escape(cfg['claim'])}</small></span>
     </a>"""
 
 
@@ -50,12 +55,17 @@ def _bottom_nav(active: str) -> str:
     return f'<nav class="bottom-nav" aria-label="App-Navigation">{"".join(links)}</nav>'
 
 
-def page(title: str, content: str, *, active: str = "home", description: str = "Digitale Bürgerplattform für Ahnsen", show_header: bool = True, body_class: str = "") -> HTMLResponse:
-    language_options = '<option value="de">DE</option><option value="en">EN</option><option value="pl">PL</option><option value="uk">UA</option><option value="tr">TR</option>'
-    header = f'<header class="topbar">{_brand()}<div class="topbar-community-actions"><label class="language-picker"><span class="sr-only">Sprache</span><select id="platform-language" aria-label="Sprache auswählen">{language_options}</select></label><a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden>{icon("message")}<span class="message-badge" hidden></span></a><button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></div></header>' if show_header else ""
-    html = f"""<!doctype html><html lang="de"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#174936"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Ahnsen hilft"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=1"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · Ahnsen hilft</title></head>
-<body class="{escape(body_class)}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=1" defer></script></body></html>"""
+def page(title: str, content: str, *, active: str = "home", description: str = "", show_header: bool = True, body_class: str = "") -> HTMLResponse:
+    cfg = get_platform_snapshot()
+    language_options = platform_language_options()
+    content = apply_static_branding(content, cfg)
+    title = apply_static_branding(title, cfg)
+    description = apply_static_branding(description or cfg["description"], cfg)
+    header = f'<header class="topbar">{_brand()}<div class="topbar-community-actions"><label class="language-picker" translate="no"><span class="sr-only">Sprache</span><select id="platform-language" aria-label="Sprache auswählen">{language_options}</select></label><span id="translation-state" class="translation-state" role="status" aria-live="polite" hidden translate="no">↻</span><a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden>{icon("message")}<span class="message-badge" hidden></span></a><button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></div></header>' if show_header else ""
+    style = f'<style>:root{{--forest:{cfg["primary_color"]};--sage:{cfg["accent_color"]};}} .custom-brand-logo img{{width:100%;height:100%;object-fit:contain}} .translation-state{{font-weight:900;opacity:.65}}</style>'
+    html = f"""<!doctype html><html lang="{escape(cfg['default_language'])}"><head>
+<meta charset="utf-8"><meta name="application-name" content="{escape(cfg['platform_name'])}"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="{escape(cfg['primary_color'])}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="{escape(cfg['short_name'])}"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="{escape(cfg['apple_touch_icon_url'])}"><link rel="icon" href="{escape(cfg['pwa_icon_192_url'])}"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=2"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · {escape(cfg['platform_name'])}</title>{style}</head>
+<body class="{escape(body_class)}" data-platform-municipality-name="{escape(cfg['municipality_name'])}" data-platform-default-language="{escape(cfg['default_language'])}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=2" defer></script></body></html>"""
     return HTMLResponse(html)
 
 
@@ -99,7 +109,7 @@ def home_page(data: dict) -> HTMLResponse:
         ("report", "Mängel melden", "Direkt mit Foto und Standort.", "/mangel-melden"), ("calendar", "Veranstaltungen", "Was ist los in Ahnsen?", "/veranstaltungen"),
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
         ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
-        ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-ahnsen"),
+        ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-gemeinde"),
         ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
         ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),
         ("map", "Mängelkarte", "Öffentliche Meldungen auf der Dorfkarte.", "/karte"),
@@ -108,8 +118,14 @@ def home_page(data: dict) -> HTMLResponse:
         ("neighbor", "Nachbarschaftshilfe", "Hilfe im Dorf suchen oder anbieten.", "/nachbarschaft"),
     ]
     cards = "".join(f'<a class="service-card{" featured" if key == "report" else ""}" href="{href}"><span class="service-icon">{icon(key)}</span><div><h3>{title}</h3><p>{text}</p></div><span class="card-arrow">{icon("arrow")}</span></a>' for key, title, text, href in services)
+    cfg = get_platform_snapshot()
+    hero_url = str(settings.get("hero_bild_url") or cfg.get("hero_image_url") or "")
+    hero_style = f' style="background-image:url(\'{escape(hero_url)}\')"' if hero_url else ""
+    hero_kicker = settings.get("hero_titel") or f"Willkommen in {cfg['municipality_name']}"
+    hero_subtitle = settings.get("hero_untertitel") or "Digital. Direkt. Gemeinsam."
+    hero_text = settings.get("hero_text") or cfg["description"]
     content = f"""
-<section class="hero-card"><div class="hero-image" role="img" aria-label="Dorfansicht von Ahnsen"></div><div class="hero-overlay"><span class="hero-kicker">Willkommen in Ahnsen</span><h1>Digital. Direkt.<br>Gemeinsam.</h1><p>Alles Wichtige aus dem Dorf in einer App.</p></div></section>
+<section class="hero-card"><div class="hero-image" role="img" aria-label="Ansicht {escape(cfg['municipality_name'])}"{hero_style}></div><div class="hero-overlay"><span class="hero-kicker">{escape(hero_kicker)}</span><h1>{escape(hero_subtitle)}</h1><p>{escape(hero_text)}</p></div></section>
 <section class="greeting-row"><div><span class="eyebrow">{escape(greeting)} 👋</span><h2>Schön, dass du da bist.</h2></div><a class="today-card" href="/veranstaltungen"><span>{icon('calendar')}</span><div><small>Heute in Ahnsen</small><strong>{event_hint}</strong></div>{icon('arrow')}</a></section>
 {warning_card}
 <form class="home-search" method="get" action="/suche"><input name="q" aria-label="Suche" placeholder="Was suchst du? Müll, DGH, Rat, Feuerwehr …"><button type="submit" aria-label="Suchen">⌕</button></form>
@@ -147,7 +163,7 @@ def status_page(ticket: str = "", report=None, not_found: bool = False) -> HTMLR
         result = f'<section class="status-result"><div class="status-head"><span class="status-dot {key}"></span><div><small>Aktueller Status</small><strong>{status}</strong></div></div><dl><div><dt>Vorgang</dt><dd>{escape(report.ticket)}</dd></div><div><dt>Kategorie</dt><dd>{escape(report.art or "")}</dd></div><div><dt>Ort</dt><dd>{escape(report.ort or "")}</dd></div><div><dt>Eingegangen</dt><dd>{created}</dd></div></dl></section>'
     elif not_found:
         result = '<div class="form-alert">Zu dieser Vorgangsnummer wurde keine Meldung gefunden.</div>'
-    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Bearbeitungsstand</span><h1>Meldestatus prüfen</h1><p>Gib die Vorgangsnummer aus deiner Bestätigung ein.</p></section><form class="lookup-form" method="get" action="/meldestatus"><label class="field"><span>Vorgangsnummer</span><input name="ticket" value="{escape(ticket)}" placeholder="AHN-20260806-ABC123" required></label><button class="primary-button" type="submit">{icon("search")} Status abrufen</button></form>{result}'
+    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Bearbeitungsstand</span><h1>Meldestatus prüfen</h1><p>Gib die Vorgangsnummer aus deiner Bestätigung ein.</p></section><form class="lookup-form" method="get" action="/meldestatus"><label class="field"><span>Vorgangsnummer</span><input name="ticket" value="{escape(ticket)}" placeholder="{escape(get_platform_snapshot()["ticket_prefix"])}-20260806-ABC123" required></label><button class="primary-button" type="submit">{icon("search")} Status abrufen</button></form>{result}'
     return page("Meldestatus", content, active="report")
 
 
@@ -178,14 +194,19 @@ def waste_page(terms: Iterable) -> HTMLResponse:
 
 
 def info_page(kind: str, settings: dict) -> HTMLResponse:
-    if kind == "ueber-ahnsen":
-        return page(
-            "Über Ahnsen",
-            history_content(),
-            active="home",
-            description="Ahnsen von den Anfängen bis heute – vollständige Ortsgeschichte bis 2026",
-            body_class="history-view",
-        )
+    cfg = get_platform_snapshot()
+    if kind in {"ueber-ahnsen", "ueber-gemeinde"}:
+        if cfg.get("history_mode") == "ahnsen" and cfg["municipality_name"].casefold() == "ahnsen":
+            return page(
+                f"Über {cfg['municipality_name']}",
+                history_content(),
+                active="home",
+                description=f"{cfg['municipality_name']} von den Anfängen bis heute – Ortsgeschichte",
+                body_class="history-view",
+            )
+        raw = str(settings.get("ueber_ahnsen_text") or settings.get("ueber_ahnsen_seite_text") or cfg["description"])
+        paragraphs = "".join(f'<p>{escape(part.strip())}</p>' for part in raw.splitlines() if part.strip()) or f'<p>{escape(cfg["description"])}</p>'
+        return page(f"Über {cfg['municipality_name']}", f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Unser Ort</span><h1>Über {escape(cfg["municipality_name"])}</h1></section><section class="content-card">{paragraphs}</section>', active="more")
     config = {"vereine": ("Vereine & Gruppen", "Gemeinschaft", "people", settings.get("vereine", "")), "aktuelles": ("Aktuelles aus Ahnsen", "Neuigkeiten", "news", settings.get("aktuelles", "")), "ansprechpartner": ("Ansprechpartner", "Kontakt", "phone", settings.get("ansprechpartner", "")), "feuerwehr": ("Feuerwehr Ahnsen", "Sicherheit & Ehrenamt", "fire", settings.get("feuerwehr_text", "")), "buergerinformationen": ("Bürgerinformationen", "Gut informiert", "info", settings.get("buergerinfo_text", "")), "ueber-ahnsen": ("Über Ahnsen", "Unser Dorf", "village", settings.get("ueber_ahnsen_text", ""))}
     title, eyebrow, key, raw = config.get(kind, config["buergerinformationen"]); entries = _entries(raw)
     cards = "".join(f'<article class="info-card"><span class="info-icon">{icon(key)}</span><h2>{escape(t)}</h2><p>{escape(d or "Weitere Informationen folgen.")}</p></article>' for t, d in entries)
@@ -200,9 +221,14 @@ def more_page(settings: dict) -> HTMLResponse:
 
 
 def legal_page(kind: str, settings: dict) -> HTMLResponse:
-    title = "Datenschutz" if kind == "datenschutz" else "Impressum"; key = "datenschutz_seite_text" if kind == "datenschutz" else "impressum_seite_text"; text = settings.get(key, f"{title} wird ergänzt.")
+    title = "Datenschutz" if kind == "datenschutz" else "Impressum"
+    key = "datenschutz_seite_text" if kind == "datenschutz" else "impressum_seite_text"
+    text = settings.get(key, f"{title} wird ergänzt.")
     paragraphs = "".join(f'<p>{escape(x.strip())}</p>' for x in str(text or "").splitlines() if x.strip())
-    return page(title, f'<section class="page-heading compact"><a class="back-link" href="/mehr">← Mehr</a><span class="eyebrow">Rechtliches</span><h1>{title}</h1></section><article class="legal-card">{paragraphs}</article>', active="more")
+    translation_note = ""
+    if kind == "datenschutz" and get_platform_snapshot().get("translation_enabled"):
+        translation_note = '<section class="legal-translation-note"><h2>Maschinelle Übersetzung</h2><p>Wenn eine Fremdsprache ausgewählt wird, werden sichtbare Seitentexte zur maschinellen Übersetzung an den in der Plattform-Konfiguration hinterlegten LibreTranslate-kompatiblen Übersetzungsdienst übertragen. Inhalte in Formular-Eingabefeldern werden nicht automatisch übertragen. Übersetzungen können Fehler enthalten; bei amtlichen Informationen ist die deutsche Originalfassung maßgeblich.</p></section>'
+    return page(title, f'<section class="page-heading compact"><a class="back-link" href="/mehr">← Mehr</a><span class="eyebrow">Rechtliches</span><h1>{title}</h1></section><article class="legal-card">{paragraphs}{translation_note}</article>', active="more")
 
 
 def admin_login_page(error: str = "") -> HTMLResponse:

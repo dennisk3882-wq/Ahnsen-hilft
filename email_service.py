@@ -1,3 +1,4 @@
+from platform_runtime import get_platform_snapshot
 import mimetypes
 import smtplib
 from datetime import datetime
@@ -24,7 +25,7 @@ def send_email(ticket, data, sender):
     msg["From"] = EMAIL_USER
     msg["To"] = EMAIL_TO
     msg.set_content(
-        f"""Neue Mängelmeldung über Ahnsen hilft
+        f"""Neue Mängelmeldung über {get_platform_snapshot()['platform_name']}
 
 Vorgangsnummer:
 {ticket}
@@ -68,7 +69,7 @@ def send_dgh_email(reference, data):
     msg["From"] = EMAIL_USER
     msg["To"] = EMAIL_TO
     msg.set_content(
-        f"""Neue DGH-Mietanfrage über Ahnsen hilft
+        f"""Neue DGH-Mietanfrage über {get_platform_snapshot()['platform_name']}
 
 Referenz:
 {reference}
@@ -105,11 +106,11 @@ Zeit:
 def send_test_email():
     """Send a neutral diagnostic email only to the configured administration inbox."""
     msg = EmailMessage()
-    msg["Subject"] = "Ahnsen hilft – Systemtest E-Mail"
+    msg["Subject"] = f"{get_platform_snapshot()['platform_name']} – Systemtest E-Mail"
     msg["From"] = EMAIL_USER
     msg["To"] = EMAIL_TO
     msg.set_content(
-        f"""Ahnsen hilft Systemtest
+        f"""{get_platform_snapshot()['platform_name']} Systemtest
 
 Diese Nachricht wurde im Verwaltungsbereich unter System & Diagnose bewusst ausgelöst.
 
