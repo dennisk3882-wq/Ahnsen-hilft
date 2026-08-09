@@ -1,0 +1,31 @@
+name: Temporary past events patch
+on:
+  push:
+    branches: [agent/past-events-archive]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/past-events-archive
+          fetch-depth: 0
+      - name: Apply patch
+        run: python .github/apply_past_events.py
+      - name: Validate
+        run: |
+          python -m py_compile veranstaltungen_crud.py pwa_core.py pwa_ui.py
+          grep -q 'def get_vergangene_veranstaltungen' veranstaltungen_crud.py
+          grep -q 'Vergangene Veranstaltungen' pwa_ui.py
+          grep -q 'events_page(get_aktive_veranstaltungen(), get_vergangene_veranstaltungen())' pwa_core.py
+      - name: Commit result
+        run: |
+          rm .github/apply_past_events.py .github/workflows/tmp-past-events-run.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add veranstaltungen_crud.py pwa_core.py pwa_ui.py .github/apply_past_events.py .github/workflows/tmp-past-events-run.yml
+          git commit -m 'Vergangene Veranstaltungen im Dorfkalender anzeigen'
+          git push origin HEAD:agent/past-events-archive
