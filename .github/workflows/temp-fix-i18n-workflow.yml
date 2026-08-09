@@ -1,0 +1,39 @@
+name: Temporary fix i18n workflow
+
+on:
+  push:
+    branches:
+      - agent/i18n-white-label-complete
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/i18n-white-label-complete
+      - name: Fix generated f-string quoting
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/temp-i18n-whitelabel.yml')
+          text = p.read_text(encoding='utf-8')
+          old = '        ("AHN-", f"{cfg[\\"ticket_prefix\\"]}-"),\\n'
+          new = '        ("AHN-", f"{cfg[\'ticket_prefix\']}-"),\\n'
+          if old in text:
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          elif "cfg['ticket_prefix']" not in text:
+              raise SystemExit('Expected quoting anchor not found')
+          PY
+      - name: Commit workflow fix
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/temp-i18n-whitelabel.yml
+          git commit -m "Temporären i18n Workflow korrigieren"
+          git push origin HEAD:agent/i18n-white-label-complete
