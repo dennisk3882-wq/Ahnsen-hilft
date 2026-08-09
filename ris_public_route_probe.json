@@ -1,0 +1,85 @@
+{
+  "report": [
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/",
+      "length": 54895,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:23Z"
+    },
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/recherche",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/recherche",
+      "length": 54907,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:23Z"
+    },
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/recherche?terms=Ahnsen",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/recherche?terms=Ahnsen",
+      "length": 54925,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:23Z"
+    },
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/termine",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/termine",
+      "length": 54905,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:23Z"
+    },
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/termine?__=",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/termine?__=",
+      "length": 54910,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:24Z"
+    },
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/gremien",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/gremien",
+      "length": 54905,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:24Z"
+    },
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops",
+      "length": 54901,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:24Z"
+    },
+    {
+      "requested": "https://samtgemeinde-eilsen.ratsinfomanagement.net/vorlagen",
+      "status": 403,
+      "final": "https://samtgemeinde-eilsen.ratsinfomanagement.net/vorlagen",
+      "length": 54906,
+      "title": "rescaled WAF ⋅ Browser-Überprüfung",
+      "blocked": false,
+      "links": [],
+      "preview": "rescaled WAF ⋅ Browser-Überprüfung Ihr Browser wird überprüft. Unsere Web Application Firewall (WAF) überprüft gerade Ihren Browser, um festzustellen, ob diese Anfrage von einem echten Besucher stammt. Das dauert in der Regel nur einen Moment. Sobald die Überprüfung abgeschlossen ist, werden Sie automatisch zu Ihrem Ziel weitergeleitet. 0% Fehler JavaScript erforderlich Bitte aktivieren Sie JavaScript und laden Sie diese Seite neu, um die Überprüfung abzuschließen. Verschlüsselter Datenverkehr Jegliche Kommunikation zwischen Ihrem Browser, der WAF und dem Ursprungsserver ist immer Ende-zu-Ende verschlüsselt. Status Browser wird überprüft rescaled WAF 2026-08-09T15:32:24Z"
+    }
+  ],
+  "discovered": []
+}
