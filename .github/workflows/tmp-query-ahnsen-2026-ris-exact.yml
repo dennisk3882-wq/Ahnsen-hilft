@@ -1,0 +1,128 @@
+name: Temporary exact Ahnsen 2026 RIS minutes query
+on:
+  push:
+    branches: [agent/import-current-2026-ris-protokoll]
+permissions:
+  contents: write
+jobs:
+  query:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/import-current-2026-ris-protokoll
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright pypdf
+      - run: python -m playwright install --with-deps chromium
+      - name: Execute exact public RIS search
+        run: |
+          cat > /tmp/query_exact.py <<'PY'
+          import asyncio, io, json, re
+          from pathlib import Path
+          from urllib.parse import urljoin
+          from playwright.async_api import async_playwright
+          from pypdf import PdfReader
+
+          BASE='https://samtgemeinde-eilsen.ratsinfomanagement.net/'
+          OUT=Path('static/ratsarchive-seed'); OUT.mkdir(parents=True,exist_ok=True)
+          def text_of_pdf(data):
+              try:
+                  r=PdfReader(io.BytesIO(data)); return '\n'.join((p.extract_text() or '') for p in r.pages[:80])[:700000]
+              except Exception:return ''
+          async def main():
+              report={'links':[],'pdfs':[]}
+              async with async_playwright() as p:
+                  b=await p.chromium.launch(headless=False,args=['--disable-dev-shm-usage'])
+                  c=await b.new_context(locale='de-DE',viewport={'width':1440,'height':1000},accept_downloads=True)
+                  page=await c.new_page()
+                  await page.goto(BASE,wait_until='domcontentloaded',timeout=45000)
+                  for _ in range(14):
+                      await page.wait_for_timeout(2500)
+                      if 'Browser-Überprüfung' not in await page.title(): break
+                  report['home_title']=await page.title()
+                  await page.goto(urljoin(BASE,'recherche'),wait_until='domcontentloaded',timeout=45000)
+                  await page.wait_for_timeout(1500)
+                  await page.locator('#terms').fill('Ahnsen')
+                  await page.locator('#idgremium').select_option('35')
+                  await page.locator('#DPC_from').fill('2026-01-01')
+                  await page.locator('#DPC_to').fill('2026-08-09')
+                  try:
+                      if await page.locator('#doktyp_all').is_checked(): await page.locator('#doktyp_all').uncheck()
+                  except Exception: pass
+                  await page.locator('#doktyp_n').check()
+                  try: await page.locator('#count').fill('100')
+                  except Exception: pass
+                  await page.locator('input[type="submit"][value="Anzeigen"]').click()
+                  await page.wait_for_load_state('domcontentloaded',timeout=45000)
+                  await page.wait_for_timeout(3500)
+                  body=(await page.locator('body').inner_text())[:200000]
+                  report['result_url']=page.url; report['result_title']=await page.title(); report['result_text']=body
+                  anchors=page.locator('a[href]')
+                  candidates=[]
+                  for i in range(await anchors.count()):
+                      a=anchors.nth(i)
+                      try:
+                          label=' '.join((await a.inner_text()).split())
+                          href=urljoin(page.url,await a.get_attribute('href'))
+                          if re.search(r'niederschrift|protokoll|ahnsen|2026',label,re.I) or re.search(r'\.pdf(?:$|\?)|sdnetrim',href,re.I):
+                              item={'label':label[:700],'url':href}; report['links'].append(item)
+                              if re.search(r'niederschrift|protokoll',label,re.I) or re.search(r'\.pdf(?:$|\?)|sdnetrim',href,re.I): candidates.append(item)
+                      except Exception: pass
+                  # Visit links in the same browser context; detect direct PDF responses and document pages containing PDF links.
+                  seen=set(); pdf_urls=[]
+                  for cand in candidates[:30]:
+                      if cand['url'] in seen: continue
+                      seen.add(cand['url'])
+                      try:
+                          resp=await c.request.get(cand['url'],timeout=30000)
+                          data=await resp.body(); ctype=(resp.headers.get('content-type') or '').lower()
+                          if data.startswith(b'%PDF-') or 'application/pdf' in ctype:
+                              pdf_urls.append((cand,data))
+                              continue
+                          # Browser-open public document page and collect PDF/sdnetrim links.
+                          p2=await c.new_page(); await p2.goto(cand['url'],wait_until='domcontentloaded',timeout=30000); await p2.wait_for_timeout(1200)
+                          for j in range(await p2.locator('a[href]').count()):
+                              aa=p2.locator('a[href]').nth(j)
+                              href=urljoin(p2.url,await aa.get_attribute('href')); lab=' '.join((await aa.inner_text()).split())
+                              if re.search(r'\.pdf(?:$|\?)|sdnetrim',href,re.I) or re.search(r'pdf|download|öffentliche niederschrift',lab,re.I):
+                                  rr=await c.request.get(href,timeout=30000); dd=await rr.body(); ct=(rr.headers.get('content-type') or '').lower()
+                                  if dd.startswith(b'%PDF-') or 'application/pdf' in ct:
+                                      pdf_urls.append(({'label':lab or cand['label'],'url':href},dd))
+                          await p2.close()
+                      except Exception as e:
+                          report.setdefault('errors',[]).append({'candidate':cand,'error':str(e)})
+                  # Validate Ahnsen/2026 and save. Extract meeting dates for sorting.
+                  hashes=set()
+                  import hashlib
+                  for cand,data in pdf_urls:
+                      h=hashlib.sha256(data).hexdigest()
+                      if h in hashes: continue
+                      hashes.add(h)
+                      text=text_of_pdf(data); folded=text.casefold()
+                      if 'ahnsen' not in folded: continue
+                      dates=sorted(set(re.findall(r'\b(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.2026\b',text)))
+                      item={'label':cand['label'],'url':cand['url'],'bytes':len(data),'sha256':h,'dates':dates,'text_preview':text[:8000]}
+                      report['pdfs'].append(item)
+                      (OUT/f'ris-2026-ahnsen-exact-{len(report["pdfs"])}.pdf').write_bytes(data)
+                  await b.close()
+              Path('ris_ahnsen_2026_exact.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+              print(json.dumps({'result_url':report.get('result_url'),'links':report['links'][:30],'pdfs':report['pdfs'],'errors':report.get('errors')},ensure_ascii=False,indent=2))
+          asyncio.run(main())
+          PY
+          xvfb-run -a python /tmp/query_exact.py
+      - name: Show exact result
+        run: |
+          cat ris_ahnsen_2026_exact.json
+          ls -lh static/ratsarchive-seed/ris-2026-ahnsen-exact-* || true
+      - name: Remove temporary workflow and commit result
+        if: always()
+        run: |
+          rm -f .github/workflows/tmp-query-ahnsen-2026-ris-exact.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Aktuelle Ahnsener Niederschrift 2026 aus RIS recherchiert' || true
+          git push origin HEAD:agent/import-current-2026-ris-protokoll
