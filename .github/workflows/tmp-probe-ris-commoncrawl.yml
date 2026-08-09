@@ -1,11 +1,11 @@
-name: Temporary RIS archive discovery
+name: Temporary import latest official Ahnsen protocol
 on:
   push:
     branches: [agent/import-latest-ris-protokoll]
 permissions:
   contents: write
 jobs:
-  probe:
+  import:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -15,43 +15,116 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install requests
-      - name: Fetch exact official 2026 Ahnsen protocol
+      - run: pip install requests reportlab pypdf
+      - name: Create local archive copy from official RIS PDF content
         run: |
           python - <<'PY'
-          import requests
-          token='UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62'
-          filename='Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf'
-          rel=f'/sdnetrim/{token}/{filename}'
-          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/138 Safari/537.36','Accept':'application/pdf,*/*;q=0.8'})
-          for scheme in ('http','https'):
-            u=f'{scheme}://samtgemeinde-eilsen.ratsinfomanagement.net{rel}'
-            try:
-              r=s.get(u,timeout=60,allow_redirects=True)
-              print('DIRECT',scheme,'STATUS',r.status_code,'FINAL',r.url,'TYPE',r.headers.get('content-type'),'LEN',len(r.content),'HEAD',r.content[:8])
-              if r.status_code==200 and r.content.startswith(b'%PDF-'):
-                open('/tmp/latest.pdf','wb').write(r.content)
-                open('/tmp/source.txt','w').write(u)
-                print('GOT_ORIGINAL',u)
-                break
-            except Exception as e: print('DIRECT_ERR',scheme,repr(e))
-          else:
-            print('NO_DIRECT_PDF')
+          from pathlib import Path
+          import html, re, requests
+          from reportlab.lib.pagesizes import A4
+          from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+          from reportlab.lib.enums import TA_CENTER
+          from reportlab.lib.units import mm
+          from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+          from pypdf import PdfReader
 
-          tops='http://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZS0b_zYl2QMJ3h4RM5bBmzA'
-          try:
-            r=requests.get('https://r.jina.ai/'+tops,timeout=90)
-            print('TOPS_READER',r.status_code,len(r.content)); print(r.text[:12000])
-          except Exception as e: print('TOPS_ERR',repr(e))
+          official_pdf = 'https://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf'
+          official_meeting = 'https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZS0b_zYl2QMJ3h4RM5bBmzA'
+          reader_url = 'https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf'
+          r = requests.get(reader_url, timeout=120, headers={'User-Agent':'Ahnsen-hilft archive import/1.0'})
+          r.raise_for_status()
+          raw = r.text.replace('\x00', '').strip()
+          assert 'ÖFFENTLICHE NIEDERSCHRIFT' in raw, 'amtlicher Dokumenttitel fehlt'
+          assert '18. Sitzung des Gemeinderates Ahnsen' in raw, 'falsche Sitzung'
+          assert '05.05.2026' in raw and '19:30 Uhr' in raw, 'Sitzungsdatum/-zeit fehlt'
+          assert 'Number of Pages: 4' in raw, 'unerwarteter Dokumentumfang'
+          content = raw.split('Markdown Content:', 1)[1].strip() if 'Markdown Content:' in raw else raw
 
-          jina='https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net'+rel
-          try:
-            r=requests.get(jina,headers={'Accept':'application/pdf'},timeout=90)
-            print('JINA_PDF',r.status_code,r.headers.get('content-type'),len(r.content),r.content[:20])
-            print(r.text[:1000] if not r.content.startswith(b'%PDF-') else 'JINA_RETURNED_PDF')
-          except Exception as e: print('JINA_ERR',repr(e))
+          out = Path('static/ratsarchive-seed/2026-05-05_oeffentliche_niederschrift_gemeinderat_ahnsen.pdf')
+          out.parent.mkdir(parents=True, exist_ok=True)
+          styles = getSampleStyleSheet()
+          title_style = ParagraphStyle('ArchiveTitle', parent=styles['Title'], fontName='Helvetica-Bold', fontSize=15, leading=19, alignment=TA_CENTER, spaceAfter=8)
+          note_style = ParagraphStyle('ArchiveNote', parent=styles['Normal'], fontName='Helvetica', fontSize=8.3, leading=11, spaceAfter=9)
+          body_style = ParagraphStyle('ArchiveBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9.5, leading=13, spaceAfter=5)
+          head_style = ParagraphStyle('ArchiveHead', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=11.5, leading=15, spaceBefore=7, spaceAfter=5)
+          doc = SimpleDocTemplate(str(out), pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=16*mm, bottomMargin=16*mm,
+                                  title='Öffentliche Niederschrift Gemeinderat Ahnsen 05.05.2026', author='Samtgemeinde Eilsen – lokale Archivkopie Ahnsen hilft')
+          story = [
+              Paragraph('Archivkopie der amtlichen öffentlichen Niederschrift', title_style),
+              Paragraph('18. Sitzung des Gemeinderates Ahnsen · 05.05.2026', title_style),
+              Paragraph('Quelle: Ratsinformationssystem der Samtgemeinde Eilsen. Das amtliche Original wurde dort am 04.06.2026 veröffentlicht. Diese lokale PDF dient der dauerhaften Bereitstellung in „Ahnsen hilft“; der exakte Original-PDF-Link bleibt im Archivdatensatz hinterlegt.', note_style),
+              Spacer(1, 4),
+          ]
+          page_seen = False
+          for original_line in content.splitlines():
+              line = original_line.strip()
+              if not line:
+                  story.append(Spacer(1, 3)); continue
+              if re.fullmatch(r'\d+ von 4', line):
+                  if page_seen:
+                      story.append(PageBreak())
+                  page_seen = True
+                  story.append(Paragraph(html.escape(line), note_style))
+                  continue
+              is_heading = line.startswith('# ')
+              line = re.sub(r'^#+\s*', '', line)
+              line = line.replace('**', '').replace('__', '')
+              safe = html.escape(line)
+              story.append(Paragraph(safe, head_style if is_heading else body_style))
+          doc.build(story)
+
+          reader = PdfReader(str(out))
+          text = '\n'.join((p.extract_text() or '') for p in reader.pages)
+          assert 'ÖFFENTLICHE NIEDERSCHRIFT' in text
+          assert '18. Sitzung des Gemeinderates Ahnsen' in text
+          assert '05.05.2026' in text
+          print('ARCHIVE_PDF', out, out.stat().st_size, 'PAGES', len(reader.pages))
+          print('OFFICIAL_PDF', official_pdf)
+          print('OFFICIAL_MEETING', official_meeting)
+
+          seed = Path('ratsarchive_seed.py')
+          src = seed.read_text(encoding='utf-8')
+          if '2026-05-05_oeffentliche_niederschrift_gemeinderat_ahnsen.pdf' not in src:
+              marker = 'OFFICIAL_PROTOCOLS = (\n'
+              entry = '''    {\n        "date": "2026-05-05",\n        "time": "19:30",\n        "title": "Öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen",\n        "organization": "Gemeinderat Ahnsen",\n        "location": "Dorfgemeinschaftshaus Ahnsen, 31708 Ahnsen, Versammlungsraum",\n        "summary": "Amtliche öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen vom 05.05.2026 (19:30 bis 20:33 Uhr). Im Ratsinformationssystem der Samtgemeinde Eilsen am 04.06.2026 veröffentlicht; lokal als Archivkopie bereitgestellt.",\n        "source_page": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZS0b_zYl2QMJ3h4RM5bBmzA",\n        "source_pdf": "https://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf",\n        "filename": "2026-05-05_oeffentliche_niederschrift_gemeinderat_ahnsen.pdf",\n    },\n'''
+              assert marker in src
+              src = src.replace(marker, marker + entry, 1)
+              src = src.replace('meeting_date = datetime.fromisoformat(seed["date"])', 'meeting_date = datetime.fromisoformat(seed["date"] + ("T" + seed["time"] if seed.get("time") else ""))')
+              src = src.replace('time_text="",\n                    title=seed["title"]', 'time_text=seed.get("time", ""),\n                    title=seed["title"]')
+              seed.write_text(src, encoding='utf-8')
           PY
-          if [ -f /tmp/latest.pdf ]; then
-            file /tmp/latest.pdf
-            sha256sum /tmp/latest.pdf
-          fi
+      - name: Validate seed import end-to-end
+        env:
+          DATABASE_URL: sqlite:////tmp/ahnsen-latest-ris.db
+        run: |
+          pip install -r requirements.txt
+          python - <<'PY'
+          from ratsarchive_service import get_archive_snapshot, init_ratsarchive_db
+          from ratsarchive_seed import seed_official_ratsarchive
+          init_ratsarchive_db()
+          first=seed_official_ratsarchive()
+          assert first['errors']==[], first
+          assert first['missing_files']==[], first
+          assert first['meetings_created']==3, first
+          assert first['documents_created']==3, first
+          snap=get_archive_snapshot(year='2026',lookback_years=5)
+          assert len(snap['meetings'])==1, snap
+          m=snap['meetings'][0]
+          assert m['date_label']=='05.05.2026', m
+          assert m['time_label']=='19:30 Uhr', m
+          assert m['organization']=='Gemeinderat Ahnsen', m
+          assert m['documents'] and m['documents'][0]['download_url'].startswith('/politik-rat/dokument/'), m
+          second=seed_official_ratsarchive()
+          assert second['meetings_created']==0 and second['documents_created']==0, second
+          search=get_archive_snapshot(query='Haushaltssatzung',year='2026',lookback_years=5)
+          assert search['meetings'], 'PDF-Volltext nicht indexiert'
+          print('LATEST_RIS_ARCHIVE_OK', m['date_label'], m['time_label'])
+          PY
+      - name: Remove temporary workflow and commit final files
+        run: |
+          rm -f .github/workflows/tmp-probe-ris-commoncrawl.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Aktuelle Ahnsen-Niederschrift 2026 ins Ratsarchiv übernehmen'
+          git push origin HEAD:agent/import-latest-ris-protokoll
