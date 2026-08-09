@@ -46,7 +46,7 @@ jobs:
           assert {item['date_label'] for item in snapshot['meetings']} == {'02.03.2023', '23.11.2022'}
           assert all(item['documents'][0]['download_url'].startswith('/politik-rat/dokument/') for item in snapshot['meetings'])
           print(first)
-          print([(m['date_label'], m['documents'][0]['title']) for m in snapshot['meetings']])
+          print([(m['date_label'], m['documents'][0]['name']) for m in snapshot['meetings']])
           PY
       - name: Remove temporary workflow
         run: |
