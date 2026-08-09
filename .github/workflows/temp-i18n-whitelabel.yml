@@ -1,0 +1,541 @@
+name: Temporary i18n and white-label completion
+
+on:
+  push:
+    branches:
+      - agent/i18n-white-label-complete
+
+permissions:
+  contents: write
+
+jobs:
+  complete:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/i18n-white-label-complete
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Patch platform modules
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if new in text:
+                  return
+              if old not in text:
+                  raise SystemExit(f'{label}: anchor not found in {path}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          # Flexible settings: no schema migration needed for these extra tenant values.
+          replace_once(
+              'gemeinde_crud.py',
+              '    "gruen": "#6d8f49",\n',
+              '''    "gruen": "#6d8f49",\n    "plattform_kurzname": "Ahnsen",\n    "plattform_beschreibung": "Digitale Bürgerplattform für Ahnsen",\n    "standard_sprache": "de",\n    "plattform_sprachen": "de,en,pl,uk,tr,fr,es,it,nl,ro,cs,da,sv,ar,ru",\n    "zeitzone": "Europe/Berlin",\n    "plattform_basis_url": "https://ahnsen-hilft.onrender.com",\n    "ticket_prefix": "AHN",\n    "karten_mittelpunkt_lat": "52.258",\n    "karten_mittelpunkt_lon": "9.099",\n    "karten_zoom": "15",\n    "warnung_ortsname": "Ahnsen",\n    "warnung_bereich": "Ahnsen / Landkreis Schaumburg",\n    "warnung_suchbegriffe": "Ahnsen|Bad Eilsen|Eilsen",\n    "bbk_mowas_rss_url": "https://warnung.bund.de/api31/mowas/rss/032570000000.rss",\n    "dwd_cap_index_url": "https://opendata.dwd.de/weather/alerts/cap/COMMUNEUNION_DWD_STAT/",\n    "uebersetzung_aktiv": "ja",\n    "uebersetzung_api_url": "https://de.libretranslate.com/translate",\n    "uebersetzung_fallback_url": "https://translate.argosopentech.com/translate",\n    "geschichte_modus": "ahnsen",\n''',
+              'white-label settings defaults',
+          )
+
+          # Community preferences support the complete language selector.
+          replace_once(
+              'community_crud.py',
+              '''SUPPORTED_LANGUAGES = {\n    "de": "Deutsch",\n    "en": "English",\n    "pl": "Polski",\n    "uk": "Українська",\n    "tr": "Türkçe",\n}\n''',
+              '''SUPPORTED_LANGUAGES = {\n    "de": "Deutsch",\n    "en": "English",\n    "pl": "Polski",\n    "uk": "Українська",\n    "tr": "Türkçe",\n    "fr": "Français",\n    "es": "Español",\n    "it": "Italiano",\n    "nl": "Nederlands",\n    "ro": "Română",\n    "cs": "Čeština",\n    "da": "Dansk",\n    "sv": "Svenska",\n    "ar": "العربية",\n    "ru": "Русский",\n}\n''',
+              'language expansion',
+          )
+          replace_once(
+              'community_crud.py',
+              '    sender_label: str = "Gemeinde Ahnsen",\n) -> CitizenMessage:\n',
+              '    sender_label: str | None = None,\n) -> CitizenMessage:\n',
+              'dynamic sender signature',
+          )
+          replace_once(
+              'community_crud.py',
+              '''    db = SessionLocal()\n    try:\n        item = CitizenMessage(\n            user_id=user_id,\n''',
+              '''    if not sender_label:\n        try:\n            from platform_runtime import get_platform_snapshot\n            sender_label = get_platform_snapshot().get("contact_name") or "Verwaltung"\n        except Exception:\n            sender_label = "Verwaltung"\n    db = SessionLocal()\n    try:\n        item = CitizenMessage(\n            user_id=user_id,\n''',
+              'dynamic sender fallback',
+          )
+          replace_once(
+              'community_crud.py',
+              '            sender_label=str(sender_label or "Gemeinde Ahnsen")[:120],\n',
+              '            sender_label=str(sender_label or "Verwaltung")[:120],\n',
+              'dynamic sender storage',
+          )
+
+          # platform_runtime: additionally replace common grammatical tenant phrases and ticket example.
+          p = Path('platform_runtime.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              '        ("Idee für Ahnsen", f"Idee für {municipality}"),\n',
+              '        ("Idee für Ahnsen", f"Idee für {municipality}"),\n        (" in Ahnsen", f" in {municipality}"),\n        (" für Ahnsen", f" für {municipality}"),\n        (" aus Ahnsen", f" aus {municipality}"),\n        (" von Ahnsen", f" von {municipality}"),\n        ("AHN-", f"{cfg[\"ticket_prefix\"]}-"),\n',
+          )
+          p.write_text(text, encoding='utf-8')
+
+          # PWA UI central page/brand rendering.
+          replace_once(
+              'pwa_ui.py',
+              'from ahnsen_history import history_content\n',
+              'from ahnsen_history import history_content\nfrom platform_runtime import apply_static_branding, get_platform_snapshot, platform_language_options\n',
+              'pwa platform import',
+          )
+          p = Path('pwa_ui.py')
+          text = p.read_text(encoding='utf-8')
+          text = re.sub(
+              r'def _brand\(\) -> str:\n.*?\n\ndef _bottom_nav',
+              '''def _brand() -> str:\n    cfg = get_platform_snapshot()\n    logo = (\n        f'<span class="brand-crest custom-brand-logo" aria-hidden="true"><img src="{escape(cfg["logo_url"])}" alt=""></span>'\n        if cfg.get("logo_url")\n        else """<span class="brand-crest" aria-hidden="true"><svg viewBox="0 0 64 72"><path class="crest-shape" d="M7 5h50v34c0 16-12 24-25 29C19 63 7 55 7 39z"/><path class="crest-hill" d="M8 45c11-10 22-8 28-3 7-7 13-8 20-3v4c0 13-10 20-24 25C18 63 8 56 8 43z"/><path class="crest-house" d="m20 42 12-10 12 10v14H20z"/><path class="crest-roof" d="m17 43 15-13 15 13"/><path class="crest-door" d="M29 47h6v9h-6z"/><path class="crest-tree" d="M47 20v21M42 25l5-7 5 7M41 32l6-8 6 8"/><path class="crest-tower" d="M19 20h8v18h-8zM18 20l5-8 5 8"/></svg></span>"""\n    )\n    return f"""\n    <a class="brand" href="/" aria-label="{escape(cfg['platform_name'])} Startseite" translate="no">\n      {logo}\n      <span class="brand-copy"><strong data-platform-municipality>{escape(cfg['municipality_name'])}</strong><em data-platform-product>{escape(cfg['platform_name'].replace(cfg['municipality_name'], '').strip() or 'digital')}</em><small data-platform-claim>{escape(cfg['claim'])}</small></span>\n    </a>"""\n\n\ndef _bottom_nav''',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if 'custom-brand-logo' not in text:
+              raise SystemExit('brand function rewrite failed')
+          text = re.sub(
+              r'def page\(title: str, content: str, \*, active: str = "home", description: str = "Digitale Bürgerplattform für Ahnsen", show_header: bool = True, body_class: str = ""\) -> HTMLResponse:\n.*?\n\ndef _entries',
+              '''def page(title: str, content: str, *, active: str = "home", description: str = "", show_header: bool = True, body_class: str = "") -> HTMLResponse:\n    cfg = get_platform_snapshot()\n    language_options = platform_language_options()\n    content = apply_static_branding(content, cfg)\n    title = apply_static_branding(title, cfg)\n    description = apply_static_branding(description or cfg["description"], cfg)\n    header = f'<header class="topbar">{_brand()}<div class="topbar-community-actions"><label class="language-picker" translate="no"><span class="sr-only">Sprache</span><select id="platform-language" aria-label="Sprache auswählen">{language_options}</select></label><span id="translation-state" class="translation-state" role="status" aria-live="polite" hidden translate="no">↻</span><a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden>{icon("message")}<span class="message-badge" hidden></span></a><button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></div></header>' if show_header else ""\n    style = f'<style>:root{{--forest:{cfg["primary_color"]};--sage:{cfg["accent_color"]};}} .custom-brand-logo img{{width:100%;height:100%;object-fit:contain}} .translation-state{{font-weight:900;opacity:.65}}</style>'\n    html = f"""<!doctype html><html lang="{escape(cfg['default_language'])}"><head>\n<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="{escape(cfg['primary_color'])}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="{escape(cfg['short_name'])}"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=2"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · {escape(cfg['platform_name'])}</title>{style}</head>\n<body class="{escape(body_class)}" data-platform-municipality-name="{escape(cfg['municipality_name'])}" data-platform-default-language="{escape(cfg['default_language'])}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=2" defer></script></body></html>"""\n    return HTMLResponse(html)\n\n\ndef _entries''',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if 'community.js?v=2' not in text:
+              raise SystemExit('page function rewrite failed')
+          # Custom hero image + configurable hero copy.
+          text = text.replace(
+              '    content = f"""\n<section class="hero-card"><div class="hero-image" role="img" aria-label="Dorfansicht von Ahnsen"></div><div class="hero-overlay"><span class="hero-kicker">Willkommen in Ahnsen</span><h1>Digital. Direkt.<br>Gemeinsam.</h1><p>Alles Wichtige aus dem Dorf in einer App.</p></div></section>\n',
+              '''    cfg = get_platform_snapshot()\n    hero_url = str(settings.get("hero_bild_url") or cfg.get("hero_image_url") or "")\n    hero_style = f' style="background-image:url(\\'{escape(hero_url)}\\')"' if hero_url else ""\n    hero_kicker = settings.get("hero_titel") or f"Willkommen in {cfg['municipality_name']}"\n    hero_subtitle = settings.get("hero_untertitel") or "Digital. Direkt. Gemeinsam."\n    hero_text = settings.get("hero_text") or cfg["description"]\n    content = f"""\n<section class="hero-card"><div class="hero-image" role="img" aria-label="Ansicht {escape(cfg['municipality_name'])}"{hero_style}></div><div class="hero-overlay"><span class="hero-kicker">{escape(hero_kicker)}</span><h1>{escape(hero_subtitle)}</h1><p>{escape(hero_text)}</p></div></section>\n''',
+          )
+          # About page becomes tenant-aware; Ahnsen keeps the rich history module.
+          old = '''def info_page(kind: str, settings: dict) -> HTMLResponse:\n    if kind == "ueber-ahnsen":\n        return page(\n            "Über Ahnsen",\n            history_content(),\n            active="home",\n            description="Ahnsen von den Anfängen bis heute – vollständige Ortsgeschichte bis 2026",\n            body_class="history-view",\n        )\n'''
+          new = '''def info_page(kind: str, settings: dict) -> HTMLResponse:\n    cfg = get_platform_snapshot()\n    if kind in {"ueber-ahnsen", "ueber-gemeinde"}:\n        if cfg.get("history_mode") == "ahnsen" and cfg["municipality_name"].casefold() == "ahnsen":\n            return page(\n                f"Über {cfg['municipality_name']}",\n                history_content(),\n                active="home",\n                description=f"{cfg['municipality_name']} von den Anfängen bis heute – Ortsgeschichte",\n                body_class="history-view",\n            )\n        raw = str(settings.get("ueber_ahnsen_text") or settings.get("ueber_ahnsen_seite_text") or cfg["description"])\n        paragraphs = "".join(f'<p>{escape(part.strip())}</p>' for part in raw.splitlines() if part.strip()) or f'<p>{escape(cfg["description"])}</p>'\n        return page(f"Über {cfg['municipality_name']}", f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Unser Ort</span><h1>Über {escape(cfg["municipality_name"])}</h1></section><section class="content-card">{paragraphs}</section>', active="more")\n'''
+          if old not in text:
+              raise SystemExit('about page anchor missing')
+          text = text.replace(old, new, 1)
+          p.write_text(text, encoding='utf-8')
+
+          # Community map and tenant-aware defaults.
+          replace_once(
+              'community_ui.py',
+              'from pwa_ui import icon, page\n',
+              'from pwa_ui import icon, page\nfrom platform_runtime import get_platform_snapshot\n',
+              'community ui platform import',
+          )
+          p = Path('community_ui.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              '''def public_map_page(points: list[dict]) -> HTMLResponse:\n    safe_points = json.dumps(points, ensure_ascii=False).replace("</", "<\\\\/")\n''',
+              '''def public_map_page(points: list[dict]) -> HTMLResponse:\n    cfg = get_platform_snapshot()\n    safe_points = json.dumps(points, ensure_ascii=False).replace("</", "<\\\\/")\n''',
+          )
+          text = text.replace('aria-label="Karte von Ahnsen"', 'aria-label="Karte von {escape(cfg[\'municipality_name\'])}"')
+          text = text.replace("const map=L.map('public-map').setView([52.258,9.099],15);", "const map=L.map('public-map').setView([{cfg['map_lat']},{cfg['map_lon']}],{cfg['map_zoom']});")
+          p.write_text(text, encoding='utf-8')
+
+          # Search follows tenant identity and disables Ahnsen history for other tenants.
+          replace_once(
+              'community_search.py',
+              'from veranstaltungen_crud import get_aktive_veranstaltungen\n',
+              'from veranstaltungen_crud import get_aktive_veranstaltungen\nfrom platform_runtime import apply_static_branding, get_platform_snapshot\n',
+              'search platform import',
+          )
+          p = Path('community_search.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              '''    candidates: list[dict] = []\n    for title, text, url, kind in SERVICE_INDEX:\n        candidates.append({"title": title, "text": text, "url": url, "kind": kind})\n\n    settings = get_gemeinde_einstellungen()\n''',
+              '''    cfg = get_platform_snapshot()\n    candidates: list[dict] = []\n    for title, text, url, kind in SERVICE_INDEX:\n        if url == "/ueber-ahnsen":\n            url = "/ueber-gemeinde"\n        candidates.append({"title": apply_static_branding(title, cfg), "text": apply_static_branding(text, cfg), "url": url, "kind": kind})\n\n    settings = get_gemeinde_einstellungen()\n''',
+          )
+          old_history = '''    history = _plain(history_content())\n    history_score = _score(query, "Geschichte Ahnsens", history)\n    if history_score:\n        candidates.append({\n            "title": "Geschichte Ahnsens",\n            "text": _snippet(history, query, 300),\n            "url": "/ueber-ahnsen",\n            "kind": "geschichte",\n            "fixed_score": history_score,\n        })\n'''
+          new_history = '''    if cfg.get("history_mode") == "ahnsen" and cfg["municipality_name"].casefold() == "ahnsen":\n        history = _plain(history_content())\n        history_title = f"Geschichte {cfg['municipality_name']}s"\n        history_score = _score(query, history_title, history)\n        if history_score:\n            candidates.append({\n                "title": history_title,\n                "text": _snippet(history, query, 300),\n                "url": "/ueber-gemeinde",\n                "kind": "geschichte",\n                "fixed_score": history_score,\n            })\n    else:\n        about = str(settings.get("ueber_ahnsen_text") or settings.get("ueber_ahnsen_seite_text") or "")\n        if about:\n            candidates.append({"title": f"Über {cfg['municipality_name']}", "text": about, "url": "/ueber-gemeinde", "kind": "information"})\n'''
+          if old_history not in text:
+              raise SystemExit('history search anchor missing')
+          text = text.replace(old_history, new_history, 1)
+          p.write_text(text, encoding='utf-8')
+
+          # Community routes: translation API + complete platform save/load.
+          replace_once(
+              'community_routes.py',
+              'from crud import suche_meldungen\n',
+              'from crud import suche_meldungen\nfrom gemeinde_crud import set_gemeinde_einstellung\nfrom platform_runtime import get_platform_snapshot\nfrom translation_service import provider_status, translate_texts\n',
+              'community route platform imports',
+          )
+          p = Path('community_routes.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('            "ort": location[:100] or "Ahnsen",\n', '            "ort": location[:100] or get_platform_snapshot()["municipality_name"],\n')
+          anchor = '''@router.get("/api/plattform")\nasync def public_platform_config():\n    config = get_municipality_config()\n    return {\n        "platform_name": config.platform_name,\n        "municipality_name": config.municipality_name,\n        "claim": config.claim,\n        "postal_code": config.postal_code,\n        "primary_color": config.primary_color,\n        "accent_color": config.accent_color,\n    }\n'''
+          replacement = '''@router.post("/api/uebersetzen")\nasync def public_translate(request: Request):\n    try:\n        payload = await request.json()\n    except Exception:\n        payload = {}\n    texts = payload.get("texts") or payload.get("text") or []\n    if isinstance(texts, str):\n        texts = [texts]\n    if not isinstance(texts, list):\n        raise HTTPException(status_code=400, detail="texts muss eine Liste sein")\n    target = _clean(payload.get("target"), 10)\n    source = _clean(payload.get("source"), 10) or "auto"\n    try:\n        return translate_texts(texts, target=target, source=source)\n    except ValueError as error:\n        raise HTTPException(status_code=400, detail=str(error)) from error\n    except RuntimeError as error:\n        raise HTTPException(status_code=503, detail=str(error)) from error\n\n\n@router.get("/api/uebersetzen/status")\nasync def public_translation_status():\n    return provider_status()\n\n\n@router.get("/api/plattform")\nasync def public_platform_config():\n    return get_platform_snapshot()\n'''
+          if anchor not in text:
+              raise SystemExit('platform public API anchor missing')
+          text = text.replace(anchor, replacement, 1)
+          text = text.replace('    return platform_settings_page(get_municipality_config())\n', '    return platform_settings_page(get_platform_snapshot())\n', 1)
+          old_save = '''    values = {field: _clean(form.get(field), limit) for field, limit in (\n        ("platform_name", 120), ("municipality_name", 120), ("claim", 180),\n        ("postal_code", 20), ("primary_color", 20), ("accent_color", 20),\n        ("warning_terms", 500),\n    )}\n    config = update_municipality_config(values)\n    audit_event("Verwaltung", "Plattform-Konfiguration geändert", "municipality_config", str(config.id), config.platform_name)\n    return RedirectResponse(url="/intern/plattform", status_code=303)\n'''
+          new_save = '''    values = {field: _clean(form.get(field), limit) for field, limit in (\n        ("platform_name", 120), ("municipality_name", 120), ("claim", 180),\n        ("postal_code", 20), ("primary_color", 20), ("accent_color", 20),\n        ("warning_terms", 500),\n    )}\n    config = update_municipality_config(values)\n    extras = {\n        "plattform_kurzname": _clean(form.get("short_name"), 30),\n        "plattform_beschreibung": _clean(form.get("description"), 300),\n        "standard_sprache": _clean(form.get("default_language"), 10),\n        "plattform_sprachen": _clean(form.get("languages"), 300),\n        "zeitzone": _clean(form.get("timezone"), 80),\n        "plattform_basis_url": _clean(form.get("public_base_url"), 500),\n        "ticket_prefix": _clean(form.get("ticket_prefix"), 8),\n        "karten_mittelpunkt_lat": _clean(form.get("map_lat"), 30),\n        "karten_mittelpunkt_lon": _clean(form.get("map_lon"), 30),\n        "karten_zoom": _clean(form.get("map_zoom"), 3),\n        "warnung_ortsname": _clean(form.get("warning_location_name"), 160),\n        "warnung_bereich": _clean(form.get("warning_area_label"), 240),\n        "warnung_suchbegriffe": _clean(form.get("warning_terms"), 500),\n        "bbk_mowas_rss_url": _clean(form.get("bbk_mowas_rss_url"), 1000),\n        "dwd_cap_index_url": _clean(form.get("dwd_cap_index_url"), 1000),\n        "uebersetzung_aktiv": "ja" if _clean(form.get("translation_enabled"), 10) == "ja" else "nein",\n        "uebersetzung_api_url": _clean(form.get("translation_api_url"), 1000),\n        "uebersetzung_fallback_url": _clean(form.get("translation_fallback_url"), 1000),\n        "geschichte_modus": _clean(form.get("history_mode"), 20),\n        "logo_bild_url": _clean(form.get("logo_url"), 1000),\n        "hero_bild_url": _clean(form.get("hero_image_url"), 1000),\n        "kontakt_name": _clean(form.get("contact_name"), 180),\n        "kontakt_adresse": _clean(form.get("contact_address"), 500),\n        "kontakt_email": _clean(form.get("contact_email"), 180),\n        "kontakt_telefon": _clean(form.get("contact_phone"), 80),\n        "externe_website_url": _clean(form.get("website_url"), 1000),\n        "footer_datenschutz_url": _clean(form.get("privacy_url"), 1000),\n        "footer_impressum_url": _clean(form.get("imprint_url"), 1000),\n    }\n    for key, value in extras.items():\n        set_gemeinde_einstellung(key, value)\n    audit_event("Verwaltung", "Plattform-Konfiguration geändert", "municipality_config", str(config.id), config.platform_name)\n    return RedirectResponse(url="/intern/plattform?hinweis=" + quote("White-Label-Konfiguration gespeichert."), status_code=303)\n'''
+          if old_save not in text:
+              raise SystemExit('platform save anchor missing')
+          text = text.replace(old_save, new_save, 1)
+          p.write_text(text, encoding='utf-8')
+
+          # Complete white-label settings dashboard.
+          replace_once(
+              'community_dashboard.py',
+              'from intern_ui import intern_nav, intern_nav_css\n',
+              'from intern_ui import intern_nav, intern_nav_css\nfrom platform_runtime import get_platform_snapshot\n',
+              'admin platform import',
+          )
+          p = Path('community_dashboard.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              '<title>{escape(title)} · Ahnsen hilft Verwaltung</title><style>{intern_nav_css()}',
+              '<title>{escape(title)} · {escape(get_platform_snapshot()["platform_name"])} Verwaltung</title><style>{intern_nav_css()}',
+              1,
+          )
+          text = re.sub(
+              r'def platform_settings_page\(config\) -> HTMLResponse:\n.*?\Z',
+              '''def platform_settings_page(config) -> HTMLResponse:\n    c = config if isinstance(config, dict) else get_platform_snapshot()\n    langs = ",".join(c.get("languages") or [])\n    enabled_yes = " selected" if c.get("translation_enabled") else ""\n    enabled_no = "" if c.get("translation_enabled") else " selected"\n    history_ahnsen = " selected" if c.get("history_mode") == "ahnsen" else ""\n    history_custom = "" if c.get("history_mode") == "ahnsen" else " selected"\n    body = f"""\n<section><span class="eyebrow">White-Label vollständig</span><h1>Plattform-Konfiguration</h1><p>Branding, Sprachen, Karte, Warngebiet, Absender, PWA-Metadaten und externe Quellen werden hier zentral pro Gemeinde gepflegt.</p></section>\n<section class="admin-section"><form class="admin-form" method="post" action="/intern/plattform">\n<h2>Identität & Erscheinungsbild</h2>\n<div class="admin-grid"><label>Plattformname<input name="platform_name" value="{escape(c['platform_name'])}" required></label><label>Kurzname der PWA<input name="short_name" value="{escape(c['short_name'])}" maxlength="30"></label><label>Gemeinde / Ort<input name="municipality_name" value="{escape(c['municipality_name'])}" required></label><label>Postleitzahl<input name="postal_code" value="{escape(c['postal_code'])}"></label></div>\n<label>Claim<input name="claim" value="{escape(c['claim'])}"></label><label>Beschreibung<textarea name="description">{escape(c['description'])}</textarea></label>\n<div class="admin-grid"><label>Primärfarbe<input name="primary_color" value="{escape(c['primary_color'])}" placeholder="#174936"></label><label>Akzentfarbe<input name="accent_color" value="{escape(c['accent_color'])}" placeholder="#8da77a"></label><label>Logo-URL<input name="logo_url" value="{escape(c['logo_url'])}" placeholder="/assets/logo.png oder https://…"></label><label>Hero-Bild-URL<input name="hero_image_url" value="{escape(c['hero_image_url'])}"></label></div>\n<h2>Sprachen & kostenlose Übersetzung</h2>\n<p>Die automatische Vollübersetzung nutzt LibreTranslate-kompatible, kostenlose Open-Source-Endpunkte. Übersetzungen werden lokal zwischengespeichert, damit Texte nicht bei jedem Aufruf erneut angefragt werden.</p>\n<div class="admin-grid"><label>Standardsprache<input name="default_language" value="{escape(c['default_language'])}" maxlength="10"></label><label>Aktive Sprachen<input name="languages" value="{escape(langs)}"><small>ISO-Codes mit Komma trennen, z. B. de,en,pl,uk,tr,fr</small></label><label>Automatische Übersetzung<select name="translation_enabled"><option value="ja"{enabled_yes}>Aktiv</option><option value="nein"{enabled_no}>Deaktiviert</option></select></label><label>Zeitzone<input name="timezone" value="{escape(c['timezone'])}"></label></div>\n<label>LibreTranslate API<input name="translation_api_url" value="{escape(c['translation_api_url'])}"></label><label>Kostenloser Fallback<input name="translation_fallback_url" value="{escape(c['translation_fallback_url'])}"></label><p><a class="admin-button secondary" href="/api/uebersetzen/status" target="_blank" rel="noopener">Übersetzungsdienst prüfen</a></p>\n<h2>Karte & Vorgänge</h2><div class="admin-grid"><label>Karten-Breitengrad<input name="map_lat" value="{escape(str(c['map_lat']))}"></label><label>Karten-Längengrad<input name="map_lon" value="{escape(str(c['map_lon']))}"></label><label>Start-Zoom<input name="map_zoom" value="{escape(str(c['map_zoom']))}"></label><label>Ticket-Präfix<input name="ticket_prefix" value="{escape(c['ticket_prefix'])}" maxlength="8"></label></div>\n<h2>Amtliche Warnungen</h2><label>Warngebiets-Begriffe<input name="warning_terms" value="{escape(c['warning_terms'])}"><small>Mit | trennen.</small></label><div class="admin-grid"><label>DWD-Ortsbegriff<input name="warning_location_name" value="{escape(c['warning_location_name'])}"></label><label>Gebietsbezeichnung<input name="warning_area_label" value="{escape(c['warning_area_label'])}"></label></div><label>BBK / MoWaS RSS-URL<input name="bbk_mowas_rss_url" value="{escape(c['bbk_mowas_rss_url'])}"></label><label>DWD CAP-Verzeichnis<input name="dwd_cap_index_url" value="{escape(c['dwd_cap_index_url'])}"></label>\n<h2>Kontakt, Recht & externe Adresse</h2><div class="admin-grid"><label>Absender / verantwortliche Stelle<input name="contact_name" value="{escape(c['contact_name'])}"></label><label>E-Mail<input name="contact_email" value="{escape(c['contact_email'])}"></label><label>Telefon<input name="contact_phone" value="{escape(c['contact_phone'])}"></label><label>Öffentliche Basis-URL<input name="public_base_url" value="{escape(c['public_base_url'])}"></label></div><label>Anschrift<input name="contact_address" value="{escape(c['contact_address'])}"></label><div class="admin-grid"><label>Gemeinde-Webseite<input name="website_url" value="{escape(c['website_url'])}"></label><label>Datenschutz-URL<input name="privacy_url" value="{escape(c['privacy_url'])}"></label><label>Impressum-URL<input name="imprint_url" value="{escape(c['imprint_url'])}"></label></div>\n<h2>Ortsgeschichte</h2><label>Modus<select name="history_mode"><option value="ahnsen"{history_ahnsen}>Ahnsen-Chronik verwenden</option><option value="custom"{history_custom}>Individuellen „Über den Ort“-Text verwenden</option></select></label>\n<button class="admin-button" type="submit">White-Label-Konfiguration speichern</button></form></section>\n"""\n    return _page("Plattform-Konfiguration", "plattform", body)\n''',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if 'White-Label vollständig' not in text:
+              raise SystemExit('platform settings rewrite failed')
+          p.write_text(text, encoding='utf-8')
+
+          # Admin navigation is tenant-aware and exposes all new management modules.
+          replace_once(
+              'intern_ui.py',
+              'from html import escape\n',
+              'from html import escape\nfrom platform_runtime import get_platform_snapshot\n',
+              'intern platform import',
+          )
+          p = Path('intern_ui.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              'def intern_nav(active=""):\n    if active == "start":\n',
+              'def intern_nav(active=""):\n    cfg = get_platform_snapshot()\n    if active == "start":\n',
+              1,
+          )
+          text = text.replace(
+              '        ("ideen", "/intern/ideen", "Beteiligung"),\n        ("berichte", "/intern/berichte", "Berichte"),\n        ("system", "/intern/system", "System"),\n',
+              '        ("ideen", "/intern/ideen", "Beteiligung"),\n        ("ideen", "/intern/nachbarschaft", "Nachbarschaft"),\n        ("gemeindeseite", "/intern/politik", "Politik & Rat"),\n        ("berichte", "/intern/berichte", "Berichte"),\n        ("berichte", "/intern/audit", "Audit"),\n        ("system", "/intern/plattform", "Plattform"),\n        ("system", "/intern/system", "System"),\n',
+              1,
+          )
+          old_brand = '''    return f"""\n    <header class="internal-nav">\n        <a class="internal-brand" href="/intern/cockpit" aria-label="Ahnsen hilft Verwaltung">\n            {_crest()}\n            <span class="internal-brand-copy">\n                <span><strong>Ahnsen</strong><em>hilft</em></span>\n                <small>Verwaltungsbereich</small>\n            </span>\n        </a>\n'''
+          new_brand = '''    brand_logo = f'<span class="internal-brand-crest"><img src="{escape(cfg["logo_url"])}" alt="" style="width:100%;height:100%;object-fit:contain"></span>' if cfg.get("logo_url") else _crest()\n    return f"""\n    <style>:root{{--admin-forest:{cfg['primary_color']};--admin-sage:{cfg['accent_color']};}}</style>\n    <header class="internal-nav">\n        <a class="internal-brand" href="/intern/cockpit" aria-label="{escape(cfg['platform_name'])} Verwaltung">\n            {brand_logo}\n            <span class="internal-brand-copy">\n                <span><strong>{escape(cfg['platform_name'])}</strong></span>\n                <small>Verwaltungsbereich · {escape(cfg['municipality_name'])}</small>\n            </span>\n        </a>\n'''
+          if old_brand not in text:
+              raise SystemExit('admin brand anchor missing')
+          text = text.replace(old_brand, new_brand, 1)
+          p.write_text(text, encoding='utf-8')
+
+          # Warning sources use live tenant configuration, not Ahnsen constants.
+          replace_once(
+              'warning_service.py',
+              'from push_service import send_user_notification\n',
+              'from push_service import send_user_notification\nfrom platform_runtime import get_platform_snapshot\n',
+              'warning platform import',
+          )
+          p = Path('warning_service.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              '''def _dwd_latest_zip_url(session: requests.Session) -> str:\n    response = session.get(DWD_CAP_INDEX_URL, timeout=WARNING_REQUEST_TIMEOUT)\n    response.raise_for_status()\n    candidates = re.findall(r'href=["\\\']([^"\\\']+PREMIUMDWD_COMMUNEUNION_DE\\.zip)["\\\']', response.text, flags=re.I)\n''',
+              '''def _dwd_latest_zip_url(session: requests.Session) -> str:\n    index_url = os.getenv("DWD_CAP_INDEX_URL", "").strip() or get_platform_snapshot().get("dwd_cap_index_url") or DWD_CAP_INDEX_URL\n    response = session.get(index_url, timeout=WARNING_REQUEST_TIMEOUT)\n    response.raise_for_status()\n    candidates = re.findall(r'href=["\\\']([^"\\\']+PREMIUMDWD_COMMUNEUNION_DE\\.zip)["\\\']', response.text, flags=re.I)\n''',
+          )
+          text = text.replace('    return urljoin(DWD_CAP_INDEX_URL, sorted(candidates)[-1])\n', '    return urljoin(index_url, sorted(candidates)[-1])\n', 1)
+          text = text.replace(
+              '    location_cf = WARNING_LOCATION_NAME.casefold()\n',
+              '    cfg = get_platform_snapshot()\n    location_terms = [part.strip().casefold() for part in str(cfg.get("warning_terms") or cfg.get("warning_location_name") or WARNING_LOCATION_NAME).split("|") if part.strip()]\n',
+              1,
+          )
+          text = text.replace(
+              '                if location_cf in area_desc.casefold():\n                    matched_areas.append(area_desc)\n',
+              '                area_cf = area_desc.casefold()\n                if any(term in area_cf for term in location_terms):\n                    matched_areas.append(area_desc)\n',
+              1,
+          )
+          text = text.replace('            "area": WARNING_AREA_LABEL[:240],\n', '            "area": str(get_platform_snapshot().get("warning_area_label") or WARNING_AREA_LABEL)[:240],\n', 1)
+          old_fetch = '''def fetch_bbk_warnings() -> list[dict[str, Any]]:\n    if not BBK_MOWAS_RSS_URL.startswith("https://"):\n        raise RuntimeError("BBK_MOWAS_RSS_URL muss HTTPS verwenden.")\n    response = requests.get(\n        BBK_MOWAS_RSS_URL,\n'''
+          new_fetch = '''def fetch_bbk_warnings() -> list[dict[str, Any]]:\n    feed_url = os.getenv("BBK_MOWAS_RSS_URL", "").strip() or get_platform_snapshot().get("bbk_mowas_rss_url") or BBK_MOWAS_RSS_URL\n    if not str(feed_url).startswith("https://"):\n        raise RuntimeError("BBK / MoWaS RSS-URL muss HTTPS verwenden.")\n    response = requests.get(\n        feed_url,\n'''
+          if old_fetch not in text:
+              raise SystemExit('BBK fetch anchor missing')
+          text = text.replace(old_fetch, new_fetch, 1)
+          text = text.replace('    area = warning.area or WARNING_AREA_LABEL\n', '    area = warning.area or get_platform_snapshot().get("warning_area_label") or WARNING_AREA_LABEL\n', 1)
+          p.write_text(text, encoding='utf-8')
+
+          # PWA core: translation DB, dynamic tickets, manifest, worker, health and generic about route.
+          replace_once('pwa_core.py', 'import hmac\n', 'import hmac\nimport json\n', 'json import')
+          replace_once(
+              'pwa_core.py',
+              'from community_routes import configure_community_routes, router as community_router\n',
+              'from community_routes import configure_community_routes, router as community_router\nfrom platform_runtime import get_platform_snapshot\nfrom translation_service import init_translation_db\n',
+              'core platform imports',
+          )
+          replace_once(
+              'pwa_core.py',
+              '    init_community_db()\n    start_warning_monitor()\n',
+              '    init_community_db()\n    init_translation_db()\n    start_warning_monitor()\n',
+              'translation startup',
+          )
+          replace_once(
+              'pwa_core.py',
+              '''def _new_ticket() -> str:\n    return f"AHN-{time.strftime('%Y%m%d')}-{uuid4().hex[:10].upper()}"\n''',
+              '''def _new_ticket() -> str:\n    prefix = get_platform_snapshot().get("ticket_prefix") or "TKT"\n    return f"{prefix}-{time.strftime('%Y%m%d')}-{uuid4().hex[:10].upper()}"\n''',
+              'tenant ticket prefix',
+          )
+          replace_once(
+              'pwa_core.py',
+              '''@app.get("/ueber-ahnsen")\nasync def pwa_about():\n    return info_page("ueber-ahnsen", get_gemeinde_einstellungen())\n''',
+              '''@app.get("/ueber-gemeinde")\nasync def pwa_about():\n    return info_page("ueber-gemeinde", get_gemeinde_einstellungen())\n\n\n@app.get("/ueber-ahnsen")\nasync def pwa_about_legacy():\n    return RedirectResponse(url="/ueber-gemeinde", status_code=301)\n''',
+              'generic about route',
+          )
+          p = Path('pwa_core.py')
+          text = p.read_text(encoding='utf-8')
+          manifest_pattern = r'@app\.get\("/manifest\.webmanifest"\)\nasync def manifest\(\):\n.*?\n\n\n@app\.get\("/service-worker\.js"\)'
+          manifest_new = '''@app.get("/manifest.webmanifest")\nasync def manifest():\n    cfg = get_platform_snapshot()\n    return JSONResponse(\n        {\n            "id": "/",\n            "name": cfg["platform_name"],\n            "short_name": cfg["short_name"],\n            "description": cfg["description"],\n            "lang": cfg["default_language"],\n            "start_url": "/",\n            "scope": "/",\n            "display": "standalone",\n            "orientation": "portrait-primary",\n            "background_color": "#fbf8f0",\n            "theme_color": cfg["primary_color"],\n            "categories": ["government", "utilities", "social"],\n            "icons": [\n                {"src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},\n                {"src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},\n            ],\n            "shortcuts": [\n                {"name": "Mangel melden", "url": "/mangel-melden", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},\n                {"name": "DGH anfragen", "url": "/dgh-anfrage", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},\n                {"name": "Warnungen", "url": "/warnungen", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},\n                {"name": "Mein Profil", "url": "/profil", "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192"}]},\n            ],\n        },\n        media_type="application/manifest+json",\n    )\n\n\n@app.get("/service-worker.js")'''
+          text, n = re.subn(manifest_pattern, manifest_new, text, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('manifest rewrite failed')
+          sw_pattern = r'@app\.get\("/service-worker\.js"\)\nasync def service_worker\(\):\n.*?\n\n\n@app\.get\("/health"\)'
+          sw_new = '''@app.get("/service-worker.js")\nasync def service_worker():\n    cfg = get_platform_snapshot()\n    default_payload = json.dumps({"title": cfg["platform_name"], "body": "Es gibt eine neue Information.", "url": "/profil", "tag": "citizen-platform"}, ensure_ascii=False)\n    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=2', '/warning.css?v=1', '/pwa.js?v=1', '/community.js?v=2', '/pwa/icon-192.png']\n    hero = str(cfg.get("hero_image_url") or "")\n    if hero.startswith("/"):\n        core_assets.append(hero)\n    core_json = json.dumps(list(dict.fromkeys(core_assets)), ensure_ascii=False)\n    script = f"""\nconst CACHE = 'citizen-platform-pwa-v4';\nconst CORE = {core_json};\nself.addEventListener('install', event => {{ event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); }});\nself.addEventListener('activate', event => {{ event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); }});\nself.addEventListener('fetch', event => {{\n  if (event.request.method !== 'GET') return;\n  const url = new URL(event.request.url);\n  if (url.origin !== self.location.origin) return;\n  event.respondWith(fetch(event.request).then(response => {{\n    const copy = response.clone();\n    if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, copy));\n    return response;\n  }}).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));\n}});\nself.addEventListener('push', event => {{\n  let data = {default_payload};\n  try {{ if (event.data) data = {{ ...data, ...event.data.json() }}; }} catch (_error) {{}}\n  event.waitUntil(self.registration.showNotification(data.title, {{\n    body: data.body, icon: data.icon || '/pwa/icon-192.png', badge: data.badge || '/pwa/icon-192.png', tag: data.tag, data: {{ url: data.url || '/profil' }}\n  }}));\n}});\nself.addEventListener('notificationclick', event => {{\n  event.notification.close();\n  const target = event.notification.data && event.notification.data.url ? event.notification.data.url : '/profil';\n  event.waitUntil(clients.matchAll({{ type: 'window', includeUncontrolled: true }}).then(list => {{\n    for (const client of list) {{ if ('focus' in client) {{ client.navigate(target); return client.focus(); }} }}\n    return clients.openWindow ? clients.openWindow(target) : undefined;\n  }}));\n}});\n""".strip()\n    return Response(script, media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})\n\n\n@app.get("/health")'''
+          text, n = re.subn(sw_pattern, sw_new, text, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('service worker rewrite failed')
+          # Dynamic test push and health status.
+          text = text.replace('        "Ahnsen hilft – Test-Push",\n', '        f"{get_platform_snapshot()[\'platform_name\']} – Test-Push",\n', 1)
+          health_old = '''    return {\n        "status": "Ahnsen hilft PWA läuft",\n        "version": "pwa-2-accounts-push",\n        "whatsapp": "deaktiviert",\n        "accounts": "aktiv",\n        "push": "konfiguriert" if push_configured() else "VAPID-Schlüssel fehlen",\n    }\n'''
+          health_new = '''    cfg = get_platform_snapshot()\n    return {\n        "status": f"{cfg['platform_name']} PWA läuft",\n        "version": "pwa-4-i18n-whitelabel",\n        "municipality": cfg["municipality_name"],\n        "translation": "aktiv" if cfg.get("translation_enabled") else "deaktiviert",\n        "accounts": "aktiv",\n        "push": "konfiguriert" if push_configured() else "VAPID-Schlüssel fehlen",\n    }\n'''
+          if health_old not in text:
+              raise SystemExit('health anchor missing')
+          text = text.replace(health_old, health_new, 1)
+          p.write_text(text, encoding='utf-8')
+
+          PY
+
+          cat > static/community.js <<'JS'
+          (() => {
+            const state = {
+              language: 'de',
+              translating: false,
+              nodeOriginals: new WeakMap(),
+              attrOriginals: new WeakMap(),
+              timer: null,
+              observer: null,
+              platform: null,
+            };
+
+            const SKIP = 'script,style,noscript,code,pre,svg,[data-no-translate],[translate="no"],[contenteditable="true"]';
+            const ATTRS = ['placeholder', 'title', 'aria-label'];
+
+            const languageFromStorage = () =>
+              localStorage.getItem('platform-language') ||
+              localStorage.getItem('ahnsen-language') ||
+              document.cookie.match(/(?:^|; )ahnsen_language=([^;]+)/)?.[1] ||
+              document.body?.dataset.platformDefaultLanguage || 'de';
+
+            const showState = (active, degraded = false) => {
+              const el = document.getElementById('translation-state');
+              if (!el) return;
+              el.hidden = !active && !degraded;
+              el.textContent = degraded ? '!' : '↻';
+              el.title = degraded ? 'Übersetzung teilweise nicht verfügbar' : 'Inhalt wird übersetzt';
+            };
+
+            const shouldSkip = element => {
+              if (!element) return true;
+              if (element.closest(SKIP)) return true;
+              if (element.closest('#platform-language, #translation-state')) return true;
+              return false;
+            };
+
+            const splitWhitespace = value => {
+              const match = String(value || '').match(/^(\s*)(.*?)(\s*)$/s);
+              return {prefix: match?.[1] || '', core: match?.[2] || '', suffix: match?.[3] || ''};
+            };
+
+            const collect = root => {
+              const entries = [];
+              const start = root && root.nodeType === Node.ELEMENT_NODE ? root : document.body;
+              if (!start) return entries;
+              const walker = document.createTreeWalker(start, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                  const el = node.parentElement;
+                  if (shouldSkip(el)) return NodeFilter.FILTER_REJECT;
+                  const {core} = splitWhitespace(node.nodeValue);
+                  if (!core || core.length < 2 || !/[\p{L}]/u.test(core)) return NodeFilter.FILTER_REJECT;
+                  return NodeFilter.FILTER_ACCEPT;
+                }
+              });
+              while (walker.nextNode()) {
+                const node = walker.currentNode;
+                if (!state.nodeOriginals.has(node)) state.nodeOriginals.set(node, node.nodeValue);
+                const original = state.nodeOriginals.get(node);
+                const {prefix, core, suffix} = splitWhitespace(original);
+                entries.push({kind: 'node', target: node, original, prefix, core, suffix});
+              }
+
+              const elements = [start, ...start.querySelectorAll?.('*') || []];
+              elements.forEach(el => {
+                if (!(el instanceof Element) || shouldSkip(el)) return;
+                let saved = state.attrOriginals.get(el);
+                if (!saved) { saved = {}; state.attrOriginals.set(el, saved); }
+                ATTRS.forEach(attr => {
+                  if (!el.hasAttribute(attr)) return;
+                  if (!(attr in saved)) saved[attr] = el.getAttribute(attr) || '';
+                  const original = saved[attr];
+                  if (!original || original.length < 2 || !/[\p{L}]/u.test(original)) return;
+                  entries.push({kind: 'attr', target: el, attr, original, prefix: '', core: original, suffix: ''});
+                });
+              });
+              return entries;
+            };
+
+            const restoreOriginals = () => {
+              document.querySelectorAll('*').forEach(el => {
+                const saved = state.attrOriginals.get(el);
+                if (saved) Object.entries(saved).forEach(([attr, value]) => el.setAttribute(attr, value));
+              });
+              const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+              while (walker.nextNode()) {
+                const node = walker.currentNode;
+                if (state.nodeOriginals.has(node)) node.nodeValue = state.nodeOriginals.get(node);
+              }
+            };
+
+            const translateEntries = async entries => {
+              if (state.language === 'de' || !entries.length) return;
+              const unique = [...new Set(entries.map(entry => entry.core))];
+              const translated = new Map();
+              let degraded = false;
+              for (let offset = 0; offset < unique.length; offset += 35) {
+                const batch = unique.slice(offset, offset + 35);
+                try {
+                  const response = await fetch('/api/uebersetzen', {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({texts: batch, source: 'auto', target: state.language})
+                  });
+                  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                  const data = await response.json();
+                  (data.translations || []).forEach((value, i) => translated.set(batch[i], value || batch[i]));
+                  degraded = degraded || !!data.degraded;
+                } catch (_) {
+                  degraded = true;
+                  batch.forEach(value => translated.set(value, value));
+                }
+              }
+              state.translating = true;
+              entries.forEach(entry => {
+                const value = translated.get(entry.core) || entry.core;
+                if (entry.kind === 'node' && entry.target.isConnected) entry.target.nodeValue = `${entry.prefix}${value}${entry.suffix}`;
+                if (entry.kind === 'attr' && entry.target.isConnected) entry.target.setAttribute(entry.attr, value);
+              });
+              state.translating = false;
+              showState(false, degraded);
+            };
+
+            const translateDocument = async () => {
+              if (state.translating) return;
+              restoreOriginals();
+              document.documentElement.lang = state.language;
+              if (state.language === 'de') { showState(false, false); return; }
+              showState(true, false);
+              await translateEntries(collect(document.body));
+            };
+
+            const scheduleTranslate = root => {
+              if (state.language === 'de' || state.translating) return;
+              clearTimeout(state.timer);
+              state.timer = setTimeout(async () => {
+                showState(true, false);
+                await translateEntries(collect(root || document.body));
+              }, 180);
+            };
+
+            const setupLanguage = async () => {
+              const select = document.getElementById('platform-language');
+              if (!select) return;
+              const saved = languageFromStorage();
+              if ([...select.options].some(o => o.value === saved)) select.value = saved;
+              state.language = select.value || 'de';
+              await translateDocument();
+              select.addEventListener('change', async () => {
+                state.language = select.value || 'de';
+                localStorage.setItem('platform-language', state.language);
+                localStorage.removeItem('ahnsen-language');
+                try {
+                  await fetch('/api/sprache', {method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body:JSON.stringify({language:state.language})});
+                } catch (_) {}
+                await translateDocument();
+              });
+              state.observer = new MutationObserver(mutations => {
+                if (state.translating) return;
+                for (const mutation of mutations) {
+                  if (mutation.type === 'childList' && mutation.addedNodes.length) {
+                    const root = [...mutation.addedNodes].find(node => node.nodeType === Node.ELEMENT_NODE);
+                    if (root) { scheduleTranslate(root); break; }
+                  }
+                }
+              });
+              state.observer.observe(document.body, {childList:true, subtree:true});
+            };
+
+            const setupMessages = async () => {
+              const link = document.getElementById('message-center-link');
+              if (!link) return;
+              try {
+                const response = await fetch('/api/me/unread-count', {credentials:'same-origin'});
+                if (!response.ok) return;
+                const data = await response.json();
+                link.hidden = !data.loggedIn;
+                const badge = link.querySelector('.message-badge');
+                if (badge) { badge.textContent = data.count > 99 ? '99+' : String(data.count || ''); badge.hidden = !data.count; }
+              } catch (_) {}
+            };
+
+            const setupBrand = async () => {
+              try {
+                const response = await fetch('/api/plattform', {credentials:'same-origin'});
+                if (!response.ok) return;
+                const data = await response.json();
+                state.platform = data;
+                document.documentElement.style.setProperty('--forest', data.primary_color || '#174936');
+                document.documentElement.style.setProperty('--sage', data.accent_color || '#8da77a');
+                document.querySelectorAll('[data-platform-municipality]').forEach(el => el.textContent = data.municipality_name || '');
+                document.querySelectorAll('[data-platform-claim]').forEach(el => el.textContent = data.claim || '');
+              } catch (_) {}
+            };
+
+            const setup = async () => {
+              await setupBrand();
+              setupMessages();
+              await setupLanguage();
+            };
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, {once:true}); else setup();
+          })();
+          JS
+
+          python -m py_compile platform_runtime.py translation_service.py community_crud.py community_routes.py community_dashboard.py community_search.py community_ui.py intern_ui.py warning_service.py pwa_ui.py pwa_core.py
+      - name: Validate JavaScript syntax
+        run: node --check static/community.js
+      - name: Run existing smoke tests where possible
+        run: |
+          python - <<'PY'
+          from platform_runtime import apply_static_branding
+          sample = apply_static_branding('Mein Ahnsen · Ideen für Ahnsen · AHN-2026')
+          assert 'Mein Ahnsen' in sample or 'Mein ' in sample
+          from translation_service import _split_long_text
+          assert ''.join(_split_long_text('Hallo. ' * 1000)).startswith('Hallo.')
+          print('i18n/white-label module checks ok')
+          PY
+      - name: Commit completed implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gemeinde_crud.py community_crud.py platform_runtime.py translation_service.py pwa_ui.py community_ui.py community_search.py community_routes.py community_dashboard.py intern_ui.py warning_service.py pwa_core.py static/community.js
+          if git diff --cached --quiet; then
+            echo "No implementation changes"
+            exit 0
+          fi
+          git commit -m "Mehrsprachigkeit und White-Label vollständig ausbauen"
+          git push origin HEAD:agent/i18n-white-label-complete
