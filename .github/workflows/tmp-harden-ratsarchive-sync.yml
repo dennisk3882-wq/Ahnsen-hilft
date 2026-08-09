@@ -71,12 +71,11 @@ jobs:
           PY
       - name: Compile Python
         run: python -m py_compile scripts/sync_ratsarchive_from_ris.py ratsarchive_seed.py
-      - name: Remove temporary files and commit
+      - name: Commit only non-workflow hardening files
         if: always()
         run: |
-          rm -f scripts/tmp_harden_ratsarchive_sync.py .github/workflows/tmp-harden-ratsarchive-sync.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add scripts/sync_ratsarchive_from_ris.py static/ratsarchive-seed/manifest.json
           git commit -m 'Täglichen Ratsarchiv-Sync robust gegen PDF-Metadaten machen' || true
           git push origin HEAD:agent/harden-ratsarchive-daily-sync
