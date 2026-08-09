@@ -70,7 +70,11 @@ from pwa_ui import (
     status_page,
     waste_page,
 )
-from veranstaltungen_crud import get_aktive_veranstaltungen, init_veranstaltungen_db
+from veranstaltungen_crud import (
+    get_aktive_veranstaltungen,
+    get_vergangene_veranstaltungen,
+    init_veranstaltungen_db,
+)
 from push_dashboard import push_dashboard_page
 from system_dashboard import system_dashboard_page
 from warning_dashboard import warning_dashboard_page
@@ -498,7 +502,7 @@ async def report_status(ticket: str = ""):
 
 @app.get("/veranstaltungen")
 async def pwa_events():
-    return events_page(get_aktive_veranstaltungen())
+    return events_page(get_aktive_veranstaltungen(), get_vergangene_veranstaltungen())
 
 
 @app.get("/dgh-mieten")
