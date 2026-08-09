@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Iterable
 from urllib.parse import urlsplit
@@ -12,6 +13,9 @@ from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
 
 from database import Base, SessionLocal, engine
 from platform_runtime import get_platform_snapshot
+
+
+MYMEMORY_DEFAULT_URL = "https://api.mymemory.translated.net/get"
 
 
 class TranslationCache(Base):
@@ -57,6 +61,11 @@ def _provider_urls() -> list[str]:
     return urls
 
 
+def _mymemory_url() -> str:
+    value = os.getenv("MYMEMORY_API_URL", "").strip() or MYMEMORY_DEFAULT_URL
+    return value if value.startswith("https://") else MYMEMORY_DEFAULT_URL
+
+
 def _split_long_text(text: str, maximum: int = 1750) -> list[str]:
     if len(text) <= maximum:
         return [text]
@@ -80,6 +89,41 @@ def _split_long_text(text: str, maximum: int = 1750) -> list[str]:
         remaining = remaining[cut:]
     if remaining:
         chunks.append(remaining)
+    return chunks
+
+
+def _split_utf8_bytes(text: str, maximum: int = 450) -> list[str]:
+    """Split text below MyMemory's 500-byte q limit without breaking UTF-8."""
+    if len(text.encode("utf-8")) <= maximum:
+        return [text]
+
+    chunks: list[str] = []
+    remaining = text
+    while remaining:
+        used = 0
+        cut = 0
+        for position, char in enumerate(remaining):
+            size = len(char.encode("utf-8"))
+            if used + size > maximum:
+                break
+            used += size
+            cut = position + 1
+        if cut >= len(remaining):
+            chunks.append(remaining)
+            break
+        window = remaining[:cut]
+        preferred = max(
+            window.rfind(". "),
+            window.rfind("! "),
+            window.rfind("? "),
+            window.rfind("; "),
+            window.rfind(", "),
+            window.rfind(" "),
+        )
+        if preferred >= max(1, cut // 3):
+            cut = preferred + 1
+        chunks.append(remaining[:cut])
+        remaining = remaining[cut:]
     return chunks
 
 
@@ -132,6 +176,14 @@ def _cache_put(source: str, target: str, text: str, translated: str, provider: s
         db.close()
 
 
+def _translation_timeout() -> int:
+    try:
+        value = int(os.getenv("TRANSLATION_TIMEOUT", "8") or "8")
+    except ValueError:
+        value = 8
+    return max(4, min(value, 20))
+
+
 def _post_translate(url: str, texts: list[str], source: str, target: str) -> list[str]:
     payload = {
         "q": texts if len(texts) > 1 else texts[0],
@@ -150,9 +202,9 @@ def _post_translate(url: str, texts: list[str], source: str, target: str) -> lis
         headers={
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "municipal-pwa-translation/1.1",
+            "User-Agent": "municipal-pwa-translation/1.2",
         },
-        timeout=max(4, min(int(os.getenv("TRANSLATION_TIMEOUT", "14") or "14"), 30)),
+        timeout=_translation_timeout(),
     )
     response.raise_for_status()
     data = response.json()
@@ -220,12 +272,88 @@ def _translate_batch_with_provider(
     return {index: translated[position] for position, index in enumerate(indexes)}
 
 
-def translate_texts(texts: Iterable[object], target: str, source: str = "auto") -> dict:
-    """Translate visible text segments with LibreTranslate-compatible providers.
+def _translate_with_mymemory(text: str, source: str, target: str) -> str:
+    """Use MyMemory's public REST API as an independent last-resort provider."""
+    source_language = "de" if source in {"", "auto"} else source
+    translated_pieces: list[str] = []
+    contact_email = os.getenv("MYMEMORY_CONTACT_EMAIL", "").strip()
 
-    Results are persisted in a local cache. Missing segments are sent as real
-    batches instead of one HTTP request per DOM text node. This is substantially
-    faster and avoids unnecessarily exhausting public-provider rate limits.
+    for piece in _split_utf8_bytes(text):
+        params = {
+            "q": piece,
+            "langpair": f"{source_language}|{target}",
+            "mt": "1",
+        }
+        if contact_email:
+            params["de"] = contact_email
+        response = requests.get(
+            _mymemory_url(),
+            params=params,
+            headers={"Accept": "application/json", "User-Agent": "municipal-pwa-translation/1.2"},
+            timeout=_translation_timeout(),
+        )
+        response.raise_for_status()
+        data = response.json()
+        status = data.get("responseStatus") if isinstance(data, dict) else None
+        if status not in (None, 200, "200"):
+            detail = str(data.get("responseDetails") or "MyMemory-Fehler")[:180]
+            raise RuntimeError(detail)
+        response_data = data.get("responseData") if isinstance(data, dict) else None
+        translated = response_data.get("translatedText") if isinstance(response_data, dict) else None
+        translated = str(translated or "").strip()
+        if not translated:
+            raise RuntimeError("MyMemory lieferte keinen übersetzten Text.")
+        translated_pieces.append(translated)
+
+    return " ".join(piece for piece in translated_pieces if piece).strip()
+
+
+def _apply_mymemory_fallback(
+    pending: list[int],
+    original: list[str],
+    result: list[str | None],
+    source: str,
+    target: str,
+    errors: list[str],
+) -> tuple[list[int], bool]:
+    if not pending or os.getenv("MYMEMORY_ENABLED", "1").strip().casefold() in {"0", "false", "no", "nein", "off", "aus"}:
+        return pending, False
+
+    failed: list[int] = []
+    translated_any = False
+    try:
+        workers = int(os.getenv("MYMEMORY_WORKERS", "4") or "4")
+    except ValueError:
+        workers = 4
+    workers = max(1, min(workers, 6))
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {
+            executor.submit(_translate_with_mymemory, original[index], source, target): index
+            for index in pending
+        }
+        for future in as_completed(futures):
+            index = futures[future]
+            try:
+                translated = future.result()
+                result[index] = translated
+                _cache_put(source, target, original[index], translated, "api.mymemory.translated.net")
+                translated_any = True
+            except Exception as error:
+                failed.append(index)
+                errors.append(f"MyMemory: {type(error).__name__}: {str(error)[:160]}")
+
+    failed.sort()
+    return failed, translated_any
+
+
+def translate_texts(texts: Iterable[object], target: str, source: str = "auto") -> dict:
+    """Translate visible text segments with cached provider fallbacks.
+
+    LibreTranslate-compatible providers are attempted first in efficient batches.
+    If those public services are unavailable, MyMemory is used as an independent
+    final fallback. Successful results from every provider are persisted so a
+    translated UI segment normally requires an external request only once.
     """
     init_translation_db()
     cfg = get_platform_snapshot()
@@ -264,9 +392,6 @@ def translate_texts(texts: Iterable[object], target: str, source: str = "auto") 
     errors: list[str] = []
     pending = list(missing)
 
-    # Try each configured provider only for segments that the previous provider
-    # could not translate. One failing batch therefore does not discard already
-    # successful translations.
     for url in _provider_urls():
         if not pending:
             break
@@ -284,6 +409,17 @@ def translate_texts(texts: Iterable[object], target: str, source: str = "auto") 
                 errors.append(f"{label}: {type(error).__name__}: {str(error)[:160]}")
         pending = next_pending
 
+    pending, mymemory_used = _apply_mymemory_fallback(
+        pending,
+        original,
+        result,
+        source,
+        target,
+        errors,
+    )
+    if mymemory_used:
+        provider_used = "api.mymemory.translated.net"
+
     for index in pending:
         result[index] = original[index]
 
@@ -293,7 +429,7 @@ def translate_texts(texts: Iterable[object], target: str, source: str = "auto") 
         "degraded": bool(pending),
         "cached": cached_count,
         "failed": len(pending),
-        "errors": errors[-6:],
+        "errors": errors[-8:],
     }
 
 
@@ -307,7 +443,7 @@ def provider_status() -> dict:
             response = requests.get(
                 base + "/languages",
                 timeout=6,
-                headers={"User-Agent": "municipal-pwa-translation/1.1"},
+                headers={"User-Agent": "municipal-pwa-translation/1.2"},
             )
             response.raise_for_status()
             data = response.json()
@@ -315,6 +451,12 @@ def provider_status() -> dict:
             states.append({"provider": _provider_label(url), "url": url, "status": "ok", "languages": codes})
         except Exception as error:
             states.append({"provider": _provider_label(url), "url": url, "status": "error", "detail": f"{type(error).__name__}: {str(error)[:180]}"})
+
+    mymemory_state = {"provider": "api.mymemory.translated.net", "url": _mymemory_url(), "status": "configured"}
+    if os.getenv("MYMEMORY_ENABLED", "1").strip().casefold() in {"0", "false", "no", "nein", "off", "aus"}:
+        mymemory_state["status"] = "disabled"
+    states.append(mymemory_state)
+
     return {
         "enabled": bool(cfg.get("translation_enabled", True)),
         "configured_languages": cfg.get("languages") or [],
