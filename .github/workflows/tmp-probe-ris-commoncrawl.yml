@@ -16,24 +16,26 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install requests
-      - name: Probe public readers for the public RIS
+      - name: Search official public RIS through reader
         run: |
           python - <<'PY'
-          import requests
+          import requests, urllib.parse
           s=requests.Session(); s.headers['User-Agent']='Mozilla/5.0 Ahnsen-hilft research'
-          urls=[
-            'https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net/',
-            'https://r.jina.ai/https://samtgemeinde-eilsen.ratsinfomanagement.net/',
-            'https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net/termine',
-            'https://r.jina.ai/https://samtgemeinde-eilsen.ratsinfomanagement.net/termine',
-            'https://samtgemeinde--eilsen-ratsinfomanagement-net.translate.goog/?_x_tr_sl=de&_x_tr_tl=en&_x_tr_hl=en',
+          base='https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net'
+          paths=[
+            '/gremien',
+            '/recherche',
+            '/recherche?terms='+urllib.parse.quote('Gemeinderat Ahnsen'),
+            '/recherche?terms='+urllib.parse.quote('Niederschrift Gemeinderat Ahnsen'),
+            '/recherche?terms='+urllib.parse.quote('Ahnsen 2026'),
+            '/recherche?terms='+urllib.parse.quote('Niederschrift Ahnsen 2026'),
           ]
-          for u in urls:
+          for path in paths:
+            u=base+path
             try:
-              r=s.get(u,timeout=90,allow_redirects=True)
-              print('\n===',u,'===')
-              print('STATUS',r.status_code,'FINAL',r.url,'TYPE',r.headers.get('content-type'),'LEN',len(r.content))
-              txt=r.text[:20000]
-              print(txt.replace('\x00','')[:8000])
-            except Exception as e: print('ERR',u,repr(e))
+              r=s.get(u,timeout=90)
+              print('\n===',path,'=== STATUS',r.status_code,'LEN',len(r.content))
+              text=r.text.replace('\x00','')
+              print(text[:25000])
+            except Exception as e: print('ERR',path,repr(e))
           PY
