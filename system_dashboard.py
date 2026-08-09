@@ -190,7 +190,7 @@ def system_dashboard_page(
         <section class="admin-hero">
           <div class="system-hero-grid">
             <div>
-              <span class="admin-eyebrow">Betriebsüberwachung</span>
+              <span class="admin-eyebrow">System & Diagnose · Betriebsüberwachung</span>
               <h1>Systemstatus & Automationen</h1>
               <p>Überwacht die laufende Ahnsen-hilft-Installation, Datenbank, PWA-Funktionen, externe Dienste und automatische Hintergrundprozesse.</p>
               <div class="system-actions">
