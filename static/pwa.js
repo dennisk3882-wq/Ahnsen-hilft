@@ -1,9 +1,10 @@
 if (typeof document === 'undefined') {
-  const CACHE = 'ahnsen-hilft-public-v3';
+  const CACHE = 'ahnsen-hilft-public-v4';
   const CORE = [
     '/',
     '/pwa.css?v=1',
     '/pwa-extra.css?v=1',
+    '/bottom-nav.css?v=1',
     '/pwa/icon-192.png',
     '/pwa/icon-512.png',
     '/assets/ahnsen-startseite.png',
@@ -12,6 +13,7 @@ if (typeof document === 'undefined') {
   const CACHEABLE = new Set([
     '/pwa.css',
     '/pwa-extra.css',
+    '/bottom-nav.css',
     '/pwa/icon-192.png',
     '/pwa/icon-512.png',
     '/assets/ahnsen-startseite.png',
@@ -61,7 +63,7 @@ if (typeof document === 'undefined') {
 
   self.addEventListener('push', event => {
     let data = {
-      title: document.querySelector('meta[name=\"application-name\"]')?.content || document.title.split(' · ').pop() || 'Bürgerplattform',
+      title: document.querySelector('meta[name="application-name"]')?.content || document.title.split(' · ').pop() || 'Bürgerplattform',
       body: 'Es gibt eine neue Information.',
       url: '/profil',
       tag: 'ahnsen-hilft'
@@ -104,6 +106,11 @@ if (typeof document === 'undefined') {
     extraCss.href = '/pwa-extra.css?v=1';
     document.head.appendChild(extraCss);
 
+    const bottomNavCss = document.createElement('link');
+    bottomNavCss.rel = 'stylesheet';
+    bottomNavCss.href = '/bottom-nav.css?v=1';
+    document.head.appendChild(bottomNavCss);
+
     const offlineBanner = document.getElementById('offline-banner');
     const updateNetworkState = () => {
       if (offlineBanner) offlineBanner.hidden = navigator.onLine;
@@ -114,19 +121,102 @@ if (typeof document === 'undefined') {
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/pwa.js?worker=3', { scope: '/' }).catch(() => {});
+        navigator.serviceWorker.register('/pwa.js?worker=4', { scope: '/' }).catch(() => {});
       });
     }
 
     const nav = document.querySelector('.bottom-nav');
-    if (nav && !nav.querySelector('a[href="/profil"]')) {
-      const profile = document.createElement('a');
-      const active = ['/profil', '/anmelden', '/registrieren'].some(path => location.pathname.startsWith(path));
-      profile.className = `bottom-link${active ? ' active profile-active' : ''}`;
-      profile.href = '/profil';
-      if (active) profile.setAttribute('aria-current', 'page');
-      profile.innerHTML = '<span class="glyph" aria-hidden="true">●</span><small>Profil</small>';
-      nav.appendChild(profile);
+    if (nav) {
+      const icons = {
+        home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg>',
+        report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.8 3.2 7.8 8 9 4.8-1.2 8-4.2 8-9V7z"/><path d="M12 8v5M12 16h.01"/></svg>',
+        calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+        mobility: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M7 8h10M8 18v2m8-2v2M8 14h.01M16 14h.01M9 5h6"/></svg>',
+        waste: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l2 3h3l-2 4"/><path d="m18 10-3-1 1-3"/><path d="m7 9-3 5 2 4"/><path d="m6 18 1-3 3 1"/><path d="m10 20h6l3-5"/></svg>',
+        dgh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 4l9 6"/><path d="M5 9v11h14V9M9 20v-6h6v6"/></svg>',
+        politics: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 21h18M12 3 3 7h18z"/></svg>',
+        people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 20c.4-4 2.4-6 5.5-6s5.1 2 5.5 6M14 15c3.5-.5 5.7 1.2 6.5 4.5"/></svg>',
+        news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+        idea: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6m-5 3h4"/><path d="M8.5 15c-1.5-1.1-2.5-2.9-2.5-5a6 6 0 1 1 12 0c0 2.1-1 3.9-2.5 5-.8.6-1.2 1.1-1.4 2h-4.2c-.2-.9-.6-1.4-1.4-2z"/></svg>',
+        neighbor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20v-8l8-6 8 6v8"/><path d="M9 20v-5h6v5"/><path d="M7 8 5 6M17 8l2-2"/></svg>',
+        warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.8 20h18.4z"/><path d="M12 9v5M12 17h.01"/></svg>',
+        map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15m6-12v15"/></svg>',
+        more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>',
+        profile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c.6-4.3 3.1-6.5 7.5-6.5s6.9 2.2 7.5 6.5"/></svg>'
+      };
+
+      const navItems = [
+        { key: 'home', href: '/', label: 'Start', description: 'Übersicht', paths: ['/'] },
+        { key: 'report', href: '/mangel-melden', label: 'Melden', description: 'Mängel', paths: ['/mangel-melden', '/meldestatus'] },
+        { key: 'calendar', href: '/veranstaltungen', label: 'Termine', description: 'Kalender', paths: ['/veranstaltungen'] },
+        { key: 'mobility', href: '/mobilitaet', label: 'Mobilität', description: 'Bus & Fahrt', paths: ['/mobilitaet'] },
+        { key: 'waste', href: '/muelltermine-info', label: 'Müll', description: 'Abfuhr', paths: ['/muelltermine-info', '/muelltermine.ics'] },
+        { key: 'dgh', href: '/dgh-mieten', label: 'DGH', description: 'Belegung', paths: ['/dgh-mieten'] },
+        { key: 'politics', href: '/politik-rat', label: 'Politik', description: 'Rat & Protokolle', paths: ['/politik-rat'] },
+        { key: 'people', href: '/vereine', label: 'Vereine', description: 'Gruppen', paths: ['/vereine', '/feuerwehr'] },
+        { key: 'news', href: '/aktuelles', label: 'Aktuelles', description: 'Neuigkeiten', paths: ['/aktuelles', '/buergerinformationen'] },
+        { key: 'idea', href: '/ideen', label: 'Ideen', description: 'Mitgestalten', paths: ['/ideen'] },
+        { key: 'neighbor', href: '/nachbarschaft', label: 'Helfen', description: 'Nachbarschaft', paths: ['/nachbarschaft'] },
+        { key: 'warning', href: '/warnungen', label: 'Warnlage', description: 'Amtlich', paths: ['/warnungen'] },
+        { key: 'map', href: '/karte', label: 'Karte', description: 'Mängelkarte', paths: ['/karte'] },
+        { key: 'more', href: '/mehr', label: 'Mehr', description: 'Alle Bereiche', paths: ['/mehr', '/ueber-', '/ansprechpartner', '/datenschutz', '/impressum'] },
+        { key: 'profile', href: '/profil', label: 'Profil', description: 'Mein Ahnsen', paths: ['/profil', '/anmelden', '/registrieren', '/nachrichten'] }
+      ];
+
+      const currentPath = location.pathname.replace(/\/+$/, '') || '/';
+      const isMatch = (candidate, rule) => {
+        if (rule === '/') return candidate === '/';
+        if (rule.endsWith('-')) return candidate.startsWith(rule);
+        return candidate === rule || candidate.startsWith(`${rule}/`);
+      };
+      const activeItem = navItems.find(item => item.paths.some(rule => isMatch(currentPath, rule))) || navItems[0];
+      const track = document.createElement('div');
+      track.className = 'bottom-nav-track';
+
+      navItems.forEach(item => {
+        const link = document.createElement('a');
+        const active = item.key === activeItem.key;
+        link.className = `bottom-link${active ? ' active' : ''}`;
+        link.href = item.href;
+        link.dataset.navKey = item.key;
+        link.title = `${item.label} – ${item.description}`;
+        link.setAttribute('aria-label', `${item.label}: ${item.description}`);
+        if (active) link.setAttribute('aria-current', 'page');
+        link.innerHTML = `<span class="nav-icon" aria-hidden="true">${icons[item.key]}</span><span class="nav-copy"><strong>${item.label}</strong><small>${item.description}</small></span>`;
+        track.appendChild(link);
+      });
+
+      nav.classList.add('nav-slider');
+      nav.innerHTML = '';
+      nav.appendChild(track);
+
+      const updateNavEdges = () => {
+        const max = Math.max(0, track.scrollWidth - track.clientWidth);
+        nav.classList.toggle('at-start', track.scrollLeft <= 2);
+        nav.classList.toggle('at-end', track.scrollLeft >= max - 2);
+      };
+      const centerActiveNav = behavior => {
+        const activeLink = track.querySelector('.bottom-link.active');
+        if (!activeLink) return;
+        activeLink.scrollIntoView({ behavior, block: 'nearest', inline: 'center' });
+        window.setTimeout(updateNavEdges, behavior === 'smooth' ? 280 : 30);
+      };
+
+      track.addEventListener('scroll', updateNavEdges, { passive: true });
+      window.addEventListener('resize', () => centerActiveNav('auto'));
+      requestAnimationFrame(() => requestAnimationFrame(() => centerActiveNav('auto')));
+
+      try {
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const hintKey = 'ahnsen-bottom-nav-hint-v1';
+        if (!reduceMotion && track.scrollWidth > track.clientWidth + 8 && !localStorage.getItem(hintKey)) {
+          window.setTimeout(() => {
+            nav.classList.add('nav-hint');
+            window.setTimeout(() => nav.classList.remove('nav-hint'), 1100);
+            localStorage.setItem(hintKey, '1');
+          }, 650);
+        }
+      } catch (_error) {}
     }
 
     let installPrompt = null;
