@@ -30,9 +30,7 @@ def _load_manifest() -> list[dict]:
         return []
     result = []
     for item in meetings:
-        if not isinstance(item, dict):
-            continue
-        if not item.get("date") or not item.get("filename"):
+        if not isinstance(item, dict) or not item.get("date"):
             continue
         if str(item.get("organization") or "Gemeinderat Ahnsen").strip() != "Gemeinderat Ahnsen":
             continue
@@ -128,7 +126,7 @@ def _reconcile_protocol_document(meeting_id: int, seed: dict, pdf_path: Path) ->
 
 
 def seed_official_ratsarchive() -> dict:
-    """Reconcile bundled official SD.NET minutes with the persistent local archive."""
+    """Reconcile the official SD.NET session manifest with the persistent local archive."""
     result = {
         "meetings_created": 0,
         "meetings_updated": 0,
@@ -138,10 +136,6 @@ def seed_official_ratsarchive() -> dict:
         "errors": [],
     }
     for seed in _load_manifest():
-        pdf_path = SEED_DIR / str(seed["filename"])
-        if not pdf_path.exists():
-            result["missing_files"].append(seed["filename"])
-            continue
         try:
             meeting_id = _existing_meeting_id(seed)
             if meeting_id is None:
@@ -169,6 +163,18 @@ def seed_official_ratsarchive() -> dict:
                     published=True,
                 )
                 result["meetings_updated"] += 1
+
+            filename = str(seed.get("filename") or "").strip()
+            if not filename:
+                # The public RIS can mark an older meeting as "Niederschrift"
+                # without exposing the minutes as a separate public PDF. Keep
+                # any already archived legacy document, but never invent one.
+                continue
+
+            pdf_path = SEED_DIR / filename
+            if not pdf_path.exists():
+                result["missing_files"].append(filename)
+                continue
 
             _document_id, created, removed = _reconcile_protocol_document(meeting_id, seed, pdf_path)
             result["duplicates_removed"] += removed
