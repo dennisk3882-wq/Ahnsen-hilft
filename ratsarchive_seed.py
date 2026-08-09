@@ -1,74 +1,141 @@
 from __future__ import annotations
 
-from datetime import datetime
+import hashlib
+import json
+import re
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from database import SessionLocal
-from ratsarchive_models import CouncilMeeting
-from ratsarchive_service import add_archive_document, create_archive_meeting
+from ratsarchive_models import CouncilDocument, CouncilMeeting
+from ratsarchive_service import add_archive_document, create_archive_meeting, update_archive_meeting
 
 
 BASE_DIR = Path(__file__).resolve().parent
 SEED_DIR = BASE_DIR / "static" / "ratsarchive-seed"
+MANIFEST_PATH = SEED_DIR / "manifest.json"
+PROTOCOL_KIND = "Niederschrift / Protokoll"
+SESSION_RE = re.compile(r"\b(\d+)\.\s*Sitzung\b", re.I)
 
-OFFICIAL_PROTOCOLS = (
-    {
-        "date": "2026-05-05",
-        "time": "19:30",
-        "title": "Öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen",
-        "organization": "Gemeinderat Ahnsen",
-        "location": "Dorfgemeinschaftshaus Ahnsen, 31708 Ahnsen, Versammlungsraum",
-        "summary": "Amtliche öffentliche Niederschrift der 18. Sitzung des Gemeinderates Ahnsen vom 05.05.2026 (19:30 bis 20:40 Uhr). Original-PDF aus dem Ratsinformationssystem der Samtgemeinde Eilsen, dort am 04.06.2026 exportiert und unverändert als lokale Archivkopie bereitgestellt.",
-        "source_page": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZS0b_zYl2QMJ3h4RM5bBmzA",
-        "source_pdf": "https://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf",
-        "filename": "2026-05-05_oeffentliche_niederschrift_gemeinderat_ahnsen.pdf",
-    },
-    {
-        "date": "2023-03-02",
-        "title": "Protokoll über die 6. Sitzung des Gemeinderates der Gemeinde Ahnsen",
-        "organization": "Gemeinderat Ahnsen",
-        "location": "Dorfgemeinschaftshaus Ahnsen",
-        "summary": "Originalprotokoll aus dem öffentlich zugänglichen Protokollarchiv der Gemeinde Ahnsen.",
-        "source_page": "https://www.ahnsen-schaumburg.de/gemeinde/protokolle/",
-        "source_pdf": "https://www.ahnsen-schaumburg.de/assets/downloads/2023/Protokoll%206ste%2002-03-23.pdf",
-        "filename": "2023-03-02_protokoll_6_sitzung.pdf",
-    },
-    {
-        "date": "2022-11-23",
-        "title": "Protokoll über die 5. Sitzung des Gemeinderates der Gemeinde Ahnsen",
-        "organization": "Gemeinderat Ahnsen",
-        "location": "Dorfgemeinschaftshaus Ahnsen",
-        "summary": "Originalprotokoll aus dem öffentlich zugänglichen Protokollarchiv der Gemeinde Ahnsen.",
-        "source_page": "https://www.ahnsen-schaumburg.de/gemeinde/protokolle/",
-        "source_pdf": "https://www.ahnsen-schaumburg.de/assets/downloads/w7e6610121d0a0005415f9d2662eb225/Protokoll%2023.11.2022.pdf",
-        "filename": "2022-11-23_protokoll_5_sitzung.pdf",
-    },
-)
+
+def _load_manifest() -> list[dict]:
+    if not MANIFEST_PATH.exists():
+        return []
+    try:
+        payload = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    meetings = payload.get("meetings") if isinstance(payload, dict) else None
+    if not isinstance(meetings, list):
+        return []
+    result = []
+    for item in meetings:
+        if not isinstance(item, dict) or not item.get("date"):
+            continue
+        if str(item.get("organization") or "Gemeinderat Ahnsen").strip() != "Gemeinderat Ahnsen":
+            continue
+        result.append(item)
+    return result
+
+
+def _meeting_datetime(seed: dict) -> datetime:
+    raw = str(seed["date"]).strip()
+    clock = str(seed.get("time") or "").strip()
+    return datetime.fromisoformat(raw + ("T" + clock if clock else ""))
+
+
+def _session_number(value: str) -> int | None:
+    match = SESSION_RE.search(str(value or ""))
+    return int(match.group(1)) if match else None
 
 
 def _existing_meeting_id(seed: dict) -> int | None:
-    meeting_date = datetime.fromisoformat(seed["date"] + ("T" + seed["time"] if seed.get("time") else ""))
+    target = _meeting_datetime(seed)
+    start = datetime(target.year, target.month, target.day)
+    end = start + timedelta(days=1)
+    wanted_session = int(seed.get("session_number") or 0) or _session_number(seed.get("title", ""))
+
     db = SessionLocal()
     try:
-        item = (
+        candidates = (
             db.query(CouncilMeeting)
-            .filter(CouncilMeeting.meeting_date == meeting_date)
-            .filter(CouncilMeeting.title == seed["title"])
-            .first()
+            .filter(CouncilMeeting.organization == "Gemeinderat Ahnsen")
+            .filter(CouncilMeeting.meeting_date >= start)
+            .filter(CouncilMeeting.meeting_date < end)
+            .order_by(CouncilMeeting.id.asc())
+            .all()
         )
-        return int(item.id) if item else None
+        if not candidates:
+            return None
+        if wanted_session:
+            for item in candidates:
+                if _session_number(item.title) == wanted_session:
+                    return int(item.id)
+        return int(candidates[0].id)
     finally:
         db.close()
 
 
+def _reconcile_protocol_document(meeting_id: int, seed: dict, pdf_path: Path) -> tuple[int, bool, int]:
+    data = pdf_path.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    deleted = 0
+
+    db = SessionLocal()
+    try:
+        existing_docs = (
+            db.query(CouncilDocument)
+            .filter(CouncilDocument.meeting_id == meeting_id)
+            .filter(CouncilDocument.kind == PROTOCOL_KIND)
+            .order_by(CouncilDocument.id.asc())
+            .all()
+        )
+        exact = next((doc for doc in existing_docs if doc.sha256 == digest), None)
+        if exact is not None:
+            exact.title = str(seed["title"])[:300]
+            exact.filename = str(seed["filename"])[:260]
+            exact.source_url = str(seed.get("source_pdf") or "")[:1000]
+            exact.size_bytes = len(data)
+            exact.published = True
+            exact.updated_at = datetime.utcnow()
+            for doc in existing_docs:
+                if doc.id == exact.id:
+                    continue
+                db.delete(doc)
+                deleted += 1
+            db.commit()
+            return int(exact.id), False, deleted
+
+        for doc in existing_docs:
+            db.delete(doc)
+            deleted += 1
+        db.commit()
+    finally:
+        db.close()
+
+    document_id, created = add_archive_document(
+        meeting_id,
+        kind=PROTOCOL_KIND,
+        title=seed["title"],
+        filename=seed["filename"],
+        data=data,
+        source_url=seed.get("source_pdf", ""),
+        published=True,
+    )
+    return document_id, created, deleted
+
+
 def seed_official_ratsarchive() -> dict:
-    """Import the bundled, publicly released Ahnsen protocol PDFs exactly once."""
-    result = {"meetings_created": 0, "documents_created": 0, "missing_files": [], "errors": []}
-    for seed in OFFICIAL_PROTOCOLS:
-        pdf_path = SEED_DIR / seed["filename"]
-        if not pdf_path.exists():
-            result["missing_files"].append(seed["filename"])
-            continue
+    """Reconcile the official SD.NET session manifest with the persistent local archive."""
+    result = {
+        "meetings_created": 0,
+        "meetings_updated": 0,
+        "documents_created": 0,
+        "duplicates_removed": 0,
+        "missing_files": [],
+        "errors": [],
+    }
+    for seed in _load_manifest():
         try:
             meeting_id = _existing_meeting_id(seed)
             if meeting_id is None:
@@ -76,24 +143,43 @@ def seed_official_ratsarchive() -> dict:
                     date_text=seed["date"],
                     time_text=seed.get("time", ""),
                     title=seed["title"],
-                    organization=seed["organization"],
-                    location=seed["location"],
-                    summary=seed["summary"],
-                    source_url=seed["source_page"],
+                    organization="Gemeinderat Ahnsen",
+                    location=seed.get("location", ""),
+                    summary=seed.get("summary", ""),
+                    source_url=seed.get("source_page", ""),
                     published=True,
                 )
                 result["meetings_created"] += 1
-            _document_id, created = add_archive_document(
-                meeting_id,
-                kind="Niederschrift / Protokoll",
-                title=seed["title"],
-                filename=seed["filename"],
-                data=pdf_path.read_bytes(),
-                source_url=seed["source_pdf"],
-                published=True,
-            )
+            else:
+                update_archive_meeting(
+                    meeting_id,
+                    date_text=seed["date"],
+                    time_text=seed.get("time", ""),
+                    title=seed["title"],
+                    organization="Gemeinderat Ahnsen",
+                    location=seed.get("location", ""),
+                    summary=seed.get("summary", ""),
+                    source_url=seed.get("source_page", ""),
+                    published=True,
+                )
+                result["meetings_updated"] += 1
+
+            filename = str(seed.get("filename") or "").strip()
+            if not filename:
+                # The public RIS can mark an older meeting as "Niederschrift"
+                # without exposing the minutes as a separate public PDF. Keep
+                # any already archived legacy document, but never invent one.
+                continue
+
+            pdf_path = SEED_DIR / filename
+            if not pdf_path.exists():
+                result["missing_files"].append(filename)
+                continue
+
+            _document_id, created, removed = _reconcile_protocol_document(meeting_id, seed, pdf_path)
+            result["duplicates_removed"] += removed
             if created:
                 result["documents_created"] += 1
         except Exception as error:
-            result["errors"].append(f"{seed['date']}: {str(error)[:220]}")
+            result["errors"].append(f"{seed.get('date', '?')}: {str(error)[:220]}")
     return result
