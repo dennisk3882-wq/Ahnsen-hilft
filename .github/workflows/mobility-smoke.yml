@@ -32,10 +32,11 @@ jobs:
       - name: Validate routes and Stage-2 adapters
         run: |
           python - <<'PY'
-          import mobility_routes as mobility
           import pwa_main
+          import mobility_routes as mobility
 
           paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
+          print("Mobility route paths:", sorted(path for path in paths if "mobil" in path))
           assert "/mobilitaet" in paths
           assert "/api/mobilitaet" in paths
           assert getattr(pwa_main.app.state, "mobility_installed", False)
