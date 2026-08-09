@@ -1,0 +1,51 @@
+name: Temporary i18n executor
+
+on:
+  push:
+    branches:
+      - agent/i18n-white-label-complete
+
+permissions:
+  contents: write
+
+jobs:
+  execute:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/i18n-white-label-complete
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Extract and execute corrected implementation script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('.github/workflows/temp-i18n-whitelabel.yml').read_text(encoding='utf-8').splitlines()
+          start = next(i for i, line in enumerate(src) if line.strip() == '- name: Patch platform modules')
+          run_line = next(i for i in range(start + 1, len(src)) if src[i].strip() == 'run: |')
+          end = next(i for i in range(run_line + 1, len(src)) if src[i].startswith('      - name: Validate JavaScript syntax'))
+          body = '\n'.join(line[10:] if line.startswith('          ') else line for line in src[run_line + 1:end]) + '\n'
+          body = body.replace('(\"AHN-\", f\"{cfg[\\\"ticket_prefix\\\"]}-\"),', '(\"AHN-\", str(cfg[\"ticket_prefix\"]) + \"-\"),')
+          Path('/tmp/i18n-implementation.sh').write_text(body, encoding='utf-8')
+          PY
+          bash -euxo pipefail /tmp/i18n-implementation.sh
+      - name: Validate JavaScript and key modules
+        run: |
+          node --check static/community.js
+          python -m py_compile platform_runtime.py translation_service.py community_crud.py community_routes.py community_dashboard.py community_search.py community_ui.py intern_ui.py warning_service.py pwa_ui.py pwa_core.py
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gemeinde_crud.py community_crud.py platform_runtime.py translation_service.py pwa_ui.py community_ui.py community_search.py community_routes.py community_dashboard.py intern_ui.py warning_service.py pwa_core.py static/community.js
+          if git diff --cached --quiet; then
+            echo "No implementation changes"
+            exit 0
+          fi
+          git commit -m "Mehrsprachigkeit und White-Label vollständig ausbauen"
+          git push origin HEAD:agent/i18n-white-label-complete
