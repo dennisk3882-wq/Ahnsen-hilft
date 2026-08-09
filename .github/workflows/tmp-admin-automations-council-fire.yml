@@ -1,0 +1,78 @@
+name: Temporary validate admin automations council fire
+on:
+  push:
+    branches: [agent/admin-automations-council-fire]
+permissions:
+  contents: write
+jobs:
+  validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:////tmp/ahnsen-feature-test.db
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/admin-automations-council-fire
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch anwenden
+        run: python scripts/tmp_apply_admin_council_fire.py
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt
+      - name: Python kompilieren
+        run: python -m py_compile council_members.py automation_status.py community_ui.py pwa_ui.py pwa_core.py system_dashboard.py
+      - name: Funktionen gezielt prüfen
+        run: |
+          python - <<'PY'
+          from council_members import get_current_council_members
+          from community_ui import politics_page
+          from pwa_ui import home_page, info_page
+          from system_dashboard import system_dashboard_page
+          import automation_status
+
+          council = get_current_council_members()
+          assert len(council['members']) == 11
+          names = {x['name'] for x in council['members']}
+          assert {'Pierre Pohl','Rüdiger Piel','Anne Warnke','Kerstin Zuschlag'}.issubset(names)
+          assert all(x['residence'] == 'Ahnsen' for x in council['members'])
+          assert not any('straße' in x['residence'].lower() or 'str.' in x['residence'].lower() for x in council['members'])
+
+          ratsinfo = {'mode':'local','available':True,'meetings':[],'years':[2026,2025,2024,2023,2022,2021], 'meeting_count_all':18}
+          html = politics_page([], ratsinfo).body.decode('utf-8')
+          assert 'Aktueller Gemeinderat' in html and '11 Mitglieder' in html
+          assert 'Rüdiger Piel' in html and '39 (Stand 04/2026)' in html
+          assert 'In der Flöte 38' not in html and 'Bückeburger Str.' not in html
+
+          home = home_page({'einstellungen':{},'veranstaltungen':[],'muelltermine':[],'warnungen':[]}).body.decode('utf-8')
+          assert 'href="/feuerwehr"' not in home
+          assert 'Vereine & Gruppen' in home
+          clubs = info_page('vereine', {'vereine':'TSV Ahnsen|Sport und Gemeinschaft'}).body.decode('utf-8')
+          assert 'Freiwillige Feuerwehr Ahnsen' in clubs and 'href="/feuerwehr"' in clubs
+
+          automation_status._github_runs = lambda: [{
+              'status':'completed','conclusion':'success','updated_at':'2026-08-09T16:00:00Z',
+              'html_url':'https://github.com/example/run'
+          }]
+          status = automation_status._ratsarchive_status()
+          assert status['status'] == 'ok'
+          assert status['meeting_count'] == 18 and status['pdf_count'] == 4
+          report = {
+              'summary': {'total':1,'ok':1,'warn':0,'error':0}, 'overall':'ok', 'metrics':{},
+              'checks':[], 'duration_ms':1, 'generated_at':None, 'deep':False
+          }
+          system_html = system_dashboard_page(report, [], [status]).body.decode('utf-8')
+          assert 'Systemstatus & Automationen' in system_html
+          assert 'Ratsarchiv · SD.NET' in system_html
+          assert '18 / 4' in system_html
+          print('Feature checks OK')
+          PY
+      - name: Geänderte Dateien committen
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f scripts/tmp_apply_admin_council_fire.py
+          git add community_ui.py pwa_ui.py pwa_core.py system_dashboard.py scripts/tmp_apply_admin_council_fire.py
+          git commit -m 'Admin-Automationen Ratsmitglieder und Feuerwehr integrieren' || true
+          git push origin HEAD:agent/admin-automations-council-fire
