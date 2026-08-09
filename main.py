@@ -189,6 +189,37 @@ def _enthaelt_suchtext(werte, suchtext):
     )
 
 
+MAX_EVENT_RECAP_IMAGE_BYTES = 6 * 1024 * 1024
+MAX_EVENT_RECAP_IMAGES_PER_UPLOAD = 12
+EVENT_RECAP_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+async def _read_event_recap_images(files):
+    result = []
+    for upload in files or []:
+        if not upload or not getattr(upload, "filename", ""):
+            continue
+        content_type = str(getattr(upload, "content_type", "") or "").lower()
+        if content_type not in EVENT_RECAP_IMAGE_TYPES:
+            raise HTTPException(status_code=400, detail="Rückblick-Fotos müssen JPG, PNG oder WEBP sein")
+        data = await upload.read()
+        if not data:
+            continue
+        if len(data) > MAX_EVENT_RECAP_IMAGE_BYTES:
+            raise HTTPException(status_code=400, detail="Ein Rückblick-Foto ist größer als 6 MB")
+        result.append((content_type, data))
+        if len(result) > MAX_EVENT_RECAP_IMAGES_PER_UPLOAD:
+            raise HTTPException(status_code=400, detail="Maximal 12 Rückblick-Fotos pro Upload")
+    return result
+
+
+def _veranstaltung_ist_kommend(event):
+    try:
+        return datetime.strptime(event.datum, "%d.%m.%Y").date() >= datetime.today().date()
+    except (TypeError, ValueError):
+        return True
+
+
 def _startseiten_daten(suche=""):
     meldungs_statistik = statistik()
     alle_meldungen = suche_meldungen()
@@ -602,13 +633,16 @@ async def neue_veranstaltung(
     kategorie: str = Form(""),
     ansprechpartner: str = Form(""),
     beschreibung: str = Form(""),
+    rueckblick_text: str = Form(""),
     bild: UploadFile | None = File(None),
+    rueckblick_bilder: list[UploadFile] | None = File(None),
     _=Depends(check_dashboard_login),
 ):
     bild_bytes = None
 
     if bild:
         bild_bytes = await bild.read()
+    recap_images = await _read_event_recap_images(rueckblick_bilder)
 
     event = save_veranstaltung(
         titel=titel,
@@ -619,8 +653,10 @@ async def neue_veranstaltung(
         beschreibung=beschreibung,
         ansprechpartner=ansprechpartner,
         bild_bytes=bild_bytes,
+        rueckblick_text=rueckblick_text,
+        rueckblick_bilder=recap_images,
     )
-    if event and event.aktiv == "Ja":
+    if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
         background_tasks.add_task(
             send_category_notification,
             "push_veranstaltungen",
@@ -644,13 +680,17 @@ async def veranstaltung_bearbeiten(
     kategorie: str = Form(""),
     ansprechpartner: str = Form(""),
     beschreibung: str = Form(""),
+    rueckblick_text: str = Form(""),
+    rueckblick_bilder_loeschen: str = Form(""),
     bild: UploadFile | None = File(None),
+    rueckblick_bilder: list[UploadFile] | None = File(None),
     _=Depends(check_dashboard_login),
 ):
     bild_bytes = None
 
     if bild and bild.filename:
         bild_bytes = await bild.read()
+    recap_images = await _read_event_recap_images(rueckblick_bilder)
 
     event = update_veranstaltung(
         veranstaltung_id=veranstaltung_id,
@@ -662,8 +702,11 @@ async def veranstaltung_bearbeiten(
         beschreibung=beschreibung,
         ansprechpartner=ansprechpartner,
         bild_bytes=bild_bytes,
+        rueckblick_text=rueckblick_text,
+        rueckblick_bilder=recap_images,
+        rueckblick_bilder_loeschen=rueckblick_bilder_loeschen == "ja",
     )
-    if event and event.aktiv == "Ja":
+    if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
         background_tasks.add_task(
             send_category_notification,
             "push_veranstaltungen",

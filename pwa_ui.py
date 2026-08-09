@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from html import escape
 from typing import Iterable
@@ -106,7 +107,7 @@ def home_page(data: dict) -> HTMLResponse:
         warn_class = " danger-warning" if highest >= 3 else " active-warning"
         warning_card = f'<a class="home-warning-monitor{warn_class}" href="/warnungen"><span class="warning-monitor-dot"></span><div><strong>⚠ Amtliche Warnung für Ahnsen</strong><small>{escape(getattr(top_warning, "title", "Warnlage prüfen"))}</small></div><span class="card-arrow">{icon("arrow")}</span></a>'
     services = [
-        ("report", "Mängel melden", "Direkt mit Foto und Standort.", "/mangel-melden"), ("calendar", "Veranstaltungen", "Was ist los in Ahnsen?", "/veranstaltungen"),
+        ("report", "Mängel melden", "Direkt mit Foto und Standort.", "/mangel-melden"), ("calendar", "Veranstaltungen", "Aktuelle und vergangene Veranstaltungen.", "/veranstaltungen"),
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
         ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
         ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-gemeinde"),
@@ -168,13 +169,48 @@ def status_page(ticket: str = "", report=None, not_found: bool = False) -> HTMLR
 
 
 def events_page(events: Iterable, past_events: Iterable = ()) -> HTMLResponse:
+    def gallery_items(event) -> list[tuple[str, str]]:
+        raw = getattr(event, "rueckblick_bilder_json", None)
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw)
+        except Exception:
+            return []
+        if not isinstance(data, list):
+            return []
+        result = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            mime = str(item.get("mime") or "image/jpeg").lower()
+            encoded = str(item.get("data") or "")
+            if mime in {"image/jpeg", "image/png", "image/webp"} and encoded:
+                result.append((mime, encoded))
+        return result[:12]
+
     def event_card(event, *, past: bool = False) -> str:
         image = f'<img class="event-image" src="data:image/jpeg;base64,{event.bild_base64}" alt="">' if getattr(event, "bild_base64", None) else ""
         past_label = ' <span class="past-event-label">Vergangen</span>' if past else ""
         card_class = "event-card past-event" if past else "event-card"
         time_meta = f'<span>🕒 {escape(event.uhrzeit)}</span>' if getattr(event, "uhrzeit", "") else ""
         place_meta = f'<span>📍 {escape(event.ort)}</span>' if getattr(event, "ort", "") else ""
-        return f'<article class="{card_class}">{image}<div class="event-body"><span class="event-date">{escape(getattr(event, "datum", "") or "Termin")}{past_label}</span><h2>{escape(getattr(event, "titel", "") or "Veranstaltung")}</h2><p>{escape(getattr(event, "beschreibung", "") or "Weitere Informationen folgen.")}</p><div class="meta-row">{time_meta}{place_meta}</div></div></article>'
+        recap_html = ""
+        if past:
+            recap = str(getattr(event, "rueckblick_text", "") or "").strip()
+            gallery = gallery_items(event)
+            recap_copy = f'<p>{escape(recap).replace(chr(10), "<br>")}</p>' if recap else ""
+            gallery_html = ""
+            if gallery:
+                images = "".join(
+                    f'<img src="data:{escape(mime)};base64,{encoded}" alt="Impression der Veranstaltung" loading="lazy">'
+                    for mime, encoded in gallery
+                )
+                gallery_html = f'<div class="past-event-gallery">{images}</div>'
+            if recap or gallery:
+                heading = "Rückblick" if recap else "Impressionen"
+                recap_html = f'<section class="event-recap"><strong>{heading}</strong>{recap_copy}{gallery_html}</section>'
+        return f'<article class="{card_class}">{image}<div class="event-body"><span class="event-date">{escape(getattr(event, "datum", "") or "Termin")}{past_label}</span><h2>{escape(getattr(event, "titel", "") or "Veranstaltung")}</h2><p>{escape(getattr(event, "beschreibung", "") or "Weitere Informationen folgen.")}</p><div class="meta-row">{time_meta}{place_meta}</div>{recap_html}</div></article>'
 
     upcoming = [event_card(event) for event in events]
     if not upcoming:
@@ -183,10 +219,10 @@ def events_page(events: Iterable, past_events: Iterable = ()) -> HTMLResponse:
     past = [event_card(event, past=True) for event in past_events]
     archive = ""
     if past:
-        archive = f'<section class="past-events-section"><div class="past-events-head"><div><span class="eyebrow">Archiv</span><h2>Vergangene Veranstaltungen</h2><p>Die zuletzt vergangenen Termine stehen zuerst.</p></div><span class="past-events-count">{len(past)} vergangen</span></div><div class="event-list past-event-list">{"".join(past)}</div></section>'
+        archive = f'<section class="past-events-section"><div class="past-events-head"><div><span class="eyebrow">Archiv</span><h2>Vergangene Veranstaltungen</h2><p>Rückblicke, Fotos und die zuletzt vergangenen Termine.</p></div><span class="past-events-count">{len(past)} vergangen</span></div><div class="event-list past-event-list">{"".join(past)}</div></section>'
 
-    styles = '<style>.past-events-section{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}.past-events-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}.past-events-head h2{margin:3px 0 4px;color:var(--forest);font-size:22px}.past-events-head p{margin:0;color:var(--muted);font-size:13px}.past-events-count{flex:0 0 auto;padding:6px 10px;border-radius:999px;background:#eef1eb;color:#67736b;font-size:11px;font-weight:850}.event-card.past-event{background:#f8faf7;border-color:#e3e8df;box-shadow:none;opacity:.88}.event-card.past-event .event-image{filter:saturate(.72) brightness(.96)}.past-event-label{display:inline-flex;margin-left:6px;padding:3px 7px;border-radius:999px;background:#e8ece6;color:#667269;font-size:10px;font-weight:850;vertical-align:middle}@media(max-width:560px){.past-events-head{align-items:flex-start}.past-events-count{margin-top:2px}}</style>'
-    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Dorfkalender</span><h1>Veranstaltungen</h1><p>Termine, Aktionen und Feste in Ahnsen.</p></section>{styles}<div class="event-list">{"".join(upcoming)}</div>{archive}'
+    styles = '<style>.past-events-section{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}.past-events-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}.past-events-head h2{margin:3px 0 4px;color:var(--forest);font-size:22px}.past-events-head p{margin:0;color:var(--muted);font-size:13px}.past-events-count{flex:0 0 auto;padding:6px 10px;border-radius:999px;background:#eef1eb;color:#67736b;font-size:11px;font-weight:850}.event-card.past-event{background:#fbfcf9;border-color:#e3e8df;box-shadow:none}.past-event-label{display:inline-flex;margin-left:6px;padding:3px 7px;border-radius:999px;background:#e8ece6;color:#667269;font-size:10px;font-weight:850;vertical-align:middle}.event-recap{margin-top:15px;padding-top:14px;border-top:1px solid #dfe6dc}.event-recap>strong{display:block;margin-bottom:6px;color:var(--forest);font-size:13px;text-transform:uppercase;letter-spacing:.05em}.event-recap>p{margin:0 0 11px;color:#526057;line-height:1.55}.past-event-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.past-event-gallery img{width:100%;aspect-ratio:1.2;object-fit:cover;border-radius:10px;background:#eef1eb}@media(max-width:560px){.past-events-head{align-items:flex-start}.past-events-count{margin-top:2px}.past-event-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>'
+    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Dorfkalender</span><h1>Veranstaltungen</h1><p>Aktuelle Termine sowie Rückblicke auf vergangene Veranstaltungen in Ahnsen.</p></section>{styles}<div class="event-list">{"".join(upcoming)}</div>{archive}'
     return page("Veranstaltungen", content, active="calendar")
 
 
