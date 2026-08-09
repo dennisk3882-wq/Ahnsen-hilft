@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 from datetime import datetime
@@ -65,7 +64,14 @@ def _split_long_text(text: str, maximum: int = 1750) -> list[str]:
     remaining = text
     while len(remaining) > maximum:
         window = remaining[:maximum]
-        cut = max(window.rfind(". "), window.rfind("! "), window.rfind("? "), window.rfind("; "), window.rfind(", "), window.rfind(" "))
+        cut = max(
+            window.rfind(". "),
+            window.rfind("! "),
+            window.rfind("? "),
+            window.rfind("; "),
+            window.rfind(", "),
+            window.rfind(" "),
+        )
         if cut < maximum // 3:
             cut = maximum
         else:
@@ -133,21 +139,33 @@ def _post_translate(url: str, texts: list[str], source: str, target: str) -> lis
         "target": target,
         "format": "text",
         "alternatives": 0,
-        "api_key": "",
     }
+    api_key = os.getenv("TRANSLATION_API_KEY", "").strip()
+    if api_key:
+        payload["api_key"] = api_key
+
     response = requests.post(
         url,
         json=payload,
-        headers={"Accept": "application/json", "User-Agent": "municipal-pwa-translation/1.0"},
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "municipal-pwa-translation/1.1",
+        },
         timeout=max(4, min(int(os.getenv("TRANSLATION_TIMEOUT", "14") or "14"), 30)),
     )
     response.raise_for_status()
     data = response.json()
     translated = data.get("translatedText") if isinstance(data, dict) else None
     if isinstance(translated, str):
+        if len(texts) != 1:
+            raise RuntimeError("Übersetzungsdienst lieferte für einen Batch nur einen Text zurück.")
         return [translated]
     if isinstance(translated, list):
-        return [str(item or "") for item in translated]
+        values = [str(item or "") for item in translated]
+        if len(values) != len(texts):
+            raise RuntimeError("Übersetzungsdienst lieferte eine unvollständige Batch-Antwort.")
+        return values
     raise RuntimeError("Übersetzungsdienst lieferte keine translatedText-Antwort.")
 
 
@@ -158,12 +176,56 @@ def _provider_label(url: str) -> str:
         return "LibreTranslate"
 
 
-def translate_texts(texts: Iterable[object], target: str, source: str = "auto") -> dict:
-    """Translate visible text segments with a free LibreTranslate-compatible API.
+def _translation_batches(indexes: list[int], original: list[str], *, max_items: int = 18, max_chars: int = 11000):
+    """Create conservative LibreTranslate batches without splitting DOM segments."""
+    batch: list[int] = []
+    chars = 0
+    for index in indexes:
+        text = original[index]
+        if len(text) > 1750:
+            if batch:
+                yield batch
+                batch = []
+                chars = 0
+            yield [index]
+            continue
+        if batch and (len(batch) >= max_items or chars + len(text) > max_chars):
+            yield batch
+            batch = []
+            chars = 0
+        batch.append(index)
+        chars += len(text)
+    if batch:
+        yield batch
 
-    Results are persisted in a local cache. If all external providers are
-    temporarily unavailable, the original text is returned with degraded=True
-    instead of breaking the citizen app.
+
+def _translate_batch_with_provider(
+    url: str,
+    indexes: list[int],
+    original: list[str],
+    source: str,
+    target: str,
+) -> dict[int, str]:
+    """Translate one logical batch, splitting only exceptionally long segments."""
+    if len(indexes) == 1 and len(original[indexes[0]]) > 1750:
+        index = indexes[0]
+        pieces = _split_long_text(original[index])
+        translated_pieces: list[str] = []
+        for piece in pieces:
+            translated_pieces.extend(_post_translate(url, [piece], source, target))
+        return {index: "".join(translated_pieces)}
+
+    texts = [original[index] for index in indexes]
+    translated = _post_translate(url, texts, source, target)
+    return {index: translated[position] for position, index in enumerate(indexes)}
+
+
+def translate_texts(texts: Iterable[object], target: str, source: str = "auto") -> dict:
+    """Translate visible text segments with LibreTranslate-compatible providers.
+
+    Results are persisted in a local cache. Missing segments are sent as real
+    batches instead of one HTTP request per DOM text node. This is substantially
+    faster and avoids unnecessarily exhausting public-provider rate limits.
     """
     init_translation_db()
     cfg = get_platform_snapshot()
@@ -198,40 +260,40 @@ def translate_texts(texts: Iterable[object], target: str, source: str = "auto") 
         else:
             missing.append(index)
 
-    provider_used = "cache" if missing == [] else ""
-    degraded = False
+    provider_used = "cache" if not missing else ""
     errors: list[str] = []
+    pending = list(missing)
 
-    for index in missing:
-        text = original[index]
-        pieces = _split_long_text(text)
-        translated_pieces: list[str] = []
-        success = False
-        for url in _provider_urls():
+    # Try each configured provider only for segments that the previous provider
+    # could not translate. One failing batch therefore does not discard already
+    # successful translations.
+    for url in _provider_urls():
+        if not pending:
+            break
+        label = _provider_label(url)
+        next_pending: list[int] = []
+        for indexes in _translation_batches(pending, original):
             try:
-                translated_pieces = []
-                # Public free instances frequently impose conservative character
-                # limits, therefore long DOM text is translated in safe chunks.
-                for piece in pieces:
-                    translated_pieces.extend(_post_translate(url, [piece], source, target))
-                translated = "".join(translated_pieces)
-                result[index] = translated
-                provider_used = _provider_label(url)
-                _cache_put(source, target, text, translated, provider_used)
-                success = True
-                break
+                values = _translate_batch_with_provider(url, indexes, original, source, target)
+                for index, translated in values.items():
+                    result[index] = translated
+                    _cache_put(source, target, original[index], translated, label)
+                provider_used = label
             except Exception as error:
-                errors.append(f"{_provider_label(url)}: {type(error).__name__}: {str(error)[:160]}")
-        if not success:
-            result[index] = text
-            degraded = True
+                next_pending.extend(indexes)
+                errors.append(f"{label}: {type(error).__name__}: {str(error)[:160]}")
+        pending = next_pending
+
+    for index in pending:
+        result[index] = original[index]
 
     return {
         "translations": [str(item if item is not None else original[i]) for i, item in enumerate(result)],
         "provider": provider_used or "nicht erreichbar",
-        "degraded": degraded,
+        "degraded": bool(pending),
         "cached": cached_count,
-        "errors": errors[-4:],
+        "failed": len(pending),
+        "errors": errors[-6:],
     }
 
 
@@ -242,7 +304,11 @@ def provider_status() -> dict:
     for url in urls:
         base = url.rsplit("/translate", 1)[0]
         try:
-            response = requests.get(base + "/languages", timeout=6, headers={"User-Agent": "municipal-pwa-translation/1.0"})
+            response = requests.get(
+                base + "/languages",
+                timeout=6,
+                headers={"User-Agent": "municipal-pwa-translation/1.1"},
+            )
             response.raise_for_status()
             data = response.json()
             codes = [str(item.get("code") or "") for item in data if isinstance(item, dict)] if isinstance(data, list) else []
