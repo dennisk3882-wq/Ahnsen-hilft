@@ -292,6 +292,65 @@ if (typeof document !== 'undefined') {
       if (!button || !status || button.dataset.addressLookupReady === '1') return;
       button.dataset.addressLookupReady = '1';
 
+      const errorMessage = error => {
+        if (error && error.code === 1) {
+          return 'Standortzugriff ist blockiert. Bitte in den Website-/App-Berechtigungen „Standort“ auf Zulassen stellen und erneut versuchen.';
+        }
+        if (error && error.code === 3) {
+          return 'Die Standortermittlung hat zu lange gedauert. Bitte Standortdienste einschalten, kurz warten und erneut versuchen.';
+        }
+        return 'Der Standort ist gerade nicht verfügbar. Bitte Standortdienste prüfen oder den Ort manuell eintragen.';
+      };
+
+      const applyPosition = async position => {
+        const latValue = position.coords.latitude.toFixed(6);
+        const lonValue = position.coords.longitude.toFixed(6);
+        const latitude = document.getElementById('latitude');
+        const longitude = document.getElementById('longitude');
+        const locationInput = document.querySelector('input[name="ort"]');
+
+        if (latitude) latitude.value = latValue;
+        if (longitude) longitude.value = lonValue;
+        status.textContent = 'Adresse wird aus dem Standort ermittelt …';
+
+        try {
+          const response = await fetch(
+            `/api/location/address?lat=${encodeURIComponent(latValue)}&lon=${encodeURIComponent(lonValue)}`,
+            { credentials: 'same-origin', cache: 'no-store' }
+          );
+          if (!response.ok) throw new Error('Adresse nicht verfügbar');
+          const data = await response.json();
+          if (!data.address || !locationInput) throw new Error('Adresse nicht verfügbar');
+
+          locationInput.value = data.address;
+          locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+          locationInput.dispatchEvent(new Event('change', { bubbles: true }));
+          status.innerHTML = 'Adresse automatisch erkannt · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap-Mitwirkende</a>';
+        } catch (_error) {
+          status.textContent = 'GPS wurde gespeichert. Die Adresse konnte nicht automatisch erkannt werden – bitte den Ort kurz ergänzen.';
+        } finally {
+          button.disabled = false;
+        }
+      };
+
+      const fallbackPosition = firstError => {
+        if (firstError && firstError.code === 1) {
+          status.textContent = errorMessage(firstError);
+          button.disabled = false;
+          return;
+        }
+
+        status.textContent = 'Präziser GPS-Fix dauert länger – Standort wird alternativ ermittelt …';
+        navigator.geolocation.getCurrentPosition(
+          applyPosition,
+          fallbackError => {
+            status.textContent = errorMessage(fallbackError || firstError);
+            button.disabled = false;
+          },
+          { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
+        );
+      };
+
       button.addEventListener('click', event => {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -302,44 +361,12 @@ if (typeof document !== 'undefined') {
         }
 
         button.disabled = true;
-        status.textContent = 'Standort wird ermittelt …';
+        status.textContent = 'Standort wird präzise ermittelt …';
 
         navigator.geolocation.getCurrentPosition(
-          async position => {
-            const latValue = position.coords.latitude.toFixed(6);
-            const lonValue = position.coords.longitude.toFixed(6);
-            const latitude = document.getElementById('latitude');
-            const longitude = document.getElementById('longitude');
-            const locationInput = document.querySelector('input[name="ort"]');
-
-            if (latitude) latitude.value = latValue;
-            if (longitude) longitude.value = lonValue;
-            status.textContent = 'Adresse wird aus dem Standort ermittelt …';
-
-            try {
-              const response = await fetch(
-                `/api/location/address?lat=${encodeURIComponent(latValue)}&lon=${encodeURIComponent(lonValue)}`,
-                { credentials: 'same-origin' }
-              );
-              if (!response.ok) throw new Error('Adresse nicht verfügbar');
-              const data = await response.json();
-              if (!data.address || !locationInput) throw new Error('Adresse nicht verfügbar');
-
-              locationInput.value = data.address;
-              locationInput.dispatchEvent(new Event('input', { bubbles: true }));
-              locationInput.dispatchEvent(new Event('change', { bubbles: true }));
-              status.innerHTML = 'Adresse automatisch erkannt · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap-Mitwirkende</a>';
-            } catch (_error) {
-              status.textContent = 'GPS wurde gespeichert. Die Adresse konnte nicht automatisch erkannt werden – bitte den Ort kurz ergänzen.';
-            } finally {
-              button.disabled = false;
-            }
-          },
-          () => {
-            status.textContent = 'Standort konnte nicht übernommen werden. Bitte Standortfreigabe prüfen oder den Ort manuell eintragen.';
-            button.disabled = false;
-          },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+          applyPosition,
+          fallbackPosition,
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
         );
       }, true);
     };
