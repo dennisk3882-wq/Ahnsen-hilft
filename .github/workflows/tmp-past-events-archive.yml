@@ -18,7 +18,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          # 1) CRUD: add past active events, newest first.
           path = Path('veranstaltungen_crud.py')
           text = path.read_text(encoding='utf-8')
           marker = '\n\ndef get_alle_veranstaltungen():\n'
@@ -29,7 +28,6 @@ jobs:
               text = text.replace(marker, func + marker, 1)
               path.write_text(text, encoding='utf-8')
 
-          # 2) PWA route: import and pass both event lists.
           path = Path('pwa_core.py')
           text = path.read_text(encoding='utf-8')
           old_import = 'from veranstaltungen_crud import get_aktive_veranstaltungen, init_veranstaltungen_db'
@@ -46,12 +44,30 @@ jobs:
               raise SystemExit('PWA events route marker not found')
           path.write_text(text, encoding='utf-8')
 
-          # 3) UI: upcoming first, archive below.
           path = Path('pwa_ui.py')
           text = path.read_text(encoding='utf-8')
           start = text.index('def events_page(')
           end = text.index('\n\ndef dgh_page', start)
-          new_func = '''def events_page(events: Iterable, past_events: Iterable = ()) -> HTMLResponse:\n    def event_card(event, *, past: bool = False) -> str:\n        image = f'<img class="event-image" src="data:image/jpeg;base64,{event.bild_base64}" alt="">' if getattr(event, "bild_base64", None) else ""\n        past_label = ' <span class="past-event-label">Vergangen</span>' if past else ""\n        card_class = "event-card past-event" if past else "event-card"\n        return f'<article class="{card_class}">{image}<div class="event-body"><span class="event-date">{escape(getattr(event, "datum", "") or "Termin")}{past_label}</span><h2>{escape(getattr(event, "titel", "") or "Veranstaltung")}</h2><p>{escape(getattr(event, "beschreibung", "") or "Weitere Informationen folgen.")}</p><div class="meta-row">{f"<span>🕒 {escape(event.uhrzeit)}</span>" if getattr(event, "uhrzeit", "") else ""}{f"<span>📍 {escape(event.ort)}</span>" if getattr(event, "ort", "") else ""}</div></div></article>'\n\n    upcoming = [event_card(event) for event in events]\n    if not upcoming:\n        upcoming.append('<section class="empty-state"><span>📅</span><h2>Keine kommenden Termine</h2><p>Sobald neue Veranstaltungen eingetragen sind, erscheinen sie hier.</p></section>')\n\n    past = [event_card(event, past=True) for event in past_events]\n    archive = ""\n    if past:\n        archive = f'''<section class="past-events-section"><div class="past-events-head"><div><span class="eyebrow">Archiv</span><h2>Vergangene Veranstaltungen</h2><p>Die zuletzt vergangenen Termine stehen zuerst.</p></div><span class="past-events-count">{len(past)} vergangen</span></div><div class="event-list past-event-list">{"".join(past)}</div></section>'''\n\n    styles = '''<style>.past-events-section{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}.past-events-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}.past-events-head h2{margin:3px 0 4px;color:var(--forest);font-size:22px}.past-events-head p{margin:0;color:var(--muted);font-size:13px}.past-events-count{flex:0 0 auto;padding:6px 10px;border-radius:999px;background:#eef1eb;color:#67736b;font-size:11px;font-weight:850}.event-card.past-event{background:#f8faf7;border-color:#e3e8df;box-shadow:none;opacity:.88}.event-card.past-event .event-image{filter:saturate(.72) brightness(.96)}.past-event-label{display:inline-flex;margin-left:6px;padding:3px 7px;border-radius:999px;background:#e8ece6;color:#667269;font-size:10px;font-weight:850;vertical-align:middle}@media(max-width:560px){.past-events-head{align-items:flex-start}.past-events-count{margin-top:2px}}</style>'''\n    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Dorfkalender</span><h1>Veranstaltungen</h1><p>Termine, Aktionen und Feste in Ahnsen.</p></section>{styles}<div class="event-list">{"".join(upcoming)}</div>{archive}'\n    return page("Veranstaltungen", content, active="calendar")\n'''
+          new_func = """def events_page(events: Iterable, past_events: Iterable = ()) -> HTMLResponse:
+    def event_card(event, *, past: bool = False) -> str:
+        image = f'<img class="event-image" src="data:image/jpeg;base64,{event.bild_base64}" alt="">' if getattr(event, "bild_base64", None) else ""
+        past_label = ' <span class="past-event-label">Vergangen</span>' if past else ""
+        card_class = "event-card past-event" if past else "event-card"
+        return f'<article class="{card_class}">{image}<div class="event-body"><span class="event-date">{escape(getattr(event, "datum", "") or "Termin")}{past_label}</span><h2>{escape(getattr(event, "titel", "") or "Veranstaltung")}</h2><p>{escape(getattr(event, "beschreibung", "") or "Weitere Informationen folgen.")}</p><div class="meta-row">{f"<span>🕒 {escape(event.uhrzeit)}</span>" if getattr(event, "uhrzeit", "") else ""}{f"<span>📍 {escape(event.ort)}</span>" if getattr(event, "ort", "") else ""}</div></div></article>'
+
+    upcoming = [event_card(event) for event in events]
+    if not upcoming:
+        upcoming.append('<section class="empty-state"><span>📅</span><h2>Keine kommenden Termine</h2><p>Sobald neue Veranstaltungen eingetragen sind, erscheinen sie hier.</p></section>')
+
+    past = [event_card(event, past=True) for event in past_events]
+    archive = ""
+    if past:
+        archive = f'<section class="past-events-section"><div class="past-events-head"><div><span class="eyebrow">Archiv</span><h2>Vergangene Veranstaltungen</h2><p>Die zuletzt vergangenen Termine stehen zuerst.</p></div><span class="past-events-count">{len(past)} vergangen</span></div><div class="event-list past-event-list">{"".join(past)}</div></section>'
+
+    styles = '<style>.past-events-section{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}.past-events-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}.past-events-head h2{margin:3px 0 4px;color:var(--forest);font-size:22px}.past-events-head p{margin:0;color:var(--muted);font-size:13px}.past-events-count{flex:0 0 auto;padding:6px 10px;border-radius:999px;background:#eef1eb;color:#67736b;font-size:11px;font-weight:850}.event-card.past-event{background:#f8faf7;border-color:#e3e8df;box-shadow:none;opacity:.88}.event-card.past-event .event-image{filter:saturate(.72) brightness(.96)}.past-event-label{display:inline-flex;margin-left:6px;padding:3px 7px;border-radius:999px;background:#e8ece6;color:#667269;font-size:10px;font-weight:850;vertical-align:middle}@media(max-width:560px){.past-events-head{align-items:flex-start}.past-events-count{margin-top:2px}}</style>'
+    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Dorfkalender</span><h1>Veranstaltungen</h1><p>Termine, Aktionen und Feste in Ahnsen.</p></section>{styles}<div class="event-list">{"".join(upcoming)}</div>{archive}'
+    return page("Veranstaltungen", content, active="calendar")
+"""
           text = text[:start] + new_func + text[end:]
           path.write_text(text, encoding='utf-8')
           PY
