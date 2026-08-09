@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import time
@@ -76,6 +77,8 @@ from warning_dashboard import warning_dashboard_page
 from warning_ui import warning_page
 from community_crud import audit_event, init_community_db, save_preference
 from community_routes import configure_community_routes, router as community_router
+from platform_runtime import get_platform_snapshot
+from translation_service import init_translation_db
 from warning_service import (
     get_active_warnings,
     get_recent_warnings,
@@ -126,6 +129,7 @@ def startup() -> None:
     init_system_diagnostics_db()
     init_warning_db()
     init_community_db()
+    init_translation_db()
     start_warning_monitor()
 
 
@@ -164,7 +168,8 @@ def _rate_limit(store, request: Request, maximum: int) -> None:
 
 
 def _new_ticket() -> str:
-    return f"AHN-{time.strftime('%Y%m%d')}-{uuid4().hex[:10].upper()}"
+    prefix = get_platform_snapshot().get("ticket_prefix") or "TKT"
+    return f"{prefix}-{time.strftime('%Y%m%d')}-{uuid4().hex[:10].upper()}"
 
 
 def _trim(value, max_length: int) -> str:
@@ -600,9 +605,14 @@ async def pwa_citizen_info():
     return info_page("buergerinformationen", get_gemeinde_einstellungen())
 
 
-@app.get("/ueber-ahnsen")
+@app.get("/ueber-gemeinde")
 async def pwa_about():
-    return info_page("ueber-ahnsen", get_gemeinde_einstellungen())
+    return info_page("ueber-gemeinde", get_gemeinde_einstellungen())
+
+
+@app.get("/ueber-ahnsen")
+async def pwa_about_legacy():
+    return RedirectResponse(url="/ueber-gemeinde", status_code=301)
 
 
 @app.get("/mehr")
@@ -853,7 +863,7 @@ async def admin_system_test_push(request: Request):
         return RedirectResponse(url="/intern/system?fehler=Ungültiges%20Push-Zielkonto.", status_code=303)
     sent = send_user_notification(
         user.id,
-        "Ahnsen hilft – Test-Push",
+        f"{get_platform_snapshot()['platform_name']} – Test-Push",
         "Systemtest erfolgreich: Push-Nachrichten erreichen dieses Gerät.",
         "/profil",
         f"system-test-{int(time.time())}",
@@ -954,19 +964,20 @@ async def pwa_icon(size: int):
 
 @app.get("/manifest.webmanifest")
 async def manifest():
+    cfg = get_platform_snapshot()
     return JSONResponse(
         {
             "id": "/",
-            "name": "Ahnsen hilft",
-            "short_name": "Ahnsen",
-            "description": "Digitale Bürgerplattform der Gemeinde Ahnsen",
-            "lang": "de-DE",
+            "name": cfg["platform_name"],
+            "short_name": cfg["short_name"],
+            "description": cfg["description"],
+            "lang": cfg["default_language"],
             "start_url": "/",
             "scope": "/",
             "display": "standalone",
             "orientation": "portrait-primary",
             "background_color": "#fbf8f0",
-            "theme_color": "#174936",
+            "theme_color": cfg["primary_color"],
             "categories": ["government", "utilities", "social"],
             "icons": [
                 {"src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
@@ -985,56 +996,55 @@ async def manifest():
 
 @app.get("/service-worker.js")
 async def service_worker():
-    script = """
-const CACHE = 'ahnsen-hilft-pwa-v3';
-const CORE = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=1', '/warning.css?v=1', '/pwa.js?v=1', '/community.js?v=1', '/pwa/icon-192.png', '/assets/ahnsen-startseite.png'];
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
-});
-self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim()));
-});
-self.addEventListener('fetch', event => {
+    cfg = get_platform_snapshot()
+    default_payload = json.dumps({"title": cfg["platform_name"], "body": "Es gibt eine neue Information.", "url": "/profil", "tag": "citizen-platform"}, ensure_ascii=False)
+    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=2', '/warning.css?v=1', '/pwa.js?v=1', '/community.js?v=2', '/pwa/icon-192.png']
+    hero = str(cfg.get("hero_image_url") or "")
+    if hero.startswith("/"):
+        core_assets.append(hero)
+    core_json = json.dumps(list(dict.fromkeys(core_assets)), ensure_ascii=False)
+    script = f"""
+const CACHE = 'citizen-platform-pwa-v4';
+const CORE = {core_json};
+self.addEventListener('install', event => {{ event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); }});
+self.addEventListener('activate', event => {{ event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); }});
+self.addEventListener('fetch', event => {{
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  event.respondWith(fetch(event.request).then(response => {
+  event.respondWith(fetch(event.request).then(response => {{
     const copy = response.clone();
     if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, copy));
     return response;
-  }).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
-});
-self.addEventListener('push', event => {
-  let data = { title: 'Ahnsen hilft', body: 'Es gibt eine neue Information.', url: '/profil', tag: 'ahnsen-hilft' };
-  try { if (event.data) data = { ...data, ...event.data.json() }; } catch (_error) {}
-  event.waitUntil(self.registration.showNotification(data.title, {
-    body: data.body,
-    icon: data.icon || '/pwa/icon-192.png',
-    badge: data.badge || '/pwa/icon-192.png',
-    tag: data.tag,
-    data: { url: data.url || '/profil' }
-  }));
-});
-self.addEventListener('notificationclick', event => {
+  }}).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
+}});
+self.addEventListener('push', event => {{
+  let data = {default_payload};
+  try {{ if (event.data) data = {{ ...data, ...event.data.json() }}; }} catch (_error) {{}}
+  event.waitUntil(self.registration.showNotification(data.title, {{
+    body: data.body, icon: data.icon || '/pwa/icon-192.png', badge: data.badge || '/pwa/icon-192.png', tag: data.tag, data: {{ url: data.url || '/profil' }}
+  }}));
+}});
+self.addEventListener('notificationclick', event => {{
   event.notification.close();
   const target = event.notification.data && event.notification.data.url ? event.notification.data.url : '/profil';
-  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-    for (const client of list) {
-      if ('focus' in client) { client.navigate(target); return client.focus(); }
-    }
+  event.waitUntil(clients.matchAll({{ type: 'window', includeUncontrolled: true }}).then(list => {{
+    for (const client of list) {{ if ('focus' in client) {{ client.navigate(target); return client.focus(); }} }}
     return clients.openWindow ? clients.openWindow(target) : undefined;
-  }));
-});
+  }}));
+}});
 """.strip()
     return Response(script, media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
 
 
 @app.get("/health")
 async def health():
+    cfg = get_platform_snapshot()
     return {
-        "status": "Ahnsen hilft PWA läuft",
-        "version": "pwa-2-accounts-push",
-        "whatsapp": "deaktiviert",
+        "status": f"{cfg['platform_name']} PWA läuft",
+        "version": "pwa-4-i18n-whitelabel",
+        "municipality": cfg["municipality_name"],
+        "translation": "aktiv" if cfg.get("translation_enabled") else "deaktiviert",
         "accounts": "aktiv",
         "push": "konfiguriert" if push_configured() else "VAPID-Schlüssel fehlen",
     }

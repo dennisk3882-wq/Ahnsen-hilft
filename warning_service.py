@@ -24,6 +24,7 @@ from pwa_crud import (
     mark_delivery_sent,
 )
 from push_service import send_user_notification
+from platform_runtime import get_platform_snapshot
 
 
 DWD_CAP_INDEX_URL = os.getenv(
@@ -158,14 +159,15 @@ def _category_from_text(text: str, source: str) -> str:
 
 
 def _dwd_latest_zip_url(session: requests.Session) -> str:
-    response = session.get(DWD_CAP_INDEX_URL, timeout=WARNING_REQUEST_TIMEOUT)
+    index_url = os.getenv("DWD_CAP_INDEX_URL", "").strip() or get_platform_snapshot().get("dwd_cap_index_url") or DWD_CAP_INDEX_URL
+    response = session.get(index_url, timeout=WARNING_REQUEST_TIMEOUT)
     response.raise_for_status()
     candidates = re.findall(r'href=["\']([^"\']+PREMIUMDWD_COMMUNEUNION_DE\.zip)["\']', response.text, flags=re.I)
     if not candidates:
         candidates = re.findall(r'href=["\']([^"\']+_DE\.zip)["\']', response.text, flags=re.I)
     if not candidates:
         raise RuntimeError("Im DWD-Verzeichnis wurde keine deutsche CAP-ZIP-Datei gefunden.")
-    return urljoin(DWD_CAP_INDEX_URL, sorted(candidates)[-1])
+    return urljoin(index_url, sorted(candidates)[-1])
 
 
 def _cap_text(element: ET.Element, name: str) -> str:
@@ -175,7 +177,8 @@ def _cap_text(element: ET.Element, name: str) -> str:
 
 def _parse_dwd_zip(content: bytes) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
-    location_cf = WARNING_LOCATION_NAME.casefold()
+    cfg = get_platform_snapshot()
+    location_terms = [part.strip().casefold() for part in str(cfg.get("warning_terms") or cfg.get("warning_location_name") or WARNING_LOCATION_NAME).split("|") if part.strip()]
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
         for name in archive.namelist():
             if not name.lower().endswith(".xml"):
@@ -202,7 +205,8 @@ def _parse_dwd_zip(content: bytes) -> list[dict[str, Any]]:
             matched_areas = []
             for area in info.findall("{*}area"):
                 area_desc = _cap_text(area, "areaDesc")
-                if location_cf in area_desc.casefold():
+                area_cf = area_desc.casefold()
+                if any(term in area_cf for term in location_terms):
                     matched_areas.append(area_desc)
             if not matched_areas:
                 continue
@@ -273,7 +277,7 @@ def _parse_bbk_rss(content: bytes) -> list[dict[str, Any]]:
             "level": level,
             "title": title[:240] or "Amtliche Warnung des Bevölkerungsschutzes",
             "event": "Bevölkerungsschutz",
-            "area": WARNING_AREA_LABEL[:240],
+            "area": str(get_platform_snapshot().get("warning_area_label") or WARNING_AREA_LABEL)[:240],
             "description": description,
             "instruction": "Bitte beachte die amtlichen Handlungsempfehlungen in der Originalmeldung.",
             "source_url": link[:3000],
@@ -289,10 +293,11 @@ def _parse_bbk_rss(content: bytes) -> list[dict[str, Any]]:
 
 
 def fetch_bbk_warnings() -> list[dict[str, Any]]:
-    if not BBK_MOWAS_RSS_URL.startswith("https://"):
-        raise RuntimeError("BBK_MOWAS_RSS_URL muss HTTPS verwenden.")
+    feed_url = os.getenv("BBK_MOWAS_RSS_URL", "").strip() or get_platform_snapshot().get("bbk_mowas_rss_url") or BBK_MOWAS_RSS_URL
+    if not str(feed_url).startswith("https://"):
+        raise RuntimeError("BBK / MoWaS RSS-URL muss HTTPS verwenden.")
     response = requests.get(
-        BBK_MOWAS_RSS_URL,
+        feed_url,
         headers={"User-Agent": WARNING_USER_AGENT, "Accept": "application/rss+xml,application/xml,text/xml"},
         timeout=WARNING_REQUEST_TIMEOUT,
     )
@@ -358,7 +363,7 @@ def _upsert_warning(item: dict[str, Any]) -> tuple[OfficialWarning, bool, bool]:
 def _warning_push_body(warning: OfficialWarning) -> str:
     prefix = "Entwarnung" if warning.is_cancel else LEVEL_LABELS.get(warning.level, "Amtliche Warnung")
     event = warning.event or warning.title
-    area = warning.area or WARNING_AREA_LABEL
+    area = warning.area or get_platform_snapshot().get("warning_area_label") or WARNING_AREA_LABEL
     return _clean_text(f"{prefix}: {event}. Gebiet: {area}", 460)
 
 

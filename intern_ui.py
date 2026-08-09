@@ -1,4 +1,5 @@
 from html import escape
+from platform_runtime import get_platform_snapshot
 
 
 _ICONS = {
@@ -40,6 +41,7 @@ def _crest() -> str:
 
 
 def intern_nav(active=""):
+    cfg = get_platform_snapshot()
     if active == "start":
         active = "maengel"
 
@@ -54,7 +56,11 @@ def intern_nav(active=""):
         ("push", "/intern/push", "Push"),
         ("nachrichten", "/intern/nachrichten", "Nachrichten"),
         ("ideen", "/intern/ideen", "Beteiligung"),
+        ("ideen", "/intern/nachbarschaft", "Nachbarschaft"),
+        ("gemeindeseite", "/intern/politik", "Politik & Rat"),
         ("berichte", "/intern/berichte", "Berichte"),
+        ("berichte", "/intern/audit", "Audit"),
+        ("system", "/intern/plattform", "Plattform"),
         ("system", "/intern/system", "System"),
     ]
 
@@ -73,13 +79,15 @@ def intern_nav(active=""):
             f'<span>{_icon(key)}</span><small>{escape(label)}</small></a>'
         )
 
+    brand_logo = f'<span class="internal-brand-crest"><img src="{escape(cfg["logo_url"])}" alt="" style="width:100%;height:100%;object-fit:contain"></span>' if cfg.get("logo_url") else _crest()
     return f"""
+    <style>:root{{--admin-forest:{cfg['primary_color']};--admin-sage:{cfg['accent_color']};}}</style>
     <header class="internal-nav">
-        <a class="internal-brand" href="/intern/cockpit" aria-label="Ahnsen hilft Verwaltung">
-            {_crest()}
+        <a class="internal-brand" href="/intern/cockpit" aria-label="{escape(cfg['platform_name'])} Verwaltung">
+            {brand_logo}
             <span class="internal-brand-copy">
-                <span><strong>Ahnsen</strong><em>hilft</em></span>
-                <small>Verwaltungsbereich</small>
+                <span><strong>{escape(cfg['platform_name'])}</strong></span>
+                <small>Verwaltungsbereich · {escape(cfg['municipality_name'])}</small>
             </span>
         </a>
 

@@ -177,6 +177,11 @@ def apply_static_branding(text: str, snapshot: dict | None = None) -> str:
         ("Willkommen in Ahnsen", f"Willkommen in {municipality}"),
         ("Warnung für Ahnsen", f"Warnung für {municipality}"),
         ("Idee für Ahnsen", f"Idee für {municipality}"),
+        (" in Ahnsen", f" in {municipality}"),
+        (" für Ahnsen", f" für {municipality}"),
+        (" aus Ahnsen", f" aus {municipality}"),
+        (" von Ahnsen", f" von {municipality}"),
+        ("AHN-", str(cfg["ticket_prefix"]) + "-"),
     )
     result = str(text)
     for old, new in replacements:
