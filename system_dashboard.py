@@ -49,6 +49,7 @@ def _check_card(item: dict[str, Any]) -> str:
 def system_dashboard_page(
     report: dict[str, Any],
     push_targets: list[dict[str, Any]],
+    automations: list[dict[str, Any]] | None = None,
     hinweis: str = "",
     fehler: str = "",
 ) -> HTMLResponse:
@@ -60,6 +61,30 @@ def system_dashboard_page(
     overall = str(report.get("overall") or "warn")
     symbol, status_label, status_description = STATUS_META.get(overall, STATUS_META["warn"])
     metrics = report.get("metrics") or {}
+    automation_cards = []
+    for automation in automations or []:
+        automation_status = str(automation.get("status") or "warn")
+        automation_symbol, automation_label, _ = STATUS_META.get(automation_status, STATUS_META["warn"])
+        run_url = str(automation.get("run_url") or "").strip()
+        external_link = f'<a class="automation-log-link" href="{escape(run_url)}" target="_blank" rel="noopener">Technisches Laufprotokoll ↗</a>' if run_url else ""
+        if automation.get("manual_enabled"):
+            manual_action = '<form method="post" action="/intern/system/automation/ratsarchive/start" onsubmit="return confirm(\'Ratsarchiv jetzt zusätzlich synchronisieren?\')"><button type="submit">↻ Jetzt synchronisieren</button></form>'
+        else:
+            manual_action = '<button type="button" disabled title="Für einen manuellen GitHub-Start ist serverseitig GITHUB_ACTIONS_TOKEN erforderlich.">↻ Manueller Start nicht konfiguriert</button>'
+        automation_cards.append(
+            f"""<article class=\"automation-card {escape(automation_status)}\">
+              <div class=\"automation-card-head\"><div><span class=\"automation-icon\">{escape(automation_symbol)}</span><div><small>Automation</small><h3>{escape(str(automation.get('name') or 'Automatischer Dienst'))}</h3></div></div><span class=\"system-status {escape(automation_status)}\">{escape(automation_label)}</span></div>
+              <p>{escape(str(automation.get('detail') or ''))}</p>
+              <div class=\"automation-metrics\">
+                <span><small>Letzter Lauf</small><strong>{escape(str(automation.get('last_run') or '–'))}</strong></span>
+                <span><small>Letzter Erfolg</small><strong>{escape(str(automation.get('last_success') or '–'))}</strong></span>
+                <span><small>Nächster Lauf</small><strong>{escape(str(automation.get('next_run') or '–'))}</strong></span>
+                <span><small>Sitzungen / PDFs</small><strong>{int(automation.get('meeting_count') or 0)} / {int(automation.get('pdf_count') or 0)}</strong></span>
+              </div>
+              <div class=\"automation-footer\"><div><small>{escape(str(automation.get('schedule') or ''))} · neueste Sitzung {escape(str(automation.get('latest_meeting') or '–'))}</small>{external_link}</div>{manual_action}</div>
+            </article>"""
+        )
+    automation_area = "".join(automation_cards) or '<div class="system-safe-note">Noch keine überwachten Automationen registriert.</div>'
 
     groups = []
     for group_name in ("Kernsystem", "Funktionen", "Dienste", "PWA", "Sicherheit & Betrieb"):
@@ -116,7 +141,7 @@ def system_dashboard_page(
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="theme-color" content="#174936">
-      <title>System & Diagnose · Ahnsen hilft</title>
+      <title>Systemstatus & Automationen · Ahnsen hilft</title>
       <style>
         {intern_nav_css()}
         .system-hero-grid{{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center}}
@@ -154,8 +179,9 @@ def system_dashboard_page(
         .system-operating strong{{display:block;margin-top:6px;color:var(--admin-forest);font-size:14px;overflow-wrap:anywhere}}
         .system-last-test{{margin-top:13px;padding:14px;border:1px solid var(--admin-line);border-radius:16px;background:#fffefa}}
         .system-last-test strong{{display:block;margin-bottom:4px}}.system-last-test p{{margin:0;color:var(--admin-muted);line-height:1.45}}
-        @media(max-width:950px){{.system-check-grid,.system-tools{{grid-template-columns:1fr}}.system-summary{{grid-template-columns:repeat(2,minmax(0,1fr))}}.system-operating{{grid-template-columns:1fr 1fr}}}}
-        @media(max-width:620px){{.system-hero-grid{{grid-template-columns:1fr}}.system-overall{{width:108px;height:108px;justify-self:start}}.system-summary{{grid-template-columns:1fr 1fr}}.system-operating{{grid-template-columns:1fr}}.system-check{{grid-template-columns:36px minmax(0,1fr);padding:13px}}.system-check-icon{{width:36px;height:36px;border-radius:12px}}}}
+        .automation-section{{margin-bottom:20px}}.automation-grid{{display:grid;gap:12px}}.automation-card{{padding:17px;border:1px solid var(--admin-line);border-radius:19px;background:#fffefa}}.automation-card.ok{{border-color:#d4e7d7}}.automation-card.warn{{border-color:#ead9a7;background:#fffdf5}}.automation-card.error{{border-color:#efc8c3;background:#fff8f7}}.automation-card-head{{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}}.automation-card-head>div{{display:flex;align-items:center;gap:10px}}.automation-icon{{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:var(--admin-sage-soft);color:var(--admin-forest);font-weight:950}}.automation-card h3{{margin:2px 0 0;font-size:17px!important}}.automation-card-head small,.automation-metrics small,.automation-footer small{{color:var(--admin-muted);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}}.automation-card>p{{margin:11px 0;color:#5d6a62;line-height:1.45}}.automation-metrics{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}.automation-metrics span{{padding:10px;border-radius:13px;background:#f4f7f1}}.automation-metrics small,.automation-metrics strong{{display:block}}.automation-metrics strong{{margin-top:4px;color:var(--admin-forest);font-size:12px;line-height:1.35}}.automation-footer{{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:11px;padding-top:11px;border-top:1px solid #e8ede5}}.automation-footer>div{{display:grid;gap:4px}}.automation-footer form{{margin:0}}.automation-footer button{{min-height:39px;margin:0;padding:8px 12px;font-size:11px}}.automation-log-link{{font-size:10px;font-weight:850}}
+        @media(max-width:950px){{.system-check-grid,.system-tools{{grid-template-columns:1fr}}.system-summary{{grid-template-columns:repeat(2,minmax(0,1fr))}}.system-operating{{grid-template-columns:1fr 1fr}}.automation-metrics{{grid-template-columns:1fr 1fr}}}}
+        @media(max-width:620px){{.system-hero-grid{{grid-template-columns:1fr}}.system-overall{{width:108px;height:108px;justify-self:start}}.system-summary{{grid-template-columns:1fr 1fr}}.system-operating{{grid-template-columns:1fr}}.system-check{{grid-template-columns:36px minmax(0,1fr);padding:13px}}.system-check-icon{{width:36px;height:36px;border-radius:12px}}.automation-footer{{align-items:stretch;flex-direction:column}}.automation-footer button{{width:100%}}}}
       </style>
     </head>
     <body>
@@ -164,9 +190,9 @@ def system_dashboard_page(
         <section class="admin-hero">
           <div class="system-hero-grid">
             <div>
-              <span class="admin-eyebrow">Betriebsüberwachung</span>
-              <h1>System & Diagnose</h1>
-              <p>Prüft die tatsächlich laufende Ahnsen-hilft-Installation, Datenbank, PWA-Funktionen und externe Dienste – ohne Testmeldungen oder Testbuchungen in Bürgerdaten anzulegen.</p>
+              <span class="admin-eyebrow">System & Diagnose · Betriebsüberwachung</span>
+              <h1>Systemstatus & Automationen</h1>
+              <p>Überwacht die laufende Ahnsen-hilft-Installation, Datenbank, PWA-Funktionen, externe Dienste und automatische Hintergrundprozesse.</p>
               <div class="system-actions">
                 <form method="get" action="/intern/system"><button class="secondary-action" type="submit">↻ Schnellcheck aktualisieren</button></form>
                 <form method="get" action="/intern/system"><input type="hidden" name="voll" value="1"><button type="submit">✓ Vollständigen Systemtest starten</button></form>
@@ -183,6 +209,7 @@ def system_dashboard_page(
           <article class="system-summary-card error"><span>Fehler</span><strong>{error_count}</strong></article>
         </section>
         <div class="system-mode"><span class="system-mode-icon">{escape(symbol)}</span><div><strong>{escape(mode_text)} · {escape(status_description)}</strong><p>{escape(mode_help)} Laufzeit: {int(report.get('duration_ms') or 0)} ms.</p></div></div>
+        <section class="box automation-section"><div class="system-section-heading"><div><span class="admin-eyebrow">Hintergrundprozesse</span><h2>Automationen</h2></div><span class="system-group-count">{len(automations or [])} überwacht</span></div><div class="automation-grid">{automation_area}</div></section>
         {''.join(groups)}
         <section class="box">
           <div class="system-section-heading"><div><span class="admin-eyebrow">Live-Daten</span><h2>Betriebsinformationen</h2></div><span class="system-group-count">Stand {_fmt_time(report.get('generated_at'))}</span></div>

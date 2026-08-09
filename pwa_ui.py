@@ -111,7 +111,7 @@ def home_page(data: dict) -> HTMLResponse:
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
         ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
         ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-gemeinde"),
-        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
+        ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"),
         ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),
         ("map", "Mängelkarte", "Öffentliche Meldungen auf der Dorfkarte.", "/karte"),
         ("idea", "Ideen für Ahnsen", "Vorschlagen, unterstützen und kommentieren.", "/ideen"),
@@ -259,7 +259,11 @@ def info_page(kind: str, settings: dict) -> HTMLResponse:
         return page(f"Über {cfg['municipality_name']}", f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Unser Ort</span><h1>Über {escape(cfg["municipality_name"])}</h1></section><section class="content-card">{paragraphs}</section>', active="more")
     config = {"vereine": ("Vereine & Gruppen", "Gemeinschaft", "people", settings.get("vereine", "")), "aktuelles": ("Aktuelles aus Ahnsen", "Neuigkeiten", "news", settings.get("aktuelles", "")), "ansprechpartner": ("Ansprechpartner", "Kontakt", "phone", settings.get("ansprechpartner", "")), "feuerwehr": ("Feuerwehr Ahnsen", "Sicherheit & Ehrenamt", "fire", settings.get("feuerwehr_text", "")), "buergerinformationen": ("Bürgerinformationen", "Gut informiert", "info", settings.get("buergerinfo_text", "")), "ueber-ahnsen": ("Über Ahnsen", "Unser Dorf", "village", settings.get("ueber_ahnsen_text", ""))}
     title, eyebrow, key, raw = config.get(kind, config["buergerinformationen"]); entries = _entries(raw)
-    cards = "".join(f'<article class="info-card"><span class="info-icon">{icon(key)}</span><h2>{escape(t)}</h2><p>{escape(d or "Weitere Informationen folgen.")}</p></article>' for t, d in entries)
+    card_rows = []
+    if kind == "vereine":
+        card_rows.append(f'<a class="info-card" href="/feuerwehr" style="text-decoration:none;color:inherit"><span class="info-icon">{icon("fire")}</span><h2>Freiwillige Feuerwehr Ahnsen</h2><p>Brandschutz, Einsatzdienst und Ehrenamt – Informationen zur Ortsfeuerwehr.</p><span class="community-chip" style="margin-top:10px">Feuerwehr ansehen ›</span></a>')
+    card_rows.extend(f'<article class="info-card"><span class="info-icon">{icon(key)}</span><h2>{escape(t)}</h2><p>{escape(d or "Weitere Informationen folgen.")}</p></article>' for t, d in entries)
+    cards = "".join(card_rows)
     if not cards: cards = f'<article class="info-card wide"><span class="info-icon">{icon(key)}</span><h2>{escape(title)}</h2><p>{escape(str(raw or "Dieser Bereich wird gerade gepflegt."))}</p></article>'
     return page(title, f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">{eyebrow}</span><h1>{title}</h1></section><div class="info-grid">{cards}</div>', active="more")
 
