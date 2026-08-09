@@ -1,0 +1,69 @@
+name: Mobility smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: mobility-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./mobility-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile mobility integration
+        run: python -m py_compile *.py
+      - name: Validate routes and Stage-2 adapters
+        run: |
+          python - <<'PY'
+          import mobility_routes as mobility
+          import pwa_main
+
+          paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
+          assert "/mobilitaet" in paths
+          assert "/api/mobilitaet" in paths
+          assert getattr(pwa_main.app.state, "mobility_installed", False)
+          assert next(route for route in pwa_main.app.router.routes if getattr(route, "path", "") == "/").name == "pwa_home_mobility"
+
+          mobility._platform_center = lambda: (52.258, 9.099)
+          sample = {
+              "Entity": [{
+                  "Id": "vehicle-1",
+                  "Vehicle": {
+                      "Trip": {"RouteId": "2132", "TripId": "trip-1"},
+                      "Position": {"Latitude": 52.259, "Longitude": 9.100},
+                      "Vehicle": {"Id": "bus-1"},
+                      "Timestamp": 123,
+                  },
+              }]
+          }
+          vehicles = mobility._parse_gtfsrt_json(sample)
+          assert len(vehicles) == 1
+          assert vehicles[0]["line"] == "2132"
+          assert vehicles[0]["id"] == "bus-1"
+
+          siri = b'''<Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery><VehicleActivity><RecordedAtTime>2026-08-09T10:00:00Z</RecordedAtTime><MonitoredVehicleJourney><LineRef>2133</LineRef><DirectionName>Bueckeburg</DirectionName><VehicleLocation><Longitude>9.10</Longitude><Latitude>52.26</Latitude></VehicleLocation><VehicleRef>42</VehicleRef></MonitoredVehicleJourney></VehicleActivity></VehicleMonitoringDelivery></ServiceDelivery></Siri>'''
+          vehicles = mobility._parse_siri_vm(siri)
+          assert len(vehicles) == 1
+          assert vehicles[0]["line"] == "2133"
+          assert vehicles[0]["id"] == "42"
+
+          assert set(mobility.KNOWN_LINES) == {"2026", "2132", "2133"}
+          print("Mobility smoke tests passed")
+          PY
