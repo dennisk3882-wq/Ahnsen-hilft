@@ -35,6 +35,18 @@ jobs:
           Path('/tmp/finalizer-patch.sh').write_text(body, encoding='utf-8')
           PY
           bash -euo pipefail /tmp/finalizer-patch.sh
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('pwa_main.py')
+          text = p.read_text(encoding='utf-8')
+          marker = '''\n\n# FastAPI resolves matching routes in registration order. Insert the corrected\n# endpoints before the legacy routes imported from pwa_core.\n'''
+          guard = '''\n\n# Keep all feature routers available in the production entry point. Earlier\n# versions of this compatibility module could expose only the legacy pwa_core\n# routes depending on import order. Re-include the community router only when\n# its canonical endpoint is missing; this is idempotent and preserves route\n# ordering for the versioned manifest/icon overrides below.\nfrom community_routes import router as _community_router\nif not any(getattr(route, "path", "") == "/api/uebersetzen" for route in app.router.routes):\n    app.include_router(_community_router)\n'''
+          if guard.strip() not in text:
+              if marker not in text:
+                  raise SystemExit('pwa_main route insertion marker not found')
+              text = text.replace(marker, guard + marker, 1)
+          p.write_text(text, encoding='utf-8')
+          PY
       - name: Validate code and runtime routes
         run: |
           python -m py_compile platform_runtime.py translation_service.py community_crud.py community_routes.py community_dashboard.py community_search.py community_ui.py intern_ui.py warning_service.py warning_ui.py warning_dashboard.py pwa_ui.py pwa_core.py pwa_main.py push_service.py smart_push.py pwa_push_job.py email_service.py muelltermine_parser.py
@@ -43,29 +55,23 @@ jobs:
           python - <<'PY'
           import asyncio
           import community_routes
-          import pwa_core
           import pwa_main
           from platform_runtime import get_platform_snapshot
           cfg = get_platform_snapshot()
           router_paths = {getattr(route, 'path', '') for route in community_routes.router.routes}
-          core_paths = {getattr(route, 'path', '') for route in pwa_core.app.routes}
-          main_paths = {getattr(route, 'path', '') for route in pwa_main.app.routes}
-          print('router translation:', '/api/uebersetzen' in router_paths, len(router_paths))
-          print('core translation:', '/api/uebersetzen' in core_paths, len(core_paths))
-          print('main translation:', '/api/uebersetzen' in main_paths, len(main_paths))
-          print('matching router:', sorted(path for path in router_paths if 'ueber' in path or 'plattform' in path))
-          print('matching core:', sorted(path for path in core_paths if 'ueber' in path or 'plattform' in path))
+          app_paths = {getattr(route, 'path', '') for route in pwa_main.app.routes}
           assert cfg['platform_name']
           assert cfg['platform_slug']
           assert cfg['pwa_icon_192_url']
           assert cfg['apple_touch_icon_url']
           for required in ('/api/uebersetzen', '/api/uebersetzen/status', '/intern/plattform'):
               assert required in router_paths, required
-          # The app includes the router at import time; at minimum search path strings
-          # through its registered APIRoutes so we catch accidental loss.
-          assert any(path == '/api/uebersetzen' for path in core_paths), sorted(path for path in core_paths if 'api/' in path)[-20:]
+              assert required in app_paths, required
+          for required in ('/ueber-gemeinde', '/manifest.webmanifest', '/pwa.js', '/karte', '/ideen', '/nachbarschaft', '/politik-rat'):
+              assert required in app_paths, required
           manifest = asyncio.run(pwa_main.manifest_v5())
           assert cfg['platform_name'].encode() in manifest.body
+          assert cfg['pwa_icon_192_url'].encode() in manifest.body
           js = asyncio.run(pwa_main.pwa_javascript_v6())
           assert js.status_code == 200
           open('/tmp/generated-pwa.js', 'wb').write(js.body)
