@@ -16,6 +16,7 @@ from pypdf import PdfReader
 
 BASE_URL = "https://samtgemeinde-eilsen.ratsinfomanagement.net/"
 ORGANIZATION = "Gemeinderat Ahnsen"
+CURRENT_TERM_START = "2021-11-01"
 SEED_DIR = Path(__file__).resolve().parents[1] / "static" / "ratsarchive-seed"
 MANIFEST_PATH = SEED_DIR / "manifest.json"
 
@@ -134,14 +135,14 @@ async def _collect_meeting_links(page, years: int) -> list[dict]:
     found: dict[str, dict] = {}
     for year_index in range(max(1, years)):
         body = await page.locator("body").inner_text()
-        title_match = re.search(r"\b(20\d{2})\b", (await page.locator(".sstfc-toolbar-title").first.inner_text()) if await page.locator(".sstfc-toolbar-title").count() else body)
+        toolbar = page.locator(".sstfc-toolbar-title")
+        toolbar_text = await toolbar.first.inner_text() if await toolbar.count() else body
+        title_match = re.search(r"\b(20\d{2})\b", toolbar_text)
         visible_year = int(title_match.group(1)) if title_match else datetime.now().year - year_index
 
         for anchor in await _anchors(page):
             label = anchor["label"]
-            if ORGANIZATION.casefold() not in label.casefold():
-                continue
-            if "/tops/" not in anchor["url"]:
+            if ORGANIZATION.casefold() not in label.casefold() or "/tops/" not in anchor["url"]:
                 continue
             session_match = SESSION_RE.search(label)
             date_match = DATE_RE.search(label)
@@ -149,6 +150,10 @@ async def _collect_meeting_links(page, years: int) -> list[dict]:
                 continue
             date_iso = _iso_date(date_match.group(0))
             if not date_iso.startswith(str(visible_year)):
+                continue
+            # The current Ahnsen council term starts in November 2021. This keeps
+            # the requested sessions 1..18 while future terms continue naturally.
+            if date_iso < CURRENT_TERM_START:
                 continue
             time_match = TIME_RE.search(label)
             key = f"{date_iso}:{session_match.group(1)}"
@@ -158,6 +163,7 @@ async def _collect_meeting_links(page, years: int) -> list[dict]:
                 "time": time_match.group(1) if time_match else "",
                 "source_page": anchor["url"],
                 "list_label": label,
+                "ris_status": "Niederschrift" if "status niederschrift" in label.casefold() else "Sitzung",
             }
 
         if year_index < years - 1:
@@ -166,14 +172,38 @@ async def _collect_meeting_links(page, years: int) -> list[dict]:
     return sorted(found.values(), key=lambda item: (item["date"], item["session_number"]), reverse=True)
 
 
-async def _read_meeting(context, meeting: dict) -> dict | None:
+async def _read_meeting(context, meeting: dict) -> dict:
     page = await context.new_page()
     try:
         await page.goto(meeting["source_page"], wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(800)
         body = await page.locator("body").inner_text()
         if ORGANIZATION.casefold() not in body.casefold():
-            return None
+            raise RuntimeError("Sitzungsseite konnte nicht eindeutig dem Gemeinderat Ahnsen zugeordnet werden")
+
+        session = int(meeting["session_number"])
+        date_iso = meeting["date"]
+        date_label = datetime.fromisoformat(date_iso).strftime("%d.%m.%Y")
+        base_item = {
+            "session_number": session,
+            "date": date_iso,
+            "time": meeting.get("time", ""),
+            "title": f"Gemeinderat Ahnsen, {session}. Sitzung",
+            "organization": ORGANIZATION,
+            "location": _extract_location(body),
+            "summary": (
+                f"Amtliche Sitzung des Gemeinderates Ahnsen vom {date_label}. "
+                "Das Ratsinformationssystem führt die Sitzung im Status Niederschrift; "
+                "ein separater öffentlicher PDF-Download der Niederschrift wird dort derzeit nicht ausgegeben."
+            ),
+            "source_page": meeting["source_page"],
+            "source_pdf": "",
+            "published_on": "",
+            "filename": "",
+            "sha256": "",
+            "size_bytes": 0,
+            "minutes_status": "listed_without_public_pdf",
+        }
 
         minutes = []
         for anchor in await _anchors(page):
@@ -185,9 +215,9 @@ async def _read_meeting(context, meeting: dict) -> dict | None:
                 continue
             minutes.append({"label": _normalize_space(combined_label), "url": url})
         if not minutes:
-            return None
+            return base_item
 
-        # SD.NET may expose more than one revision. Prefer the last public document link.
+        # SD.NET may expose more than one public revision. Prefer the last entry.
         document = minutes[-1]
         response = await context.request.get(document["url"], timeout=35000)
         if not response.ok:
@@ -203,35 +233,29 @@ async def _read_meeting(context, meeting: dict) -> dict | None:
         if "ahnsen" not in folded or ("gemeinderat" not in folded and ORGANIZATION.casefold() not in body.casefold()):
             raise RuntimeError("PDF-Inhalt konnte nicht eindeutig Ahnsen zugeordnet werden")
 
-        session = int(meeting["session_number"])
-        date_iso = meeting["date"]
-        canonical_filename = f"{date_iso}_niederschrift_gemeinderat_ahnsen_sitzung_{session}.pdf"
         published_on = _published_iso(document["label"])
-        title = f"Öffentliche Niederschrift der {session}. Sitzung des Gemeinderates Ahnsen"
-        summary = (
-            f"Amtliche öffentliche Niederschrift der {session}. Sitzung des Gemeinderates Ahnsen "
-            f"vom {datetime.fromisoformat(date_iso).strftime('%d.%m.%Y')}. "
-            "Original-PDF aus dem Ratsinformationssystem der Samtgemeinde Eilsen."
+        base_item.update(
+            {
+                "title": f"Öffentliche Niederschrift der {session}. Sitzung des Gemeinderates Ahnsen",
+                "summary": (
+                    f"Amtliche öffentliche Niederschrift der {session}. Sitzung des Gemeinderates Ahnsen "
+                    f"vom {date_label}. Original-PDF aus dem Ratsinformationssystem der Samtgemeinde Eilsen."
+                    + (
+                        f" Dort am {datetime.fromisoformat(published_on).strftime('%d.%m.%Y')} veröffentlicht bzw. aktualisiert."
+                        if published_on
+                        else ""
+                    )
+                ),
+                "source_pdf": document["url"],
+                "published_on": published_on,
+                "filename": f"{date_iso}_niederschrift_gemeinderat_ahnsen_sitzung_{session}.pdf",
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "size_bytes": len(data),
+                "minutes_status": "public_pdf_archived",
+                "_data": data,
+            }
         )
-        if published_on:
-            summary += f" Dort am {datetime.fromisoformat(published_on).strftime('%d.%m.%Y')} veröffentlicht bzw. aktualisiert."
-
-        return {
-            "session_number": session,
-            "date": date_iso,
-            "time": meeting.get("time", ""),
-            "title": title,
-            "organization": ORGANIZATION,
-            "location": _extract_location(body),
-            "summary": summary,
-            "source_page": meeting["source_page"],
-            "source_pdf": document["url"],
-            "published_on": published_on,
-            "filename": canonical_filename,
-            "sha256": hashlib.sha256(data).hexdigest(),
-            "size_bytes": len(data),
-            "_data": data,
-        }
+        return base_item
     finally:
         await page.close()
 
@@ -248,14 +272,29 @@ def _load_existing_manifest() -> dict:
     return {"schema_version": 1, "source": BASE_URL, "organization": ORGANIZATION, "meetings": []}
 
 
+def _preserve_existing_pdf(item: dict, existing: dict | None) -> dict:
+    if item.get("filename") or not existing or not existing.get("filename"):
+        return item
+    old_path = SEED_DIR / str(existing["filename"])
+    if not old_path.exists() or not old_path.read_bytes().startswith(b"%PDF-"):
+        return item
+    merged = dict(item)
+    for key in ("source_pdf", "published_on", "filename", "sha256", "size_bytes", "minutes_status"):
+        merged[key] = existing.get(key, merged.get(key))
+    merged["title"] = existing.get("title") or merged["title"]
+    merged["summary"] = existing.get("summary") or merged["summary"]
+    return merged
+
+
 async def run(years: int) -> int:
     SEED_DIR.mkdir(parents=True, exist_ok=True)
-    existing = _load_existing_manifest()
-    merged = {
+    existing_manifest = _load_existing_manifest()
+    existing = {
         f"{item.get('date')}:{item.get('session_number')}": dict(item)
-        for item in existing.get("meetings", [])
+        for item in existing_manifest.get("meetings", [])
         if item.get("date") and item.get("session_number") is not None
     }
+    merged = dict(existing)
 
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=False, args=["--disable-dev-shm-usage"])
@@ -268,40 +307,51 @@ async def run(years: int) -> int:
         if not meetings:
             raise RuntimeError("Keine Ahnsener Sitzungen gefunden; vorhandenes Archiv bleibt unverändert.")
 
-        imported = 0
-        skipped = []
+        downloaded = 0
+        errors = []
         for meeting in meetings:
+            key = f"{meeting['date']}:{meeting['session_number']}"
             try:
                 item = await _read_meeting(context, meeting)
             except Exception as error:
                 print(f"WARN session {meeting.get('session_number')} {meeting.get('date')}: {error}")
-                skipped.append({"session": meeting.get("session_number"), "date": meeting.get("date"), "reason": str(error)[:160]})
+                errors.append({"session": meeting.get("session_number"), "date": meeting.get("date"), "reason": str(error)[:160]})
                 continue
-            if not item:
-                skipped.append({"session": meeting.get("session_number"), "date": meeting.get("date"), "reason": "Keine veröffentlichte Niederschrift gefunden"})
-                continue
-            data = item.pop("_data")
-            target = SEED_DIR / item["filename"]
-            if not target.exists() or hashlib.sha256(target.read_bytes()).hexdigest() != item["sha256"]:
-                target.write_bytes(data)
-            merged[f"{item['date']}:{item['session_number']}"] = item
-            imported += 1
+
+            item = _preserve_existing_pdf(item, existing.get(key))
+            data = item.pop("_data", None)
+            if data is not None and item.get("filename"):
+                target = SEED_DIR / str(item["filename"])
+                if not target.exists() or hashlib.sha256(target.read_bytes()).hexdigest() != item["sha256"]:
+                    target.write_bytes(data)
+                downloaded += 1
+            merged[key] = item
 
         await browser.close()
 
+    # Current-term records are authoritative from the public annual list. Old
+    # pre-November-2021 records are intentionally excluded from this PWA view.
+    valid_keys = {f"{meeting['date']}:{meeting['session_number']}" for meeting in meetings}
+    merged = {key: value for key, value in merged.items() if key in valid_keys}
+
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": BASE_URL,
         "organization": ORGANIZATION,
+        "current_term_start": CURRENT_TERM_START,
         "meetings": sorted(merged.values(), key=lambda item: (item.get("date", ""), int(item.get("session_number") or 0)), reverse=True),
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    print(f"RIS-Sync: {len(meetings)} Sitzungen gefunden, {imported} Niederschriften geladen, {len(manifest['meetings'])} im Manifest.")
+    with_pdf = sum(1 for item in manifest["meetings"] if item.get("filename"))
+    print(
+        f"RIS-Sync: {len(meetings)} Sitzungen im aktuellen Ratszeitraum, "
+        f"{with_pdf} mit lokal archiviertem öffentlichen PDF, {downloaded} PDF-Abrufe in diesem Lauf."
+    )
     print("Sitzungsnummern:", [item.get("session_number") for item in manifest["meetings"]])
-    if skipped:
-        print("Nicht übernommen:", json.dumps(skipped, ensure_ascii=False))
-    return imported
+    if errors:
+        print("Temporäre Fehler:", json.dumps(errors, ensure_ascii=False))
+    return downloaded
 
 
 def main() -> None:
