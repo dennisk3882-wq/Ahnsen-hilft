@@ -77,6 +77,7 @@ from veranstaltungen_crud import (
 )
 from push_dashboard import push_dashboard_page
 from system_dashboard import system_dashboard_page
+from automation_status import get_automation_status, trigger_ratsarchive_sync
 from warning_dashboard import warning_dashboard_page
 from warning_ui import warning_page
 from community_crud import audit_event, init_community_db, save_preference
@@ -856,9 +857,22 @@ async def admin_system_page(request: Request, voll: int = 0, hinweis: str = "", 
     return system_dashboard_page(
         report,
         get_push_test_targets(),
+        get_automation_status(force=bool(voll)),
         hinweis=hinweis,
         fehler=fehler,
     )
+
+
+@app.post("/intern/system/automation/ratsarchive/start")
+async def admin_ratsarchive_sync_start(request: Request):
+    legacy.check_dashboard_login(request)
+    ok, message = trigger_ratsarchive_sync()
+    try:
+        record_system_event("ratsarchive_manual_sync", "ok" if ok else "warn", message)
+    except Exception:
+        pass
+    parameter = "hinweis" if ok else "fehler"
+    return RedirectResponse(url=f"/intern/system?{parameter}={quote(message)}", status_code=303)
 
 
 @app.post("/intern/system/test-push")
