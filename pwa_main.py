@@ -437,3 +437,23 @@ for _feature_route in _community_router.routes:
     ):
         app.router.routes.append(_feature_route)
 
+# Bus & Mobilität: use the same direct route-registration pattern as the
+# established community compatibility layer. This keeps the production entry
+# robust even on FastAPI versions where include_router is ineffective here.
+from mobility_routes import _home_with_mobility, router as _mobility_router
+for _mobility_route in _mobility_router.routes:
+    _mobility_path = getattr(_mobility_route, "path", "")
+    _mobility_methods = frozenset(getattr(_mobility_route, "methods", set()) or set())
+    if not any(
+        getattr(_existing_route, "path", "") == _mobility_path
+        and frozenset(getattr(_existing_route, "methods", set()) or set()) == _mobility_methods
+        for _existing_route in app.router.routes
+    ):
+        app.router.routes.append(_mobility_route)
+
+if not any(getattr(_route, "name", "") == "pwa_home_mobility" for _route in app.router.routes):
+    app.router.routes.insert(
+        0,
+        APIRoute("/", _home_with_mobility, methods=["GET"], name="pwa_home_mobility"),
+    )
+app.state.mobility_installed = True
