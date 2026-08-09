@@ -1,0 +1,48 @@
+name: Temporary RIS archive discovery
+on:
+  push:
+    branches: [agent/import-latest-ris-protokoll]
+permissions:
+  contents: write
+jobs:
+  probe:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/import-latest-ris-protokoll
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Query public Common Crawl URL index
+        run: |
+          python - <<'PY'
+          import json, requests
+          coll = requests.get('https://index.commoncrawl.org/collinfo.json', timeout=30).json()
+          indexes = [x['id'] for x in coll if x.get('id','').startswith('CC-MAIN-2026')][:8]
+          print('INDEXES', indexes)
+          target='samtgemeinde-eilsen.ratsinfomanagement.net/*'
+          found=[]
+          for idx in indexes:
+              url=f'https://index.commoncrawl.org/{idx}-index'
+              try:
+                  r=requests.get(url, params={'url':target,'output':'json','filter':'status:200','collapse':'urlkey'}, timeout=60)
+                  print('QUERY', idx, r.status_code, len(r.text))
+                  if r.status_code != 200:
+                      print(r.text[:500]); continue
+                  rows=[]
+                  for line in r.text.splitlines():
+                      try: row=json.loads(line)
+                      except: continue
+                      u=row.get('url','')
+                      if any(k in u.lower() for k in ['pdf','download','sitz','tops','termin','dokument','file','doc']):
+                          rows.append(row)
+                  print('MATCHES', idx, len(rows))
+                  for row in rows[:200]:
+                      print(json.dumps({k:row.get(k) for k in ['url','timestamp','mime','digest','filename','offset','length']}, ensure_ascii=False))
+                  found += rows
+              except Exception as e:
+                  print('ERR', idx, repr(e))
+          print('TOTAL_MATCHES',len(found))
+          PY
