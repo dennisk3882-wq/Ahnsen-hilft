@@ -38,6 +38,11 @@ def _pdf_text(data: bytes) -> str:
         return ""
 
 
+def _text_sha256(text: str) -> str:
+    normalized = " ".join(str(text or "").casefold().split())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest() if normalized else ""
+
+
 def _iso_date(text: str) -> str:
     match = DATE_RE.search(text or "")
     if not match:
@@ -201,6 +206,7 @@ async def _read_meeting(context, meeting: dict) -> dict:
             "published_on": "",
             "filename": "",
             "sha256": "",
+            "text_sha256": "",
             "size_bytes": 0,
             "minutes_status": "listed_without_public_pdf",
         }
@@ -249,6 +255,7 @@ async def _read_meeting(context, meeting: dict) -> dict:
                 "published_on": published_on,
                 "filename": f"{date_iso}_niederschrift_gemeinderat_ahnsen_sitzung_{session}.pdf",
                 "sha256": hashlib.sha256(data).hexdigest(),
+                "text_sha256": _text_sha256(extracted),
                 "size_bytes": len(data),
                 "minutes_status": "public_pdf_archived",
                 "_data": data,
@@ -271,6 +278,31 @@ def _load_existing_manifest() -> dict:
     return {"schema_version": 2, "source": BASE_URL, "organization": ORGANIZATION, "meetings": []}
 
 
+def _preserve_identical_official_pdf(item: dict, existing: dict | None) -> dict:
+    """Ignore SD.NET binary regeneration when the extracted protocol text is unchanged."""
+    if not item.get("_data") or not existing or existing.get("minutes_status") != "public_pdf_archived":
+        return item
+    old_filename = str(existing.get("filename") or "")
+    if not old_filename:
+        return item
+    old_path = SEED_DIR / old_filename
+    if not old_path.exists() or not old_path.read_bytes().startswith(b"%PDF-"):
+        return item
+    old_text_hash = str(existing.get("text_sha256") or "")
+    if not old_text_hash:
+        old_text_hash = _text_sha256(_pdf_text(old_path.read_bytes()))
+    new_text_hash = str(item.get("text_sha256") or "")
+    if not old_text_hash or old_text_hash != new_text_hash:
+        return item
+
+    stable = dict(item)
+    stable.pop("_data", None)
+    for key in ("filename", "sha256", "size_bytes", "source_pdf"):
+        stable[key] = existing.get(key, stable.get(key))
+    stable["text_sha256"] = old_text_hash
+    return stable
+
+
 def _preserve_existing_pdf(item: dict, existing: dict | None) -> dict:
     if item.get("filename") or not existing or not existing.get("filename"):
         return item
@@ -278,7 +310,7 @@ def _preserve_existing_pdf(item: dict, existing: dict | None) -> dict:
     if not old_path.exists() or not old_path.read_bytes().startswith(b"%PDF-"):
         return item
     merged = dict(item)
-    for key in ("source_pdf", "published_on", "filename", "sha256", "size_bytes", "minutes_status"):
+    for key in ("source_pdf", "published_on", "filename", "sha256", "text_sha256", "size_bytes", "minutes_status"):
         merged[key] = existing.get(key, merged.get(key))
     merged["title"] = existing.get("title") or merged["title"]
     merged["summary"] = existing.get("summary") or merged["summary"]
@@ -302,6 +334,7 @@ def _attach_bundled_legacy_pdf(item: dict) -> dict:
         {
             "filename": filename,
             "sha256": hashlib.sha256(data).hexdigest(),
+            "text_sha256": _text_sha256(_pdf_text(data)),
             "size_bytes": len(data),
             "minutes_status": "legacy_local_pdf",
             "summary": (
@@ -346,6 +379,7 @@ async def run(years: int) -> int:
                 errors.append({"session": meeting.get("session_number"), "date": meeting.get("date"), "reason": str(error)[:160]})
                 continue
 
+            item = _preserve_identical_official_pdf(item, existing.get(key))
             item = _preserve_existing_pdf(item, existing.get(key))
             item = _attach_bundled_legacy_pdf(item)
             data = item.pop("_data", None)
