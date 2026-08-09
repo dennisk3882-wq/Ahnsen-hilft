@@ -103,10 +103,11 @@ def _admin(request: Request):
 
 
 def _public_report_points() -> list[dict]:
-    pattern = re.compile(r"GPS-Position:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)")
+    gps_pattern = re.compile(r"GPS-Position:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)")
     points = []
     for item in suche_meldungen()[:300]:
-        match = pattern.search(str(getattr(item, "beschreibung", "") or ""))
+        description = str(getattr(item, "beschreibung", "") or "")
+        match = gps_pattern.search(description)
         if not match:
             continue
         try:
@@ -116,13 +117,20 @@ def _public_report_points() -> list[dict]:
             continue
         if not (-90 <= lat <= 90 and -180 <= lon <= 180):
             continue
+
         location = re.sub(r"\b\d+[a-zA-Z]?\b", "", str(getattr(item, "ort", "") or "")).strip(" ,-")
+        created = getattr(item, "erstellt_am", None)
+        category = str(getattr(item, "art", "Meldung") or "Meldung")[:100]
         points.append({
+            "id": int(getattr(item, "id", 0) or 0),
             "lat": lat,
             "lon": lon,
-            "art": str(getattr(item, "art", "Meldung") or "Meldung")[:100],
+            "art": category,
+            "category": category,
             "ort": location[:100] or get_platform_snapshot()["municipality_name"],
             "status": str(getattr(item, "status", "Offen") or "Offen")[:40],
+            "date": created.isoformat() if created else "",
+            "date_label": created.strftime("%d.%m.%Y") if created else "",
         })
     return points
 
