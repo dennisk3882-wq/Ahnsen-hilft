@@ -16,8 +16,8 @@
       "source_pdf": "https://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZe1oFS5141Lot6Hr_OekK8BcACRXmZZeRo9Wlco20P62/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_05.05.2026.pdf",
       "published_on": "2026-06-04",
       "filename": "2026-05-05_niederschrift_gemeinderat_ahnsen_sitzung_18.pdf",
-      "sha256": "6a425e759b0bfffe700ef77a378c2174bf87b22672e996dc24fa5c622491a556",
-      "size_bytes": 74599,
+      "sha256": "9d730c2980d6b2b6ff5025393c63071f18aae56a035656722da7729e4dfc1019",
+      "size_bytes": 74598,
       "minutes_status": "public_pdf_archived"
     },
     {
@@ -32,8 +32,8 @@
       "source_pdf": "https://samtgemeinde-eilsen.ratsinfomanagement.net/sdnetrim/UGhVM0hpd2NXNFdFcExjZYeJ--ehbE9tAr30gjoKKzetmpa27IFDaxrQrvilSzO7/Oeffentliche_Niederschrift_Gemeinderat_Ahnsen_26.03.2026.pdf",
       "published_on": "2026-05-05",
       "filename": "2026-03-26_niederschrift_gemeinderat_ahnsen_sitzung_17.pdf",
-      "sha256": "a7d656706a27b3132aa1f9a170422680b3b8ba219280e3040d9915ffcafa9495",
-      "size_bytes": 70163,
+      "sha256": "8ded735678baa7b2c6c3352a043db9e2c6b7cc1110fa1db3afbd621af24e40cd",
+      "size_bytes": 70160,
       "minutes_status": "public_pdf_archived"
     },
     {
@@ -203,14 +203,14 @@
       "title": "Gemeinderat Ahnsen, 6. Sitzung",
       "organization": "Gemeinderat Ahnsen",
       "location": "Dorfgemeinschaftshaus Ahnsen, 31708 Ahnsen, Versammlungsraum",
-      "summary": "Amtliche Sitzung des Gemeinderates Ahnsen vom 02.03.2023. Das Ratsinformationssystem führt die Sitzung im Status Niederschrift; ein separater öffentlicher PDF-Download der Niederschrift wird dort derzeit nicht ausgegeben.",
+      "summary": "Amtliche Sitzung des Gemeinderates Ahnsen vom 02.03.2023. Das Ratsinformationssystem führt die Sitzung im Status Niederschrift; ein separater öffentlicher PDF-Download der Niederschrift wird dort derzeit nicht ausgegeben. Eine bereits vorhandene öffentliche Archivkopie des Protokolls bleibt lokal verfügbar; der tägliche Abgleich selbst verwendet ausschließlich das offizielle Ratsinformationssystem.",
       "source_page": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZenyZ-1biI2-gn5JLZJ_QX4",
       "source_pdf": "",
       "published_on": "",
-      "filename": "",
-      "sha256": "",
-      "size_bytes": 0,
-      "minutes_status": "listed_without_public_pdf"
+      "filename": "2023-03-02_protokoll_6_sitzung.pdf",
+      "sha256": "65eb1844ec329e6febf7b767f13bbdcf8125683db7c3b8ca66d885a40746cbdb",
+      "size_bytes": 359067,
+      "minutes_status": "legacy_local_pdf"
     },
     {
       "session_number": 5,
@@ -219,14 +219,14 @@
       "title": "Gemeinderat Ahnsen, 5. Sitzung",
       "organization": "Gemeinderat Ahnsen",
       "location": "Dorfgemeinschaftshaus Ahnsen, 31708 Ahnsen, Versammlungsraum",
-      "summary": "Amtliche Sitzung des Gemeinderates Ahnsen vom 23.11.2022. Das Ratsinformationssystem führt die Sitzung im Status Niederschrift; ein separater öffentlicher PDF-Download der Niederschrift wird dort derzeit nicht ausgegeben.",
+      "summary": "Amtliche Sitzung des Gemeinderates Ahnsen vom 23.11.2022. Das Ratsinformationssystem führt die Sitzung im Status Niederschrift; ein separater öffentlicher PDF-Download der Niederschrift wird dort derzeit nicht ausgegeben. Eine bereits vorhandene öffentliche Archivkopie des Protokolls bleibt lokal verfügbar; der tägliche Abgleich selbst verwendet ausschließlich das offizielle Ratsinformationssystem.",
       "source_page": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZaJdIdMVRcr5-qcpaUtDBYM",
       "source_pdf": "",
       "published_on": "",
-      "filename": "",
-      "sha256": "",
-      "size_bytes": 0,
-      "minutes_status": "listed_without_public_pdf"
+      "filename": "2022-11-23_protokoll_5_sitzung.pdf",
+      "sha256": "a0391164b2171a21cedba690210cf7e179217b2ab48a56c276ffb73c38ea27e0",
+      "size_bytes": 304320,
+      "minutes_status": "legacy_local_pdf"
     },
     {
       "session_number": 4,
