@@ -15,7 +15,8 @@
   const languageFromStorage = () =>
     localStorage.getItem('platform-language') ||
     localStorage.getItem('ahnsen-language') ||
-    document.cookie.match(/(?:^|; )ahnsen_language=([^;]+)/)?.[1] ||
+    document.cookie.match(/(?:^|; )platform_language=([^;]+)/)?.[1] ||
+              document.cookie.match(/(?:^|; )ahnsen_language=([^;]+)/)?.[1] ||
     document.body?.dataset.platformDefaultLanguage || 'de';
 
   const showState = (active, degraded = false) => {

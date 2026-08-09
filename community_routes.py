@@ -114,7 +114,7 @@ def _public_report_points() -> list[dict]:
             lon = round(float(match.group(2)), 3)
         except ValueError:
             continue
-        if not (51.5 <= lat <= 53.0 and 8.0 <= lon <= 10.5):
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
             continue
         location = re.sub(r"\b\d+[a-zA-Z]?\b", "", str(getattr(item, "ort", "") or "")).strip(" ,-")
         points.append({
@@ -254,7 +254,7 @@ async def neighbor_contact(request: Request, post_id: int, background_tasks: Bac
             _send_user_notification,
             post.user_id,
             "Neue Nachricht zur Nachbarschaftshilfe",
-            "Jemand möchte Kontakt zu deinem Beitrag aufnehmen. Öffne dein Ahnsen-Postfach.",
+            f"Jemand möchte Kontakt zu deinem Beitrag aufnehmen. Öffne dein {get_platform_snapshot()['municipality_name']}-Postfach.",
             "/nachrichten",
             f"neighbor-contact-{post_id}-{user.id}",
             None,
@@ -281,7 +281,8 @@ async def save_language(request: Request):
     if user:
         save_preference(user.id, language=language)
     response = JSONResponse({"status": "ok", "language": language})
-    response.set_cookie("ahnsen_language", language, max_age=365 * 24 * 3600, samesite="lax", secure=request.url.scheme == "https")
+    response.set_cookie("platform_language", language, max_age=365 * 24 * 3600, samesite="lax", secure=request.url.scheme == "https")
+    response.delete_cookie("ahnsen_language")
     return response
 
 
@@ -350,7 +351,7 @@ async def admin_send_message(request: Request, background_tasks: BackgroundTasks
         background_tasks.add_task(
             _send_user_notification,
             user_id,
-            "Neue Nachricht in Ahnsen hilft",
+            f"Neue Nachricht in {get_platform_snapshot()['platform_name']}",
             "Du hast eine neue persönliche Nachricht der Verwaltung.",
             "/nachrichten",
             f"mailbox-{int(datetime.utcnow().timestamp())}-{user_id}",
@@ -469,6 +470,10 @@ async def admin_platform_save(request: Request):
         "plattform_sprachen": _clean(form.get("languages"), 300),
         "zeitzone": _clean(form.get("timezone"), 80),
         "plattform_basis_url": _clean(form.get("public_base_url"), 500),
+        "plattform_slug": _clean(form.get("platform_slug"), 80),
+        "pwa_icon_192_url": _clean(form.get("pwa_icon_192_url"), 1000),
+        "pwa_icon_512_url": _clean(form.get("pwa_icon_512_url"), 1000),
+        "apple_touch_icon_url": _clean(form.get("apple_touch_icon_url"), 1000),
         "ticket_prefix": _clean(form.get("ticket_prefix"), 8),
         "karten_mittelpunkt_lat": _clean(form.get("map_lat"), 30),
         "karten_mittelpunkt_lon": _clean(form.get("map_lon"), 30),
@@ -492,6 +497,12 @@ async def admin_platform_save(request: Request):
         "footer_datenschutz_url": _clean(form.get("privacy_url"), 1000),
         "footer_impressum_url": _clean(form.get("imprint_url"), 1000),
     }
+    extras.update({
+        "seiten_titel": config.platform_name,
+        "logo_text": config.platform_name,
+        "hauptfarbe": config.primary_color,
+        "akzentfarbe": config.accent_color,
+    })
     for key, value in extras.items():
         set_gemeinde_einstellung(key, value)
     audit_event("Verwaltung", "Plattform-Konfiguration geändert", "municipality_config", str(config.id), config.platform_name)

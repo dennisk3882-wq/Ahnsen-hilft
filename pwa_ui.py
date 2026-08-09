@@ -64,7 +64,7 @@ def page(title: str, content: str, *, active: str = "home", description: str = "
     header = f'<header class="topbar">{_brand()}<div class="topbar-community-actions"><label class="language-picker" translate="no"><span class="sr-only">Sprache</span><select id="platform-language" aria-label="Sprache auswählen">{language_options}</select></label><span id="translation-state" class="translation-state" role="status" aria-live="polite" hidden translate="no">↻</span><a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden>{icon("message")}<span class="message-badge" hidden></span></a><button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></div></header>' if show_header else ""
     style = f'<style>:root{{--forest:{cfg["primary_color"]};--sage:{cfg["accent_color"]};}} .custom-brand-logo img{{width:100%;height:100%;object-fit:contain}} .translation-state{{font-weight:900;opacity:.65}}</style>'
     html = f"""<!doctype html><html lang="{escape(cfg['default_language'])}"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="{escape(cfg['primary_color'])}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="{escape(cfg['short_name'])}"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=2"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · {escape(cfg['platform_name'])}</title>{style}</head>
+<meta charset="utf-8"><meta name="application-name" content="{escape(cfg['platform_name'])}"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="{escape(cfg['primary_color'])}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="{escape(cfg['short_name'])}"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="{escape(cfg['apple_touch_icon_url'])}"><link rel="icon" href="{escape(cfg['pwa_icon_192_url'])}"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=2"><link rel="stylesheet" href="/warning.css?v=1"><title>{escape(title)} · {escape(cfg['platform_name'])}</title>{style}</head>
 <body class="{escape(body_class)}" data-platform-municipality-name="{escape(cfg['municipality_name'])}" data-platform-default-language="{escape(cfg['default_language'])}"><div class="app-shell">{header}<main class="app-main">{content}</main>{_bottom_nav(active)}</div><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=2" defer></script></body></html>"""
     return HTMLResponse(html)
 
@@ -109,7 +109,7 @@ def home_page(data: dict) -> HTMLResponse:
         ("report", "Mängel melden", "Direkt mit Foto und Standort.", "/mangel-melden"), ("calendar", "Veranstaltungen", "Was ist los in Ahnsen?", "/veranstaltungen"),
         ("building", "DGH-Kalender", "Freie Tage und Belegungen.", "/dgh-mieten"), ("waste", "Müllabfuhr", "Termine und Kalenderexport.", "/muelltermine-info"),
         ("people", "Vereine & Gruppen", "Gemeinschaft erleben.", "/vereine"), ("news", "Aktuelles", "Neuigkeiten aus dem Dorf.", "/aktuelles"),
-        ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-ahnsen"),
+        ("info", "Bürgerinformationen", "Hinweise der Gemeinde.", "/buergerinformationen"), ("village", "Über Ahnsen", "Unser Dorf im Überblick.", "/ueber-gemeinde"),
         ("phone", "Ansprechpartner", "Wichtige Kontakte auf einen Blick.", "/ansprechpartner"), ("fire", "Feuerwehr", "Feuerwehr Ahnsen & Sicherheit.", "/feuerwehr"),
         ("shield", "Warnlage", "Amtliche Wetter- und Gefahrenwarnungen für Ahnsen.", "/warnungen"),
         ("map", "Mängelkarte", "Öffentliche Meldungen auf der Dorfkarte.", "/karte"),
@@ -163,7 +163,7 @@ def status_page(ticket: str = "", report=None, not_found: bool = False) -> HTMLR
         result = f'<section class="status-result"><div class="status-head"><span class="status-dot {key}"></span><div><small>Aktueller Status</small><strong>{status}</strong></div></div><dl><div><dt>Vorgang</dt><dd>{escape(report.ticket)}</dd></div><div><dt>Kategorie</dt><dd>{escape(report.art or "")}</dd></div><div><dt>Ort</dt><dd>{escape(report.ort or "")}</dd></div><div><dt>Eingegangen</dt><dd>{created}</dd></div></dl></section>'
     elif not_found:
         result = '<div class="form-alert">Zu dieser Vorgangsnummer wurde keine Meldung gefunden.</div>'
-    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Bearbeitungsstand</span><h1>Meldestatus prüfen</h1><p>Gib die Vorgangsnummer aus deiner Bestätigung ein.</p></section><form class="lookup-form" method="get" action="/meldestatus"><label class="field"><span>Vorgangsnummer</span><input name="ticket" value="{escape(ticket)}" placeholder="AHN-20260806-ABC123" required></label><button class="primary-button" type="submit">{icon("search")} Status abrufen</button></form>{result}'
+    content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Bearbeitungsstand</span><h1>Meldestatus prüfen</h1><p>Gib die Vorgangsnummer aus deiner Bestätigung ein.</p></section><form class="lookup-form" method="get" action="/meldestatus"><label class="field"><span>Vorgangsnummer</span><input name="ticket" value="{escape(ticket)}" placeholder="{escape(get_platform_snapshot()["ticket_prefix"])}-20260806-ABC123" required></label><button class="primary-button" type="submit">{icon("search")} Status abrufen</button></form>{result}'
     return page("Meldestatus", content, active="report")
 
 
@@ -221,9 +221,14 @@ def more_page(settings: dict) -> HTMLResponse:
 
 
 def legal_page(kind: str, settings: dict) -> HTMLResponse:
-    title = "Datenschutz" if kind == "datenschutz" else "Impressum"; key = "datenschutz_seite_text" if kind == "datenschutz" else "impressum_seite_text"; text = settings.get(key, f"{title} wird ergänzt.")
+    title = "Datenschutz" if kind == "datenschutz" else "Impressum"
+    key = "datenschutz_seite_text" if kind == "datenschutz" else "impressum_seite_text"
+    text = settings.get(key, f"{title} wird ergänzt.")
     paragraphs = "".join(f'<p>{escape(x.strip())}</p>' for x in str(text or "").splitlines() if x.strip())
-    return page(title, f'<section class="page-heading compact"><a class="back-link" href="/mehr">← Mehr</a><span class="eyebrow">Rechtliches</span><h1>{title}</h1></section><article class="legal-card">{paragraphs}</article>', active="more")
+    translation_note = ""
+    if kind == "datenschutz" and get_platform_snapshot().get("translation_enabled"):
+        translation_note = '<section class="legal-translation-note"><h2>Maschinelle Übersetzung</h2><p>Wenn eine Fremdsprache ausgewählt wird, werden sichtbare Seitentexte zur maschinellen Übersetzung an den in der Plattform-Konfiguration hinterlegten LibreTranslate-kompatiblen Übersetzungsdienst übertragen. Inhalte in Formular-Eingabefeldern werden nicht automatisch übertragen. Übersetzungen können Fehler enthalten; bei amtlichen Informationen ist die deutsche Originalfassung maßgeblich.</p></section>'
+    return page(title, f'<section class="page-heading compact"><a class="back-link" href="/mehr">← Mehr</a><span class="eyebrow">Rechtliches</span><h1>{title}</h1></section><article class="legal-card">{paragraphs}{translation_note}</article>', active="more")
 
 
 def admin_login_page(error: str = "") -> HTMLResponse:

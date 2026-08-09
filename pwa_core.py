@@ -130,6 +130,9 @@ def startup() -> None:
     init_warning_db()
     init_community_db()
     init_translation_db()
+    cfg = get_platform_snapshot()
+    app.title = f"{cfg['platform_name']} PWA"
+    app.description = cfg["description"]
     start_warning_monitor()
 
 

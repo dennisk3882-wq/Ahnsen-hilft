@@ -5,6 +5,7 @@ from html import escape
 
 from fastapi.responses import HTMLResponse
 
+from platform_runtime import get_platform_snapshot
 from pwa_ui import icon, page
 from warning_service import LEVEL_LABELS
 
@@ -37,7 +38,7 @@ def warning_page(warnings, stats: dict) -> HTMLResponse:
         cards.append(
             f'''<article class="official-warning level-{level}" id="{warning.id}">
               <div class="warning-card-head"><span class="warning-level-mark">⚠</span><div><small>{escape(_source_label(warning.source))}</small><h2>{escape(warning.title)}</h2></div><b>{escape(LEVEL_LABELS.get(level, "Amtliche Warnung"))}</b></div>
-              <div class="warning-meta"><span>📍 {escape(warning.area or "Ahnsen")}</span>{f'<span>🕒 {_date(warning.sent_at)}</span>' if warning.sent_at else ''}</div>
+              <div class="warning-meta"><span>📍 {escape(warning.area or get_platform_snapshot()["warning_area_label"])}</span>{f'<span>🕒 {_date(warning.sent_at)}</span>' if warning.sent_at else ''}</div>
               {f'<p>{escape(description)}</p>' if description else ''}
               {instruction_html}{validity}
               <a class="warning-source-link" href="{escape(warning.source_url or ('https://www.dwd.de/warnungen' if warning.source == 'DWD' else 'https://warnung.bund.de'))}" target="_blank" rel="noopener">Originalmeldung bei der amtlichen Quelle öffnen →</a>
@@ -59,10 +60,10 @@ def warning_page(warnings, stats: dict) -> HTMLResponse:
 
     content = f'''
 <link rel="stylesheet" href="/warning.css?v=1">
-<section class="page-heading warning-heading"><a class="back-link" href="/">← Start</a><span class="eyebrow">Amtliche Warnlage</span><h1>Warnungen für Ahnsen</h1><p>Wetter- und Gefahrenmeldungen aus amtlichen Quellen – kompakt für Ahnsen und den Landkreis Schaumburg.</p></section>
+<section class="page-heading warning-heading"><a class="back-link" href="/">← Start</a><span class="eyebrow">Amtliche Warnlage</span><h1>Warnungen für {escape(get_platform_snapshot()["municipality_name"])}</h1><p>Wetter- und Gefahrenmeldungen aus amtlichen Quellen – kompakt für {escape(get_platform_snapshot()["warning_area_label"])}.</p></section>
 <section class="warning-monitor-card"><span class="warning-monitor-pulse" aria-hidden="true"></span><div><strong>Warnmonitor aktiv</strong><small>Automatische Prüfung von DWD und Bundeswarnportal. Push-Einstellungen findest du in deinem Profil.</small></div><a href="/profil">Push einstellen</a></section>
 <div class="warning-list">{''.join(cards)}</div>
 <section class="content-card warning-sources"><div class="section-title"><span class="eyebrow">Quellenstatus</span><h2>Amtliche Datenquellen</h2></div>{''.join(source_items)}</section>
 <section class="trust-strip warning-disclaimer"><span>{icon('shield')}</span><div><strong>Zusätzlicher Informationskanal</strong><small>„Ahnsen hilft“ gibt amtliche Warninformationen weiter, ist aber selbst keine warnende Behörde. Verbindlich bleiben die Originalmeldungen von DWD, BBK/Bundeswarnportal, Cell Broadcast, Sirenen und Rundfunk.</small></div></section>
 '''
-    return page("Warnungen", content, active="more", description="Amtliche Warnungen und Unwetterinformationen für Ahnsen")
+    return page("Warnungen", content, active="more", description=f"Amtliche Warnungen und Unwetterinformationen für {get_platform_snapshot()['municipality_name']}")

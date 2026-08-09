@@ -1,3 +1,4 @@
+from platform_runtime import get_platform_snapshot
 from datetime import timedelta
 from zoneinfo import ZoneInfo
 
@@ -83,7 +84,7 @@ def run() -> int:
             sent = send_user_notification(
                 user.id,
                 "Müllabfuhr morgen",
-                f"Morgen wird in Ahnsen abgeholt: {kinds}.",
+                f"Morgen wird in {get_platform_snapshot()['municipality_name']} abgeholt: {kinds}.",
                 "/muelltermine-info",
                 f"muell-{tomorrow.isoformat()}",
                 "push_muell",

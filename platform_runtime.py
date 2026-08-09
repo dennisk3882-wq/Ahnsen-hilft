@@ -51,6 +51,13 @@ def _safe_color(value: str, default: str) -> str:
     return raw if re.fullmatch(r"#[0-9a-fA-F]{6}", raw) else default
 
 
+def _slug(value: str, default: str = "plattform") -> str:
+    raw = str(value or "").strip().casefold()
+    raw = raw.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    raw = re.sub(r"[^a-z0-9]+", "-", raw).strip("-")
+    return raw[:80] or default
+
+
 def _safe_url(value: str, default: str = "") -> str:
     raw = str(value or "").strip()
     if not raw:
@@ -118,7 +125,11 @@ def get_platform_snapshot() -> dict:
         "timezone": str(settings.get("zeitzone") or "Europe/Berlin").strip(),
         "ticket_prefix": ticket_prefix,
         "public_base_url": _safe_url(settings.get("plattform_basis_url") or os.getenv("PUBLIC_BASE_URL", "")),
+        "platform_slug": _slug(settings.get("plattform_slug") or platform_name, "plattform"),
         "logo_url": _safe_url(settings.get("logo_bild_url") or ""),
+        "pwa_icon_192_url": _safe_url(settings.get("pwa_icon_192_url") or "/pwa/ahnsen-app-v5-192.png", "/pwa/ahnsen-app-v5-192.png"),
+        "pwa_icon_512_url": _safe_url(settings.get("pwa_icon_512_url") or "/pwa/ahnsen-app-v5-512.png", "/pwa/ahnsen-app-v5-512.png"),
+        "apple_touch_icon_url": _safe_url(settings.get("apple_touch_icon_url") or "/pwa/ahnsen-app-v5-180.png", "/pwa/ahnsen-app-v5-180.png"),
         "hero_image_url": _safe_url(settings.get("hero_bild_url") or "/assets/ahnsen-startseite.png", "/assets/ahnsen-startseite.png"),
         "contact_name": contact_name,
         "contact_address": str(settings.get("kontakt_adresse") or "").strip(),
@@ -177,10 +188,15 @@ def apply_static_branding(text: str, snapshot: dict | None = None) -> str:
         ("Willkommen in Ahnsen", f"Willkommen in {municipality}"),
         ("Warnung für Ahnsen", f"Warnung für {municipality}"),
         ("Idee für Ahnsen", f"Idee für {municipality}"),
-        (" in Ahnsen", f" in {municipality}"),
-        (" für Ahnsen", f" für {municipality}"),
-        (" aus Ahnsen", f" aus {municipality}"),
-        (" von Ahnsen", f" von {municipality}"),
+        ("Was ist los in Ahnsen?", f"Was ist los in {municipality}?"),
+        ("Termine, Aktionen und Feste in Ahnsen.", f"Termine, Aktionen und Feste in {municipality}."),
+        ("Die nächsten Abholtermine für Ahnsen.", f"Die nächsten Abholtermine für {municipality}."),
+        ("Kommende Termine in Ahnsen", f"Kommende Termine in {municipality}"),
+        ("Vereine in Ahnsen", f"Vereine in {municipality}"),
+        ("Ahnsen im Überblick", f"{municipality} im Überblick"),
+        ("Warnzentrale Ahnsen", f"Warnzentrale {municipality}"),
+        ("Verfügbarkeit DGH Ahnsen", f"Verfügbarkeit DGH {municipality}"),
+        ("für Ahnsen und den Landkreis Schaumburg", f"für {cfg['warning_area_label']}"),
         ("AHN-", str(cfg["ticket_prefix"]) + "-"),
     )
     result = str(text)
