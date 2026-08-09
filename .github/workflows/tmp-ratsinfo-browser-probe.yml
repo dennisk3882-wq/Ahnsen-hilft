@@ -8,31 +8,41 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe official SD.NET public webservices
+      - name: Inspect public Poliscope OpenAPI
         shell: bash
         run: |
           python - <<'PY'
-          import requests
-          base='https://samtgemeinde-eilsen.ratsinfomanagement.net'
-          paths=[
-            '/webservice/',
-            '/webservice/portalsuche',
-            '/webservice/portalsuche/',
-            '/webservice/portalsearch',
-            '/webservice/portalsearch/',
-            '/webservice/portalSearch',
-            '/webservice/recherche',
-            '/webservice/search',
-            '/webservice/suche',
-            '/webservice/oparl/v1.1/body/1',
+          import requests, json
+          candidates=[
+            'https://api.poliscope.de/v2/openapi.json',
+            'https://api.poliscope.de/openapi.json',
+            'https://api.poliscope.de/v2/openapi.yaml',
+            'https://api.poliscope.de/openapi.yaml',
           ]
-          headers={'User-Agent':'Ahnsen-hilft/1.0','Accept':'application/json,application/xml,text/xml,text/plain,*/*'}
-          for p in paths:
+          spec=None
+          for url in candidates:
               try:
-                  r=requests.get(base+p,headers=headers,timeout=12,allow_redirects=False)
-                  print('\nPATH',p)
-                  print('STATUS',r.status_code,'TYPE',r.headers.get('content-type'),'LOC',r.headers.get('location'))
-                  print('BODY',r.text.replace('\n',' ')[:1800])
-              except Exception as e:
-                  print('\nPATH',p,'ERROR',repr(e))
+                  r=requests.get(url,headers={'User-Agent':'Ahnsen-hilft/1.0'},timeout=15)
+                  print('OPENAPI',url,r.status_code,r.headers.get('content-type'),len(r.content))
+                  if r.ok and 'json' in (r.headers.get('content-type') or ''):
+                      spec=r.json(); break
+              except Exception as e: print('ERR',url,repr(e))
+          if not isinstance(spec,dict):
+              raise SystemExit('No public JSON OpenAPI spec found')
+          print('TITLE',spec.get('info',{}).get('title'),'VERSION',spec.get('info',{}).get('version'))
+          print('PATHS_MATCHING')
+          for p,v in spec.get('paths',{}).items():
+              if any(x in p.lower() for x in ('meeting','file','document','search','unit')):
+                  print(p, sorted(v.keys()))
+          schemas=spec.get('components',{}).get('schemas',{})
+          print('SCHEMAS_WITH_URL_FIELDS')
+          for name,schema in schemas.items():
+              props=(schema or {}).get('properties') or {}
+              hits=[k for k in props if any(x in k.lower() for x in ('url','source','ris','origin','external'))]
+              if hits or any(x in name.lower() for x in ('meeting','file','document')):
+                  print('\nSCHEMA',name,'URLFIELDS',hits)
+                  for k in hits:
+                      print(' ',k, json.dumps(props[k], ensure_ascii=False)[:600])
+                  for k in ('id','name','title','date','start','meeting_id','file_id','documents','files'):
+                      if k in props: print(' ',k,json.dumps(props[k],ensure_ascii=False)[:600])
           PY
