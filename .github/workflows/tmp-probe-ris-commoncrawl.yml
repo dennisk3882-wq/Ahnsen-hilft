@@ -16,51 +16,24 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install requests
-      - name: Query public URL indexes for official RIS paths
+      - name: Probe public readers for the public RIS
         run: |
           python - <<'PY'
-          import json, requests
-          domain='samtgemeinde-eilsen.ratsinfomanagement.net'
-          s=requests.Session(); s.headers['User-Agent']='Ahnsen-hilft research/1.0'
-
-          print('=== COMMON CRAWL ===')
-          coll=s.get('https://index.commoncrawl.org/collinfo.json',timeout=30).json()
-          for meta in [x for x in coll if x.get('id','').startswith('CC-MAIN-2026')][:7]:
-              idx=meta['id']
-              try:
-                  r=s.get(f'https://index.commoncrawl.org/{idx}-index',params={'url':domain,'matchType':'domain','output':'json','filter':'status:200','collapse':'urlkey'},timeout=60)
-                  print('CC',idx,r.status_code,len(r.text))
-                  if r.status_code==200:
-                      for line in r.text.splitlines()[:500]:
-                          try: row=json.loads(line)
-                          except: continue
-                          u=row.get('url','')
-                          if any(k in u.lower() for k in ['pdf','download','sitz','tops','termin','dokument','file','doc']):
-                              print('CCURL',row.get('timestamp'),row.get('mime'),u)
-              except Exception as e: print('CCERR',idx,repr(e))
-
-          print('=== WAYBACK ===')
-          try:
-              r=s.get('https://web.archive.org/cdx/search/cdx',params={'url':domain+'/*','output':'json','fl':'timestamp,original,statuscode,mimetype,digest','filter':'statuscode:200','from':'2026','to':'2026','collapse':'urlkey'},timeout=90)
-              print('WB',r.status_code,len(r.text))
-              if r.status_code==200:
-                  rows=r.json()
-                  print('WBROWS',len(rows)-1 if rows else 0)
-                  for row in rows[1:1000]:
-                      u=row[1]
-                      if any(k in u.lower() for k in ['pdf','download','sitz','tops','termin','dokument','file','doc']): print('WBURL',*row[:4])
-              else: print(r.text[:1000])
-          except Exception as e: print('WBERR',repr(e))
-
-          print('=== URLSCAN ===')
-          try:
-              r=s.get('https://urlscan.io/api/v1/search/',params={'q':'domain:'+domain,'size':100},timeout=60)
-              print('US',r.status_code,len(r.text))
-              if r.status_code==200:
-                  data=r.json(); print('USRESULTS',len(data.get('results',[])))
-                  for item in data.get('results',[]):
-                      page=item.get('page') or {}; task=item.get('task') or {}
-                      print('USURL',task.get('time'),page.get('url') or task.get('url'))
-              else: print(r.text[:1000])
-          except Exception as e: print('USERR',repr(e))
+          import requests
+          s=requests.Session(); s.headers['User-Agent']='Mozilla/5.0 Ahnsen-hilft research'
+          urls=[
+            'https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net/',
+            'https://r.jina.ai/https://samtgemeinde-eilsen.ratsinfomanagement.net/',
+            'https://r.jina.ai/http://samtgemeinde-eilsen.ratsinfomanagement.net/termine',
+            'https://r.jina.ai/https://samtgemeinde-eilsen.ratsinfomanagement.net/termine',
+            'https://samtgemeinde--eilsen-ratsinfomanagement-net.translate.goog/?_x_tr_sl=de&_x_tr_tl=en&_x_tr_hl=en',
+          ]
+          for u in urls:
+            try:
+              r=s.get(u,timeout=90,allow_redirects=True)
+              print('\n===',u,'===')
+              print('STATUS',r.status_code,'FINAL',r.url,'TYPE',r.headers.get('content-type'),'LEN',len(r.content))
+              txt=r.text[:20000]
+              print(txt.replace('\x00','')[:8000])
+            except Exception as e: print('ERR',u,repr(e))
           PY
