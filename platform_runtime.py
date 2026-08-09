@@ -147,8 +147,8 @@ def get_platform_snapshot() -> dict:
         "bbk_mowas_rss_url": _safe_url(settings.get("bbk_mowas_rss_url") or "https://warnung.bund.de/api31/mowas/rss/032570000000.rss"),
         "dwd_cap_index_url": _safe_url(settings.get("dwd_cap_index_url") or "https://opendata.dwd.de/weather/alerts/cap/COMMUNEUNION_DWD_STAT/"),
         "translation_enabled": _bool(settings.get("uebersetzung_aktiv"), True),
-        "translation_api_url": _safe_url(settings.get("uebersetzung_api_url") or "https://de.libretranslate.com/translate"),
-        "translation_fallback_url": _safe_url(settings.get("uebersetzung_fallback_url") or "https://translate.argosopentech.com/translate"),
+        "translation_api_url": _safe_url(settings.get("uebersetzung_api_url") or "https://translate.fedilab.app/translate"),
+        "translation_fallback_url": _safe_url(settings.get("uebersetzung_fallback_url") or "https://translate.cutie.dating/translate"),
         "history_mode": str(settings.get("geschichte_modus") or ("ahnsen" if municipality.casefold() == "ahnsen" else "custom")).strip().casefold(),
     }
 
