@@ -88,11 +88,14 @@ async def _anchors(page) -> list[dict]:
     for index in range(await page.locator("a[href]").count()):
         item = page.locator("a[href]").nth(index)
         try:
-            label = _normalize_space(await item.inner_text())
+            visible = _normalize_space(await item.inner_text())
+            title = _normalize_space(await item.get_attribute("title") or "")
+            aria = _normalize_space(await item.get_attribute("aria-label") or "")
+            label = visible or aria or title
             href = await item.get_attribute("href")
             if not href:
                 continue
-            result.append({"label": label, "url": urljoin(page.url, href)})
+            result.append({"label": label, "visible": visible, "title": title, "aria": aria, "url": urljoin(page.url, href)})
         except Exception:
             continue
     return result
@@ -174,19 +177,17 @@ async def _read_meeting(context, meeting: dict) -> dict | None:
 
         minutes = []
         for anchor in await _anchors(page):
-            label = anchor["label"]
+            combined_label = " ".join(filter(None, (anchor.get("label"), anchor.get("visible"), anchor.get("title"), anchor.get("aria"))))
             url = anchor["url"]
-            if "niederschrift" not in label.casefold():
+            if "niederschrift" not in combined_label.casefold():
                 continue
-            if "/sdnetrim/" not in url or not url.lower().endswith(".pdf"):
+            if "/sdnetrim/" not in url or ".pdf" not in url.lower():
                 continue
-            if "öffentlich" not in label.casefold() and "oeffentlich" not in label.casefold():
-                continue
-            minutes.append(anchor)
+            minutes.append({"label": _normalize_space(combined_label), "url": url})
         if not minutes:
             return None
 
-        # SD.NET may expose more than one revision. Prefer the last public entry.
+        # SD.NET may expose more than one revision. Prefer the last public document link.
         document = minutes[-1]
         response = await context.request.get(document["url"], timeout=35000)
         if not response.ok:
@@ -268,13 +269,16 @@ async def run(years: int) -> int:
             raise RuntimeError("Keine Ahnsener Sitzungen gefunden; vorhandenes Archiv bleibt unverändert.")
 
         imported = 0
+        skipped = []
         for meeting in meetings:
             try:
                 item = await _read_meeting(context, meeting)
             except Exception as error:
                 print(f"WARN session {meeting.get('session_number')} {meeting.get('date')}: {error}")
+                skipped.append({"session": meeting.get("session_number"), "date": meeting.get("date"), "reason": str(error)[:160]})
                 continue
             if not item:
+                skipped.append({"session": meeting.get("session_number"), "date": meeting.get("date"), "reason": "Keine veröffentlichte Niederschrift gefunden"})
                 continue
             data = item.pop("_data")
             target = SEED_DIR / item["filename"]
@@ -293,8 +297,10 @@ async def run(years: int) -> int:
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    print(f"RIS-Sync: {len(meetings)} Sitzungen gefunden, {imported} öffentliche Niederschriften geladen, {len(manifest['meetings'])} im Manifest.")
+    print(f"RIS-Sync: {len(meetings)} Sitzungen gefunden, {imported} Niederschriften geladen, {len(manifest['meetings'])} im Manifest.")
     print("Sitzungsnummern:", [item.get("session_number") for item in manifest["meetings"]])
+    if skipped:
+        print("Nicht übernommen:", json.dumps(skipped, ensure_ascii=False))
     return imported
 
 
