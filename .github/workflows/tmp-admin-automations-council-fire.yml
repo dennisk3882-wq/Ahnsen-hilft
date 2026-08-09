@@ -17,6 +17,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Patchanker korrigieren
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/tmp_apply_admin_council_fire.py')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("'''        <title>System & Diagnose · Ahnsen hilft</title>\\n''',", "'''<title>System & Diagnose · Ahnsen hilft</title>''',")
+          s=s.replace("'''        <title>Systemstatus & Automationen · Ahnsen hilft</title>\\n''',", "'''<title>Systemstatus & Automationen · Ahnsen hilft</title>''',")
+          p.write_text(s,encoding='utf-8')
+          PY
       - name: Patch anwenden
         run: python scripts/tmp_apply_admin_council_fire.py
       - name: Abhängigkeiten installieren
@@ -51,17 +61,11 @@ jobs:
           clubs = info_page('vereine', {'vereine':'TSV Ahnsen|Sport und Gemeinschaft'}).body.decode('utf-8')
           assert 'Freiwillige Feuerwehr Ahnsen' in clubs and 'href="/feuerwehr"' in clubs
 
-          automation_status._github_runs = lambda: [{
-              'status':'completed','conclusion':'success','updated_at':'2026-08-09T16:00:00Z',
-              'html_url':'https://github.com/example/run'
-          }]
+          automation_status._github_runs = lambda: [{'status':'completed','conclusion':'success','updated_at':'2026-08-09T16:00:00Z','html_url':'https://github.com/example/run'}]
           status = automation_status._ratsarchive_status()
           assert status['status'] == 'ok'
           assert status['meeting_count'] == 18 and status['pdf_count'] == 4
-          report = {
-              'summary': {'total':1,'ok':1,'warn':0,'error':0}, 'overall':'ok', 'metrics':{},
-              'checks':[], 'duration_ms':1, 'generated_at':None, 'deep':False
-          }
+          report = {'summary': {'total':1,'ok':1,'warn':0,'error':0}, 'overall':'ok', 'metrics':{},'checks':[], 'duration_ms':1, 'generated_at':None, 'deep':False}
           system_html = system_dashboard_page(report, [], [status]).body.decode('utf-8')
           assert 'Systemstatus & Automationen' in system_html
           assert 'Ratsarchiv · SD.NET' in system_html
