@@ -15,7 +15,7 @@ from platform_runtime import get_platform_snapshot
 
 
 ICON_VERSION = "v5"
-SERVICE_WORKER_VERSION = "v7"
+SERVICE_WORKER_VERSION = "v8"
 ICON_SOURCE = STATIC_DIR / "icon-ahnsen.svg"
 ICON_SIZES = {180, 192, 512}
 GEOCODER_REVERSE_URL = os.getenv(
