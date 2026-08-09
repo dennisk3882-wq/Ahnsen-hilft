@@ -99,6 +99,42 @@ def get_aktive_veranstaltungen():
         db.close()
 
 
+def get_vergangene_veranstaltungen():
+    from datetime import datetime
+
+    db = SessionLocal()
+
+    try:
+        alle = (
+            db.query(Veranstaltung)
+            .filter(Veranstaltung.aktiv == "Ja")
+            .all()
+        )
+
+        heute = datetime.now().date()
+        vergangene = []
+
+        for v in alle:
+            try:
+                datum = datetime.strptime(v.datum, "%d.%m.%Y").date()
+            except (TypeError, ValueError):
+                continue
+            if datum < heute:
+                vergangene.append(v)
+
+        def sortierschluessel(veranstaltung):
+            try:
+                return datetime.strptime(veranstaltung.datum, "%d.%m.%Y")
+            except (TypeError, ValueError):
+                return datetime.min
+
+        vergangene.sort(key=sortierschluessel, reverse=True)
+        return vergangene
+
+    finally:
+        db.close()
+
+
 def get_alle_veranstaltungen():
     db = SessionLocal()
 
