@@ -13,10 +13,10 @@ def install_runtime_extensions() -> None:
     if getattr(app.state, "citizen_mobility_installed", False):
         return
 
-    # Compact patch keeps the journey planner and trip details as the visible
-    # citizen experience while retaining the previous timetable components only
-    # as an internal compatibility/data layer.
-    from mobility_compact_patch import router as citizen_mobility_router
+    # Compact route planner stays the visible citizen experience. The final
+    # trip-buttons patch adds a clear "Alle Haltestellen anzeigen" action to
+    # every transit leg and reuses the existing trip-detail bottom sheet.
+    from mobility_trip_buttons_patch import router as citizen_mobility_router
 
     for route in reversed(list(citizen_mobility_router.routes)):
         app.router.routes.insert(0, route)
