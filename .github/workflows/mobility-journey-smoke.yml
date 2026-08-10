@@ -1,0 +1,164 @@
+name: Mobility journey planner smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: mobility-journey-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./mobility-journey-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate journey planner and trip details
+        run: |
+          python -m py_compile mobility_journey_patch.py mobility_efa_patch.py runtime_extensions.py
+          python - <<'PY'
+          from datetime import datetime
+
+          import mobility_journey_patch as journey
+
+          html = journey.content()
+          assert "Wie kommst du ans Ziel?" in html
+          assert "Standort verwenden" in html
+          assert "Beste Verbindung suchen" in html
+          assert "Fahrtverlauf" in html
+          assert "/api/mobilitaet/verbindungen" in html
+          assert "/api/mobilitaet/fahrt" in html
+
+          paths = {getattr(route, "path", "") for route in journey.router.routes}
+          assert "/api/mobilitaet/haltestellen" in paths
+          assert "/api/mobilitaet/ziele" in paths
+          assert "/api/mobilitaet/verbindungen" in paths
+          assert "/api/mobilitaet/fahrt" in paths
+
+          itinerary = journey._normalize_itinerary({
+              "duration": 1260,
+              "startTime": "2026-08-10T19:30:00+02:00",
+              "endTime": "2026-08-10T19:51:00+02:00",
+              "transfers": 0,
+              "legs": [{
+                  "mode": "BUS",
+                  "startTime": "2026-08-10T19:30:00+02:00",
+                  "endTime": "2026-08-10T19:51:00+02:00",
+                  "scheduledStartTime": "2026-08-10T19:30:00+02:00",
+                  "scheduledEndTime": "2026-08-10T19:51:00+02:00",
+                  "duration": 1260,
+                  "realTime": True,
+                  "routeShortName": "2132",
+                  "headsign": "Bückeburg Bahnhof",
+                  "tripId": "trip-2132-test",
+                  "from": {"name": "Klinikum Schaumburg", "departure": "2026-08-10T19:30:00+02:00"},
+                  "intermediateStops": [
+                      {"name": "Ahnsen, Schule", "arrival": "2026-08-10T19:37:00+02:00", "departure": "2026-08-10T19:38:00+02:00"},
+                      {"name": "Heeßen", "arrival": "2026-08-10T19:43:00+02:00", "departure": "2026-08-10T19:43:00+02:00"},
+                  ],
+                  "to": {"name": "Bückeburg Bahnhof", "arrival": "2026-08-10T19:51:00+02:00"},
+              }],
+          })
+          assert itinerary is not None
+          assert itinerary["direct"] is True
+          assert itinerary["line"] == "2132"
+          assert itinerary["direction"] == "Bückeburg Bahnhof"
+          assert itinerary["departure"] == "19:30"
+          assert itinerary["arrival"] == "19:51"
+          assert [s["name"] for s in itinerary["legs"][0]["stops"]] == [
+              "Klinikum Schaumburg", "Ahnsen, Schule", "Heeßen", "Bückeburg Bahnhof"
+          ]
+
+          journey.data_patch._resolve_transitous_stop = lambda stop: {"id": "start-stop", "name": stop["name"]}
+          journey.legacy._now = lambda: datetime(2026, 8, 10, 19, 20, tzinfo=journey.data_patch.LOCAL_TZ)
+          journey._ROUTE_CACHE.clear()
+
+          class FakePlanResponse:
+              def raise_for_status(self):
+                  return None
+              def json(self):
+                  return {
+                      "itineraries": [{
+                          "duration": 1260,
+                          "startTime": "2026-08-10T19:30:00+02:00",
+                          "endTime": "2026-08-10T19:51:00+02:00",
+                          "transfers": 0,
+                          "legs": [{
+                              "mode": "BUS",
+                              "startTime": "2026-08-10T19:30:00+02:00",
+                              "endTime": "2026-08-10T19:51:00+02:00",
+                              "scheduledStartTime": "2026-08-10T19:30:00+02:00",
+                              "scheduledEndTime": "2026-08-10T19:51:00+02:00",
+                              "duration": 1260,
+                              "realTime": True,
+                              "routeShortName": "2132",
+                              "headsign": "Bückeburg Bahnhof",
+                              "tripId": "trip-2132-test",
+                              "from": {"name": "Klinikum Schaumburg", "departure": "2026-08-10T19:30:00+02:00"},
+                              "intermediateStops": [],
+                              "to": {"name": "Bückeburg Bahnhof", "arrival": "2026-08-10T19:51:00+02:00"},
+                          }],
+                      }]
+                  }
+
+          calls = []
+          def fake_plan_get(url, *, params=None, headers=None, timeout=None):
+              calls.append((url, params))
+              assert url.endswith("/api/v5/plan")
+              assert params["fromPlace"] == "start-stop"
+              assert params["toPlace"] == "destination-stop"
+              assert params["transitModes"] == "TRANSIT"
+              return FakePlanResponse()
+
+          journey.requests.get = fake_plan_get
+          result = journey._plan_route("klinikum", "destination-stop", "19:25")
+          assert result["status"] == "ok", result
+          assert result["connections"][0]["line"] == "2132"
+          assert result["connections"][0]["direction"] == "Bückeburg Bahnhof"
+          assert len(calls) == 1
+
+          journey._TRIP_CACHE.clear()
+          class FakeTripResponse:
+              def raise_for_status(self):
+                  return None
+              def json(self):
+                  return {
+                      "legs": [{
+                          "mode": "BUS",
+                          "startTime": "2026-08-10T19:30:00+02:00",
+                          "endTime": "2026-08-10T19:51:00+02:00",
+                          "scheduledStartTime": "2026-08-10T19:30:00+02:00",
+                          "scheduledEndTime": "2026-08-10T19:51:00+02:00",
+                          "duration": 1260,
+                          "realTime": True,
+                          "routeShortName": "2132",
+                          "headsign": "Bückeburg Bahnhof",
+                          "tripId": "trip-2132-test",
+                          "from": {"name": "Klinikum Schaumburg", "departure": "2026-08-10T19:30:00+02:00"},
+                          "intermediateStops": [{"name": "Ahnsen, Schule", "arrival": "2026-08-10T19:37:00+02:00"}],
+                          "to": {"name": "Bückeburg Bahnhof", "arrival": "2026-08-10T19:51:00+02:00"},
+                      }]
+                  }
+          journey.requests.get = lambda *args, **kwargs: FakeTripResponse()
+          trip = journey._trip_stops("trip-2132-test")
+          assert trip["status"] == "ok", trip
+          assert trip["line"] == "2132"
+          assert trip["direction"] == "Bückeburg Bahnhof"
+          assert [s["name"] for s in trip["stops"]] == ["Klinikum Schaumburg", "Ahnsen, Schule", "Bückeburg Bahnhof"]
+
+          print("Mobility journey planner smoke tests passed")
+          PY

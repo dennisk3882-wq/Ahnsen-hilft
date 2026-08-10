@@ -13,9 +13,9 @@ def install_runtime_extensions() -> None:
     if getattr(app.state, "citizen_mobility_installed", False):
         return
 
-    # Importing this module patches the citizen mobility data function to use
-    # EFA as primary source and keeps the previous provider as fallback.
-    from mobility_efa_patch import router as citizen_mobility_router
+    # Journey patch imports the robust Transitous/EFA data layer first and then
+    # adds route planning, nearest-stop detection and clickable trip details.
+    from mobility_journey_patch import router as citizen_mobility_router
 
     for route in reversed(list(citizen_mobility_router.routes)):
         app.router.routes.insert(0, route)
