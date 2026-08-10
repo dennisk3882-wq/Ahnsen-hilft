@@ -1,0 +1,53 @@
+name: Neighborhood production route smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: neighborhood-production-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./neighbor-production-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Verify uvicorn pwa_main app uses v2 routes first
+        run: |
+          python - <<'PY'
+          import pwa_main
+
+          def first_endpoint(path, method='GET'):
+              matches = [r for r in pwa_main.app.router.routes if getattr(r, 'path', '') == path and method in (getattr(r, 'methods', set()) or set())]
+              assert matches, f'missing {method} {path}'
+              return matches[0].endpoint
+
+          checks = [
+              ('/nachbarschaft', 'GET'),
+              ('/nachbarschaft', 'POST'),
+              ('/nachrichten', 'GET'),
+              ('/api/me/unread-count', 'GET'),
+              ('/intern/nachbarschaft', 'GET'),
+          ]
+          for path, method in checks:
+              endpoint = first_endpoint(path, method)
+              assert endpoint.__module__ == 'neighbor_v2_routes', (path, method, endpoint.__module__, endpoint.__name__)
+
+          assert getattr(pwa_main.app.state, 'neighbor_v2_installed', False) is True
+          print('Neighborhood v2 is first in pwa_main production routing')
+          PY
