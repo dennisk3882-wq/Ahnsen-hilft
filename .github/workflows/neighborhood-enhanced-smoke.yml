@@ -1,0 +1,95 @@
+name: Neighborhood enhanced smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: neighborhood-enhanced-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./neighborhood-enhanced-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate enhanced neighborhood platform
+        run: |
+          python -m py_compile neighborhood_models.py neighborhood_routes.py neighborhood_enhancement_models.py neighborhood_enhanced_patch.py runtime_extensions.py
+          python - <<'PY'
+          from datetime import datetime, timedelta
+
+          import neighborhood_enhanced_patch as enhanced
+          import neighborhood_routes as base
+          from community_models import NeighborPost
+          from database import Base, SessionLocal, engine
+          from neighborhood_enhancement_models import NeighborPostPublicDetail, NeighborReportSnapshot, NeighborRestrictionSchedule, NeighborUserBlock
+          from neighborhood_models import NeighborChatMessage, NeighborConversation, NeighborPostMeta, NeighborReport, NeighborRestriction
+          from pwa_models import PWAUser
+
+          Base.metadata.create_all(bind=engine)
+          db = SessionLocal()
+          u1 = PWAUser(email='anna@example.test', password_hash='x', name='Anna Beispiel', aktiv=True)
+          u2 = PWAUser(email='ben@example.test', password_hash='x', name='Ben Helfer', aktiv=True)
+          db.add_all([u1,u2]); db.flush()
+          post = NeighborPost(user_id=u1.id, kind='Suche', category='Fahrdienst', title='Fahrt zum Arzt', description='Ich brauche am Dienstag Hilfe bei einer Fahrt.', status='Freigegeben', aktiv=True)
+          db.add(post); db.flush()
+          db.add(NeighborPostMeta(post_id=post.id, urgent=True, expires_at=datetime.utcnow()+timedelta(days=14)))
+          db.add(NeighborPostPublicDetail(post_id=post.id, location_label='Nähe Ortsmitte'))
+          a,b=sorted((u1.id,u2.id)); conv=NeighborConversation(post_id=post.id,participant_a=a,participant_b=b,status='offen'); db.add(conv); db.flush()
+          msg1=NeighborChatMessage(conversation_id=conv.id,sender_user_id=u2.id,body='Ich kann helfen.'); db.add(msg1); db.flush()
+          msg2=NeighborChatMessage(conversation_id=conv.id,sender_user_id=u1.id,body='Danke, wann passt es?'); db.add(msg2); db.flush()
+          report=NeighborReport(reporter_user_id=u2.id,target_type='message',target_id=msg2.id,reason='Test',detail='Nur Test'); db.add(report); db.flush()
+          enhanced._save_report_snapshot(db,report,reported_user_id=u1.id,post_id=post.id,conversation_id=conv.id,message_id=msg2.id,message_snapshot=msg2.body,context=[{'sender_user_id':u2.id,'body':msg1.body},{'sender_user_id':u1.id,'body':msg2.body}])
+          db.commit()
+
+          assert enhanced._restriction_state(db,u1.id)['blocked'] is False
+          schedule=NeighborRestrictionSchedule(user_id=u1.id,suspended_until=datetime.utcnow()+timedelta(days=7),reason='Test'); db.add(schedule); db.commit()
+          assert enhanced._restriction_state(db,u1.id)['blocked'] is True
+          schedule.suspended_until=datetime.utcnow()-timedelta(minutes=1); db.commit()
+          assert enhanced._restriction_state(db,u1.id)['blocked'] is False
+
+          db.add(NeighborUserBlock(blocker_user_id=u1.id,blocked_user_id=u2.id)); db.commit()
+          assert enhanced._blocked(db,u1.id,u2.id) is True
+          assert enhanced._blocked_by_me(db,u1.id,u2.id) is True
+
+          snap=db.query(NeighborReportSnapshot).filter(NeighborReportSnapshot.report_id==report.id).first()
+          assert snap and snap.message_snapshot=='Danke, wann passt es?'
+          assert 'Ich kann helfen.' in snap.context_snapshot
+          assert enhanced._unread_chats(db,u1.id)==1
+
+          rows=[(post,u1,db.query(NeighborPostMeta).filter_by(post_id=post.id).first(),db.query(NeighborPostPublicDetail).filter_by(post_id=post.id).first())]
+          html=enhanced._home_html(rows,u2,set(),set(),category='Fahrdienst').body.decode('utf-8')
+          for text in ('Aktuell in Ahnsen','Hilfe suchen','Hilfe anbieten','Ich kann helfen','Keine öffentliche Kommentarspalte','Nähe Ortsmitte','14 Tagen','30 Tagen'):
+              assert text in html, text
+          db.close()
+
+          # Runtime layering: enhanced duplicate endpoints must precede base endpoints.
+          import pwa_main
+          from runtime_extensions import install_runtime_extensions
+          install_runtime_extensions()
+          def first(path,method='GET'):
+              matches=[r for r in pwa_main.app.router.routes if getattr(r,'path','')==path and method in (getattr(r,'methods',set()) or set())]
+              assert matches,path
+              return matches[0].endpoint
+          assert first('/nachbarschaft').__module__=='neighborhood_enhanced_patch'
+          assert first('/nachrichten').__module__=='neighborhood_enhanced_patch'
+          assert first('/api/me/unread-count').__module__=='neighborhood_enhanced_patch'
+          assert first('/intern/nachbarschaft').__module__=='neighborhood_enhanced_patch'
+          assert first('/nachbarschaft/chat/{conversation_id}').__module__=='neighborhood_enhanced_patch'
+          assert getattr(pwa_main.app.state,'neighborhood_enhancements_installed',False) is True
+          print('Neighborhood enhanced smoke tests passed')
+          PY
