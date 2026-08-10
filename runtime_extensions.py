@@ -16,6 +16,14 @@ def install_runtime_extensions() -> None:
         app.state.citizen_mobility_installed = True
 
     if not getattr(app.state, "neighborhood_platform_installed", False):
+        # Apply the mobile/UI monkey patch before neighborhood_routes imports
+        # neighborhood_page by name.
+        import neighborhood_mobile_patch  # noqa: F401
         from neighborhood_routes import router as neighborhood_router
+        from neighborhood_messages_patch import router as neighborhood_messages_router
+
         _prepend_router(app, neighborhood_router)
+        # This tiny router only overrides the chat GET route so opening a chat
+        # also clears its unread central-inbox notifications.
+        _prepend_router(app, neighborhood_messages_router)
         app.state.neighborhood_platform_installed = True
