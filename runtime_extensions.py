@@ -1,24 +1,32 @@
 from __future__ import annotations
 
 
-def install_runtime_extensions() -> None:
-    """Install public route overrides after pwa_main finished registering routes.
+def _install_routes_first(app, routes) -> None:
+    """Insert fully configured APIRoutes before legacy compatibility routes."""
+    for route in reversed(list(routes)):
+        app.router.routes.insert(0, route)
 
-    Render keeps using the established ``uvicorn pwa_main:app`` entrypoint. This
-    hook runs during FastAPI startup, so route overrides inserted here are in
-    front of older compatibility routes without introducing a second app entry.
+
+def install_runtime_extensions() -> None:
+    """Install production route overrides without changing Render's entrypoint.
+
+    Render keeps using ``uvicorn pwa_main:app``. Each extension has its own
+    idempotent state flag so a previously installed feature never prevents a
+    newer extension from being registered.
     """
     from pwa_core import app
 
-    if getattr(app.state, "citizen_mobility_installed", False):
-        return
+    if not getattr(app.state, "citizen_mobility_installed", False):
+        # Compact route planner stays the visible citizen experience. The final
+        # trip-buttons patch adds a clear stop-list action to every transit leg.
+        from mobility_trip_buttons_patch import router as citizen_mobility_router
 
-    # Compact route planner stays the visible citizen experience. The final
-    # trip-buttons patch adds a clear "Alle Haltestellen anzeigen" action to
-    # every transit leg and reuses the existing trip-detail bottom sheet.
-    from mobility_trip_buttons_patch import router as citizen_mobility_router
+        _install_routes_first(app, citizen_mobility_router.routes)
+        app.state.citizen_mobility_installed = True
 
-    for route in reversed(list(citizen_mobility_router.routes)):
-        app.router.routes.insert(0, route)
+    if not getattr(app.state, "neighbor_v2_installed", False):
+        from neighbor_v2_routes import install_neighbor_v2, router as neighbor_v2_router
 
-    app.state.citizen_mobility_installed = True
+        install_neighbor_v2()
+        _install_routes_first(app, neighbor_v2_router.routes)
+        app.state.neighbor_v2_installed = True
