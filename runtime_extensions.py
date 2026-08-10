@@ -13,9 +13,10 @@ def install_runtime_extensions() -> None:
     if getattr(app.state, "citizen_mobility_installed", False):
         return
 
-    # Journey patch imports the robust Transitous/EFA data layer first and then
-    # adds route planning, nearest-stop detection and clickable trip details.
-    from mobility_journey_patch import router as citizen_mobility_router
+    # Compact patch keeps the journey planner and trip details as the visible
+    # citizen experience while retaining the previous timetable components only
+    # as an internal compatibility/data layer.
+    from mobility_compact_patch import router as citizen_mobility_router
 
     for route in reversed(list(citizen_mobility_router.routes)):
         app.router.routes.insert(0, route)
