@@ -1,0 +1,135 @@
+name: Mobility citizen dashboard smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: mobility-citizen-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./mobility-citizen-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate citizen mobility dashboard
+        run: |
+          python -m py_compile mobility_citizen.py runtime_extensions.py muelltermine_crud.py
+          python - <<'PY'
+          from datetime import datetime
+          from pathlib import Path
+
+          db = Path("mobility-citizen-smoke.db")
+          if db.exists():
+              db.unlink()
+
+          import mobility_citizen as citizen
+          import pwa_main
+          from muelltermine_crud import init_muelltermine_db
+
+          html = citizen._content()
+          assert "Nächste Abfahrten" in html
+          assert "Alle Abfahrten heute" in html
+          assert "Alle Fahrtrichtungen" in html
+          assert "Karte &amp; Live-Tracking" in html
+          assert "Offizieller Fahrplan" in html
+          assert "Stufe 1" not in html
+          assert "Stufe 2" not in html
+          assert "Positionsschätzung" not in html
+
+          # Production startup hook must put the citizen route before the old
+          # technical compatibility page while Render still uses pwa_main:app.
+          init_muelltermine_db()
+          mobility_routes = [
+              route for route in pwa_main.app.router.routes
+              if getattr(route, "path", "") == "/mobilitaet" and "GET" in (getattr(route, "methods", set()) or set())
+          ]
+          assert mobility_routes
+          assert mobility_routes[0].name == "citizen_mobility", [route.name for route in mobility_routes]
+          paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
+          assert "/api/mobilitaet/abfahrten" in paths
+          assert "/api/mobilitaet/karte" in paths
+
+          fixed_now = datetime(2026, 8, 10, 17, 30, tzinfo=citizen.LOCAL_TZ)
+          citizen._now = lambda: fixed_now
+          citizen._DAY_CACHE.clear()
+          citizen._STOP_ID_CACHE.clear()
+          citizen._resolve_stop = lambda stop: {"id": "stop-ahnsen-schule", "name": "Ahnsen Schule"}
+
+          class FakeResponse:
+              def raise_for_status(self):
+                  return None
+
+              def json(self):
+                  return {
+                      "departures": [
+                          {
+                              "line": {"name": "2132"},
+                              "direction": "Bückeburg Bahnhof",
+                              "plannedWhen": "2026-08-10T06:35:00+02:00",
+                              "when": "2026-08-10T06:35:00+02:00",
+                              "delay": 0,
+                          },
+                          {
+                              "line": {"name": "2133"},
+                              "direction": "Bad Eilsen",
+                              "plannedWhen": "2026-08-10T17:48:00+02:00",
+                              "when": "2026-08-10T17:51:00+02:00",
+                              "delay": 180,
+                          },
+                          {
+                              "line": {"name": "2026"},
+                              "direction": "Obernkirchen",
+                              "plannedWhen": "2026-08-10T20:26:00+02:00",
+                              "when": "2026-08-10T20:26:00+02:00",
+                          },
+                          {
+                              "line": {"name": "2006"},
+                              "direction": "Nicht Ahnsen",
+                              "plannedWhen": "2026-08-10T18:00:00+02:00",
+                              "when": "2026-08-10T18:00:00+02:00",
+                          },
+                          {
+                              "line": {"name": "2132"},
+                              "direction": "Morgen",
+                              "plannedWhen": "2026-08-11T06:35:00+02:00",
+                              "when": "2026-08-11T06:35:00+02:00",
+                          },
+                      ]
+                  }
+
+          calls = []
+          def fake_get(url, *, params=None, headers=None, timeout=None):
+              calls.append((url, params))
+              assert params["when"].startswith("2026-08-10T00:00:00")
+              assert params["duration"] == 1439
+              return FakeResponse()
+
+          citizen.requests.get = fake_get
+          result = citizen._fetch_day_for_stop(citizen._stop_by_key("schule"))
+          assert result["status"] == "ok", result
+          assert [item["line"] for item in result["departures"]] == ["2132", "2133", "2026"]
+          assert result["departures"][0]["past"] is True
+          assert result["departures"][1]["direction"] == "Bad Eilsen"
+          assert result["departures"][1]["delay_minutes"] == 3
+          assert result["departures"][1]["minutes"] == 21
+          assert result["departures"][2]["past"] is False
+          assert len(calls) == 1
+
+          print("Mobility citizen dashboard smoke tests passed")
+          PY
