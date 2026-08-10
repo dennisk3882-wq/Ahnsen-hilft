@@ -27,3 +27,8 @@ def install_runtime_extensions() -> None:
         # also clears its unread central-inbox notifications.
         _prepend_router(app, neighborhood_messages_router)
         app.state.neighborhood_platform_installed = True
+
+    if not getattr(app.state, "neighborhood_enhancements_installed", False):
+        from neighborhood_enhanced_patch import router as neighborhood_enhanced_router
+        _prepend_router(app, neighborhood_enhanced_router)
+        app.state.neighborhood_enhancements_installed = True
