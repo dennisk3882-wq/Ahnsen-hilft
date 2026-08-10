@@ -1,0 +1,73 @@
+name: Neighborhood platform smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./neighborhood-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate neighborhood platform
+        run: |
+          python -m py_compile neighborhood_models.py neighborhood_ui.py neighborhood_routes.py runtime_extensions.py
+          python - <<'PY'
+          import neighborhood_routes as nr
+          import neighborhood_ui as ui
+          from neighborhood_models import NeighborChatMessage, NeighborConversation, NeighborReport
+          from database import SessionLocal
+          from community_models import NeighborPost
+          from pwa_models import PWAUser
+
+          paths = {(getattr(r, 'path', ''), tuple(sorted(getattr(r, 'methods', []) or []))) for r in nr.router.routes}
+          required = [
+              '/nachbarschaft', '/nachbarschaft/chats', '/nachbarschaft/chat/{conversation_id}',
+              '/nachbarschaft/{post_id}/antworten', '/nachbarschaft/{post_id}/merken',
+              '/nachbarschaft/{post_id}/melden', '/nachbarschaft/chat/{conversation_id}/melden/{message_id}',
+              '/intern/nachbarschaft', '/intern/nachbarschaft/meldung/{report_id}/aktion'
+          ]
+          for path in required:
+              assert any(item[0] == path for item in paths), path
+
+          html = ui.CSS + ui.heading('Nachbarschaftshilfe', 'Test')
+          assert 'nh-chat' in html
+          assert 'nh-report' in html
+          assert 'Gemeinschaft' in html
+
+          db = SessionLocal()
+          try:
+              u1 = PWAUser(email='a@example.test', password_hash='x', name='Anna Beispiel')
+              u2 = PWAUser(email='b@example.test', password_hash='x', name='Ben Beispiel')
+              db.add_all([u1, u2]); db.flush()
+              post = NeighborPost(user_id=u1.id, kind='Suche', category='Einkauf', title='Einkaufshilfe', description='Brauche Hilfe beim Einkauf.', status='Freigegeben', aktiv=True)
+              db.add(post); db.flush()
+              a,b = sorted((u1.id,u2.id))
+              conv = NeighborConversation(post_id=post.id, participant_a=a, participant_b=b)
+              db.add(conv); db.flush()
+              msg = NeighborChatMessage(conversation_id=conv.id, sender_user_id=u2.id, body='Ich kann helfen.')
+              db.add(msg); db.flush()
+              report = NeighborReport(reporter_user_id=u1.id, target_type='message', target_id=msg.id, reason='Test')
+              db.add(report); db.commit()
+              assert nr._conversation(db, conv.id, u1.id).id == conv.id
+              offender, text = nr._target(db, report)
+              assert offender == u2.id
+              assert text == 'Ich kann helfen.'
+          finally:
+              db.close()
+
+          print('Neighborhood platform smoke tests passed')
+          PY
