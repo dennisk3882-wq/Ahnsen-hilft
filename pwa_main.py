@@ -15,7 +15,7 @@ from platform_runtime import get_platform_snapshot
 
 
 ICON_VERSION = "v5"
-SERVICE_WORKER_VERSION = "v8"
+SERVICE_WORKER_VERSION = "v9"
 ICON_SOURCE = STATIC_DIR / "icon-ahnsen.svg"
 ICON_SIZES = {180, 192, 512}
 GEOCODER_REVERSE_URL = os.getenv(
@@ -384,7 +384,7 @@ if (typeof document !== 'undefined') {
 async def pwa_javascript_v6():
     cfg = get_platform_snapshot()
     source = (STATIC_DIR / "pwa.js").read_text(encoding="utf-8")
-    source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-v8")
+    source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-v9")
     source = source.replace("Ahnsen hilft", cfg["platform_name"])
     source = source.replace("/pwa/icon-192.png", cfg.get("pwa_icon_192_url") or "/pwa/ahnsen-app-v5-192.png")
     source = source.replace("/pwa/icon-512.png", cfg.get("pwa_icon_512_url") or "/pwa/ahnsen-app-v5-512.png")
@@ -411,8 +411,6 @@ async def pwa_javascript_v6():
     )
 
 
-# FastAPI resolves matching routes in registration order. Insert the corrected
-# endpoints before the legacy routes imported from pwa_core.
 for route in reversed(
     [
         APIRoute(
@@ -449,10 +447,6 @@ for route in reversed(
 ):
     app.router.routes.insert(0, route)
 
-# Ensure every community feature route is present in the actual production
-# application. APIRouter routes are safe to append directly because they are
-# already fully configured APIRoute instances. Missing routes only are added,
-# so the compatibility layer stays idempotent.
 from community_routes import router as _community_router
 for _feature_route in _community_router.routes:
     _feature_path = getattr(_feature_route, "path", "")
@@ -464,9 +458,6 @@ for _feature_route in _community_router.routes:
     ):
         app.router.routes.append(_feature_route)
 
-# Bus & Mobilität: use the same direct route-registration pattern as the
-# established community compatibility layer. This keeps the production entry
-# robust even on FastAPI versions where include_router is ineffective here.
 from mobility_routes import _home_with_mobility, router as _mobility_router
 for _mobility_route in _mobility_router.routes:
     _mobility_path = getattr(_mobility_route, "path", "")
@@ -485,20 +476,21 @@ if not any(getattr(_route, "name", "") == "pwa_home_mobility" for _route in app.
     )
 app.state.mobility_installed = True
 
-# Abfall-Zentrale: install the modern waste routes directly in the production
-# application. This intentionally keeps the long-established Render start
-# command `uvicorn pwa_main:app` working; no separate entrypoint is required.
 from waste_center import router as _waste_router
 if not getattr(app.state, "waste_center_installed", False):
     for _waste_route in reversed(list(_waste_router.routes)):
         app.router.routes.insert(0, _waste_route)
     app.state.waste_center_installed = True
 
-# DGH-Zentrale: replace only the public DGH overview route. The existing
-# request submission, validation, success page and administration routes stay
-# in pwa_core unchanged.
 from dgh_center import router as _dgh_center_router
 if not getattr(app.state, "dgh_center_installed", False):
     for _dgh_route in reversed(list(_dgh_center_router.routes)):
         app.router.routes.insert(0, _dgh_route)
     app.state.dgh_center_installed = True
+
+# Bürgerorientierte Mobilitätszentrale: bewusst zuletzt installieren, damit
+# /mobilitaet die technische Legacy-Ansicht sicher überschreibt.
+from mobility_center import router as _mobility_center_router
+for _cit_mobility_route in reversed(list(_mobility_center_router.routes)):
+    app.router.routes.insert(0, _cit_mobility_route)
+app.state.mobility_center_installed = True
