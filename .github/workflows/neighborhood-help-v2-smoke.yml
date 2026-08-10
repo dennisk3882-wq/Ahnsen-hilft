@@ -1,0 +1,131 @@
+name: Neighborhood help v2 smoke tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: neighborhood-help-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./neighbor-v2-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate neighborhood help v2
+        run: |
+          python -m py_compile neighbor_v2_models.py neighbor_v2_service.py neighbor_v2_ui.py neighbor_v2_routes.py runtime_extensions.py
+          python - <<'PY'
+          import json
+          from datetime import datetime
+
+          from database import Base, SessionLocal, engine
+          from pwa_models import PWAUser
+          import neighbor_v2_service as svc
+          import neighbor_v2_routes as routes
+          from neighbor_v2_ui import neighbor_home_page
+
+          # Fresh schema includes legacy neighbor_posts plus all new v2 tables.
+          svc.init_neighbor_v2_db()
+          db = SessionLocal()
+          owner = PWAUser(email='owner@example.test', password_hash='x', name='Anna Beispiel', aktiv=True)
+          helper = PWAUser(email='helper@example.test', password_hash='x', name='Ben Helfer', aktiv=True)
+          db.add_all([owner, helper]); db.commit(); db.refresh(owner); db.refresh(helper)
+          owner_id, helper_id = owner.id, helper.id
+          db.close()
+
+          post = svc.create_post(owner_id, 'Suche', 'Fahrdienst', 'Fahrt zum Arzt gesucht', 'Ich brauche am Dienstag Hilfe bei der Fahrt zum Arzt.', location_label='Ahnsen', urgent=True, expiry_days=14)
+          approved = svc.set_post_status(post.id, 'Freigegeben')
+          assert approved and approved['status'] == 'Freigegeben'
+
+          feed = svc.get_feed(user_id=helper_id, category='Fahrdienst')
+          assert len(feed) == 1
+          assert feed[0]['urgent'] is True
+          assert feed[0]['author'] == 'Anna'  # never expose full name publicly
+          assert feed[0]['location'] == 'Ahnsen'
+
+          # Merkliste and category subscription.
+          assert svc.toggle_saved(post.id, helper_id) is True
+          assert svc.get_feed(user_id=helper_id)[0]['saved'] is True
+          assert svc.toggle_category_subscription(helper_id, 'Fahrdienst') is True
+          assert helper_id in svc.category_subscribers('Fahrdienst')
+
+          # Private conversation + unread counter.
+          conv = svc.get_or_create_conversation(post.id, helper_id)
+          assert conv is not None
+          msg, recipient = svc.send_chat_message(conv.id, helper_id, 'Hallo, ich könnte dich fahren.')
+          assert msg is not None and recipient == owner_id
+          assert svc.count_unread_chats(owner_id) == 1
+          owner_chat = svc.conversation_data(conv.id, owner_id, mark_read=True)
+          assert owner_chat and owner_chat['other_name'] == 'Ben'
+          assert svc.count_unread_chats(owner_id) == 0
+
+          # Report stores a message snapshot + a limited context snapshot only.
+          reply, _ = svc.send_chat_message(conv.id, owner_id, 'Danke, wann passt es dir?')
+          report = svc.report_message(conv.id, reply.id, helper_id, 'Unangemessener Inhalt', 'Testmeldung')
+          assert report is not None
+          overview = svc.admin_overview()
+          assert len(overview['reports']) == 1
+          saved_report = overview['reports'][0]
+          assert saved_report['snapshot'] == 'Danke, wann passt es dir?'
+          context = json.loads(saved_report['context'])
+          assert 1 <= len(context) <= 5
+
+          action = svc.apply_report_action(report.id, 'lock_chat', 'Moderationstest')
+          assert action and action['conversation_id'] == conv.id
+          locked = svc.conversation_data(conv.id, helper_id)
+          assert locked['status'] == 'Gesperrt'
+
+          # Restriction path works without disabling the whole PWA account.
+          report2 = svc.report_post(post.id, helper_id, 'Spam', 'Test')
+          assert report2
+          svc.apply_report_action(report2.id, 'suspend_7', 'Nachbarschaftshilfe vorübergehend gesperrt')
+          assert svc.restriction_for(owner_id)['blocked'] is True
+          assert svc.clear_restriction(owner_id) is True
+          assert svc.restriction_for(owner_id)['blocked'] is False
+
+          # Public UI is feed-first and explicitly private after first contact.
+          response = neighbor_home_page(feed, [], user_id=helper_id, logged_in=True, restriction={'blocked': False}, category='Fahrdienst', subscriptions={'Fahrdienst'})
+          html = response.body.decode('utf-8')
+          for text in ('Aktuell in Ahnsen', 'Hilfe suchen', 'Hilfe anbieten', 'Ich kann helfen', 'Keine öffentlichen Kommentarspalten', 'Kategorie abonnieren'):
+              # subscription active changes this one label, so accept either state
+              if text == 'Kategorie abonnieren':
+                  assert 'Abo ausschalten' in html or text in html
+              else:
+                  assert text in html, text
+
+          paths = {(getattr(r, 'path', ''), tuple(sorted(getattr(r, 'methods', set()) or set()))) for r in routes.router.routes}
+          required = [
+              '/nachbarschaft',
+              '/nachbarschaft/{post_id}/antworten',
+              '/nachbarschaft/chat/{conversation_id}',
+              '/nachbarschaft/chat/{conversation_id}/nachricht',
+              '/nachbarschaft/chat/{conversation_id}/melden',
+              '/nachrichten',
+              '/api/me/unread-count',
+              '/intern/nachbarschaft',
+              '/intern/nachbarschaft/meldungen/{report_id}/aktion',
+          ]
+          for path in required:
+              assert any(p == path for p, _ in paths), path
+
+          runtime_source = open('runtime_extensions.py', encoding='utf-8').read()
+          assert 'neighbor_v2_routes' in runtime_source
+          assert 'neighbor_v2_installed' in runtime_source
+          print('Neighborhood help v2 smoke tests passed')
+          PY
