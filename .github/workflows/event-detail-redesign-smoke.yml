@@ -1,0 +1,110 @@
+name: Event detail redesign smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: event-detail-redesign-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./event-detail-redesign-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate event detail and recap UI
+        run: |
+          python -m py_compile event_detail_redesign.py runtime_extensions.py
+          python - <<'PY'
+          import asyncio
+          import json
+          from datetime import date, timedelta
+
+          from starlette.requests import Request
+          from database import Base, SessionLocal, engine
+          from veranstaltungen_models import Veranstaltung
+
+          Base.metadata.create_all(bind=engine)
+          db = SessionLocal()
+          future = Veranstaltung(
+              titel='winterfest',
+              datum=(date.today() + timedelta(days=3)).strftime('%d.%m.%Y'),
+              uhrzeit='17:00 Uhr',
+              ort='dgh',
+              kategorie='Veranstaltung',
+              beschreibung='Gemeinsamer Abend im Dorf.',
+              ansprechpartner='Gemeindeteam',
+              aktiv='Ja',
+          )
+          past = Veranstaltung(
+              titel="Liam's Geburtstag",
+              datum=(date.today() - timedelta(days=12)).strftime('%d.%m.%Y'),
+              uhrzeit='18:00 Uhr',
+              ort='In der Flöte 19',
+              kategorie='Veranstaltung',
+              beschreibung='Ursprüngliche Einladung.',
+              ansprechpartner='Dennis',
+              rueckblick_text='Ein schöner gemeinsamer Abend.',
+              rueckblick_bilder_json=json.dumps([
+                  {'mime':'image/jpeg','data':'aGVsbG8='},
+                  {'mime':'image/webp','data':'d29ybGQ='},
+              ]),
+              aktiv='Ja',
+          )
+          db.add_all([future, past]); db.commit(); db.refresh(future); db.refresh(past)
+          future_id, past_id = future.id, past.id
+          db.close()
+
+          import pwa_main
+          from runtime_extensions import install_runtime_extensions
+          install_runtime_extensions()
+          assert pwa_main.app.state.event_detail_redesign_installed is True
+
+          matching = [r for r in pwa_main.app.router.routes if getattr(r, 'path', '') == '/aktuelles-termine/{event_id}']
+          assert matching
+          assert matching[0].endpoint.__module__ == 'event_detail_redesign'
+
+          from event_detail_redesign import redesigned_event_detail
+          request = Request({
+              'type':'http','method':'GET','path':'/aktuelles-termine/1','headers':[],
+              'query_string':b'', 'scheme':'http', 'server':('testserver',80),
+              'client':('127.0.0.1',1)
+          })
+
+          upcoming = asyncio.run(redesigned_event_detail(request, future_id)).body.decode('utf-8')
+          assert 'Winterfest' in upcoming
+          assert '17:00 Uhr' in upcoming
+          assert 'DGH' in upcoming
+          assert 'Über die Veranstaltung' in upcoming
+          assert '🔔 Erinnern' in upcoming
+          assert '📅 Zum Kalender' in upcoming
+          assert 'Ursprüngliche Veranstaltungsinfo' not in upcoming
+          assert 'padding-bottom:230px' in upcoming
+
+          recap = asyncio.run(redesigned_event_detail(request, past_id)).body.decode('utf-8')
+          assert 'Liams Geburtstag' in recap
+          assert 'Dorfchronik' in recap
+          assert 'So war es' in recap
+          assert 'Ein schöner gemeinsamer Abend.' in recap
+          assert 'Ursprüngliche Veranstaltungsinfo' in recap
+          assert 'data-event-photo=' in recap
+          assert 'event-photo-lightbox' in recap
+          assert '🔔 Erinnern' not in recap
+          assert 'Zum Kalender' not in recap
+
+          print('Event detail redesign smoke tests passed')
+          PY

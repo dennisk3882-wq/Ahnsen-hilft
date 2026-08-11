@@ -66,3 +66,10 @@ def install_runtime_extensions() -> None:
         import event_storage_polish  # noqa: F401
         import current_events_final_polish  # noqa: F401
         app.state.current_events_final_polish_installed = True
+
+    if not getattr(app.state, "event_detail_redesign_installed", False):
+        # Final event-detail route: upcoming appointments focus on the key
+        # facts/actions; past appointments become recap pages with a gallery.
+        from event_detail_redesign import router as event_detail_router
+        _prepend_router(app, event_detail_router)
+        app.state.event_detail_redesign_installed = True
