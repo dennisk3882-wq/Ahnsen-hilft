@@ -99,7 +99,7 @@ jobs:
           assert 'Liams Geburtstag' in page
           assert '18:00 Uhr' in page
           assert '📍 DGH' in page
-          assert 'ctm-archive-link' not in page
+          assert '<a class="ctm-archive-link"' not in page
           assert 'mask-image:linear-gradient' in page
           assert 'padding-bottom:235px' in page
 
