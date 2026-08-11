@@ -5,7 +5,7 @@ from datetime import date, datetime
 from html import escape
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 
 from current_events_reminders import reminder_active
 from event_time_utils import canonical_event_time, display_event_place, display_event_title
@@ -20,7 +20,7 @@ router = APIRouter()
 
 DETAIL_CSS = r'''
 <style>
-.ed{display:grid;gap:16px;min-width:0;max-width:100%;padding-bottom:230px;color:#10281e}
+.ed{display:grid;gap:16px;min-width:0;max-width:100%;padding-bottom:170px;color:#10281e}
 .ed *{box-sizing:border-box;min-width:0}
 .ed-back{display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:100%;color:var(--forest);font-weight:900;text-decoration:none;font-size:14px}
 .ed-hero,.ed-card,.ed-recap,.ed-original{border:1px solid #dce5d9;border-radius:25px;background:#fff;box-shadow:0 10px 30px rgba(28,72,48,.055);overflow:hidden}
@@ -40,7 +40,7 @@ DETAIL_CSS = r'''
 .ed-fact strong{display:block;margin-top:2px;color:#304b3b;font-size:12px;line-height:1.35;overflow-wrap:anywhere}
 .ed-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:17px}
 .ed-actions form{margin:0}
-.ed-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:49px;padding:10px 12px;border:1px solid #cbd8c9;border-radius:15px;background:#fff;color:var(--forest);font:inherit;font-size:12px;font-weight:950;text-decoration:none;text-align:center;cursor:pointer}
+.ed-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:49px;padding:10px 9px;border:1px solid #cbd8c9;border-radius:15px;background:#fff;color:var(--forest);font:inherit;font-size:11.5px;font-weight:950;text-decoration:none;text-align:center;cursor:pointer;white-space:nowrap}
 .ed-btn.primary{background:var(--forest);border-color:var(--forest);color:#fff}
 .ed-notice{margin-top:13px;padding:11px 13px;border-radius:14px;background:#edf5e9;color:#40594a;font-size:11px;line-height:1.5}
 .ed-push-hint{margin:10px 0 0;color:#7c877f;font-size:10.5px;line-height:1.45;text-align:center}
@@ -51,6 +51,7 @@ DETAIL_CSS = r'''
 .ed-contact{display:flex;align-items:flex-start;gap:10px;margin-top:15px;padding:12px 13px;border-radius:15px;background:#f5f8f2;color:#465b4e}
 .ed-contact span{font-size:18px}.ed-contact strong{display:block;font-size:12px}.ed-contact small{display:block;margin-top:2px;color:#7c877f;font-size:10px}
 .ed-recap{background:linear-gradient(145deg,#fff,#f1f7ed)}
+.ed-recap.compact{padding:15px 16px}.ed-recap.compact h2{margin:4px 0 8px;font-size:19px}.ed-recap.compact .ed-empty-recap{padding:10px 12px}
 .ed-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px}
 .ed-photo{display:block;padding:0;border:0;border-radius:14px;overflow:hidden;background:#edf1eb;cursor:pointer}
 .ed-photo img{display:block;width:100%;aspect-ratio:1.15;object-fit:cover;transition:transform .2s ease}.ed-photo:active img{transform:scale(.985)}
@@ -62,7 +63,8 @@ DETAIL_CSS = r'''
 .ed-lightbox{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(8,24,16,.92)}
 .ed-lightbox.open{display:flex}.ed-lightbox img{display:block;max-width:100%;max-height:86vh;border-radius:16px;object-fit:contain;background:#fff}
 .ed-lightbox-close{position:absolute;top:max(18px,env(safe-area-inset-top));right:18px;width:46px;height:46px;border:0;border-radius:50%;background:#fff;color:var(--forest);font-size:25px;font-weight:900;cursor:pointer}
-@media(max-width:420px){.ed{padding-bottom:245px}.ed-main,.ed-card,.ed-recap{padding:16px}.ed-facts{grid-template-columns:1fr 1fr}.ed-fact{padding:10px}.ed-actions{grid-template-columns:1fr}.ed-gallery{gap:7px}}
+@media(max-width:420px){.ed{padding-bottom:185px}.ed-main,.ed-card,.ed-recap{padding:16px}.ed-facts{grid-template-columns:1fr 1fr}.ed-fact{padding:10px}.ed-gallery{gap:7px}.ed-recap.compact{padding:14px}}
+@media(max-width:350px){.ed-actions{grid-template-columns:1fr}.ed-btn{white-space:normal}}
 </style>
 '''
 
@@ -82,6 +84,17 @@ LIGHTBOX_JS = r'''
 })();
 </script>
 '''
+
+_CONTACT_PLACEHOLDERS = {
+    "ansprechpartner",
+    "keine angabe",
+    "keine",
+    "nicht angegeben",
+    "n/a",
+    "na",
+    "-",
+    "—",
+}
 
 
 def _event_date(event) -> date | None:
@@ -112,7 +125,7 @@ def _gallery(event) -> list[tuple[str, str]]:
 
 def _status_text(event_day: date | None, past: bool) -> str:
     if past:
-        return "Vergangene Veranstaltung"
+        return "Vergangener Termin"
     if not event_day:
         return "Termin"
     delta = (event_day - date.today()).days
@@ -123,6 +136,13 @@ def _status_text(event_day: date | None, past: bool) -> str:
     if 1 < delta <= 14:
         return f"In {delta} Tagen"
     return "Bevorstehend"
+
+
+def _clean_contact(value: str | None) -> str:
+    text = str(value or "").strip()
+    if text.casefold() in _CONTACT_PLACEHOLDERS:
+        return ""
+    return text
 
 
 def _fact(icon: str, label: str, value: str) -> str:
@@ -162,7 +182,7 @@ async def redesigned_event_detail(request: Request, event_id: int, hinweis: str 
     description = str(getattr(event, "beschreibung", "") or "Weitere Informationen folgen.").strip()
     when = canonical_event_time(getattr(event, "uhrzeit", ""))
     place = display_event_place(getattr(event, "ort", ""))
-    contact = str(getattr(event, "ansprechpartner", "") or "").strip()
+    contact = _clean_contact(getattr(event, "ansprechpartner", ""))
     recap = str(getattr(event, "rueckblick_text", "") or "").strip()
     gallery = _gallery(event)
 
@@ -197,20 +217,23 @@ async def redesigned_event_detail(request: Request, event_id: int, hinweis: str 
         contact_html = f'''<div class="ed-contact"><span>👥</span><div><strong>Ansprechpartner</strong><small>{escape(contact)}</small></div></div>'''
 
     if past:
-        recap_body = f'<p class="ed-copy">{escape(recap)}</p>' if recap else '<p class="ed-empty-recap">Zu dieser Veranstaltung wurde noch kein Nachbericht ergänzt.</p>'
+        recap_body = f'<p class="ed-copy">{escape(recap)}</p>' if recap else '<p class="ed-empty-recap">Zu diesem Termin wurde noch kein Nachbericht ergänzt.</p>'
         photos = _gallery_html(event, title)
         gallery_html = f'<div class="ed-gallery">{photos}</div>' if photos else ""
-        recap_section = f'''<section class="ed-recap"><span class="ed-eye">Dorfchronik</span><h2>{'So war es' if recap or gallery else 'Rückblick'}</h2>{recap_body}{gallery_html}</section>'''
-        original = f'''<details class="ed-original"><summary>Ursprüngliche Veranstaltungsinfo</summary><div class="ed-original-body"><p class="ed-copy">{escape(description)}</p>{f'<div class="ed-contact"><span>👥</span><div><strong>Ansprechpartner</strong><small>{escape(contact)}</small></div></div>' if contact else ''}</div></details>'''
+        compact_class = "" if recap or gallery else " compact"
+        recap_section = f'''<section class="ed-recap{compact_class}"><span class="ed-eye">Dorfchronik</span><h2>{'So war es' if recap or gallery else 'Rückblick'}</h2>{recap_body}{gallery_html}</section>'''
+        original_contact = f'<div class="ed-contact"><span>👥</span><div><strong>Ansprechpartner</strong><small>{escape(contact)}</small></div></div>' if contact else ""
+        original = f'''<details class="ed-original"><summary>Ursprüngliche Termininfo</summary><div class="ed-original-body"><p class="ed-copy">{escape(description)}</p>{original_contact}</div></details>'''
         lower = recap_section + original
     else:
-        lower = f'''<section class="ed-card"><span class="ed-eye">Informationen</span><h2>Über die Veranstaltung</h2><p class="ed-copy">{escape(description)}</p>{contact_html}</section>'''
+        lower = f'''<section class="ed-card"><span class="ed-eye">Informationen</span><h2>Über den Termin</h2><p class="ed-copy">{escape(description)}</p>{contact_html}</section>'''
 
-    hero = f'''<section class="{hero_class}">{hero_image}<div class="ed-main"><div class="ed-kicker"><span class="ed-badge{' past' if past else ''}">{escape(badge)}</span><span class="ed-status">{escape(status)}</span></div><h1>{escape(title)}</h1><p class="ed-lead">{'Fotos und Nachbericht zur vergangenen Veranstaltung.' if past else 'Alle wichtigen Informationen zum Termin auf einen Blick.'}</p><div class="ed-facts">{''.join(facts)}</div>{notice}{actions}{push_hint}</div></section>'''
+    hero_lead = "Fotos und Nachbericht zum vergangenen Termin." if past else "Alle wichtigen Informationen zum Termin auf einen Blick."
+    hero = f'''<section class="{hero_class}">{hero_image}<div class="ed-main"><div class="ed-kicker"><span class="ed-badge{' past' if past else ''}">{escape(badge)}</span><span class="ed-status">{escape(status)}</span></div><h1>{escape(title)}</h1><p class="ed-lead">{escape(hero_lead)}</p><div class="ed-facts">{''.join(facts)}</div>{notice}{actions}{push_hint}</div></section>'''
 
     lightbox = ""
     if past and gallery:
-        lightbox = '<div class="ed-lightbox" id="event-photo-lightbox" role="dialog" aria-modal="true" aria-label="Fotoansicht"><button class="ed-lightbox-close" type="button" aria-label="Fotoansicht schließen">×</button><img id="event-photo-lightbox-image" alt="Vergrößerte Veranstaltungsaufnahme"></div>' + LIGHTBOX_JS
+        lightbox = '<div class="ed-lightbox" id="event-photo-lightbox" role="dialog" aria-modal="true" aria-label="Fotoansicht"><button class="ed-lightbox-close" type="button" aria-label="Fotoansicht schließen">×</button><img id="event-photo-lightbox-image" alt="Vergrößerte Aufnahme zum Termin"></div>' + LIGHTBOX_JS
 
     back_href = "/aktuelles-termine?ansicht=archiv" if past else "/aktuelles-termine"
     back_label = "Zurück zum Archiv" if past else "Zurück zu Aktuelles & Termine"
