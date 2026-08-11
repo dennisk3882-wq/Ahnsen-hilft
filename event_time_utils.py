@@ -20,13 +20,11 @@ def canonical_event_time(value: str | None) -> str:
     compact = re.sub(r"\s+", "", original).lower()
     compact = compact.replace("uhr", "").replace(".", ":")
 
-    # Plain one/two-digit hour.
     if compact.isdigit() and len(compact) <= 2:
         hour = int(compact)
         if 0 <= hour <= 23:
             return f"{hour:02d}:00 Uhr"
 
-    # Four digits without separator, e.g. 1830.
     if compact.isdigit() and len(compact) == 4:
         hour = int(compact[:2])
         minute = int(compact[2:])
@@ -52,13 +50,22 @@ def time_input_value(value: str | None) -> str:
     return f"{match.group(1)}:{match.group(2)}"
 
 
+def _possessive_replacement(match: re.Match[str]) -> str:
+    name = match.group(1)
+    # Legacy/test entries sometimes used all-caps first names ("LIAM's").
+    # Keep normal names untouched, but make that display typography natural.
+    if len(name) > 1 and name.isupper():
+        name = name.capitalize()
+    return f"{name}s"
+
+
 def display_event_title(value: str | None) -> str:
     """Light display-only typography cleanup for German event titles."""
     text = str(value or "Veranstaltung").strip() or "Veranstaltung"
     if text and text[0].islower():
         text = text[0].upper() + text[1:]
     # German possessive normally has no apostrophe: "Liam's" -> "Liams".
-    return _GERMAN_POSSESSIVE.sub(r"\1s", text)
+    return _GERMAN_POSSESSIVE.sub(_possessive_replacement, text)
 
 
 def display_event_place(value: str | None) -> str:
