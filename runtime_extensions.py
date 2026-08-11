@@ -50,3 +50,10 @@ def install_runtime_extensions() -> None:
         # the established current_events_patch implementation.
         _prepend_router(app, current_events_mobile_router)
         app.state.current_events_mobile_installed = True
+
+    if not getattr(app.state, "current_events_content_polish_installed", False):
+        # This import normalizes legacy hour-only values (e.g. "17") for both
+        # detail rendering and ICS. Its route only polishes the detail title.
+        from current_events_content_polish import router as current_events_content_router
+        _prepend_router(app, current_events_content_router)
+        app.state.current_events_content_polish_installed = True
