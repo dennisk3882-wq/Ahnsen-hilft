@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate Aktuelles & Termine
         run: |
-          python -m py_compile current_events_models.py current_events_reminders.py current_events_patch.py runtime_extensions.py pwa_push_job.py
+          python -m py_compile current_events_models.py current_events_reminders.py current_events_patch.py current_events_mobile_patch.py runtime_extensions.py pwa_push_job.py
           python - <<'PY'
           import asyncio
           import base64
@@ -79,7 +79,8 @@ jobs:
           assert center._period_match(upcoming, 'alle', today)
           assert center._period_match(upcoming, 'heute', today) is False
 
-          # Production runtime must prioritize the new central routes.
+          # Production runtime keeps legacy/detail routes on the center layer,
+          # while index + pwa.js are intentionally finalized by the mobile layer.
           import pwa_main
           from runtime_extensions import install_runtime_extensions
           install_runtime_extensions()
@@ -87,12 +88,13 @@ jobs:
               rows=[r for r in pwa_main.app.router.routes if getattr(r,'path','')==path and method in (getattr(r,'methods',set()) or set())]
               assert rows, path
               return rows[0].endpoint
-          assert first('/aktuelles-termine').__module__ == 'current_events_patch'
+          assert first('/aktuelles-termine').__module__ == 'current_events_mobile_patch'
           assert first('/veranstaltungen').__module__ == 'current_events_patch'
           assert first('/aktuelles').__module__ == 'current_events_patch'
-          assert first('/pwa.js').__module__ == 'current_events_patch'
+          assert first('/pwa.js').__module__ == 'current_events_mobile_patch'
 
-          # Navigation contains only one combined entry, not separate news/events destinations.
+          # Base center navigation still contains one combined entry; the mobile
+          # layer only shortens its visible label/description.
           js = asyncio.run(center.current_events_pwa_js()).body.decode('utf-8')
           assert "href: '/aktuelles-termine'" in js
           assert "label: 'Aktuelles'" in js

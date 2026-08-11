@@ -1,0 +1,97 @@
+name: Aktuelles mobile smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: current-events-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./current-events-mobile-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate compact current events UI
+        run: |
+          python -m py_compile current_events_mobile_patch.py current_events_content_polish.py runtime_extensions.py
+          python - <<'PY'
+          import asyncio
+          from datetime import date, timedelta
+          from starlette.requests import Request
+
+          from database import Base, SessionLocal, engine
+          from veranstaltungen_models import Veranstaltung
+          import current_events_mobile_patch as mobile
+
+          Base.metadata.create_all(bind=engine)
+          today = date.today()
+          db = SessionLocal()
+          winter = Veranstaltung(
+              titel='winterfest', datum=(today + timedelta(days=5)).strftime('%d.%m.%Y'),
+              uhrzeit='17', ort='DGH', kategorie='Veranstaltung',
+              beschreibung='Gemeinsamer Abend in Ahnsen.', ansprechpartner='Gemeinde', aktiv='Ja'
+          )
+          db.add(winter)
+          db.add(Veranstaltung(
+              titel='Sommerfest', datum=(today - timedelta(days=20)).strftime('%d.%m.%Y'),
+              uhrzeit='18:30', ort='Ahnsen', kategorie='Veranstaltung',
+              beschreibung='Vergangenes Fest.', ansprechpartner='Verein', aktiv='Ja'
+          ))
+          db.commit(); db.refresh(winter); winter_id = winter.id; db.close()
+
+          assert mobile._display_title('winterfest') == 'Winterfest'
+          assert mobile._display_time('17') == '17:00 Uhr'
+          assert mobile._display_time('18:30') == '18:30 Uhr'
+          assert mobile._compact_news({'aktuelles': 'Digitale Bürgerplattform gestartet|Demo\nWhatsApp-Bot verfügbar|Demo\nEchte Dorfmeldung|Bleibt sichtbar.'}) == [('Echte Dorfmeldung', 'Bleibt sichtbar.')]
+
+          request = Request({'type':'http','method':'GET','path':'/aktuelles-termine','headers':[], 'query_string':b'', 'scheme':'http', 'server':('testserver',80), 'client':('127.0.0.1',1)})
+          html = mobile._compact_main_page(request).body.decode('utf-8')
+          assert 'Was heute und demnächst in Ahnsen passiert.' in html
+          assert 'Aktuell</a>' in html and 'Archiv</a>' in html
+          assert 'ctm-filters' in html
+          assert html.index('Dorfkalender') < html.find('Neuigkeiten') if 'Neuigkeiten' in html else True
+          assert 'Winterfest' in html and '17:00 Uhr' in html
+          assert 'Digitale Bürgerplattform gestartet' not in html
+          assert 'WhatsApp-Bot verfügbar' not in html
+
+          archive = mobile._compact_main_page(request, view='archiv').body.decode('utf-8')
+          assert 'ctm-archive-filters' in archive
+          assert archive.count('ctm-select') >= 2
+          assert 'Rückblicke' in archive
+
+          import pwa_main
+          import current_events_patch as center
+          from runtime_extensions import install_runtime_extensions
+          install_runtime_extensions()
+          rows=[r for r in pwa_main.app.router.routes if getattr(r,'path','')=='/aktuelles-termine' and 'GET' in (getattr(r,'methods',set()) or set())]
+          assert rows and rows[0].endpoint.__module__ == 'current_events_mobile_patch'
+          detail_rows=[r for r in pwa_main.app.router.routes if getattr(r,'path','')=='/aktuelles-termine/{event_id}' and 'GET' in (getattr(r,'methods',set()) or set())]
+          assert detail_rows and detail_rows[0].endpoint.__module__ == 'current_events_content_polish'
+
+          js = asyncio.run(mobile.compact_current_events_pwa_js()).body.decode('utf-8')
+          assert "label: 'Aktuell'" in js
+          assert "description: 'Termine'" in js
+          assert "description: 'Termine & Archiv'" not in js
+
+          # Legacy hour-only data must become a timed calendar entry, not all-day.
+          ics = asyncio.run(center.event_ics(winter_id)).body.decode('utf-8')
+          assert 'DTSTART;TZID=Europe/Berlin:' in ics
+          assert 'T170000' in ics
+          assert 'DTSTART;VALUE=DATE:' not in ics
+          print('Aktuelles mobile smoke tests passed')
+          PY

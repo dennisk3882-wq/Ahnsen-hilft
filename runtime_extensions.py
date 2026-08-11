@@ -38,8 +38,22 @@ def install_runtime_extensions() -> None:
 
     if not getattr(app.state, "current_events_center_installed", False):
         from current_events_patch import router as current_events_router
-        # Final public layer: merges the old Veranstaltungen and Aktuelles
-        # destinations into one citizen-facing center while keeping old URLs
-        # as redirects for bookmarks and existing links.
+        # Merges the old Veranstaltungen and Aktuelles destinations while
+        # keeping legacy URLs compatible.
         _prepend_router(app, current_events_router)
         app.state.current_events_center_installed = True
+
+    if not getattr(app.state, "current_events_mobile_installed", False):
+        from current_events_mobile_patch import router as current_events_mobile_router
+        # Final mobile-first public layer. It only overrides the center index
+        # and bottom-nav JavaScript; detail, reminder and ICS routes stay on
+        # the established current_events_patch implementation.
+        _prepend_router(app, current_events_mobile_router)
+        app.state.current_events_mobile_installed = True
+
+    if not getattr(app.state, "current_events_content_polish_installed", False):
+        # This import normalizes legacy hour-only values (e.g. "17") for both
+        # detail rendering and ICS. Its route only polishes the detail title.
+        from current_events_content_polish import router as current_events_content_router
+        _prepend_router(app, current_events_content_router)
+        app.state.current_events_content_polish_installed = True
