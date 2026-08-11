@@ -57,3 +57,12 @@ def install_runtime_extensions() -> None:
         from current_events_content_polish import router as current_events_content_router
         _prepend_router(app, current_events_content_router)
         app.state.current_events_content_polish_installed = True
+
+    if not getattr(app.state, "current_events_final_polish_installed", False):
+        # Server-side normalization protects all admin writes, while the final
+        # display layer removes the duplicate archive card, adds the filter
+        # fade, reserves enough bottom-nav space and installs the native time
+        # picker in the existing administration page.
+        import event_storage_polish  # noqa: F401
+        import current_events_final_polish  # noqa: F401
+        app.state.current_events_final_polish_installed = True
