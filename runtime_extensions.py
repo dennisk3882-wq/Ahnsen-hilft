@@ -35,3 +35,11 @@ def install_runtime_extensions() -> None:
         import neighborhood_visibility_patch  # noqa: F401
         _prepend_router(app, neighborhood_enhanced_router)
         app.state.neighborhood_enhancements_installed = True
+
+    if not getattr(app.state, "current_events_center_installed", False):
+        from current_events_patch import router as current_events_router
+        # Final public layer: merges the old Veranstaltungen and Aktuelles
+        # destinations into one citizen-facing center while keeping old URLs
+        # as redirects for bookmarks and existing links.
+        _prepend_router(app, current_events_router)
+        app.state.current_events_center_installed = True

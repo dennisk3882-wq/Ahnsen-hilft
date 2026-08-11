@@ -1,0 +1,112 @@
+name: Aktuelles und Termine smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: current-events-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./current-events-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate Aktuelles & Termine
+        run: |
+          python -m py_compile current_events_models.py current_events_reminders.py current_events_patch.py runtime_extensions.py pwa_push_job.py
+          python - <<'PY'
+          import asyncio
+          import base64
+          import json
+          from datetime import date, datetime, timedelta
+
+          from database import Base, SessionLocal, engine
+          from pwa_models import PWAUser
+          from veranstaltungen_models import Veranstaltung
+          from current_events_models import EventReminder
+          import current_events_patch as center
+          from current_events_reminders import reminder_active, toggle_reminder
+
+          Base.metadata.create_all(bind=engine)
+          today = date.today()
+          future = today + timedelta(days=1)
+          past = today - timedelta(days=20)
+          db = SessionLocal()
+          user = PWAUser(email='events@example.test', password_hash='x', name='Eva Termin', aktiv=True)
+          db.add(user); db.flush()
+          upcoming = Veranstaltung(
+              titel='Sommerabend am DGH', datum=future.strftime('%d.%m.%Y'), uhrzeit='18:00 Uhr',
+              ort='DGH Ahnsen', kategorie='Gemeinde', beschreibung='Gemeinsamer Abend im Dorf.',
+              ansprechpartner='Gemeinde Ahnsen', aktiv='Ja'
+          )
+          old = Veranstaltung(
+              titel='Frühlingsfest', datum=past.strftime('%d.%m.%Y'), uhrzeit='14:00 Uhr',
+              ort='Ahnsen', kategorie='Familie', beschreibung='Das Frühlingsfest im Dorf.',
+              ansprechpartner='Organisationsteam', rueckblick_text='Ein schöner Nachmittag mit vielen Gästen.',
+              rueckblick_bilder_json=json.dumps([{'mime':'image/jpeg','data':base64.b64encode(b'test-photo').decode()}]), aktiv='Ja'
+          )
+          db.add_all([upcoming, old]); db.commit(); db.refresh(user); db.refresh(upcoming); db.refresh(old)
+          uid, upcoming_id, old_id = user.id, upcoming.id, old.id
+          db.close()
+
+          # Reminder storage toggles exactly one event subscription.
+          assert reminder_active(uid, upcoming_id) is False
+          assert toggle_reminder(uid, upcoming_id) is True
+          assert reminder_active(uid, upcoming_id) is True
+          assert toggle_reminder(uid, upcoming_id) is False
+
+          # Existing event lifecycle data is preserved and presented as a recap.
+          assert center._gallery(old)[0][0] == 'image/jpeg'
+          card = center._event_card(old, past=True)
+          assert 'Rückblick' in card and 'Nachbericht' in card and '1 Foto' in card
+
+          # Filter behavior.
+          assert center._period_match(upcoming, 'alle', today)
+          assert center._period_match(upcoming, 'heute', today) is False
+
+          # Production runtime must prioritize the new central routes.
+          import pwa_main
+          from runtime_extensions import install_runtime_extensions
+          install_runtime_extensions()
+          def first(path, method='GET'):
+              rows=[r for r in pwa_main.app.router.routes if getattr(r,'path','')==path and method in (getattr(r,'methods',set()) or set())]
+              assert rows, path
+              return rows[0].endpoint
+          assert first('/aktuelles-termine').__module__ == 'current_events_patch'
+          assert first('/veranstaltungen').__module__ == 'current_events_patch'
+          assert first('/aktuelles').__module__ == 'current_events_patch'
+          assert first('/pwa.js').__module__ == 'current_events_patch'
+
+          # Navigation contains only one combined entry, not separate news/events destinations.
+          js = asyncio.run(center.current_events_pwa_js()).body.decode('utf-8')
+          assert "href: '/aktuelles-termine'" in js
+          assert "label: 'Aktuelles'" in js
+          assert "href: '/veranstaltungen', label: 'Termine'" not in js
+          assert "href: '/aktuelles', label: 'Aktuelles'" not in js
+
+          # ICS is generated from the existing event itself.
+          ics = asyncio.run(center.event_ics(upcoming_id))
+          text = ics.body.decode('utf-8')
+          assert 'BEGIN:VCALENDAR' in text and 'Sommerabend am DGH' in text and 'DGH Ahnsen' in text
+
+          # Push cron wrapper imports and event model table is registered.
+          import pwa_push_job
+          assert callable(pwa_push_job.run)
+          assert 'event_reminders' in Base.metadata.tables
+          print('Aktuelles & Termine smoke tests passed')
+          PY
