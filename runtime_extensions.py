@@ -30,5 +30,8 @@ def install_runtime_extensions() -> None:
 
     if not getattr(app.state, "neighborhood_enhancements_installed", False):
         from neighborhood_enhanced_patch import router as neighborhood_enhanced_router
+        # The enhanced UI is the final citizen route. Clean up duplicate hero
+        # actions after importing it, while keeping the central inbox itself.
+        import neighborhood_visibility_patch  # noqa: F401
         _prepend_router(app, neighborhood_enhanced_router)
         app.state.neighborhood_enhancements_installed = True
