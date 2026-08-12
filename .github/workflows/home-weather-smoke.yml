@@ -137,7 +137,8 @@ jobs:
           assert 'Nächster Termin' in html
           assert 'Winterfest' in html
           assert '>Morgen<' in html
-          assert 'Bioabfall + 1 weitere' in html
+          assert 'Bioabfall, Leichtverpackungen' in html
+          assert '+ 1 weitere' not in html
           assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' in html
           assert '<section class="notice-card"' not in html
           assert '<section class="notice-card empty-notice"' not in html
