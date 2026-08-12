@@ -19,12 +19,13 @@ FINAL_HOME_CSS = r'''
 .home-dashboard-v2 .hero-card{min-height:225px!important}
 .home-dashboard-v2 .hero-overlay{inset:auto 22px 17px!important}
 .home-dashboard-v2 .hero-overlay h1{font-size:clamp(29px,5.9vw,45px)!important}
-.home-quick-card{min-height:90px!important;grid-template-columns:39px minmax(0,1fr) 13px!important;align-items:center!important}
-.home-quick-card>div{display:grid!important;grid-template-rows:14px 32px 14px;align-content:center;min-width:0}
+.home-quick-card{min-height:102px!important;grid-template-columns:39px minmax(0,1fr) 13px!important;align-items:center!important}
+.home-quick-card>div{display:grid!important;grid-template-rows:14px 46px 14px;align-content:center;min-width:0}
 .home-quick-card small{align-self:end}
-.home-quick-card strong{align-self:start;margin-top:1px!important;line-height:1.22!important}
+.home-quick-card strong{align-self:start;margin-top:1px!important;line-height:1.18!important;-webkit-line-clamp:3!important}
 .home-quick-card .home-quick-meta{align-self:start;margin-top:1px!important}
 .home-quick-arrow{align-self:center}
+.home-quick-card.waste-card strong{font-size:11px!important}
 @media(max-width:560px){
   .home-dashboard-v2 .hero-card{min-height:205px!important}
   .home-dashboard-v2 .hero-overlay{inset:auto 18px 14px!important}
@@ -42,9 +43,7 @@ def _waste_summary(value: str | None) -> str:
     parts = [part.strip() for part in re.split(r"[,;/]+", text) if part.strip()]
     if not parts:
         return "Müllabfuhr"
-    if len(parts) == 1:
-        return parts[0]
-    return f"{parts[0]} + {len(parts) - 1} weitere"
+    return ", ".join(parts)
 
 
 def _waste_day_label(value: date | None, today: date) -> str:
@@ -98,7 +97,7 @@ def _quick_overview() -> str:
   <div class="home-greeting-compact"><div><span class="eyebrow">{escape(greeting)} 👋</span><h2>Schön, dass du da bist.</h2></div></div>
   <div class="home-quick-grid">
     <a class="home-quick-card" href="{escape(event_href)}" aria-label="{escape(event_label)}: {escape(event_title)}"><span>▣</span><div><small>{escape(event_label)}</small><strong>{escape(event_title)}</strong><span class="home-quick-meta">{escape(event_meta)}</span></div><span class="home-quick-arrow">›</span></a>
-    <a class="home-quick-card" href="/muelltermine-info" aria-label="{escape(waste_label)}: {escape(waste_full)}" title="{escape(waste_full)}"><span>♻</span><div><small>{escape(waste_label)}</small><strong>{escape(waste_title)}</strong><span class="home-quick-meta">{escape(waste_meta)}</span></div><span class="home-quick-arrow">›</span></a>
+    <a class="home-quick-card waste-card" href="/muelltermine-info" aria-label="{escape(waste_label)}: {escape(waste_full)}" title="{escape(waste_full)}"><span>♻</span><div><small>{escape(waste_label)}</small><strong>{escape(waste_title)}</strong><span class="home-quick-meta">{escape(waste_meta)}</span></div><span class="home-quick-arrow">›</span></a>
   </div>
 </section>
 '''
