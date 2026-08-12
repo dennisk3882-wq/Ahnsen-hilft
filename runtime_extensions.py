@@ -6,6 +6,18 @@ def _prepend_router(app, router) -> None:
         app.router.routes.insert(0, route)
 
 
+def _reposition_router_first(app, router) -> None:
+    """Keep one router's exact route objects at the very front.
+
+    Some production bootstrap paths install runtime extensions more than once.
+    Repositioning the final homepage router makes its precedence deterministic
+    without accumulating duplicate copies of the same APIRoute objects.
+    """
+    owned = list(router.routes)
+    app.router.routes[:] = [route for route in app.router.routes if route not in owned]
+    _prepend_router(app, router)
+
+
 def install_runtime_extensions() -> None:
     """Install production route overrides on the established pwa_main app."""
     from pwa_core import app
@@ -80,3 +92,10 @@ def install_runtime_extensions() -> None:
         from mangel_duplicate_patch import router as mangel_duplicate_router
         _prepend_router(app, mangel_duplicate_router)
         app.state.mangel_duplicate_workflow_installed = True
+
+    # This is intentionally re-positioned on every call, even after its state
+    # flag is set. Older bootstraps may register another '/' route afterwards;
+    # a later runtime setup must always restore this final citizen homepage.
+    from home_weather_center import router as home_weather_router
+    _reposition_router_first(app, home_weather_router)
+    app.state.home_weather_dashboard_installed = True
