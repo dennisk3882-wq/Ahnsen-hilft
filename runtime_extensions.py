@@ -73,3 +73,10 @@ def install_runtime_extensions() -> None:
         from event_detail_redesign import router as event_detail_router
         _prepend_router(app, event_detail_router)
         app.state.event_detail_redesign_installed = True
+
+    if not getattr(app.state, "mangel_duplicate_workflow_installed", False):
+        # Final Mängelmelder layer: server-side similarity scoring, citizen
+        # duplicate warning/confirmation and administration review/merge flow.
+        from mangel_duplicate_patch import router as mangel_duplicate_router
+        _prepend_router(app, mangel_duplicate_router)
+        app.state.mangel_duplicate_workflow_installed = True
