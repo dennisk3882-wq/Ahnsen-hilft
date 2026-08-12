@@ -17,8 +17,10 @@ router = APIRouter()
 FINAL_HOME_CSS = r'''
 <style id="home-dashboard-final-polish">
 .home-dashboard-v2 .hero-card{min-height:225px!important}
+.home-dashboard-v2 .hero-image{background-image:linear-gradient(180deg,rgba(10,38,27,.08) 0%,rgba(10,38,27,.18) 48%,rgba(8,31,22,.58) 100%),url('/static/ahnsen-hero.webp')!important;background-size:cover!important;background-position:center 54%!important}
 .home-dashboard-v2 .hero-overlay{inset:auto 22px 17px!important}
-.home-dashboard-v2 .hero-overlay h1{font-size:clamp(29px,5.9vw,45px)!important}
+.home-dashboard-v2 .hero-overlay h1{font-size:clamp(29px,5.9vw,45px)!important;text-shadow:0 2px 12px rgba(0,0,0,.18)}
+.home-dashboard-v2 .hero-overlay p{text-shadow:0 1px 8px rgba(0,0,0,.22)}
 .home-quick-card{min-height:102px!important;grid-template-columns:39px minmax(0,1fr) 13px!important;align-items:center!important}
 .home-quick-card>div{display:grid!important;grid-template-rows:14px 46px 14px;align-content:center;min-width:0}
 .home-quick-card small{align-self:end}
@@ -28,6 +30,7 @@ FINAL_HOME_CSS = r'''
 .home-quick-card.waste-card strong{font-size:11px!important}
 @media(max-width:560px){
   .home-dashboard-v2 .hero-card{min-height:205px!important}
+  .home-dashboard-v2 .hero-image{background-position:center 56%!important}
   .home-dashboard-v2 .hero-overlay{inset:auto 18px 14px!important}
   .home-dashboard-v2 .hero-overlay h1{font-size:29px!important;line-height:1!important}
   .home-dashboard-v2 .hero-overlay p{font-size:11px!important;line-height:1.3!important}
