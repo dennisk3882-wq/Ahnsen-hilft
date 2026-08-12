@@ -15,11 +15,12 @@ from veranstaltungen_crud import get_aktive_veranstaltungen
 
 router = APIRouter()
 HERO_IMAGE_PATH = Path(__file__).resolve().parent / "static" / "ahnsen-hero.webp"
+HERO_IMAGE_VERSION = "v2"
 
 FINAL_HOME_CSS = r'''
 <style id="home-dashboard-final-polish">
 .home-dashboard-v2 .hero-card{min-height:225px!important}
-.home-dashboard-v2 .hero-image{background-image:linear-gradient(180deg,rgba(10,38,27,.08) 0%,rgba(10,38,27,.18) 48%,rgba(8,31,22,.58) 100%),url('/assets/ahnsen-hero.webp')!important;background-size:cover!important;background-position:center 54%!important}
+.home-dashboard-v2 .hero-image{background-image:linear-gradient(180deg,rgba(10,38,27,.08) 0%,rgba(10,38,27,.18) 48%,rgba(8,31,22,.58) 100%),url('/assets/ahnsen-hero.webp?v=2')!important;background-size:cover!important;background-position:center 54%!important}
 .home-dashboard-v2 .hero-overlay{inset:auto 22px 17px!important}
 .home-dashboard-v2 .hero-overlay h1{font-size:clamp(29px,5.9vw,45px)!important;text-shadow:0 2px 12px rgba(0,0,0,.18)}
 .home-dashboard-v2 .hero-overlay p{text-shadow:0 1px 8px rgba(0,0,0,.22)}
