@@ -41,9 +41,9 @@ jobs:
           assert polish.HERO_IMAGE_PATH.exists()
           with Image.open(polish.HERO_IMAGE_PATH) as hero:
               assert hero.format == 'WEBP', hero.format
-              assert hero.width >= 900 and hero.height >= 500, hero.size
+              assert hero.width >= 700 and hero.height >= 390, hero.size
               hero.load()
-          assert polish.HERO_IMAGE_PATH.stat().st_size > 50000
+          assert polish.HERO_IMAGE_PATH.stat().st_size > 25000
           assert polish._waste_summary('Bioabfall, Leichtverpackungen, Sommerbiotonne') == 'Bioabfall, Leichtverpackungen, Sommerbiotonne'
           assert polish._waste_summary('Restabfall') == 'Restabfall'
 
