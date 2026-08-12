@@ -93,9 +93,13 @@ def install_runtime_extensions() -> None:
         _prepend_router(app, mangel_duplicate_router)
         app.state.mangel_duplicate_workflow_installed = True
 
-    # This is intentionally re-positioned on every call, even after its state
-    # flag is set. Older bootstraps may register another '/' route afterwards;
-    # a later runtime setup must always restore this final citizen homepage.
+    # These homepage layers are intentionally re-positioned on every call.
+    # Older bootstraps may register another '/' route afterwards; a later
+    # runtime setup must always restore the final citizen homepage.
     from home_weather_center import router as home_weather_router
     _reposition_router_first(app, home_weather_router)
     app.state.home_weather_dashboard_installed = True
+
+    from home_dashboard_final_polish import router as home_final_router
+    _reposition_router_first(app, home_final_router)
+    app.state.home_dashboard_final_polish_installed = True

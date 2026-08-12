@@ -31,7 +31,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate compact homepage and weather forecast
         run: |
-          python -m py_compile weather_service.py home_weather_center.py runtime_extensions.py
+          python -m py_compile weather_service.py home_weather_center.py home_dashboard_final_polish.py runtime_extensions.py
           python - <<'PY'
           import asyncio
           from datetime import datetime, timedelta
@@ -116,25 +116,29 @@ jobs:
           from runtime_extensions import install_runtime_extensions
           install_runtime_extensions()
           assert pwa_main.app.state.home_weather_dashboard_installed is True
+          assert pwa_main.app.state.home_dashboard_final_polish_installed is True
 
           def first_route(path, method):
               rows = [r for r in pwa_main.app.router.routes if getattr(r,'path','') == path and method in (getattr(r,'methods',set()) or set())]
               assert rows, (path, method)
               return rows[0]
 
-          assert first_route('/', 'GET').endpoint.__module__ == 'home_weather_center'
+          assert first_route('/', 'GET').endpoint.__module__ == 'home_dashboard_final_polish'
           assert first_route('/wetter', 'GET').endpoint.__module__ == 'home_weather_center'
           assert first_route('/api/wetter', 'GET').endpoint.__module__ == 'home_weather_center'
 
-          from home_weather_center import compact_home_with_weather, weather_page
-          home = asyncio.run(compact_home_with_weather())
+          from home_dashboard_final_polish import final_home_dashboard
+          from home_weather_center import weather_page
+          home = asyncio.run(final_home_dashboard())
           html = home.body.decode('utf-8')
           assert 'home-weather-dashboard-style' in html
+          assert 'home-dashboard-final-polish' in html
           assert 'hero-weather-chip' in html and 'href="/wetter"' in html
           assert 'Nächster Termin' in html
           assert 'Winterfest' in html
-          assert 'Müllabfuhr · morgen' in html
-          assert 'Bioabfall, Leichtverpackungen' in html
+          assert '>Morgen<' in html
+          assert 'Bioabfall + 1 weitere' in html
+          assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' in html
           assert '<section class="notice-card"' not in html
           assert '<section class="notice-card empty-notice"' not in html
           assert 'Aktuelles &amp; Termine' in html

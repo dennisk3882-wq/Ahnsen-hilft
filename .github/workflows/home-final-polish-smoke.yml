@@ -1,0 +1,74 @@
+name: Homepage final polish smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: home-final-polish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./home-final-polish-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate final homepage polish
+        run: |
+          python -m py_compile home_dashboard_final_polish.py runtime_extensions.py
+          python - <<'PY'
+          import asyncio
+          from datetime import timedelta
+          from types import SimpleNamespace
+
+          import home_dashboard_final_polish as polish
+          from pwa_core import startup
+
+          assert polish._waste_summary('Bioabfall, Leichtverpackungen, Sommerbiotonne') == 'Bioabfall + 2 weitere'
+          assert polish._waste_summary('Restabfall') == 'Restabfall'
+
+          now = polish.center._local_now()
+          today = now.date()
+          assert polish._waste_day_label(today, today) == 'Heute'
+          assert polish._waste_day_label(today + timedelta(days=1), today) == 'Morgen'
+
+          polish.get_aktive_veranstaltungen = lambda: []
+          polish.get_naechste_muelltermine = lambda limit=1: [SimpleNamespace(
+              datum=today + timedelta(days=1),
+              abfuhrarten='Bioabfall, Leichtverpackungen, Sommerbiotonne',
+          )]
+
+          startup()
+          import pwa_main
+          from runtime_extensions import install_runtime_extensions
+          install_runtime_extensions()
+
+          roots = [
+              route for route in pwa_main.app.router.routes
+              if getattr(route, 'path', '') == '/' and 'GET' in (getattr(route, 'methods', set()) or set())
+          ]
+          assert roots and roots[0].endpoint.__module__ == 'home_dashboard_final_polish', roots[0].endpoint.__module__ if roots else None
+
+          response = asyncio.run(polish.final_home_dashboard())
+          html = response.body.decode('utf-8')
+          assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' in html
+          assert 'Informationen, Veranstaltungen, DGH, Mülltermine' not in html
+          assert 'min-height:205px!important' in html
+          assert '>Morgen<' in html
+          assert 'Bioabfall + 2 weitere' in html
+          assert 'home-dashboard-final-polish' in html
+          print('Homepage final polish smoke tests passed')
+          PY
