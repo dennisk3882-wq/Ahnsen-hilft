@@ -22,7 +22,9 @@ def init_db():
         "duplicate_score": "INTEGER DEFAULT 0",
         "duplicate_state": "VARCHAR DEFAULT ''",
         "duplicate_of_ticket": "VARCHAR",
-        "duplicate_checked_at": "DATETIME",
+        # PostgreSQL kennt keinen DATETIME-Typ. TIMESTAMP funktioniert sowohl
+        # auf PostgreSQL (Render) als auch auf SQLite in den Smoke-Tests.
+        "duplicate_checked_at": "TIMESTAMP",
     }
     for spaltenname, spaltentyp in migrationen.items():
         if spaltenname in vorhandene_spalten:
