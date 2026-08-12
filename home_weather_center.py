@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from html import escape
 from zoneinfo import ZoneInfo
 
@@ -137,7 +137,7 @@ WEATHER_PAGE_JS = r'''
   fetch('/api/wetter', {cache:'no-store'})
     .then(r => r.ok ? r.json() : Promise.reject(new Error('Wetterdienst antwortet nicht.')))
     .then(render)
-    .catch(error => {
+    .catch(() => {
       $('weather-loading').hidden = true;
       const box = $('weather-error');
       box.hidden = false;
@@ -193,7 +193,7 @@ def _quick_overview() -> str:
     if event and event_day:
         if event_day == today:
             event_label = "Heute in Ahnsen"
-        elif event_day == today.fromordinal(today.toordinal() + 1):
+        elif event_day == today + timedelta(days=1):
             event_label = "Morgen in Ahnsen"
         else:
             event_label = "Nächster Termin"
@@ -258,7 +258,12 @@ def _inject_home_dashboard(response: HTMLResponse) -> HTMLResponse:
         flags=re.S,
     )
     html = html.replace("</body>", HOME_WEATHER_JS + "</body>", 1)
-    return HTMLResponse(html, status_code=response.status_code, headers=dict(response.headers))
+    headers = {
+        key: value
+        for key, value in response.headers.items()
+        if key.lower() not in {"content-length", "content-type"}
+    }
+    return HTMLResponse(html, status_code=response.status_code, headers=headers)
 
 
 @router.get("/")
