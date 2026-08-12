@@ -37,7 +37,7 @@ jobs:
           import home_dashboard_final_polish as polish
           from pwa_core import startup
 
-          assert polish._waste_summary('Bioabfall, Leichtverpackungen, Sommerbiotonne') == 'Bioabfall + 2 weitere'
+          assert polish._waste_summary('Bioabfall, Leichtverpackungen, Sommerbiotonne') == 'Bioabfall, Leichtverpackungen, Sommerbiotonne'
           assert polish._waste_summary('Restabfall') == 'Restabfall'
 
           now = polish.center._local_now()
@@ -68,7 +68,9 @@ jobs:
           assert 'Informationen, Veranstaltungen, DGH, Mülltermine' not in html
           assert 'min-height:205px!important' in html
           assert '>Morgen<' in html
-          assert 'Bioabfall + 2 weitere' in html
+          assert 'Bioabfall, Leichtverpackungen, Sommerbiotonne' in html
+          assert '+ 2 weitere' not in html
+          assert 'waste-card' in html
           assert 'home-dashboard-final-polish' in html
           print('Homepage final polish smoke tests passed')
           PY
