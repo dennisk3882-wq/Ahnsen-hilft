@@ -228,6 +228,9 @@ def find_duplicate_matches(*, art: str, ort: str, beschreibung: str, latitude: s
             db.query(Meldung)
             .filter(Meldung.status != "Erledigt")
             .filter(Meldung.erstellt_am >= cutoff)
+            # A report already bundled under a main case must not become the
+            # public candidate itself; future reports should point to a main case.
+            .filter((Meldung.duplicate_state.is_(None)) | (Meldung.duplicate_state != "Zusammengeführt"))
         )
         if exclude_ticket:
             query = query.filter(Meldung.ticket != exclude_ticket)
