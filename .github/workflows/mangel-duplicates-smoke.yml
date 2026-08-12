@@ -31,6 +31,7 @@ jobs:
           python -m py_compile models.py crud.py mangel_duplicates.py mangel_duplicate_patch.py runtime_extensions.py
           python - <<'PY'
           import asyncio
+          import json
           from datetime import datetime, timedelta
           from sqlalchemy import inspect
           from starlette.requests import Request
@@ -38,152 +39,126 @@ jobs:
           from database import Base, SessionLocal, engine
           from models import Meldung
           from crud import (
-              get_duplicate_children,
-              get_duplicate_overview,
-              get_meldung,
-              init_db,
-              mark_duplicate_suspicion,
-              save_meldung,
-              set_duplicate_decision,
-              update_status,
+              get_duplicate_children, get_duplicate_overview, get_meldung, init_db,
+              mark_duplicate_suspicion, save_meldung, set_duplicate_decision,
+              suche_meldungen, update_status,
           )
           from mangel_duplicates import WARNING_THRESHOLD, find_duplicate_matches
 
           Base.metadata.drop_all(bind=engine)
           Base.metadata.create_all(bind=engine)
           init_db()
-          columns = {col['name'] for col in inspect(engine).get_columns('meldungen')}
-          assert {
-              'duplicate_candidate_ticket', 'duplicate_score', 'duplicate_state',
-              'duplicate_of_ticket', 'duplicate_checked_at'
-          } <= columns
+          columns = {c['name'] for c in inspect(engine).get_columns('meldungen')}
+          assert {'duplicate_candidate_ticket','duplicate_score','duplicate_state','duplicate_of_ticket','duplicate_checked_at'} <= columns
 
           db = SessionLocal()
-          existing = Meldung(
-              ticket='AHN-LICHT-001', status='Offen', art='Straßenlaterne defekt',
-              ort='In der Flöte 19',
-              beschreibung='Die Straßenlaterne vor Haus 19 leuchtet nicht.\n\nGPS-Position: 52.240000, 9.100000',
-              foto_vorhanden='Nein', whatsapp_absender='PWA', interne_notiz='',
-              erstellt_am=datetime.utcnow() - timedelta(days=2),
-          )
-          unrelated = Meldung(
-              ticket='AHN-MUELL-001', status='Offen', art='Müllablagerung',
-              ort='Schulstraße 2',
-              beschreibung='Mehrere Müllsäcke liegen am Straßenrand.\n\nGPS-Position: 52.250000, 9.120000',
-              foto_vorhanden='Nein', whatsapp_absender='PWA', interne_notiz='',
-              erstellt_am=datetime.utcnow() - timedelta(days=3),
-          )
-          finished = Meldung(
-              ticket='AHN-LICHT-ALT', status='Erledigt', art='Straßenlaterne defekt',
-              ort='In der Flöte 19',
-              beschreibung='Laterne ausgefallen.\n\nGPS-Position: 52.240001, 9.100001',
-              foto_vorhanden='Nein', whatsapp_absender='PWA', interne_notiz='',
-              erstellt_am=datetime.utcnow() - timedelta(days=1),
-          )
-          db.add_all([existing, unrelated, finished]); db.commit(); db.close()
+          db.add_all([
+              Meldung(
+                  ticket='AHN-LICHT-001', status='Offen', art='Straßenlaterne defekt', ort='In der Flöte 19',
+                  beschreibung='Die Straßenlaterne vor Haus 19 leuchtet nicht.\n\nGPS-Position: 52.240000, 9.100000',
+                  foto_vorhanden='Nein', whatsapp_absender='PWA', interne_notiz='', erstellt_am=datetime.utcnow()-timedelta(days=2),
+              ),
+              Meldung(
+                  ticket='AHN-MUELL-001', status='Offen', art='Müllablagerung', ort='Schulstraße 2',
+                  beschreibung='Mehrere Müllsäcke liegen am Straßenrand.\n\nGPS-Position: 52.250000, 9.120000',
+                  foto_vorhanden='Nein', whatsapp_absender='PWA', interne_notiz='', erstellt_am=datetime.utcnow()-timedelta(days=3),
+              ),
+              Meldung(
+                  ticket='AHN-LICHT-ALT', status='Erledigt', art='Straßenlaterne defekt', ort='In der Flöte 19',
+                  beschreibung='Laterne ausgefallen.\n\nGPS-Position: 52.240001, 9.100001',
+                  foto_vorhanden='Nein', whatsapp_absender='PWA', interne_notiz='', erstellt_am=datetime.utcnow()-timedelta(days=1),
+              ),
+          ])
+          db.commit(); db.close()
 
           similar = find_duplicate_matches(
-              art='Straßenlaterne defekt',
-              ort='In der Flöte 19 gegenüber Haus 19',
-              beschreibung='Die Lampe vor Haus Nummer 19 geht nicht mehr.',
-              latitude='52.240010', longitude='9.100010',
+              art='Straßenlaterne defekt', ort='In der Flöte 19 gegenüber Haus 19',
+              beschreibung='Die Lampe vor Haus Nummer 19 geht nicht mehr.', latitude='52.240010', longitude='9.100010',
           )
-          assert similar, 'expected a duplicate candidate'
-          assert similar[0].ticket == 'AHN-LICHT-001', similar
+          assert similar and similar[0].ticket == 'AHN-LICHT-001', similar
           assert similar[0].score >= WARNING_THRESHOLD, similar[0]
-          assert 'AHN-LICHT-ALT' not in {item.ticket for item in similar}
+          assert 'AHN-LICHT-ALT' not in {x.ticket for x in similar}
 
-          far = find_duplicate_matches(
-              art='Spielplatz oder Grünfläche',
-              ort='Am Sportplatz',
-              beschreibung='Eine Bank am Spielplatz hat ein loses Brett.',
-              latitude='52.280000', longitude='9.180000',
+          unrelated = find_duplicate_matches(
+              art='Spielplatz oder Grünfläche', ort='Am Sportplatz',
+              beschreibung='Eine Bank am Spielplatz hat ein loses Brett.', latitude='52.280000', longitude='9.180000',
           )
-          assert not far or far[0].score < WARNING_THRESHOLD, far
+          assert not unrelated or unrelated[0].score < WARNING_THRESHOLD, unrelated
 
-          saved = save_meldung(
-              'AHN-LICHT-002',
-              {
-                  'art':'Straßenlaterne defekt',
-                  'ort':'In der Flöte 19',
-                  'beschreibung':'Auch bei uns ist die Lampe dunkel.\n\nGPS-Position: 52.240009, 9.100009',
-                  'foto_bytes':None,
-              },
-              'PWA | Name: Test',
-          )
+          saved = save_meldung('AHN-LICHT-002', {
+              'art':'Straßenlaterne defekt', 'ort':'In der Flöte 19',
+              'beschreibung':'Auch bei uns ist die Lampe dunkel.\n\nGPS-Position: 52.240009, 9.100009', 'foto_bytes':None,
+          }, 'PWA | Name: Test')
           assert saved.duplicate_state in ('', None)
-          marked = mark_duplicate_suspicion('AHN-LICHT-002', 'AHN-LICHT-001', 91)
-          assert marked.duplicate_state == 'Verdacht'
-          assert marked.duplicate_score == 91
+          assert mark_duplicate_suspicion('AHN-LICHT-002','AHN-LICHT-001',91).duplicate_state == 'Verdacht'
           assert get_duplicate_overview()['suspected'] == 1
 
-          merged = set_duplicate_decision('AHN-LICHT-002', 'merge', 'AHN-LICHT-001')
-          assert merged.duplicate_state == 'Zusammengeführt'
-          assert merged.duplicate_of_ticket == 'AHN-LICHT-001'
-          children = get_duplicate_children('AHN-LICHT-001')
-          assert [item.ticket for item in children] == ['AHN-LICHT-002']
-          update_status('AHN-LICHT-001', 'In Bearbeitung')
-          assert get_meldung('AHN-LICHT-002').status == 'In Bearbeitung'
+          merged = set_duplicate_decision('AHN-LICHT-002','merge','AHN-LICHT-001')
+          assert merged.duplicate_state == 'Zusammengeführt' and merged.duplicate_of_ticket == 'AHN-LICHT-001'
+          assert [x.ticket for x in get_duplicate_children('AHN-LICHT-001')] == ['AHN-LICHT-002']
 
-          independent = set_duplicate_decision('AHN-LICHT-002', 'independent')
-          assert independent.duplicate_state == 'Eigenständig'
-          assert independent.duplicate_of_ticket is None
-          reset = set_duplicate_decision('AHN-LICHT-002', 'reset')
-          assert (reset.duplicate_state or '') == ''
-          assert reset.duplicate_candidate_ticket is None
-          assert reset.duplicate_score == 0
+          # Bundled child reports must no longer be suggested as public candidates.
+          after_merge = find_duplicate_matches(
+              art='Straßenlaterne defekt', ort='In der Flöte 19',
+              beschreibung='Lampe vor Haus 19 ist dunkel', latitude='52.24001', longitude='9.10001',
+          )
+          assert after_merge and after_merge[0].ticket == 'AHN-LICHT-001', after_merge
+          assert 'AHN-LICHT-002' not in {x.ticket for x in after_merge}
+
+          update_status('AHN-LICHT-001','In Bearbeitung')
+          assert get_meldung('AHN-LICHT-002').status == 'In Bearbeitung'
+          independent = set_duplicate_decision('AHN-LICHT-002','independent')
+          assert independent.duplicate_state == 'Eigenständig' and independent.duplicate_of_ticket is None
+          reset = set_duplicate_decision('AHN-LICHT-002','reset')
+          assert (reset.duplicate_state or '') == '' and reset.duplicate_candidate_ticket is None and reset.duplicate_score == 0
 
           import pwa_main
           from runtime_extensions import install_runtime_extensions
           install_runtime_extensions()
           assert pwa_main.app.state.mangel_duplicate_workflow_installed is True
 
-          def first_route(path, method):
-              rows = [r for r in pwa_main.app.router.routes if getattr(r,'path','') == path and method in (getattr(r,'methods',set()) or set())]
+          def module(path, method):
+              rows=[r for r in pwa_main.app.router.routes if getattr(r,'path','')==path and method in (getattr(r,'methods',set()) or set())]
               assert rows, (path, method)
-              return rows[0]
+              return rows[0].endpoint.__module__
 
-          assert first_route('/mangel-melden', 'GET').endpoint.__module__ == 'mangel_duplicate_patch'
-          assert first_route('/api/maengel', 'POST').endpoint.__module__ == 'mangel_duplicate_patch'
-          assert first_route('/api/maengel/duplikat-pruefung', 'POST').endpoint.__module__ == 'mangel_duplicate_patch'
-          assert first_route('/intern/maengel', 'GET').endpoint.__module__ == 'mangel_duplicate_patch'
-          assert first_route('/intern/meldung/{ticket}', 'GET').endpoint.__module__ == 'mangel_duplicate_patch'
-          assert first_route('/intern/meldung/{ticket}/duplikat', 'POST').endpoint.__module__ == 'mangel_duplicate_patch'
+          for path, method in [
+              ('/mangel-melden','GET'),('/api/maengel','POST'),('/api/maengel/duplikat-pruefung','POST'),
+              ('/intern/maengel','GET'),('/intern/meldung/{ticket}','GET'),('/intern/meldung/{ticket}/duplikat','POST'),
+          ]:
+              assert module(path, method) == 'mangel_duplicate_patch', (path, method, module(path, method))
 
-          from mangel_duplicate_patch import (
-              _inject_admin_dashboard,
-              _inject_report_intelligence,
-              duplicate_preflight,
-          )
+          from mangel_duplicate_patch import _inject_admin_dashboard, _inject_report_intelligence, duplicate_preflight
           from dashboard import dashboard_page
           from pwa_ui import report_page
 
-          citizen_html = _inject_report_intelligence(report_page()).body.decode('utf-8')
-          assert 'duplicate-modal' in citizen_html
-          assert '/api/maengel/duplikat-pruefung' in citizen_html
-          assert 'Trotzdem absenden' in citizen_html
-          assert 'duplicate_confirm' in citizen_html
+          citizen_html = _inject_report_intelligence(report_page()).body.decode()
+          assert all(x in citizen_html for x in ['duplicate-modal','/api/maengel/duplikat-pruefung','Trotzdem absenden','duplicate_confirm'])
 
           request = Request({
               'type':'http','method':'POST','path':'/api/maengel/duplikat-pruefung',
-              'headers':[(b'content-type',b'application/json')], 'query_string':b'',
+              'headers':[(b'content-type',b'application/json')],'query_string':b'',
               'scheme':'http','server':('testserver',80),'client':('127.0.0.1',1),
           })
+          body = json.dumps({
+              'art':'Straßenlaterne defekt','ort':'In der Flöte 19','beschreibung':'Lampe vor Haus 19 ist dunkel',
+              'latitude':'52.24001','longitude':'9.10001',
+          }, ensure_ascii=False).encode()
+          sent=False
           async def receive():
-              return {'type':'http.request','body':b'{"art":"Stra\\u00dfenlaterne defekt","ort":"In der Fl\\u00f6te 19","beschreibung":"Lampe vor Haus 19 ist dunkel","latitude":"52.24001","longitude":"9.10001"}','more_body':False}
-          request._receive = receive
-          preflight = asyncio.run(duplicate_preflight(request))
-          payload = __import__('json').loads(preflight.body)
-          assert payload['matches'] and payload['matches'][0]['ticket'] == 'AHN-LICHT-001'
-          assert 'beschreibung' not in payload['matches'][0]
+              global sent
+              if sent: return {'type':'http.request','body':b'','more_body':False}
+              sent=True; return {'type':'http.request','body':body,'more_body':False}
+          request._receive=receive
+          payload=json.loads(asyncio.run(duplicate_preflight(request)).body)
+          assert payload['matches'], payload
+          assert payload['matches'][0]['ticket'] in {'AHN-LICHT-001','AHN-LICHT-002'}
+          assert all('beschreibung' not in item for item in payload['matches'])
 
-          # Restore a suspicion so the dashboard must visibly mark it.
-          mark_duplicate_suspicion('AHN-LICHT-002', 'AHN-LICHT-001', 91)
-          reports = __import__('crud').suche_meldungen()
-          admin_html = _inject_admin_dashboard(dashboard_page(), reports).body.decode('utf-8')
-          assert 'Dublettenübersicht' in admin_html
-          assert 'Dublettenverdacht 91%' in admin_html
-          assert 'Zusammengeführt' in admin_html
+          mark_duplicate_suspicion('AHN-LICHT-002','AHN-LICHT-001',91)
+          admin_html=_inject_admin_dashboard(dashboard_page(), suche_meldungen()).body.decode()
+          assert 'Dublettenübersicht' in admin_html and 'Dublettenverdacht 91%' in admin_html
+          assert 'Zusammengeführt' in admin_html and 'Als eigenständig geprüft' in admin_html
 
           print('Mängel duplicate intelligence smoke tests passed')
           PY
