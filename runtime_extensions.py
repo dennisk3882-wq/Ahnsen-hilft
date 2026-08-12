@@ -80,3 +80,10 @@ def install_runtime_extensions() -> None:
         from mangel_duplicate_patch import router as mangel_duplicate_router
         _prepend_router(app, mangel_duplicate_router)
         app.state.mangel_duplicate_workflow_installed = True
+
+    if not getattr(app.state, "home_weather_dashboard_installed", False):
+        # Final homepage layer: compact hero, clickable current weather,
+        # five-day forecast and compact next-event/waste overview.
+        from home_weather_center import router as home_weather_router
+        _prepend_router(app, home_weather_router)
+        app.state.home_weather_dashboard_installed = True
