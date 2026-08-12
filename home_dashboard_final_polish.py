@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import base64
 import re
 from datetime import date, timedelta
 from html import escape
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 import home_weather_center as center
 from muelltermine_crud import get_naechste_muelltermine
@@ -14,13 +15,13 @@ from veranstaltungen_crud import get_aktive_veranstaltungen
 
 
 router = APIRouter()
-HERO_IMAGE_PATH = Path(__file__).resolve().parent / "static" / "ahnsen-hero.webp"
-HERO_IMAGE_VERSION = "v2"
+HERO_PARTS_DIR = Path(__file__).resolve().parent / "static" / "hero_parts"
+HERO_IMAGE_VERSION = "v3"
 
 FINAL_HOME_CSS = r'''
 <style id="home-dashboard-final-polish">
 .home-dashboard-v2 .hero-card{min-height:225px!important}
-.home-dashboard-v2 .hero-image{background-image:linear-gradient(180deg,rgba(10,38,27,.08) 0%,rgba(10,38,27,.18) 48%,rgba(8,31,22,.58) 100%),url('/assets/ahnsen-hero.webp?v=2')!important;background-size:cover!important;background-position:center 54%!important}
+.home-dashboard-v2 .hero-image{background-image:linear-gradient(180deg,rgba(10,38,27,.08) 0%,rgba(10,38,27,.18) 48%,rgba(8,31,22,.58) 100%),url('/assets/ahnsen-hero.webp?v=3')!important;background-size:cover!important;background-position:center 54%!important}
 .home-dashboard-v2 .hero-overlay{inset:auto 22px 17px!important}
 .home-dashboard-v2 .hero-overlay h1{font-size:clamp(29px,5.9vw,45px)!important;text-shadow:0 2px 12px rgba(0,0,0,.18)}
 .home-dashboard-v2 .hero-overlay p{text-shadow:0 1px 8px rgba(0,0,0,.22)}
@@ -40,6 +41,14 @@ FINAL_HOME_CSS = r'''
 }
 </style>
 '''
+
+
+def _hero_image_bytes() -> bytes:
+    parts = sorted(HERO_PARTS_DIR.glob("ahnsen-hero-*.b64"))
+    if not parts:
+        raise FileNotFoundError("Hero-Bildteile fehlen")
+    encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
+    return base64.b64decode(encoded, validate=True)
 
 
 def _waste_summary(value: str | None) -> str:
@@ -135,10 +144,12 @@ def _polish_response(response: HTMLResponse) -> HTMLResponse:
 
 @router.get("/assets/ahnsen-hero.webp", include_in_schema=False)
 async def ahnsen_hero_image():
-    if not HERO_IMAGE_PATH.exists():
-        raise HTTPException(status_code=404, detail="Hero-Bild nicht gefunden")
-    return FileResponse(
-        HERO_IMAGE_PATH,
+    try:
+        image = _hero_image_bytes()
+    except (FileNotFoundError, ValueError, base64.binascii.Error) as error:
+        raise HTTPException(status_code=404, detail="Hero-Bild nicht gefunden") from error
+    return Response(
+        content=image,
         media_type="image/webp",
         headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
