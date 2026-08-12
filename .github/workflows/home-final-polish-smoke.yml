@@ -32,14 +32,12 @@ jobs:
           python - <<'PY'
           import asyncio
           from datetime import timedelta
-          from pathlib import Path
           from types import SimpleNamespace
 
           import home_dashboard_final_polish as polish
           from pwa_core import startup
 
-          hero = Path('static/ahnsen-hero.webp')
-          assert hero.exists() and hero.stat().st_size > 40000
+          assert polish.HERO_IMAGE_PATH.exists()
           assert polish._waste_summary('Bioabfall, Leichtverpackungen, Sommerbiotonne') == 'Bioabfall, Leichtverpackungen, Sommerbiotonne'
           assert polish._waste_summary('Restabfall') == 'Restabfall'
 
@@ -64,13 +62,21 @@ jobs:
               if getattr(route, 'path', '') == '/' and 'GET' in (getattr(route, 'methods', set()) or set())
           ]
           assert roots and roots[0].endpoint.__module__ == 'home_dashboard_final_polish', roots[0].endpoint.__module__ if roots else None
+          hero_routes = [
+              route for route in pwa_main.app.router.routes
+              if getattr(route, 'path', '') == '/assets/ahnsen-hero.webp' and 'GET' in (getattr(route, 'methods', set()) or set())
+          ]
+          assert hero_routes and hero_routes[0].endpoint.__module__ == 'home_dashboard_final_polish'
+          hero_response = asyncio.run(polish.ahnsen_hero_image())
+          assert str(hero_response.path).endswith('static/ahnsen-hero.webp')
+          assert hero_response.media_type == 'image/webp'
 
           response = asyncio.run(polish.final_home_dashboard())
           html = response.body.decode('utf-8')
           assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' in html
           assert 'Informationen, Veranstaltungen, DGH, Mülltermine' not in html
           assert 'min-height:205px!important' in html
-          assert "url('/static/ahnsen-hero.webp')" in html
+          assert "url('/assets/ahnsen-hero.webp')" in html
           assert 'background-position:center 56%!important' in html
           assert '>Morgen<' in html
           assert 'Bioabfall, Leichtverpackungen, Sommerbiotonne' in html
