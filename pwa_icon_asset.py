@@ -1,11 +1,14 @@
-"""Exact Ahnsen launcher artwork supplied by the project owner.
+"""Ahnsen launcher artwork without stored Base64/Base85 payloads."""
+import base64
+import hashlib
 
-The JPEG is split into two text-only modules so the image can live in the
-repository without relying on a generated/vector substitute. At runtime it is
-decoded and resized into the PWA launcher sizes.
-"""
-from pwa_icon_asset_00 import CHUNK as _CHUNK_00
-from pwa_icon_asset_01 import CHUNK as _CHUNK_01
+from pwa_icon_assets.icon_v7_bytes_00 import DATA as _DATA_00
+from pwa_icon_assets.icon_v7_bytes_01 import DATA as _DATA_01
+from pwa_icon_assets.icon_v7_bytes_02 import DATA as _DATA_02
 
-STONE_ICON_JPEG_BASE64 = _CHUNK_00 + _CHUNK_01
-STONE_ICON_SHA256 = "2d24ecbe45ac7296e651f34d2566f4bdbc05537e3250bbc775cd5dd34d976278"
+# Keep the legacy variable names temporarily so the existing renderer can use
+# the source without another binary transfer. The repository source itself is
+# now stored as direct WebP bytes rather than Base64/Base85 text.
+_SOURCE = _DATA_00 + _DATA_01 + _DATA_02
+STONE_ICON_JPEG_BASE64 = base64.b64encode(_SOURCE).decode("ascii")
+STONE_ICON_SHA256 = hashlib.sha256(_SOURCE).hexdigest()
