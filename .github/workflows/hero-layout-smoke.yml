@@ -1,0 +1,43 @@
+name: Hero layout smoke test
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  hero-layout:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./hero-layout-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate hero image layout
+        run: |
+          python -m py_compile home_hero_inline_patch.py home_dashboard_final_polish.py
+          python - <<'PY'
+          import asyncio
+          import home_hero_inline_patch as hero
+          import home_dashboard_final_polish as final
+
+          final.get_aktive_veranstaltungen = lambda: []
+          final.get_naechste_muelltermine = lambda limit=1: []
+          response = asyncio.run(hero.home_with_inline_hero())
+          html = response.body.decode('utf-8')
+
+          assert 'data:image/webp;base64,' in html
+          assert '.home-dashboard-v2 .hero-image{position:absolute!important;inset:0!important' in html
+          assert '.home-dashboard-v2 .hero-card:after{background:transparent!important}' in html
+          assert 'hero-layout-root-fix' in html
+          print('Hero layout smoke test passed')
+          PY
