@@ -1,0 +1,50 @@
+name: PWA stone icon smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./pwa-stone-icon-smoke.db
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate stone launcher icon
+        run: |
+          python - <<'PY'
+          import asyncio
+          import json
+          from pathlib import Path
+          import pwa_icon_patch as icons
+          from runtime_extensions import install_runtime_extensions
+          from pwa_core import app
+
+          svg = Path('static/icon-ahnsen.svg').read_text(encoding='utf-8')
+          assert 'AHNSEN' in svg and 'SEIT' in svg and '1256' in svg
+          assert 'Ahnsen seit 1256 App-Symbol' in svg
+
+          icons._ensure_icons()
+          for size in (180, 192, 512):
+              data = Path(f'static/ahnsen-app-v6-{size}.png').read_bytes()
+              assert data.startswith(b'\x89PNG\r\n\x1a\n')
+              assert len(data) > 1000
+
+          payload = json.loads(asyncio.run(icons.stone_manifest()).body)
+          sources = {entry['src'] for entry in payload['icons']}
+          assert '/pwa/ahnsen-app-v6-192.png' in sources
+          assert '/pwa/ahnsen-app-v6-512.png' in sources
+
+          install_runtime_extensions()
+          routes = [r for r in app.router.routes if getattr(r, 'path', '') == '/manifest.webmanifest']
+          assert routes and routes[0].endpoint is icons.stone_manifest
+          print('PWA stone icon smoke tests passed')
+          PY
