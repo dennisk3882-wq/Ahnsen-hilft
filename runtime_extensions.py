@@ -100,6 +100,13 @@ def install_runtime_extensions() -> None:
         _prepend_router(app, citizen_service_router)
         app.state.citizen_service_center_installed = True
 
+    if not getattr(app.state, "pwa_stone_icon_installed", False):
+        # Versioned launcher icon. v6 intentionally uses a new URL so Android
+        # does not keep the previous immutable v5 icon from its PWA cache.
+        from pwa_icon_patch import router as pwa_icon_router
+        _prepend_router(app, pwa_icon_router)
+        app.state.pwa_stone_icon_installed = True
+
     # These homepage layers are intentionally re-positioned on every call.
     # Older bootstraps may register another '/' route afterwards; a later
     # runtime setup must always restore the final citizen homepage.
