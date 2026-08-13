@@ -31,10 +31,13 @@ jobs:
 
           import pwa_stone_icon_patch as icons
 
-          source = Path('static/ahnsen-stone-icon-v1.png')
-          assert source.exists() and source.stat().st_size > 50000
-          with Image.open(source) as image:
-              assert image.size == (512, 512)
+          parts = sorted(Path('static/pwa_icon_parts').glob('ahnsen-stone-*.b64'))
+          assert len(parts) == 4
+          source = icons._source_bytes()
+          assert len(source) > 15000
+          with Image.open(BytesIO(source)) as image:
+              assert image.size == (256, 256)
+              assert image.format == 'PNG'
               image.verify()
 
           for size in (180, 192, 512):
@@ -42,6 +45,7 @@ jobs:
               with Image.open(BytesIO(data)) as image:
                   assert image.size == (size, size)
                   assert image.format == 'PNG'
+                  image.verify()
 
           manifest_response = asyncio.run(icons.stone_manifest())
           manifest = json.loads(manifest_response.body)
