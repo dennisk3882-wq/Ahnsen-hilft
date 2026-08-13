@@ -1,4 +1,4 @@
-name: PWA stone icon smoke tests
+name: PWA exact photo icon smoke tests
 
 on:
   pull_request:
@@ -18,33 +18,37 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Validate stone launcher icon
+      - name: Validate exact Ahnsen launcher photo
         run: |
           python - <<'PY'
           import asyncio
+          import hashlib
           import json
           from pathlib import Path
-          import pwa_icon_patch as icons
+          from PIL import Image
+          import pwa_icon_photo_patch as icons
           from runtime_extensions import install_runtime_extensions
           from pwa_core import app
 
-          svg = Path('static/icon-ahnsen.svg').read_text(encoding='utf-8')
-          assert 'AHNSEN' in svg and 'SEIT' in svg and '1256' in svg
-          assert 'Ahnsen seit 1256 App-Symbol' in svg
+          source = icons._source_bytes()
+          assert source.startswith(b'\xff\xd8\xff')
+          assert hashlib.sha256(source).hexdigest() == '2d24ecbe45ac7296e651f34d2566f4bdbc05537e3250bbc775cd5dd34d976278'
 
           icons._ensure_icons()
           for size in (180, 192, 512):
-              data = Path(f'static/ahnsen-app-v6-{size}.png').read_bytes()
+              path = Path(f'static/ahnsen-app-v7-{size}.png')
+              data = path.read_bytes()
               assert data.startswith(b'\x89PNG\r\n\x1a\n')
-              assert len(data) > 1000
+              with Image.open(path) as image:
+                  assert image.size == (size, size)
 
-          payload = json.loads(asyncio.run(icons.stone_manifest()).body)
+          payload = json.loads(asyncio.run(icons.photo_manifest()).body)
           sources = {entry['src'] for entry in payload['icons']}
-          assert '/pwa/ahnsen-app-v6-192.png' in sources
-          assert '/pwa/ahnsen-app-v6-512.png' in sources
+          assert '/pwa/ahnsen-app-v7-192.png' in sources
+          assert '/pwa/ahnsen-app-v7-512.png' in sources
 
           install_runtime_extensions()
           routes = [r for r in app.router.routes if getattr(r, 'path', '') == '/manifest.webmanifest']
-          assert routes and routes[0].endpoint is icons.stone_manifest
-          print('PWA stone icon smoke tests passed')
+          assert routes and routes[0].endpoint is icons.photo_manifest
+          print('PWA exact photo icon smoke tests passed')
           PY
