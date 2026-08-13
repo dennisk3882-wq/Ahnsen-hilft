@@ -8,7 +8,7 @@ from PIL import Image
 
 from platform_runtime import get_platform_snapshot
 from pwa_core import STATIC_DIR
-from pwa_icon_asset import _SOURCE
+from pwa_icon_direct_asset import STONE_ICON_BYTES
 
 router = APIRouter()
 ICON_VERSION = "v7"
@@ -20,7 +20,7 @@ def _icon_path(size: int):
 
 
 def _source_bytes() -> bytes:
-    return _SOURCE
+    return STONE_ICON_BYTES
 
 
 def _ensure_icons() -> None:
