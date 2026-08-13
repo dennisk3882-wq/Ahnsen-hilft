@@ -11,6 +11,13 @@ import home_dashboard_final_polish as final
 
 router = APIRouter()
 
+HERO_LAYOUT_FIX = r'''
+<style id="hero-layout-root-fix">
+.home-dashboard-v2 .hero-image{position:absolute!important;inset:0!important;width:auto!important;height:auto!important}
+.home-dashboard-v2 .hero-card:after{background:transparent!important}
+</style>
+'''
+
 
 @lru_cache(maxsize=1)
 def _hero_data_uri() -> str:
@@ -25,6 +32,7 @@ def _with_inline_hero(response: HTMLResponse) -> HTMLResponse:
         f'url("{_hero_data_uri()}")',
         1,
     )
+    html = html.replace("</head>", HERO_LAYOUT_FIX + "</head>", 1)
     headers = {
         key: value
         for key, value in response.headers.items()
