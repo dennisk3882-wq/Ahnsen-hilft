@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 from functools import lru_cache
 from pathlib import Path
@@ -13,16 +14,25 @@ from platform_runtime import get_platform_snapshot
 
 
 router = APIRouter()
-SOURCE = Path(__file__).resolve().parent / "static" / "ahnsen-stone-icon-v1.png"
+PARTS_DIR = Path(__file__).resolve().parent / "static" / "pwa_icon_parts"
 ICON_VERSION = "stone-v1"
 ICON_SIZES = {180, 192, 512}
 
 
+@lru_cache(maxsize=1)
+def _source_bytes() -> bytes:
+    parts = sorted(PARTS_DIR.glob("ahnsen-stone-*.b64"))
+    if not parts:
+        raise FileNotFoundError("PWA-Steinicon fehlt")
+    encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
+    return base64.b64decode(encoded, validate=True)
+
+
 @lru_cache(maxsize=3)
 def _icon_bytes(size: int) -> bytes:
-    if size not in ICON_SIZES or not SOURCE.exists():
+    if size not in ICON_SIZES:
         raise FileNotFoundError("PWA-Steinicon fehlt")
-    with Image.open(SOURCE) as image:
+    with Image.open(io.BytesIO(_source_bytes())) as image:
         image = image.convert("RGB").resize((size, size), Image.Resampling.LANCZOS)
         output = io.BytesIO()
         image.save(output, format="PNG", optimize=True)
@@ -39,7 +49,7 @@ async def stone_icon(size: int):
         raise HTTPException(status_code=404, detail="Icon nicht gefunden")
     try:
         data = _icon_bytes(size)
-    except FileNotFoundError as error:
+    except (FileNotFoundError, ValueError, base64.binascii.Error, OSError) as error:
         raise HTTPException(status_code=404, detail="Icon nicht gefunden") from error
     return Response(
         content=data,
