@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from html import escape
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 
 import home_weather_center as center
@@ -21,10 +21,10 @@ HERO_IMAGE_VERSION = "v3"
 FINAL_HOME_CSS = r'''
 <style id="home-dashboard-final-polish">
 .home-dashboard-v2 .hero-card{min-height:225px!important}
-.home-dashboard-v2 .hero-image{background-image:linear-gradient(180deg,rgba(10,38,27,.08) 0%,rgba(10,38,27,.18) 48%,rgba(8,31,22,.58) 100%),url('/assets/ahnsen-hero.webp?v=3')!important;background-size:cover!important;background-position:center 54%!important}
-.home-dashboard-v2 .hero-overlay{inset:auto 22px 17px!important}
-.home-dashboard-v2 .hero-overlay h1{font-size:clamp(29px,5.9vw,45px)!important;text-shadow:0 2px 12px rgba(0,0,0,.18)}
-.home-dashboard-v2 .hero-overlay p{text-shadow:0 1px 8px rgba(0,0,0,.22)}
+.home-dashboard-v2 .hero-image{background-image:linear-gradient(90deg,rgba(8,31,22,.54) 0%,rgba(8,31,22,.25) 44%,rgba(8,31,22,.04) 72%),linear-gradient(180deg,rgba(10,38,27,.05) 0%,rgba(10,38,27,.10) 58%,rgba(8,31,22,.34) 100%),url('/assets/ahnsen-hero.webp?v=3')!important;background-size:cover!important;background-position:center 54%!important}
+.home-dashboard-v2 .hero-overlay{inset:18px auto auto 22px!important;max-width:52%!important;z-index:3}
+.home-dashboard-v2 .hero-kicker,.home-dashboard-v2 .hero-overlay p{display:none!important}
+.home-dashboard-v2 .hero-overlay h1{max-width:none!important;margin:0!important;font-size:clamp(29px,5.5vw,42px)!important;line-height:.98!important;text-shadow:0 2px 12px rgba(0,0,0,.28)}
 .home-quick-card{min-height:102px!important;grid-template-columns:39px minmax(0,1fr) 13px!important;align-items:center!important}
 .home-quick-card>div{display:grid!important;grid-template-rows:14px 46px 14px;align-content:center;min-width:0}
 .home-quick-card small{align-self:end}
@@ -35,9 +35,8 @@ FINAL_HOME_CSS = r'''
 @media(max-width:560px){
   .home-dashboard-v2 .hero-card{min-height:205px!important}
   .home-dashboard-v2 .hero-image{background-position:center 56%!important}
-  .home-dashboard-v2 .hero-overlay{inset:auto 18px 14px!important}
-  .home-dashboard-v2 .hero-overlay h1{font-size:29px!important;line-height:1!important}
-  .home-dashboard-v2 .hero-overlay p{font-size:11px!important;line-height:1.3!important}
+  .home-dashboard-v2 .hero-overlay{inset:16px auto auto 18px!important;max-width:52%!important}
+  .home-dashboard-v2 .hero-overlay h1{font-size:25px!important;line-height:.98!important}
 }
 </style>
 '''
@@ -49,6 +48,21 @@ def _hero_image_bytes() -> bytes:
         raise FileNotFoundError("Hero-Bildteile fehlen")
     encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
     return base64.b64decode(encoded, validate=True)
+
+
+def _first_name_for_request(request: Request | None) -> str:
+    if request is None:
+        return ""
+    try:
+        from pwa_core import _current_user
+
+        user = _current_user(request)
+    except Exception:
+        return ""
+    full_name = str(getattr(user, "name", "") or "").strip() if user else ""
+    if not full_name:
+        return ""
+    return full_name.split()[0][:60]
 
 
 def _waste_summary(value: str | None) -> str:
@@ -69,10 +83,12 @@ def _waste_day_label(value: date | None, today: date) -> str:
     return "Nächste Müllabfuhr"
 
 
-def _quick_overview() -> str:
+def _quick_overview(request: Request | None = None) -> str:
     now = center._local_now()
     today = now.date()
     greeting = "Guten Morgen" if now.hour < 11 else "Guten Tag" if now.hour < 18 else "Guten Abend"
+    first_name = _first_name_for_request(request)
+    welcome = f"Schön, dass du da bist, {escape(first_name)}." if first_name else "Schön, dass du da bist."
 
     events = list(get_aktive_veranstaltungen())
     event = events[0] if events else None
@@ -109,7 +125,7 @@ def _quick_overview() -> str:
 
     return f'''
 <section class="home-day-overview">
-  <div class="home-greeting-compact"><div><span class="eyebrow">{escape(greeting)} 👋</span><h2>Schön, dass du da bist.</h2></div></div>
+  <div class="home-greeting-compact"><div><span class="eyebrow">{escape(greeting)} 👋</span><h2>{welcome}</h2></div></div>
   <div class="home-quick-grid">
     <a class="home-quick-card" href="{escape(event_href)}" aria-label="{escape(event_label)}: {escape(event_title)}"><span>▣</span><div><small>{escape(event_label)}</small><strong>{escape(event_title)}</strong><span class="home-quick-meta">{escape(event_meta)}</span></div><span class="home-quick-arrow">›</span></a>
     <a class="home-quick-card waste-card" href="/muelltermine-info" aria-label="{escape(waste_label)}: {escape(waste_full)}" title="{escape(waste_full)}"><span>♻</span><div><small>{escape(waste_label)}</small><strong>{escape(waste_title)}</strong><span class="home-quick-meta">{escape(waste_meta)}</span></div><span class="home-quick-arrow">›</span></a>
@@ -118,18 +134,26 @@ def _quick_overview() -> str:
 '''
 
 
-def _polish_response(response: HTMLResponse) -> HTMLResponse:
+def _polish_response(response: HTMLResponse, request: Request | None = None) -> HTMLResponse:
     html = response.body.decode("utf-8")
     html = html.replace("</head>", FINAL_HOME_CSS + "</head>", 1)
     html = re.sub(
-        r"Informationen,\s*Veranstaltungen,\s*DGH,\s*Mülltermine\s*und\s*Anliegen\s*an\s*einem\s*Ort\s*–\s*modern,\s*direkt\s*und\s*bürgernah\.",
-        "Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort – modern, direkt und bürgernah.",
+        r'<span class="hero-kicker">.*?</span>',
+        "",
         html,
         count=1,
+        flags=re.S,
+    )
+    html = re.sub(
+        r'(<div class="hero-overlay">\s*<h1>.*?</h1>)\s*<p>.*?</p>',
+        r"\1",
+        html,
+        count=1,
+        flags=re.S,
     )
     html = re.sub(
         r'<section class="home-day-overview">.*?</section>',
-        _quick_overview(),
+        _quick_overview(request),
         html,
         count=1,
         flags=re.S,
@@ -156,6 +180,6 @@ async def ahnsen_hero_image():
 
 
 @router.get("/")
-async def final_home_dashboard():
+async def final_home_dashboard(request: Request = None):
     response = await center.compact_home_with_weather()
-    return _polish_response(response)
+    return _polish_response(response, request)
