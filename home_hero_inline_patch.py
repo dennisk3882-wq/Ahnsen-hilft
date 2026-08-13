@@ -32,6 +32,9 @@ def _with_inline_hero(response: HTMLResponse) -> HTMLResponse:
         f'url("{_hero_data_uri()}")',
         1,
     )
+    html = html.replace('href="/buergerinformationen"', 'href="/buergerservice"', 1)
+    html = html.replace("Bürgerinformationen", "Bürgerservice", 1)
+    html = html.replace("Hinweise der Gemeinde.", "Anträge, Dokumente &amp; Rathausservices.", 1)
     html = html.replace("</head>", HERO_LAYOUT_FIX + "</head>", 1)
     headers = {
         key: value
