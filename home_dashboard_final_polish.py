@@ -21,8 +21,8 @@ HERO_IMAGE_VERSION = "v3"
 FINAL_HOME_CSS = r'''
 <style id="home-dashboard-final-polish">
 .home-dashboard-v2 .hero-card{min-height:225px!important}
-.home-dashboard-v2 .hero-image{position:relative!important;overflow:hidden!important;background-image:linear-gradient(90deg,rgba(8,31,22,.62) 0%,rgba(8,31,22,.48) 24%,rgba(8,31,22,.18) 35%,rgba(8,31,22,0) 44%),url('/assets/ahnsen-hero.webp?v=3')!important;background-size:cover!important;background-position:center 54%!important}
-.home-dashboard-v2 .hero-image::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,0) 37%,rgba(255,255,255,.025) 45%,rgba(255,255,255,.075) 58%,rgba(255,255,255,.12) 100%);-webkit-backdrop-filter:brightness(1.34) contrast(1.07) saturate(1.08);backdrop-filter:brightness(1.34) contrast(1.07) saturate(1.08)}
+.home-dashboard-v2 .hero-image{position:relative!important;overflow:hidden!important;background-image:linear-gradient(90deg,rgba(8,31,22,.62) 0%,rgba(8,31,22,.47) 23%,rgba(8,31,22,.16) 33%,rgba(8,31,22,0) 41%),url('/assets/ahnsen-hero.webp?v=3')!important;background-size:cover!important;background-position:center 54%!important}
+.home-dashboard-v2 .hero-image::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(90deg,rgba(255,249,236,0) 41%,rgba(255,249,236,.045) 50%,rgba(255,247,228,.11) 64%,rgba(255,244,218,.17) 100%)}
 .home-dashboard-v2 .hero-overlay{inset:18px auto auto 22px!important;max-width:52%!important;z-index:3}
 .home-dashboard-v2 .hero-kicker,.home-dashboard-v2 .hero-overlay p{display:none!important}
 .home-dashboard-v2 .hero-overlay h1{max-width:none!important;margin:0!important;font-size:clamp(29px,5.5vw,42px)!important;line-height:.98!important;text-shadow:0 2px 12px rgba(0,0,0,.28)}

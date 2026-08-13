@@ -82,7 +82,7 @@ jobs:
           assert roots and roots[0].endpoint.__module__ == 'home_dashboard_final_polish', roots[0].endpoint.__module__ if roots else None
           hero_routes = [
               route for route in pwa_main.app.router.routes
-              if getattr(route, 'path', '') == '/assets/ahnsen-hero.webp' and 'GET' in (getattr(route, 'methods', set()) or set())
+              if getattr(route, 'path', '') == '/assets/ahnsen-hero.webp' and 'GET' in (getattr(route,'methods',set()) or set())
           ]
           assert hero_routes and hero_routes[0].endpoint.__module__ == 'home_dashboard_final_polish'
           hero_response = asyncio.run(polish.ahnsen_hero_image())
@@ -98,6 +98,11 @@ jobs:
           assert "url('/assets/ahnsen-hero.webp?v=3')" in html
           assert 'max-width:52%!important' in html
           assert 'inset:16px auto auto 18px!important' in html
+          assert 'brightness(1.34)' not in html
+          assert '-webkit-backdrop-filter:brightness' not in html
+          assert 'backdrop-filter:brightness' not in html
+          assert '.hero-image::after' in html
+          assert 'rgba(255,244,218,.17)' in html
           assert '>Morgen<' in html
           assert 'Bioabfall, Leichtverpackungen, Sommerbiotonne' in html
           assert '+ 2 weitere' not in html
