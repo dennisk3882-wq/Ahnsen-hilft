@@ -37,6 +37,7 @@ jobs:
 
           from PIL import Image
           import home_dashboard_final_polish as polish
+          import pwa_core
           from pwa_core import startup
 
           parts = sorted(polish.HERO_PARTS_DIR.glob('ahnsen-hero-*.b64'))
@@ -62,6 +63,13 @@ jobs:
               abfuhrarten='Bioabfall, Leichtverpackungen, Sommerbiotonne',
           )]
 
+          original_current_user = pwa_core._current_user
+          pwa_core._current_user = lambda request: SimpleNamespace(name='Dennis Koch')
+          personal = polish._quick_overview(object())
+          assert 'Schön, dass du da bist, Dennis.' in personal
+          pwa_core._current_user = original_current_user
+          assert 'Schön, dass du da bist.' in polish._quick_overview()
+
           startup()
           import pwa_main
           from runtime_extensions import install_runtime_extensions
@@ -83,11 +91,13 @@ jobs:
 
           response = asyncio.run(polish.final_home_dashboard())
           html = response.body.decode('utf-8')
-          assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' in html
-          assert 'Informationen, Veranstaltungen, DGH, Mülltermine' not in html
+          assert '<span class="hero-kicker">' not in html
+          assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' not in html
+          assert 'Digitale Bürgerplattform' in html
           assert 'min-height:205px!important' in html
           assert "url('/assets/ahnsen-hero.webp?v=3')" in html
-          assert 'background-position:center 56%!important' in html
+          assert 'max-width:52%!important' in html
+          assert 'inset:16px auto auto 18px!important' in html
           assert '>Morgen<' in html
           assert 'Bioabfall, Leichtverpackungen, Sommerbiotonne' in html
           assert '+ 2 weitere' not in html
