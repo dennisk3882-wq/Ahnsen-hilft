@@ -139,7 +139,9 @@ jobs:
           assert '>Morgen<' in html
           assert 'Bioabfall, Leichtverpackungen' in html
           assert '+ 1 weitere' not in html
-          assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' in html
+          assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' not in html
+          assert '<span class="hero-kicker">' not in html
+          assert 'Digitale Bürgerplattform' in html
           assert '<section class="notice-card"' not in html
           assert '<section class="notice-card empty-notice"' not in html
           assert 'Aktuelles &amp; Termine' in html
