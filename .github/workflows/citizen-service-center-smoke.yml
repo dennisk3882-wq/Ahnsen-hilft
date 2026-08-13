@@ -39,7 +39,7 @@ jobs:
           assert 'Wohnungsgeberbestätigung' in html
           assert 'Grundstücksentwässerung' in html
           assert 'SEPA-Lastschriftmandat' in html
-          assert 'Alle offiziellen Formulare &amp; PDFs' in html
+          assert 'Alle offiziellen Formulare & PDFs' in html
           assert 'Leistungen von A–Z' in html
           assert 'Samtgemeinde Eilsen' in html
           assert '05722 / 886-0' in html
