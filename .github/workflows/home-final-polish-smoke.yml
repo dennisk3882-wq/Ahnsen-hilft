@@ -49,6 +49,7 @@ jobs:
               assert hero.width >= 700 and hero.height >= 390, hero.size
               hero.load()
 
+          assert polish.HERO_IMAGE_VERSION == 'v4'
           assert polish._waste_summary('Bioabfall, Leichtverpackungen, Sommerbiotonne') == 'Bioabfall, Leichtverpackungen, Sommerbiotonne'
           assert polish._waste_summary('Restabfall') == 'Restabfall'
 
@@ -88,6 +89,7 @@ jobs:
           hero_response = asyncio.run(polish.ahnsen_hero_image())
           assert hero_response.media_type == 'image/webp'
           assert hero_response.body == image_bytes
+          assert hero_response.headers.get('cache-control') == 'no-store'
 
           response = asyncio.run(polish.final_home_dashboard())
           html = response.body.decode('utf-8')
@@ -95,14 +97,15 @@ jobs:
           assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' not in html
           assert 'Digitale Bürgerplattform' in html
           assert 'min-height:205px!important' in html
-          assert "url('/assets/ahnsen-hero.webp?v=3')" in html
+          assert "url('/assets/ahnsen-hero.webp?v=4')" in html
+          assert 'background-repeat:no-repeat!important' in html
           assert 'max-width:52%!important' in html
           assert 'inset:16px auto auto 18px!important' in html
           assert 'brightness(1.34)' not in html
           assert '-webkit-backdrop-filter:brightness' not in html
           assert 'backdrop-filter:brightness' not in html
-          assert '.hero-image::after' in html
-          assert 'rgba(255,244,218,.17)' in html
+          assert '.hero-image::after{content:none!important' in html
+          assert 'rgba(255,244,218,.17)' not in html
           assert '>Morgen<' in html
           assert 'Bioabfall, Leichtverpackungen, Sommerbiotonne' in html
           assert '+ 2 weitere' not in html

@@ -16,13 +16,13 @@ from veranstaltungen_crud import get_aktive_veranstaltungen
 
 router = APIRouter()
 HERO_PARTS_DIR = Path(__file__).resolve().parent / "static" / "hero_parts"
-HERO_IMAGE_VERSION = "v3"
+HERO_IMAGE_VERSION = "v4"
 
 FINAL_HOME_CSS = r'''
 <style id="home-dashboard-final-polish">
 .home-dashboard-v2 .hero-card{min-height:225px!important}
-.home-dashboard-v2 .hero-image{position:relative!important;overflow:hidden!important;background-image:linear-gradient(90deg,rgba(8,31,22,.62) 0%,rgba(8,31,22,.47) 23%,rgba(8,31,22,.16) 33%,rgba(8,31,22,0) 41%),url('/assets/ahnsen-hero.webp?v=3')!important;background-size:cover!important;background-position:center 54%!important}
-.home-dashboard-v2 .hero-image::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(90deg,rgba(255,249,236,0) 41%,rgba(255,249,236,.045) 50%,rgba(255,247,228,.11) 64%,rgba(255,244,218,.17) 100%)}
+.home-dashboard-v2 .hero-image{position:relative!important;overflow:hidden!important;background-color:#315543!important;background-image:linear-gradient(90deg,rgba(8,31,22,.58) 0%,rgba(8,31,22,.42) 22%,rgba(8,31,22,.13) 33%,rgba(8,31,22,0) 43%),url('/assets/ahnsen-hero.webp?v=4')!important;background-size:cover!important;background-position:center 54%!important;background-repeat:no-repeat!important}
+.home-dashboard-v2 .hero-image::after{content:none!important;display:none!important;background:none!important}
 .home-dashboard-v2 .hero-overlay{inset:18px auto auto 22px!important;max-width:52%!important;z-index:3}
 .home-dashboard-v2 .hero-kicker,.home-dashboard-v2 .hero-overlay p{display:none!important}
 .home-dashboard-v2 .hero-overlay h1{max-width:none!important;margin:0!important;font-size:clamp(29px,5.5vw,42px)!important;line-height:.98!important;text-shadow:0 2px 12px rgba(0,0,0,.28)}
@@ -176,7 +176,7 @@ async def ahnsen_hero_image():
     return Response(
         content=image,
         media_type="image/webp",
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        headers={"Cache-Control": "no-store"},
     )
 
 
