@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-import hashlib
 import io
 
 from fastapi import APIRouter, HTTPException
@@ -10,7 +8,7 @@ from PIL import Image
 
 from platform_runtime import get_platform_snapshot
 from pwa_core import STATIC_DIR
-from pwa_icon_asset import STONE_ICON_JPEG_BASE64, STONE_ICON_SHA256
+from pwa_icon_asset import _SOURCE
 
 router = APIRouter()
 ICON_VERSION = "v7"
@@ -22,11 +20,7 @@ def _icon_path(size: int):
 
 
 def _source_bytes() -> bytes:
-    data = base64.b64decode(STONE_ICON_JPEG_BASE64, validate=True)
-    digest = hashlib.sha256(data).hexdigest()
-    if digest != STONE_ICON_SHA256:
-        raise RuntimeError(f"Ahnsen icon integrity check failed: {digest}")
-    return data
+    return _SOURCE
 
 
 def _ensure_icons() -> None:
