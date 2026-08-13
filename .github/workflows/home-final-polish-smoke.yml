@@ -98,7 +98,9 @@ jobs:
           assert "url('/assets/ahnsen-hero.webp?v=3')" in html
           assert 'max-width:52%!important' in html
           assert 'inset:16px auto auto 18px!important' in html
-          assert 'backdrop-filter' not in html
+          assert 'brightness(1.34)' not in html
+          assert '-webkit-backdrop-filter:brightness' not in html
+          assert 'backdrop-filter:brightness' not in html
           assert '.hero-image::after' in html
           assert 'rgba(255,244,218,.17)' in html
           assert '>Morgen<' in html
