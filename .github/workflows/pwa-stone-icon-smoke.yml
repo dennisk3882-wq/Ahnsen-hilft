@@ -1,0 +1,64 @@
+name: PWA stone icon smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./pwa-stone-icon-smoke.db
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate stone PWA icon
+        run: |
+          python -m py_compile pwa_stone_icon_patch.py runtime_extensions.py
+          python - <<'PY'
+          import asyncio
+          import json
+          from io import BytesIO
+          from pathlib import Path
+          from PIL import Image
+
+          import pwa_stone_icon_patch as icons
+
+          source = Path('static/ahnsen-stone-icon-v1.png')
+          assert source.exists() and source.stat().st_size > 50000
+          with Image.open(source) as image:
+              assert image.size == (512, 512)
+              image.verify()
+
+          for size in (180, 192, 512):
+              data = icons._icon_bytes(size)
+              with Image.open(BytesIO(data)) as image:
+                  assert image.size == (size, size)
+                  assert image.format == 'PNG'
+
+          manifest_response = asyncio.run(icons.stone_manifest())
+          manifest = json.loads(manifest_response.body)
+          sources = {item['src'] for item in manifest['icons']}
+          assert '/pwa/ahnsen-stone-v1-192.png' in sources
+          assert '/pwa/ahnsen-stone-v1-512.png' in sources
+          assert all(item['purpose'] == 'any maskable' for item in manifest['icons'])
+
+          js = asyncio.run(icons.stone_icon_pwa_js()).body.decode('utf-8')
+          assert '/manifest.webmanifest?v=6' in js
+          assert '/pwa/ahnsen-stone-v1-180.png' in js
+          assert '/pwa/ahnsen-stone-v1-192.png' in js
+          assert '/pwa/ahnsen-stone-v1-512.png' in js
+          assert "label: 'Aktuell'" in js
+
+          runtime = Path('runtime_extensions.py').read_text(encoding='utf-8')
+          assert 'pwa_stone_icon_installed' in runtime
+          assert 'from pwa_stone_icon_patch import router as stone_icon_router' in runtime
+          print('PWA stone icon smoke tests passed')
+          PY
