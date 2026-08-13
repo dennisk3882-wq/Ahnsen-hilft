@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate final homepage polish
         run: |
-          python -m py_compile home_dashboard_final_polish.py runtime_extensions.py
+          python -m py_compile home_dashboard_final_polish.py home_hero_inline_patch.py runtime_extensions.py
           python - <<'PY'
           import asyncio
           from datetime import timedelta
@@ -37,6 +37,7 @@ jobs:
 
           from PIL import Image
           import home_dashboard_final_polish as polish
+          import home_hero_inline_patch as inline
           import pwa_core
           from pwa_core import startup
 
@@ -49,7 +50,10 @@ jobs:
               assert hero.width >= 700 and hero.height >= 390, hero.size
               hero.load()
 
-          assert polish.HERO_IMAGE_VERSION == 'v4'
+          data_uri = inline._hero_data_uri()
+          assert data_uri.startswith('data:image/webp;base64,')
+          assert len(data_uri) > len(image_bytes)
+
           assert polish._waste_summary('Bioabfall, Leichtverpackungen, Sommerbiotonne') == 'Bioabfall, Leichtverpackungen, Sommerbiotonne'
           assert polish._waste_summary('Restabfall') == 'Restabfall'
 
@@ -80,36 +84,24 @@ jobs:
               route for route in pwa_main.app.router.routes
               if getattr(route, 'path', '') == '/' and 'GET' in (getattr(route, 'methods', set()) or set())
           ]
-          assert roots and roots[0].endpoint.__module__ == 'home_dashboard_final_polish', roots[0].endpoint.__module__ if roots else None
-          hero_routes = [
-              route for route in pwa_main.app.router.routes
-              if getattr(route, 'path', '') == '/assets/ahnsen-hero.webp' and 'GET' in (getattr(route,'methods',set()) or set())
-          ]
-          assert hero_routes and hero_routes[0].endpoint.__module__ == 'home_dashboard_final_polish'
-          hero_response = asyncio.run(polish.ahnsen_hero_image())
-          assert hero_response.media_type == 'image/webp'
-          assert hero_response.body == image_bytes
-          assert hero_response.headers.get('cache-control') == 'no-store'
+          assert roots and roots[0].endpoint.__module__ == 'home_hero_inline_patch', roots[0].endpoint.__module__ if roots else None
 
-          response = asyncio.run(polish.final_home_dashboard())
+          response = asyncio.run(inline.home_with_inline_hero())
           html = response.body.decode('utf-8')
           assert '<span class="hero-kicker">' not in html
           assert 'Informationen, Termine, DGH, Müllabfuhr und Anliegen an einem Ort' not in html
           assert 'Digitale Bürgerplattform' in html
           assert 'min-height:205px!important' in html
-          assert "url('/assets/ahnsen-hero.webp?v=4')" in html
-          assert 'background-repeat:no-repeat!important' in html
+          assert 'data:image/webp;base64,' in html
+          assert "url('/assets/ahnsen-hero.webp?v=4')" not in html
           assert 'max-width:52%!important' in html
           assert 'inset:16px auto auto 18px!important' in html
           assert 'brightness(1.34)' not in html
-          assert '-webkit-backdrop-filter:brightness' not in html
-          assert 'backdrop-filter:brightness' not in html
           assert '.hero-image::after{content:none!important' in html
-          assert 'rgba(255,244,218,.17)' not in html
           assert '>Morgen<' in html
           assert 'Bioabfall, Leichtverpackungen, Sommerbiotonne' in html
           assert '+ 2 weitere' not in html
           assert 'waste-card' in html
           assert 'home-dashboard-final-polish' in html
-          print('Homepage final polish smoke tests passed')
+          print('Homepage inline hero smoke tests passed')
           PY
