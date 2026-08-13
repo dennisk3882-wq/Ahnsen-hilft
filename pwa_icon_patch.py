@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import struct
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -8,8 +10,7 @@ from pwa_core import STATIC_DIR
 
 
 router = APIRouter()
-ICON_VERSION = "v6"
-ICON_SOURCE = STATIC_DIR / "icon-ahnsen.svg"
+ICON_VERSION = "v7"
 ICON_SIZES = {180, 192, 512}
 
 
@@ -18,22 +19,19 @@ def _icon_path(size: int):
 
 
 def _ensure_icons() -> None:
-    import cairosvg
-
-    if not ICON_SOURCE.exists():
-        raise RuntimeError(f"Icon source missing: {ICON_SOURCE}")
-
-    source_mtime = ICON_SOURCE.stat().st_mtime
+    """Validate the committed photo icons before serving them."""
     for size in ICON_SIZES:
         target = _icon_path(size)
-        if target.exists() and target.stat().st_mtime >= source_mtime:
-            continue
-        cairosvg.svg2png(
-            url=str(ICON_SOURCE),
-            write_to=str(target),
-            output_width=size,
-            output_height=size,
-        )
+        if not target.exists():
+            raise RuntimeError(f"Icon missing: {target}")
+        data = target.read_bytes()
+        if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) < 24:
+            raise RuntimeError(f"Invalid PNG icon: {target}")
+        width, height = struct.unpack(">II", data[16:24])
+        if (width, height) != (size, size):
+            raise RuntimeError(
+                f"Unexpected icon dimensions for {target}: {width}x{height}"
+            )
 
 
 @router.get("/manifest.webmanifest", include_in_schema=False)
@@ -76,8 +74,8 @@ async def stone_manifest():
     )
 
 
-@router.get("/pwa/ahnsen-app-v6-{size}.png", include_in_schema=False)
-async def stone_icon_v6(size: int):
+@router.get("/pwa/ahnsen-app-v7-{size}.png", include_in_schema=False)
+async def stone_icon_v7(size: int):
     if size not in ICON_SIZES:
         raise HTTPException(status_code=404, detail="Icon nicht gefunden")
     _ensure_icons()
@@ -88,9 +86,10 @@ async def stone_icon_v6(size: int):
     )
 
 
+@router.get("/pwa/ahnsen-app-v6-{size}.png", include_in_schema=False)
 @router.get("/pwa/ahnsen-app-v5-{size}.png", include_in_schema=False)
-async def stone_icon_v5_compat(size: int):
-    """Keep old Apple-touch/icon references compatible while serving the new stone."""
+async def stone_icon_compat(size: int):
+    """Keep older icon references compatible while serving the approved photo."""
     if size not in ICON_SIZES:
         raise HTTPException(status_code=404, detail="Icon nicht gefunden")
     _ensure_icons()
