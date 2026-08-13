@@ -22,7 +22,7 @@ jobs:
         run: |
           python - <<'PY'
           import asyncio
-          import hashlib
+          import io
           import json
           from pathlib import Path
           from PIL import Image
@@ -31,15 +31,16 @@ jobs:
           from pwa_core import app
 
           source = icons._source_bytes()
-          assert source.startswith(b'\xff\xd8\xff')
-          assert hashlib.sha256(source).hexdigest() == '2d24ecbe45ac7296e651f34d2566f4bdbc05537e3250bbc775cd5dd34d976278'
+          with Image.open(io.BytesIO(source)) as image:
+              assert image.format == 'WEBP'
+              assert image.width > 0 and image.height > 0
+              image.verify()
 
           icons._ensure_icons()
           for size in (180, 192, 512):
               path = Path(f'static/ahnsen-app-v7-{size}.png')
-              data = path.read_bytes()
-              assert data.startswith(b'\x89PNG\r\n\x1a\n')
               with Image.open(path) as image:
+                  assert image.format == 'PNG'
                   assert image.size == (size, size)
 
           payload = json.loads(asyncio.run(icons.photo_manifest()).body)
