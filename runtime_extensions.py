@@ -103,3 +103,10 @@ def install_runtime_extensions() -> None:
     from home_dashboard_final_polish import router as home_final_router
     _reposition_router_first(app, home_final_router)
     app.state.home_dashboard_final_polish_installed = True
+
+    # Final production homepage: embed the hero image directly into the HTML/CSS.
+    # This avoids a second asset request that some installed Samsung/Chrome PWAs
+    # failed to render even though the server route itself was healthy.
+    from home_hero_inline_patch import router as home_inline_router
+    _reposition_router_first(app, home_inline_router)
+    app.state.home_hero_inline_installed = True
