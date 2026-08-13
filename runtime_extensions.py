@@ -93,6 +93,13 @@ def install_runtime_extensions() -> None:
         _prepend_router(app, mangel_duplicate_router)
         app.state.mangel_duplicate_workflow_installed = True
 
+    if not getattr(app.state, "citizen_service_center_installed", False):
+        # Central Rathaus gateway. It keeps official applications and PDFs at
+        # their original sources instead of copying administrative documents.
+        from citizen_service_center import router as citizen_service_router
+        _prepend_router(app, citizen_service_router)
+        app.state.citizen_service_center_installed = True
+
     # These homepage layers are intentionally re-positioned on every call.
     # Older bootstraps may register another '/' route afterwards; a later
     # runtime setup must always restore the final citizen homepage.
