@@ -26,16 +26,15 @@ jobs:
         run: |
           python -m py_compile home_hero_inline_patch.py home_dashboard_final_polish.py
           python - <<'PY'
-          import asyncio
+          from fastapi.responses import HTMLResponse
           import home_hero_inline_patch as hero
-          import home_dashboard_final_polish as final
 
-          final.get_aktive_veranstaltungen = lambda: []
-          final.get_naechste_muelltermine = lambda limit=1: []
-          response = asyncio.run(hero.home_with_inline_hero())
+          source = HTMLResponse('''<!doctype html><html><head></head><body class="home-dashboard-v2"><section class="hero-card"><div class="hero-image" style="background-image:url('/assets/ahnsen-hero.webp?v=4')"></div></section></body></html>''')
+          response = hero._with_inline_hero(source)
           html = response.body.decode('utf-8')
 
           assert 'data:image/webp;base64,' in html
+          assert "url('/assets/ahnsen-hero.webp?v=4')" not in html
           assert '.home-dashboard-v2 .hero-image{position:absolute!important;inset:0!important' in html
           assert '.home-dashboard-v2 .hero-card:after{background:transparent!important}' in html
           assert 'hero-layout-root-fix' in html
