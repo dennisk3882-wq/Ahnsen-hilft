@@ -117,3 +117,10 @@ def install_runtime_extensions() -> None:
     from home_hero_inline_patch import router as home_inline_router
     _reposition_router_first(app, home_inline_router)
     app.state.home_hero_inline_installed = True
+
+    # Final PWA identity layer: the approved Ahnsen stone is the install icon.
+    # Re-position this every time because /pwa.js is also overridden by the
+    # current-events layer and must retain the stone icon URLs at the end.
+    from pwa_stone_icon_patch import router as stone_icon_router
+    _reposition_router_first(app, stone_icon_router)
+    app.state.pwa_stone_icon_installed = True
