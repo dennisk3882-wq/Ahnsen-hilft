@@ -32,7 +32,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate stop-list actions
         run: |
-          python -m py_compile mobility_trip_buttons_patch.py mobility_compact_patch.py mobility_journey_patch.py feature_routes.py
+          python -m py_compile mobility_trip_buttons_patch.py mobility_journey_patch.py feature_routes.py
           python - <<'PY'
           import asyncio
           import mobility_trip_buttons_patch as patch

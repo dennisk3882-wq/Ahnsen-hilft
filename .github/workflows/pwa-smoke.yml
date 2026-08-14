@@ -69,7 +69,7 @@ jobs:
           required = {
               "/", "/mangel-melden", "/api/maengel", "/meldestatus",
               "/dgh-mieten", "/dgh-anfrage", "/api/dgh-anfragen",
-              "/registrieren", "/anmelden", "/profil", "/profil/passwort",
+              "/registrieren", "/anmelden", "/passwort-vergessen", "/passwort-zuruecksetzen", "/profil", "/profil/passwort",
               "/api/push/public-key", "/api/push/subscribe",
               "/api/push/unsubscribe", "/manifest.webmanifest",
               "/service-worker.js", "/verwaltung", "/intern/maengel",

@@ -33,7 +33,7 @@ from dgh_crud import (
     save_dgh_termin,
     set_dgh_status,
 )
-from email_service import send_dgh_email, send_email, send_test_email
+from email_service import send_dgh_email, send_email, send_password_reset_email, send_test_email
 from gemeinde_crud import get_gemeinde_einstellungen, init_gemeinde_db
 from muelltermine_crud import get_naechste_muelltermine, init_muelltermine_db
 from pwa_account_ui import (
@@ -41,16 +41,21 @@ from pwa_account_ui import (
     dgh_overview_page,
     dgh_request_page,
     dgh_success_page,
+    password_reset_page,
+    password_reset_request_page,
     profile_page,
 )
 from pwa_crud import (
     create_user,
+    create_password_reset,
+    consume_password_reset,
     delete_push_subscription,
     get_user_by_email,
     get_user_by_id,
     has_push_subscription,
     init_pwa_db,
     normalize_email,
+    password_reset_valid,
     update_user_password,
     update_user_profile,
     upsert_push_subscription,
@@ -292,6 +297,14 @@ def _send_dgh_email_safely(reference: str, data: dict) -> None:
         print("DGH-Anfrage gespeichert, E-Mail konnte nicht gesendet werden:", repr(error))
 
 
+def _send_password_reset_safely(recipient: str, reset_url: str) -> None:
+    try:
+        send_password_reset_email(recipient, reset_url)
+        record_system_event("password_reset_email", "ok", "Passwort-Link wurde versendet.")
+    except Exception as error:
+        record_system_event("password_reset_email", "error", f"Passwort-Link konnte nicht versendet werden: {type(error).__name__}")
+
+
 configure_community_routes(
     current_user=_current_user,
     require_user=_require_user,
@@ -356,10 +369,10 @@ async def register_submit(request: Request):
 
 
 @app.get("/anmelden")
-async def user_login_page(request: Request, next: str = "/profil"):
+async def user_login_page(request: Request, next: str = "/profil", hinweis: str = ""):
     if _current_user(request):
         return RedirectResponse(url=_safe_next(next), status_code=303)
-    return account_page("login", next_url=_safe_next(next))
+    return account_page("login", next_url=_safe_next(next), message=_trim(hinweis, 300))
 
 
 @app.post("/anmelden")
@@ -375,6 +388,55 @@ async def user_login_submit(request: Request):
     response = RedirectResponse(url=next_url, status_code=303)
     _set_user_cookie(response, request, user.id)
     return response
+
+
+@app.get("/passwort-vergessen")
+async def password_forgot_page(request: Request):
+    if _current_user(request):
+        return RedirectResponse(url="/profil", status_code=303)
+    return password_reset_request_page()
+
+
+@app.post("/passwort-vergessen")
+async def password_forgot_submit(request: Request, background_tasks: BackgroundTasks):
+    _rate_limit(AUTH_RATE_LIMIT, request, 5)
+    form = await request.form()
+    email = normalize_email(form.get("email"))
+    if _valid_email(email):
+        created = create_password_reset(email)
+        if created:
+            recipient, token = created
+            configured_base = str(get_platform_snapshot().get("public_base_url") or "").rstrip("/")
+            base_url = configured_base or str(request.base_url).rstrip("/")
+            if base_url.startswith("http://") and os.getenv("COOKIE_SECURE", "true").casefold() != "false":
+                base_url = "https://" + base_url.removeprefix("http://")
+            background_tasks.add_task(_send_password_reset_safely, recipient, f"{base_url}/passwort-zuruecksetzen?token={quote(token)}")
+    return password_reset_request_page(message="Wenn ein aktives Konto zu dieser Adresse besteht, wurde ein Link versendet. Bitte prüfe auch den Spam-Ordner.")
+
+
+@app.get("/passwort-zuruecksetzen")
+async def password_reset_form(token: str = ""):
+    if not password_reset_valid(token):
+        return password_reset_request_page(error="Dieser Link ist ungültig, abgelaufen oder wurde bereits benutzt.")
+    return password_reset_page(token)
+
+
+@app.post("/passwort-zuruecksetzen")
+async def password_reset_submit(request: Request):
+    _rate_limit(AUTH_RATE_LIMIT, request, 8)
+    form = await request.form()
+    token = str(form.get("token") or "")
+    password = str(form.get("password") or "")
+    confirmation = str(form.get("password_confirm") or "")
+    if not password_reset_valid(token):
+        return password_reset_request_page(error="Dieser Link ist ungültig, abgelaufen oder wurde bereits benutzt.")
+    if len(password) < 10:
+        return password_reset_page(token, "Das neue Passwort muss mindestens zehn Zeichen lang sein.")
+    if password != confirmation:
+        return password_reset_page(token, "Die beiden Passwörter stimmen nicht überein.")
+    if not consume_password_reset(token, password):
+        return password_reset_request_page(error="Das Passwort konnte nicht geändert werden. Fordere bitte einen neuen Link an.")
+    return RedirectResponse(url="/anmelden?hinweis=" + quote("Passwort geändert. Du kannst dich jetzt neu anmelden."), status_code=303)
 
 
 @app.post("/abmelden")

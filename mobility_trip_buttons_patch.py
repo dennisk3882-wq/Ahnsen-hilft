@@ -3,12 +3,30 @@ from __future__ import annotations
 from fastapi import Query
 from fastapi.responses import JSONResponse
 
-import mobility_compact_patch as compact
+import mobility_citizen as legacy
 import mobility_journey_patch as journey
 
 
-router = compact.router
-_original_content = compact.content
+router = journey.router
+_journey_content = journey.content
+
+_COMPACT_STYLE = r'''
+<style>
+/* Die Verbindungssuche ist die primäre Bürgeransicht. Die frühere technische
+   Abfahrtstafel bleibt im DOM als interner Daten-/Kompatibilitätslayer, wird
+   aber nicht mehr sichtbar dargestellt. */
+.mob-citizen .cit-board,
+.mob-citizen .cit-day,
+.mob-citizen .cit-map-details,
+.mob-citizen .cit-lines { display: none !important; }
+.mob-citizen .journey-card { margin-bottom: 22px; }
+.mob-citizen .app-main { padding-bottom: 190px; }
+</style>
+'''
+
+
+def compact_content() -> str:
+    return _COMPACT_STYLE + _journey_content()
 
 
 @router.get("/api/mobilitaet/fahrt-id", name="journey_trip_details_by_id")
@@ -135,7 +153,8 @@ _TRIP_BUTTONS_JS = r'''
 
 
 def content() -> str:
-    return _TRIP_BUTTONS_STYLE + _original_content() + _TRIP_BUTTONS_JS
+    return _TRIP_BUTTONS_STYLE + compact_content() + _TRIP_BUTTONS_JS
 
 
 journey.legacy._content = content
+legacy._content = content

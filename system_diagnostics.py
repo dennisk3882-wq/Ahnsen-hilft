@@ -316,8 +316,12 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
         missing = sorted(required - columns)
         if missing:
             return "error", "Fehlende Konto-/Push-Spalten: " + ", ".join(missing)
+        reset_routes = {"/passwort-vergessen", "/passwort-zuruecksetzen"}
+        missing_reset = sorted(reset_routes - set(routes))
+        if "pwa_password_reset_tokens" not in tables or missing_reset:
+            return "error", "Passwort-Wiederherstellung ist unvollständig" + ((": " + ", ".join(missing_reset)) if missing_reset else ".")
         count = _table_count("pwa_users", tables) or 0
-        return "ok", f"Kontoschema vollständig; {count} Bürgerkonto/-konten vorhanden."
+        return "ok", f"Kontoschema einschließlich sicherer Passwort-Wiederherstellung vollständig; {count} Bürgerkonto/-konten vorhanden."
 
     add("accounts", "Benutzerkonten & Profile", "Funktionen", check_accounts)
 
