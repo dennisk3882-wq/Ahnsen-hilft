@@ -1124,13 +1124,13 @@ async def manifest():
 async def service_worker():
     cfg = get_platform_snapshot()
     default_payload = json.dumps({"title": cfg["platform_name"], "body": "Es gibt eine neue Information.", "url": "/profil", "tag": "citizen-platform"}, ensure_ascii=False)
-    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=2', '/warning.css?v=1', '/pwa.js?v=1', '/community.js?v=2', '/pwa/icon-192.png']
+    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=4', '/warning.css?v=1', '/pwa.js?v=1', '/community.js?v=4', '/pwa/icon-192.png']
     hero = str(cfg.get("hero_image_url") or "")
     if hero.startswith("/"):
         core_assets.append(hero)
     core_json = json.dumps(list(dict.fromkeys(core_assets)), ensure_ascii=False)
     script = f"""
-const CACHE = 'citizen-platform-pwa-v4';
+const CACHE = 'citizen-platform-pwa-v5-i18n';
 const CORE = {core_json};
 self.addEventListener('install', event => {{ event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); }});
 self.addEventListener('activate', event => {{ event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); }});
