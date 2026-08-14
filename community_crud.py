@@ -29,16 +29,6 @@ SUPPORTED_LANGUAGES = {
     "pl": "Polski",
     "uk": "Українська",
     "tr": "Türkçe",
-    "fr": "Français",
-    "es": "Español",
-    "it": "Italiano",
-    "nl": "Nederlands",
-    "ro": "Română",
-    "cs": "Čeština",
-    "da": "Dansk",
-    "sv": "Svenska",
-    "ar": "العربية",
-    "ru": "Русский",
 }
 PUSH_MODES = {"sofort", "taeglich", "woechentlich"}
 
