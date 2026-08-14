@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File, BackgroundTasks
-from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 
 import mimetypes
 import hashlib
@@ -11,9 +11,6 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
-
-from config import VERIFY_TOKEN
-from menu import handle_message
 
 from crud import (
     init_db,
@@ -62,17 +59,6 @@ from startseite import (
     public_home_page,
     start_page,
 )
-from whatsapp import send_whatsapp_message
-from abonnements_crud import (
-    get_abonnement_uebersicht,
-    set_abonnement_status,
-)
-from chat_crud import (
-    get_chat_uebersicht,
-    init_chat_db,
-    speichere_chatnachricht,
-)
-from chatbot_dashboard import chatbot_detail_page
 from gemeinde_crud import (
     get_gemeinde_einstellungen,
     init_gemeinde_db,
@@ -103,7 +89,6 @@ UPLOAD_DIR = Path(__file__).resolve().parent / "static" / "uploads"
 ERLAUBTE_UPLOAD_FELDER = {
     "hero_bild_url",
     "logo_bild_url",
-    "whatsapp_qr_url",
 }
 ERLAUBTE_UPLOAD_ENDUNGEN = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -114,7 +99,6 @@ def startup():
     init_veranstaltungen_db()
     init_dgh_db()
     init_muelltermine_db()
-    init_chat_db()
     init_gemeinde_db()
 
 
@@ -226,9 +210,6 @@ def _startseiten_daten(suche=""):
     veranstaltungen = get_aktive_veranstaltungen()
     dgh_anfragen = get_dgh_anfragen()
     dgh_termine = get_alle_dgh_termine()
-    abonnements = get_abonnement_uebersicht()
-    chatbot_verlauf = get_chat_uebersicht()
-
     erinnerungsgrenze = datetime.utcnow() - timedelta(days=7)
     ueberfaellige_meldungen = [
         meldung
@@ -287,8 +268,11 @@ def _startseiten_daten(suche=""):
         "letzte_meldungen": alle_meldungen[:5],
         "naechste_dgh_anfragen": dgh_anfragen[:5],
         "naechste_veranstaltungen": veranstaltungen[:5],
-        "abonnements": abonnements,
-        "chatbot_verlauf": chatbot_verlauf,
+        # Legacy dashboard templates still accept these keys. WhatsApp itself
+        # has been retired; keep empty values until the old dashboard markup is
+        # removed in the UI consolidation.
+        "abonnements": [],
+        "chatbot_verlauf": [],
         "suchergebnisse": suchergebnisse,
     }
 
@@ -383,11 +367,6 @@ async def public_ueber_ahnsen():
 @app.get("/aktuelles")
 async def public_aktuelles():
     return public_content_page(_public_home_daten(), "aktuelles")
-
-
-@app.get("/whatsapp-bot")
-async def public_whatsapp_bot():
-    return public_content_page(_public_home_daten(), "whatsapp")
 
 
 @app.get("/impressum")
@@ -846,40 +825,12 @@ async def dgh_status_aendern(
         raise HTTPException(status_code=400, detail="Ungültiger DGH-Status")
 
     try:
-        termin, alter_status = set_dgh_status(termin_id, status)
+        set_dgh_status(termin_id, status)
     except ValueError as error:
         return RedirectResponse(
             url=f"/intern/dgh?fehler={quote(str(error))}",
             status_code=303,
         )
-
-    if (
-        termin
-        and alter_status != status
-        and termin.whatsapp_absender
-        and status in {"Bestätigt", "Abgelehnt"}
-    ):
-        if status == "Bestätigt":
-            nachricht = f"""✅ Deine DGH-Mietanfrage wurde bestätigt.
-
-📅 Datum: {termin.datum or "-"}
-🕒 Uhrzeit: {termin.uhrzeit or "-"}
-🎉 Anlass: {termin.anlass or "-"}
-
-Der Termin ist damit fest für dich eingetragen."""
-        else:
-            nachricht = f"""❌ Deine DGH-Mietanfrage konnte leider nicht bestätigt werden.
-
-📅 Datum: {termin.datum or "-"}
-🕒 Uhrzeit: {termin.uhrzeit or "-"}
-🎉 Anlass: {termin.anlass or "-"}
-
-Du kannst gern eine Anfrage für einen anderen Termin senden."""
-
-        try:
-            send_whatsapp_message(termin.whatsapp_absender, nachricht)
-        except Exception as error:
-            print("DGH-Statusnachricht konnte nicht gesendet werden:", repr(error))
 
     return RedirectResponse(
         url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}",
@@ -1074,40 +1025,6 @@ async def gemeindeseite_alt_import(
     )
 
 
-@app.post("/abonnements/{abo_typ}/{abo_id}/status")
-async def abonnement_status_aendern(
-    abo_typ: str,
-    abo_id: int,
-    aktiv: str = Form(...),
-    _=Depends(check_dashboard_login),
-):
-    try:
-        set_abonnement_status(abo_typ, abo_id, aktiv == "Ja")
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Abonnement nicht gefunden")
-
-    return RedirectResponse(url="/#abonnenten", status_code=303)
-
-
-@app.get("/intern/chatbot/{whatsapp_nummer}")
-async def intern_chatbot_detail(
-    whatsapp_nummer: str,
-    _=Depends(check_dashboard_login),
-):
-    return chatbot_detail_page(whatsapp_nummer)
-
-
-@app.get("/chatbot/{whatsapp_nummer}")
-async def chatbot_detail(
-    whatsapp_nummer: str,
-    _=Depends(check_dashboard_login),
-):
-    return RedirectResponse(
-        url=f"/intern/chatbot/{quote(whatsapp_nummer)}",
-        status_code=303,
-    )
-
-
 @app.get("/intern/meldung/{ticket}")
 async def intern_meldung_detail(
     ticket: str,
@@ -1144,81 +1061,3 @@ async def notiz_speichern(
     update_notiz(ticket, notiz)
 
     return RedirectResponse(url=f"/intern/meldung/{quote(ticket)}", status_code=303)
-
-
-@app.get("/webhook")
-async def verify_webhook(request: Request):
-    mode = request.query_params.get("hub.mode")
-    token = request.query_params.get("hub.verify_token")
-    challenge = request.query_params.get("hub.challenge")
-
-    if mode == "subscribe" and token == VERIFY_TOKEN:
-        return PlainTextResponse(challenge)
-
-    return PlainTextResponse("Forbidden", status_code=403)
-
-
-@app.post("/webhook")
-async def webhook(request: Request):
-    body = await request.json()
-
-    if body.get("object") != "whatsapp_business_account":
-        return {"status": "ignored"}
-
-    for entry in body.get("entry", []):
-        for change in entry.get("changes", []):
-            value = change.get("value", {})
-            kontakte = {
-                kontakt.get("wa_id"): (
-                    kontakt.get("profile", {}).get("name") or ""
-                )
-                for kontakt in value.get("contacts", [])
-            }
-
-            if "messages" not in value:
-                continue
-
-            for message in value["messages"]:
-                sender = message["from"]
-                msg_type = message["type"]
-                name = kontakte.get(sender, "")
-                erstellt_am = None
-
-                try:
-                    if message.get("timestamp"):
-                        erstellt_am = datetime.utcfromtimestamp(
-                            int(message["timestamp"])
-                        )
-                except (TypeError, ValueError):
-                    erstellt_am = None
-
-                print(f"WhatsApp-Nachricht empfangen: Typ={msg_type}")
-
-                if msg_type == "text":
-                    content = message["text"]["body"]
-
-                elif msg_type == "image":
-                    content = message["image"]["id"]
-
-                else:
-                    continue
-
-                try:
-                    gespeicherter_inhalt = content
-                    if msg_type == "image":
-                        gespeicherter_inhalt = "📷 Bild empfangen"
-
-                    speichere_chatnachricht(
-                        sender,
-                        "eingehend",
-                        gespeicherter_inhalt,
-                        nachricht_typ=msg_type,
-                        name=name,
-                        erstellt_am=erstellt_am,
-                    )
-                except Exception as error:
-                    print("Chatverlauf konnte nicht gespeichert werden:", repr(error))
-
-                handle_message(sender, msg_type, content)
-
-    return {"status": "ok"}

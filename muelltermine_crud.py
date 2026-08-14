@@ -7,13 +7,6 @@ from muelltermine_models import MuellAbo, Muelltermin
 def init_muelltermine_db():
     Base.metadata.create_all(bind=engine)
 
-    # FastAPI executes this during startup, after pwa_main has registered its
-    # production routes. Public feature overrides can therefore be installed
-    # here without changing Render's established `uvicorn pwa_main:app` entry.
-    from runtime_extensions import install_runtime_extensions
-
-    install_runtime_extensions()
-
 
 def importiere_muelltermine(jahr, adresse, dateiname, termine):
     db = SessionLocal()

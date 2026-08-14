@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate compact neighborhood UI and inbox bridge
         run: |
-          python -m py_compile neighborhood_mobile_patch.py neighborhood_messages_patch.py runtime_extensions.py
+          python -m py_compile neighborhood_mobile_patch.py neighborhood_messages_patch.py feature_routes.py
           python - <<'PY'
           from types import SimpleNamespace
 

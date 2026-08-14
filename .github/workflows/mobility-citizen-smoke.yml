@@ -29,7 +29,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate citizen mobility dashboard and Transitous data path
         run: |
-          python -m py_compile mobility_citizen.py mobility_efa_patch.py runtime_extensions.py muelltermine_crud.py
+          python -m py_compile mobility_citizen.py mobility_efa_patch.py feature_routes.py muelltermine_crud.py
           python - <<'PY'
           from datetime import datetime
           from pathlib import Path

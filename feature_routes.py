@@ -18,8 +18,12 @@ def _reposition_router_first(app, router) -> None:
     _prepend_router(app, router)
 
 
-def install_runtime_extensions() -> None:
-    """Install production route overrides on the established pwa_main app."""
+def install_feature_routes() -> None:
+    """Install the remaining feature routers in one explicit bootstrap step.
+
+    This is deliberately called once from ``pwa_main``. Database initializers
+    must never change route order as a startup side effect.
+    """
     from pwa_core import app
 
     if not getattr(app.state, "citizen_mobility_installed", False):
@@ -99,13 +103,6 @@ def install_runtime_extensions() -> None:
         from citizen_service_center import router as citizen_service_router
         _prepend_router(app, citizen_service_router)
         app.state.citizen_service_center_installed = True
-
-    if not getattr(app.state, "pwa_stone_icon_installed", False):
-        # Versioned launcher icon. v6 intentionally uses a new URL so Android
-        # does not keep the previous immutable v5 icon from its PWA cache.
-        from pwa_icon_patch import router as pwa_icon_router
-        _prepend_router(app, pwa_icon_router)
-        app.state.pwa_stone_icon_installed = True
 
     # These homepage layers are intentionally re-positioned on every call.
     # Older bootstraps may register another '/' route afterwards; a later

@@ -17,9 +17,9 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     "zeitzone": "Europe/Berlin",
     "plattform_basis_url": "https://ahnsen-hilft.onrender.com",
     "plattform_slug": "ahnsen-hilft",
-    "pwa_icon_192_url": "/pwa/ahnsen-app-v5-192.png",
-    "pwa_icon_512_url": "/pwa/ahnsen-app-v5-512.png",
-    "apple_touch_icon_url": "/pwa/ahnsen-app-v5-180.png",
+    "pwa_icon_192_url": "/pwa/ahnsen-app-v7-192.png",
+    "pwa_icon_512_url": "/pwa/ahnsen-app-v7-512.png",
+    "apple_touch_icon_url": "/pwa/ahnsen-app-v7-180.png",
     "ticket_prefix": "AHN",
     "karten_mittelpunkt_lat": "52.258",
     "karten_mittelpunkt_lon": "9.099",
@@ -51,14 +51,6 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
         "Kurze Wege, starke Vereine und eine aktive Dorfgemeinschaft: Ahnsen "
         "verbindet ländliche Lebensqualität mit moderner digitaler Verwaltung."
     ),
-    "whatsapp_nummer": "",
-    "whatsapp_link": "https://wa.me/",
-    "whatsapp_qr_url": "",
-    "whatsapp_text": (
-        "Mit dem WhatsApp-Bot können Bürger Mängel melden, Veranstaltungen "
-        "abrufen, Ansprechpartner finden, Mülltermine ansehen, das DGH buchen "
-        "und automatische Erinnerungen erhalten."
-    ),
     "facebook_url": "",
     "instagram_url": "",
     "externe_website_url": "https://www.ahnsen-schaumburg.de/",
@@ -86,9 +78,9 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     ),
     "aktuelles": (
         "Digitale Bürgerplattform gestartet|Mängel, Veranstaltungen, DGH und "
-        "Mülltermine werden hier künftig zentral gebündelt.\n"
-        "WhatsApp-Bot verfügbar|Viele Anliegen können direkt per WhatsApp "
-        "gestartet werden."
+        "Mülltermine werden hier zentral gebündelt.\n"
+        "Bürgerkonto und Push aktiv|Persönliche Vorgänge und gewünschte "
+        "Erinnerungen sind direkt in der PWA verfügbar."
     ),
     "vereine": (
         "Feuerwehr|Einsatz, Gemeinschaft und Sicherheit vor Ort.\n"
@@ -114,7 +106,7 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     ),
     "mangel_seite_text": (
         "Melde defekte Straßenlaternen, Schlaglöcher, wilde Müllablagerungen "
-        "oder andere Hinweise direkt über den WhatsApp-Bot."
+        "oder andere Hinweise direkt mit Foto und Standort über die PWA."
     ),
     "veranstaltungen_seite_text": (
         "Hier findest du kommende Termine, Aktionen und Veranstaltungen in "
@@ -135,12 +127,12 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     ),
     "muell_seite_text": (
         "Sieh die nächsten Abholtermine und abonniere Erinnerungen für die "
-        "Müllabfuhr direkt per WhatsApp."
+        "Müllabfuhr direkt in deinem Bürgerkonto."
     ),
     "muell_abo_text": (
         "Wer die Erinnerung abonniert, bekommt am Vortag um 18 Uhr automatisch "
-        "eine WhatsApp-Nachricht mit den Tonnen, die am nächsten Tag abgeholt "
-        "werden."
+        "eine Browser-Push-Nachricht mit den Tonnen, die am nächsten Tag "
+        "abgeholt werden."
     ),
     "buergerinfo_seite_text": (
         "Wichtige Informationen, Links und Hinweise für Bürgerinnen und Bürger "
@@ -161,10 +153,6 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     "aktuelles_seite_text": (
         "Aktuelle Hinweise, Neuigkeiten und wichtige Informationen der "
         "Gemeinde."
-    ),
-    "whatsapp_seite_text": (
-        "Der WhatsApp-Bot führt dich Schritt für Schritt durch die wichtigsten "
-        "digitalen Dienste der Gemeinde."
     ),
     "ueber_ahnsen_seite_text": (
         "Ahnsen verbindet ländliche Lebensqualität, starke Nachbarschaft und "

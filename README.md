@@ -18,9 +18,14 @@ modernen, für Smartphones optimierten Oberfläche.
 - Veranstaltungen, Vereine, Aktuelles, Feuerwehr und Ansprechpartner
 - geschützter Verwaltungsbereich unter `/verwaltung`
 
-Der frühere WhatsApp-Bot und der WhatsApp-Erinnerungsjob sind deaktiviert. Alte
-Datenbankspalten bleiben aus Kompatibilitätsgründen erhalten, werden in der PWA
-aber nicht mehr für den Versand verwendet.
+Der frühere WhatsApp-Bot, Webhook, Chatverlauf und WhatsApp-Erinnerungsjob sind
+aus der Anwendung entfernt. Alte Datenbankspalten bleiben ausschließlich für
+eine verlustfreie Migration vorhandener Datensätze erhalten; neue Kommunikation
+läuft über Bürgerkonto, E-Mail und Browser-Push.
+
+Das eigenständige **Ahnser Quiz** ist kein Bestandteil dieses Repositorys. Es
+bleibt als separates Projekt unter https://ahnsen-live-quiz.onrender.com/
+erreichbar und besitzt einen eigenen Build-, Test- und Deployment-Lebenszyklus.
 
 ## Lokaler Start
 
@@ -50,6 +55,22 @@ Für Browser-Push werden ein VAPID-Schlüsselpaar und eine Kontaktangabe benöti
 Der private Schlüssel darf niemals ins Repository eingecheckt werden. Ohne
 VAPID-Schlüssel funktionieren die übrigen PWA-Funktionen weiterhin; im Profil
 wird Push dann als noch nicht serverseitig eingerichtet angezeigt.
+
+## Architektur
+
+- `pwa_main.py` ist der einzige Produktionseinstieg.
+- `pwa_core.py` enthält die etablierten Kernrouten.
+- `feature_routes.py` registriert noch nicht vollständig konsolidierte
+  Fachrouter einmalig und ausdrücklich beim Import der Produktions-App.
+- Datenbank-Initialisierer registrieren keine HTTP-Routen mehr.
+- `main.py` enthält vorübergehend noch wiederverwendete Verwaltungsrouten; der
+  WhatsApp-Laufzeitpfad wurde daraus entfernt.
+- Das freigegebene Stein-Fotoicon liegt ausschließlich als v7-PNG in
+  180, 192 und 512 Pixeln vor. Alte Icon-URLs liefern aus Kompatibilitätsgründen
+  dasselbe v7-Icon aus, besitzen aber keine eigenen Altdateien mehr.
+
+Weitere Details und offene Konsolidierungsschritte stehen in
+[`PROJECT_PLAN.md`](PROJECT_PLAN.md).
 
 ## Push-Erinnerungsjob
 

@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate enhanced neighborhood platform
         run: |
-          python -m py_compile neighborhood_models.py neighborhood_routes.py neighborhood_enhancement_models.py neighborhood_enhanced_patch.py runtime_extensions.py
+          python -m py_compile neighborhood_models.py neighborhood_routes.py neighborhood_enhancement_models.py neighborhood_enhanced_patch.py feature_routes.py
           python - <<'PY'
           from datetime import datetime, timedelta
 
@@ -79,8 +79,8 @@ jobs:
 
           # Runtime layering: enhanced duplicate endpoints must precede base endpoints.
           import pwa_main
-          from runtime_extensions import install_runtime_extensions
-          install_runtime_extensions()
+          from feature_routes import install_feature_routes
+          install_feature_routes()
           def first(path,method='GET'):
               matches=[r for r in pwa_main.app.router.routes if getattr(r,'path','')==path and method in (getattr(r,'methods',set()) or set())]
               assert matches,path

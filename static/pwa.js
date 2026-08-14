@@ -4,16 +4,16 @@ if (typeof document === 'undefined') {
     '/',
     '/pwa.css?v=1',
     '/pwa-extra.css?v=1',
-    '/pwa/icon-192.png',
-    '/pwa/icon-512.png',
+    '/pwa/ahnsen-app-v7-192.png',
+    '/pwa/ahnsen-app-v7-512.png',
     '/assets/ahnsen-startseite.png',
     '/manifest.webmanifest'
   ];
   const CACHEABLE = new Set([
     '/pwa.css',
     '/pwa-extra.css',
-    '/pwa/icon-192.png',
-    '/pwa/icon-512.png',
+    '/pwa/ahnsen-app-v7-192.png',
+    '/pwa/ahnsen-app-v7-512.png',
     '/assets/ahnsen-startseite.png',
     '/manifest.webmanifest'
   ]);
@@ -61,7 +61,7 @@ if (typeof document === 'undefined') {
 
   self.addEventListener('push', event => {
     let data = {
-      title: document.querySelector('meta[name="application-name"]')?.content || document.title.split(' · ').pop() || 'Bürgerplattform',
+      title: 'Ahnsen hilft',
       body: 'Es gibt eine neue Information.',
       url: '/profil',
       tag: 'ahnsen-hilft'
@@ -72,8 +72,8 @@ if (typeof document === 'undefined') {
     event.waitUntil(
       self.registration.showNotification(data.title, {
         body: data.body,
-        icon: data.icon || '/pwa/icon-192.png',
-        badge: data.badge || '/pwa/icon-192.png',
+        icon: data.icon || '/pwa/ahnsen-app-v7-192.png',
+        badge: data.badge || '/pwa/ahnsen-app-v7-192.png',
         tag: data.tag,
         data: { url: data.url || '/profil' }
       })

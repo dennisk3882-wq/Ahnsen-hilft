@@ -31,7 +31,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate compact homepage and weather forecast
         run: |
-          python -m py_compile weather_service.py home_weather_center.py home_dashboard_final_polish.py home_hero_inline_patch.py runtime_extensions.py
+          python -m py_compile weather_service.py home_weather_center.py home_dashboard_final_polish.py home_hero_inline_patch.py feature_routes.py
           python - <<'PY'
           import asyncio
           from datetime import datetime, timedelta
@@ -113,8 +113,8 @@ jobs:
           assert calls[0][1]['apikey'] == 'test-weather-key'
 
           import pwa_main
-          from runtime_extensions import install_runtime_extensions
-          install_runtime_extensions()
+          from feature_routes import install_feature_routes
+          install_feature_routes()
           assert pwa_main.app.state.home_weather_dashboard_installed is True
           assert pwa_main.app.state.home_dashboard_final_polish_installed is True
           assert pwa_main.app.state.home_hero_inline_installed is True

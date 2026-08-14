@@ -64,8 +64,8 @@ jobs:
           assert "legacy-nav-fallback" in css
 
           main = Path("pwa_main.py").read_text(encoding="utf-8")
-          assert 'SERVICE_WORKER_VERSION = "v8"' in main
-          assert "public-v8" in main
+          assert 'SERVICE_WORKER_VERSION = "v9"' in main
+          assert "public-{SERVICE_WORKER_VERSION}" in main
 
           community = Path("static/community.js").read_text(encoding="utf-8")
           assert "data.degraded" in community
