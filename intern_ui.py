@@ -60,6 +60,8 @@ def intern_nav(active=""):
         ("gemeindeseite", "/intern/politik", "Politik & Rat"),
         ("berichte", "/intern/berichte", "Berichte"),
         ("berichte", "/intern/audit", "Audit"),
+        ("gemeindeseite", "/intern/inhalte/versionen", "Versionen"),
+        ("system", "/intern/benutzer", "Zugänge"),
         ("system", "/intern/plattform", "Plattform"),
         ("system", "/intern/system", "System"),
     ]

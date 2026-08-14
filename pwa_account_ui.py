@@ -137,17 +137,25 @@ def _push_toggle(user, field: str, label: str, description: str) -> str:
 
 def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: bool, push_configured: bool, message: str = "", error: str = "") -> HTMLResponse:
     from community_crud import count_unread_messages, get_preference
+    from community_models import Idea, NeighborPost
+    from database import SessionLocal
     reports = list(reports)
     dgh_requests = list(dgh_requests)
     preference = get_preference(user.id)
     unread_messages = count_unread_messages(user.id)
+    db = SessionLocal()
+    try:
+        ideas = db.query(Idea).filter(Idea.user_id == user.id).order_by(Idea.aktualisiert_am.desc()).limit(20).all()
+        neighbor_posts = db.query(NeighborPost).filter(NeighborPost.user_id == user.id).order_by(NeighborPost.aktualisiert_am.desc()).limit(20).all()
+    finally:
+        db.close()
     report_cards = []
     for item in reports[:20]:
         status = getattr(item, "status", "Offen") or "Offen"
         created = getattr(item, "erstellt_am", None)
         created_text = created.strftime("%d.%m.%Y") if created else ""
         report_cards.append(
-            f'<a class="profile-case" href="/meldestatus?ticket={escape(item.ticket)}"><span class="case-icon">{icon("report")}</span><div><small>{escape(created_text)} · {escape(item.ticket)}</small><strong>{escape(item.art or "Meldung")}</strong><span>{escape(item.ort or "")}</span></div><b class="status-pill {_status_class(status)}">{escape(status)}</b></a>'
+            f'<a class="profile-case" href="/meldestatus?ticket={escape(item.ticket)}"><span class="case-icon">{icon("report")}</span><div><small>{escape(created_text)} · {escape(item.ticket)}</small><strong>{escape(item.art or "Meldung")}</strong><span>{escape(item.ort or "")}{" · " + escape(item.responsibility) if getattr(item,"responsibility","") else ""}</span>{f"<small>{escape(item.public_note)}</small>" if getattr(item,"public_note","") else ""}</div><b class="status-pill {_status_class(status)}">{escape(status)}</b></a>'
         )
     if not report_cards:
         report_cards.append('<div class="empty-mini"><strong>Noch keine eigenen Meldungen</strong><span>Neue Meldungen werden nach dem Absenden automatisch hier angezeigt.</span></div>')
@@ -160,6 +168,18 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
         )
     if not dgh_cards:
         dgh_cards.append('<div class="empty-mini"><strong>Noch keine DGH-Anfragen</strong><span>Digitale Mietanfragen erscheinen nach dem Absenden hier.</span></div>')
+
+    all_cases = []
+    for item in reports:
+        all_cases.append((getattr(item, "updated_at", None) or item.erstellt_am, f'<a class="profile-case" href="/meldestatus?ticket={escape(item.ticket)}"><span class="case-icon">{icon("report")}</span><div><small>Mängelmeldung · {escape(item.ticket)}</small><strong>{escape(item.art or "Meldung")}</strong><span>{escape(getattr(item,"responsibility","") or "Zuständigkeit wird geklärt")}</span></div><b class="status-pill {_status_class(item.status)}">{escape(item.status)}</b></a>'))
+    for item in dgh_requests:
+        all_cases.append((item.aktualisiert_am or item.erstellt_am, f'<article class="profile-case"><span class="case-icon">{icon("building")}</span><div><small>DGH-Anfrage · DGH-{item.id:06d}</small><strong>{escape(item.anlass or "Mietanfrage")}</strong><span>{escape(item.datum or "")}</span></div><b class="status-pill {_status_class(item.status)}">{escape(item.status)}</b></article>'))
+    for item in ideas:
+        all_cases.append((item.aktualisiert_am or item.erstellt_am, f'<a class="profile-case" href="/ideen"><span class="case-icon">{icon("idea")}</span><div><small>Beteiligung · Idee {item.id}</small><strong>{escape(item.title)}</strong><span>Idee für Ahnsen</span></div><b class="status-pill">{escape(item.status)}</b></a>'))
+    for item in neighbor_posts:
+        all_cases.append((item.aktualisiert_am or item.erstellt_am, f'<a class="profile-case" href="/nachbarschaft?eigene=1"><span class="case-icon">{icon("neighbor")}</span><div><small>Nachbarschaft · Beitrag {item.id}</small><strong>{escape(item.title)}</strong><span>{escape(item.category)}</span></div><b class="status-pill">{escape(item.status)}</b></a>'))
+    all_cases.sort(key=lambda pair: pair[0], reverse=True)
+    all_case_html = "".join(card for _, card in all_cases[:40]) or '<div class="empty-mini"><strong>Noch keine Vorgänge</strong><span>Meldungen, DGH-Anfragen, Ideen und Nachbarschaftsbeiträge werden hier gemeinsam angezeigt.</span></div>'
 
     push_text = "Auf diesem Konto ist mindestens ein Gerät registriert." if push_enabled else "Aktiviere Benachrichtigungen, um Statusänderungen direkt zu erhalten."
     if not push_configured:
@@ -213,11 +233,12 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
 {_alert(message, success=True)}{_alert(error)}
 <section class="profile-overview-links">
   <a class="profile-overview-link" href="/nachrichten"><span class="eyebrow">Postfach</span><strong>{unread_messages}</strong><span>ungelesene Nachrichten</span></a>
-  <a class="profile-overview-link" href="#meine-meldungen"><span class="eyebrow">Mängel</span><strong>{len(reports)}</strong><span>eigene Meldungen</span></a>
+  <a class="profile-overview-link" href="#meine-vorgaenge"><span class="eyebrow">Vorgänge</span><strong>{len(all_cases)}</strong><span>alles an einem Ort</span></a>
   <a class="profile-overview-link" href="#meine-dgh"><span class="eyebrow">DGH</span><strong>{len(dgh_requests)}</strong><span>eigene Anfragen</span></a>
   <a class="profile-overview-link" href="/ideen"><span class="eyebrow">Beteiligung</span><strong>Ideen</strong><span>mitmachen & unterstützen</span></a>
   <a class="profile-overview-link" href="/nachbarschaft"><span class="eyebrow">Dorf</span><strong>Hilfe</strong><span>Nachbarschaftshilfe</span></a>
 </section>
+<section class="content-card profile-section" id="meine-vorgaenge"><div class="section-title"><span class="eyebrow">Alles an einem Ort</span><h2>Meine Vorgänge</h2><p>Mängelmeldungen, DGH-Anfragen, Ideen und eigene Nachbarschaftsbeiträge mit aktuellem Bearbeitungsstand.</p></div><div class="profile-list">{all_case_html}</div></section>
 <section class="profile-grid">
   <article class="content-card profile-settings">
     <div class="section-title"><span class="eyebrow">Kontaktdaten</span><h2>Profil bearbeiten</h2></div>
@@ -226,6 +247,7 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
       <label class="field"><span>Telefon</span><input name="telefon" maxlength="60" value="{escape(user.telefon or '')}"></label>
       <div class="section-title push-settings-title"><span class="eyebrow">Push-Einstellungen</span><h2>Welche Nachrichten möchtest du?</h2><p>Du entscheidest für jede Kategorie einzeln. Zusätzlich muss Browser-Push auf diesem Gerät aktiviert sein.</p></div>
       {push_preferences}
+      <div class="push-pref-group" data-accessibility-profile><h3>Darstellung & Barrierefreiheit</h3><p>Die Seite bleibt grundsätzlich gleich. Diese Einstellungen werden im Profil und auf diesem Gerät gespeichert.</p>{''.join(f'<label class="field"><span>{label}</span><select name="a11y_{key}"><option value="nein">Aus</option><option value="ja"{" selected" if getattr(preference,"a11y_"+key,False) else ""}>An</option></select></label>' for key,label in (("large","Größere Schrift"),("contrast","Hoher Kontrast"),("simple","Einfache Ansicht"),("reduce","Weniger Bewegung")))}</div>
       <div class="smart-push-box"><h3>Intelligente Benachrichtigungen</h3><p>Dringende Warnungen und Status deiner eigenen Vorgänge kommen immer sofort. Für normale Dorfmeldungen kannst du sofortige Zustellung oder eine gebündelte Zusammenfassung wählen.</p><div class="smart-push-grid"><label class="field"><span>Zustellung normaler Hinweise</span><select name="push_mode"><option value="sofort"{" selected" if getattr(preference,"push_mode","sofort") == "sofort" else ""}>Sofort</option><option value="taeglich"{" selected" if getattr(preference,"push_mode","") == "taeglich" else ""}>Tägliche Zusammenfassung</option><option value="woechentlich"{" selected" if getattr(preference,"push_mode","") == "woechentlich" else ""}>Wöchentliche Zusammenfassung</option></select></label><label class="field"><span>Uhrzeit Zusammenfassung</span><input name="digest_hour" type="number" min="0" max="23" value="{getattr(preference,"digest_hour",18)}"></label><label class="field"><span>Ruhezeit ab</span><input name="quiet_start" type="time" value="{escape(getattr(preference,"quiet_start","22:00"))}"></label><label class="field"><span>Ruhezeit bis</span><input name="quiet_end" type="time" value="{escape(getattr(preference,"quiet_end","07:00"))}"></label><input type="hidden" name="language" value="{escape(getattr(preference,"language","de"))}"></div></div>
       <button class="primary-button" type="submit">Profil & Push-Auswahl speichern</button>
     </form>
@@ -240,6 +262,7 @@ def profile_page(user, reports: Iterable, dgh_requests: Iterable, push_enabled: 
 <section class="content-card profile-section" id="meine-meldungen"><div class="section-title"><span class="eyebrow">Mängelmelder</span><h2>Meine Meldungen</h2></div><div class="profile-list">{''.join(report_cards)}</div><a class="primary-button section-action" href="/mangel-melden">Neuen Mangel melden</a></section>
 <section class="content-card profile-section" id="meine-dgh"><div class="section-title"><span class="eyebrow">Dorfgemeinschaftshaus</span><h2>Meine DGH-Anfragen</h2></div><div class="profile-list">{''.join(dgh_cards)}</div><a class="primary-button section-action" href="/dgh-anfrage">Neue Mietanfrage</a></section>
 <section class="content-card password-card"><div class="section-title"><span class="eyebrow">Sicherheit</span><h2>Passwort ändern</h2></div><form class="password-form" method="post" action="/profil/passwort"><label class="field"><span>Aktuelles Passwort</span><input name="current_password" type="password" autocomplete="current-password" required></label><label class="field"><span>Neues Passwort</span><input name="new_password" type="password" minlength="10" autocomplete="new-password" required></label><label class="field"><span>Wiederholen</span><input name="new_password_confirm" type="password" minlength="10" autocomplete="new-password" required></label><button class="secondary-button" type="submit">Passwort ändern</button></form></section>
+<section class="content-card profile-section"><div class="section-title"><span class="eyebrow">Datenschutz</span><h2>Deine Daten</h2></div><p>Du kannst deine gespeicherten Profildaten und Vorgänge kostenlos als JSON-Datei herunterladen oder dein Konto anonymisieren lassen.</p><a class="secondary-button" href="/profil/datenexport">Meine Daten herunterladen</a><details><summary>Konto löschen</summary><form method="post" action="/profil/konto-loeschen"><label class="field"><span>Zur Bestätigung LÖSCHEN eingeben</span><input name="confirmation" required></label><button class="secondary-button" type="submit">Konto endgültig löschen</button></form></details></section>
 """
     return page("Mein Profil", content, active="profile", body_class="profile-view")
 

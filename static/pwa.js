@@ -4,6 +4,8 @@ if (typeof document === 'undefined') {
     '/',
     '/pwa.css?v=1',
     '/pwa-extra.css?v=1',
+    '/accessibility.css?v=1',
+    '/accessibility.js?v=1',
     '/pwa/ahnsen-app-v7-192.png',
     '/pwa/ahnsen-app-v7-512.png',
     '/assets/ahnsen-startseite.png',
@@ -12,6 +14,8 @@ if (typeof document === 'undefined') {
   const CACHEABLE = new Set([
     '/pwa.css',
     '/pwa-extra.css',
+    '/accessibility.css',
+    '/accessibility.js',
     '/pwa/ahnsen-app-v7-192.png',
     '/pwa/ahnsen-app-v7-512.png',
     '/assets/ahnsen-startseite.png',

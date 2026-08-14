@@ -17,6 +17,10 @@ class CitizenPreference(Base):
     digest_hour = Column(Integer, default=18, nullable=False)
     quiet_start = Column(String(5), default="22:00", nullable=False)
     quiet_end = Column(String(5), default="07:00", nullable=False)
+    a11y_large = Column(Boolean, default=False, nullable=False)
+    a11y_contrast = Column(Boolean, default=False, nullable=False)
+    a11y_simple = Column(Boolean, default=False, nullable=False)
+    a11y_reduce = Column(Boolean, default=False, nullable=False)
     erstellt_am = Column(DateTime, default=datetime.utcnow, nullable=False)
     aktualisiert_am = Column(DateTime, default=datetime.utcnow, nullable=False)
 

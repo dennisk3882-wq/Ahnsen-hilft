@@ -26,6 +26,11 @@ def install_feature_routes() -> None:
     """
     from pwa_core import app
 
+    if not getattr(app.state, "governance_routes_installed", False):
+        from governance_routes import router as governance_router
+        _prepend_router(app, governance_router)
+        app.state.governance_routes_installed = True
+
     if not getattr(app.state, "citizen_mobility_installed", False):
         from mobility_trip_buttons_patch import router as citizen_mobility_router
         _prepend_router(app, citizen_mobility_router)

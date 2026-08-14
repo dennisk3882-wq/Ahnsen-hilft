@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, or_
+from sqlalchemy import func, inspect, or_
 from sqlalchemy.exc import IntegrityError
 
 from community_models import (
@@ -45,6 +45,11 @@ PUSH_MODES = {"sofort", "taeglich", "woechentlich"}
 
 def init_community_db() -> None:
     Base.metadata.create_all(bind=engine)
+    existing = {column["name"] for column in inspect(engine).get_columns("citizen_preferences")}
+    for field in ("a11y_large", "a11y_contrast", "a11y_simple", "a11y_reduce"):
+        if field not in existing:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"ALTER TABLE citizen_preferences ADD COLUMN {field} BOOLEAN NOT NULL DEFAULT FALSE")
     db = SessionLocal()
     try:
         if not db.query(MunicipalityConfig).first():
@@ -76,6 +81,7 @@ def save_preference(
     digest_hour: int | None = None,
     quiet_start: str | None = None,
     quiet_end: str | None = None,
+    accessibility: dict[str, bool] | None = None,
 ) -> CitizenPreference:
     db = SessionLocal()
     try:
@@ -96,6 +102,9 @@ def save_preference(
             item.quiet_start = str(quiet_start)
         if quiet_end is not None and len(str(quiet_end)) <= 5:
             item.quiet_end = str(quiet_end)
+        for field, enabled in (accessibility or {}).items():
+            if field in {"a11y_large", "a11y_contrast", "a11y_simple", "a11y_reduce"}:
+                setattr(item, field, bool(enabled))
         item.aktualisiert_am = datetime.utcnow()
         db.commit()
         db.refresh(item)

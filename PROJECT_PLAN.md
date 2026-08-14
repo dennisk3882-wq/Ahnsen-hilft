@@ -84,7 +84,17 @@ entfernt.
 4. mehrere Verwaltungsbenutzer mit Rollen und persönlichem Audit
 5. vollständiger Kontolebenszyklus einschließlich Passwort-Reset und Löschung
 6. Browser-End-to-End-Tests für Installation, Push und zentrale Vorgänge
-7. BITV-/WCAG-AA-Prüfung
+7. BITV-/WCAG-AA-Prüfung und Tests mit echten assistiven Technologien
+
+## Ausbau August 2026
+
+- Zentrales Vorgangssystem mit Zuständigkeit, Bearbeitung, Priorität, Frist, öffentlicher Rückmeldung und Verlauf
+- „Meine Vorgänge“ bündelt Mängel, DGH, Beteiligung und Nachbarschaft im Bürgerprofil
+- Persönliche Verwaltungskonten mit Rollen und kostenloser TOTP-2FA
+- Moderations- und Datenschutzfunktionen einschließlich Bürger-Datenexport und Kontolöschung
+- Standardmäßige Fokus-, Tastatur- und Bewegungsverbesserungen plus optionaler Umschalter für große Schrift, Kontrast, einfache Ansicht und weniger Bewegung
+- Inhaltsversionen mit Entwurf, Prüfung, Freigabe und Archivierung
+- Kein zusätzlicher Bezahldienst erforderlich
 
 ## Qualitätsregel
 
