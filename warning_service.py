@@ -360,6 +360,41 @@ def _upsert_warning(item: dict[str, Any]) -> tuple[OfficialWarning, bool, bool]:
         db.close()
 
 
+def _warning_title_key(value: str) -> str:
+    title = re.sub(r"^entwarnung\\s*:\\s*", "", _clean_text(value).casefold())
+    return re.sub(r"[^a-z0-9äöüß]+", " ", title).strip()
+
+
+def _deactivate_cancelled_warnings(cancel_warning: OfficialWarning) -> int:
+    """Ordnet eine separate MoWaS-Entwarnung ihrer ursprünglichen Warnung zu."""
+    if not cancel_warning.is_cancel:
+        return 0
+    cancel_key = _warning_title_key(cancel_warning.title)
+    if len(cancel_key) < 12:
+        return 0
+    db = SessionLocal()
+    try:
+        candidates = (
+            db.query(OfficialWarning)
+            .filter(OfficialWarning.source == cancel_warning.source)
+            .filter(OfficialWarning.active.is_(True))
+            .filter(OfficialWarning.is_cancel.is_(False))
+            .all()
+        )
+        changed = 0
+        for candidate in candidates:
+            candidate_key = _warning_title_key(candidate.title)
+            if candidate_key == cancel_key or candidate_key.startswith(cancel_key) or cancel_key.startswith(candidate_key):
+                candidate.active = False
+                candidate.last_seen_at = datetime.utcnow()
+                changed += 1
+        if changed:
+            db.commit()
+        return changed
+    finally:
+        db.close()
+
+
 def _warning_push_body(warning: OfficialWarning) -> str:
     prefix = "Entwarnung" if warning.is_cancel else LEVEL_LABELS.get(warning.level, "Amtliche Warnung")
     event = warning.event or warning.title
@@ -418,6 +453,8 @@ def poll_warning_sources(send_push: bool = True) -> dict[str, Any]:
 
         for item in items:
             warning, is_new, changed = _upsert_warning(item)
+            if warning.is_cancel:
+                summary["changed"] += _deactivate_cancelled_warnings(warning)
             summary["warnings"] += 1
             if is_new:
                 summary["new"] += 1
