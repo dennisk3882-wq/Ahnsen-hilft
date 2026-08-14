@@ -378,7 +378,7 @@ if (typeof document !== 'undefined') {
 async def pwa_javascript_current():
     cfg = get_platform_snapshot()
     source = (STATIC_DIR / "pwa.js").read_text(encoding="utf-8")
-    source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-v8")
+    source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-{SERVICE_WORKER_VERSION}")
     source = source.replace("Ahnsen hilft", cfg["platform_name"])
     source = source.replace("/pwa/icon-192.png", cfg.get("pwa_icon_192_url") or "/pwa/ahnsen-app-v7-192.png")
     source = source.replace("/pwa/icon-512.png", cfg.get("pwa_icon_512_url") or "/pwa/ahnsen-app-v7-512.png")
@@ -403,6 +403,12 @@ async def pwa_javascript_current():
             "Pragma": "no-cache",
         },
     )
+
+
+# Internal compatibility name for feature modules that still decorate the
+# current JavaScript response. The public URL and generated content are v9.
+async def pwa_javascript_v6():
+    return await pwa_javascript_current()
 
 
 # FastAPI resolves matching routes in registration order. Insert the corrected
