@@ -1,0 +1,17 @@
+name: Kostenlose Betriebsueberwachung
+
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Produktionssystem pruefen
+        run: |
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 10 https://ahnsen-hilft.onrender.com/health/deep)"
+          echo "$response"
+          python -c 'import json,sys; data=json.load(sys.stdin); assert data["status"] == "ok", data' <<< "$response"

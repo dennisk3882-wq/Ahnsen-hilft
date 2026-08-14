@@ -28,6 +28,7 @@ class PWAUser(Base):
     push_bevoelkerungsschutz = Column(Boolean, default=False, nullable=False)
     push_hochwasser = Column(Boolean, default=False, nullable=False)
     warn_min_level = Column(Integer, default=2, nullable=False)
+    session_version = Column(Integer, default=1, nullable=False)
     erstellt_am = Column(DateTime, default=datetime.utcnow, nullable=False)
     aktualisiert_am = Column(DateTime, default=datetime.utcnow, nullable=False)
 

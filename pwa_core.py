@@ -100,7 +100,10 @@ from system_diagnostics import (
     record_system_event,
     run_system_checks,
 )
-from governance import init_governance_db
+from governance import authenticate_admin, init_governance_db, verify_admin_second_factor
+from background_scheduler import start_background_scheduler
+from operations import run_migrations
+from operations import consume_rate_limit
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -126,6 +129,22 @@ app = FastAPI(
 )
 
 
+@app.middleware("http")
+async def browser_security(request: Request, call_next):
+    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+        origin = str(request.headers.get("origin") or "")
+        fetch_site = str(request.headers.get("sec-fetch-site") or "").casefold()
+        expected_host = str(request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(",", 1)[0].strip().casefold()
+        if fetch_site == "cross-site" or (origin and expected_host and origin.split("://", 1)[-1].split("/", 1)[0].casefold() != expected_host):
+            return JSONResponse({"detail": "Anfrage aus fremder Herkunft wurde blockiert."}, status_code=403)
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    return response
+
+
 @app.on_event("startup")
 def startup() -> None:
     init_db()
@@ -140,11 +159,13 @@ def startup() -> None:
     init_ratsarchive_db()
     seed_official_ratsarchive()
     init_translation_db()
+    run_migrations()
     init_governance_db()
     cfg = get_platform_snapshot()
     app.title = f"{cfg['platform_name']} PWA"
     app.description = cfg["description"]
     start_warning_monitor()
+    start_background_scheduler()
 
 
 def _public_data() -> dict:
@@ -169,16 +190,12 @@ def _client_key(request: Request) -> str:
 
 
 def _rate_limit(store, request: Request, maximum: int) -> None:
-    now = time.monotonic()
-    queue = store[_client_key(request)]
-    while queue and now - queue[0] > RATE_WINDOW_SECONDS:
-        queue.popleft()
-    if len(queue) >= maximum:
+    bucket = "report" if store is REPORT_RATE_LIMIT else "auth"
+    if not consume_rate_limit(bucket, _client_key(request), maximum, RATE_WINDOW_SECONDS):
         raise HTTPException(
             status_code=429,
             detail="Zu viele Versuche in kurzer Zeit. Bitte versuche es später erneut.",
         )
-    queue.append(now)
 
 
 def _new_ticket() -> str:
@@ -202,38 +219,42 @@ def _safe_next(value: str, fallback: str = "/profil") -> str:
     return fallback
 
 
-def _user_signature(user_id: int, timestamp: str) -> str:
+def _user_signature(user_id: int, timestamp: str, session_version: int) -> str:
     if not PWA_SESSION_SECRET:
         return ""
-    payload = f"{user_id}:{timestamp}".encode("utf-8")
+    payload = f"{user_id}:{timestamp}:{session_version}".encode("utf-8")
     return hmac.new(PWA_SESSION_SECRET.encode("utf-8"), payload, hashlib.sha256).hexdigest()
 
 
-def _new_user_session(user_id: int) -> str:
+def _new_user_session(user_id: int, session_version: int = 1) -> str:
     timestamp = str(int(time.time()))
-    return f"{user_id}.{timestamp}.{_user_signature(user_id, timestamp)}"
+    return f"{user_id}.{timestamp}.{session_version}.{_user_signature(user_id, timestamp, session_version)}"
 
 
 def _current_user(request: Request):
     token = request.cookies.get(PWA_SESSION_COOKIE, "")
     try:
-        user_id_text, timestamp, signature = token.split(".", 2)
+        user_id_text, timestamp, version_text, signature = token.split(".", 3)
         user_id = int(user_id_text)
         created_at = int(timestamp)
+        session_version = int(version_text)
     except (TypeError, ValueError):
         return None
     now = int(time.time())
     if not PWA_SESSION_SECRET or created_at > now + 60 or now - created_at > PWA_SESSION_MAX_AGE:
         return None
-    if not secrets.compare_digest(signature, _user_signature(user_id, timestamp)):
+    if not secrets.compare_digest(signature, _user_signature(user_id, timestamp, session_version)):
         return None
-    return get_user_by_id(user_id)
+    user = get_user_by_id(user_id)
+    if not user or int(user.session_version or 1) != session_version:
+        return None
+    return user
 
 
 def _set_user_cookie(response: Response, request: Request, user_id: int) -> None:
     response.set_cookie(
         key=PWA_SESSION_COOKIE,
-        value=_new_user_session(user_id),
+        value=_new_user_session(user_id, int(get_user_by_id(user_id).session_version or 1)),
         max_age=PWA_SESSION_MAX_AGE,
         httponly=True,
         secure=request.url.scheme == "https" or os.getenv("COOKIE_SECURE", "true").casefold() != "false",
@@ -437,7 +458,9 @@ async def update_password(request: Request):
     if new_password != confirmation:
         return RedirectResponse(url="/profil?fehler=Die%20neuen%20Passwörter%20stimmen%20nicht%20überein.", status_code=303)
     update_user_password(user.id, new_password)
-    return RedirectResponse(url="/profil?hinweis=Passwort%20wurde%20geändert.", status_code=303)
+    response = RedirectResponse(url="/profil?hinweis=Passwort%20wurde%20geändert.%20Andere%20Sitzungen%20wurden%20abgemeldet.", status_code=303)
+    _set_user_cookie(response, request, user.id)
+    return response
 
 
 @app.get("/mangel-melden")
@@ -703,24 +726,24 @@ async def legacy_login_redirect():
 
 @app.post("/login")
 async def administration_login_submit(request: Request):
+    _rate_limit(AUTH_RATE_LIMIT, request, RATE_MAX_AUTH)
     form = await request.form()
     username = _trim(form.get("username"), 200)
     password = str(form.get("password") or "")
+    otp = str(form.get("otp") or "")
     if not legacy.DASHBOARD_USER or not legacy.DASHBOARD_PASSWORD:
         response = admin_login_page("Der Verwaltungszugang ist auf dem Server noch nicht eingerichtet.")
         response.status_code = 503
         return response
-    if not (
-        secrets.compare_digest(username, legacy.DASHBOARD_USER)
-        and secrets.compare_digest(password, legacy.DASHBOARD_PASSWORD)
-    ):
+    admin = authenticate_admin(username, password)
+    if not admin or not verify_admin_second_factor(admin, otp):
         response = admin_login_page("Benutzername oder Passwort ist nicht korrekt.")
         response.status_code = 401
         return response
     response = RedirectResponse(url="/intern/cockpit", status_code=303)
     response.set_cookie(
         key=legacy.SESSION_COOKIE,
-        value=legacy._neue_session(),
+        value=legacy._neue_session(admin.username, admin.role, int(admin.session_version or 1)),
         max_age=legacy.SESSION_MAX_AGE,
         httponly=True,
         secure=True,
@@ -1091,6 +1114,20 @@ async def health():
     }
 
 
+@app.get("/health/deep")
+async def deep_health(request: Request):
+    report = run_system_checks(app, request=request, deep=False)
+    errors = [{"key": item["key"], "detail": item["detail"]} for item in report["checks"] if item["status"] == "error"]
+    payload = {
+        "status": "ok" if not errors else "degraded",
+        "summary": report["summary"],
+        "errors": errors,
+        "duration_ms": report["duration_ms"],
+        "commit": str(os.getenv("RENDER_GIT_COMMIT") or "")[:10],
+    }
+    return JSONResponse(payload, status_code=200 if not errors else 503, headers={"Cache-Control": "no-store"})
+
+
 def _reuse_legacy_route(path: str) -> bool:
     if path in {"/status", "/dgh/status/{termin_id}"}:
         return False
@@ -1114,6 +1151,7 @@ def _reuse_legacy_route(path: str) -> bool:
         "/muelltermine/import",
         "/gemeindeseite/",
         "/uploads/",
+        "/media/",
     )
     return path in exact_paths or path.startswith(prefixes)
 

@@ -1,0 +1,52 @@
+name: Operations and security smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./operations-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password-with-12-chars
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret-with-entropy
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      BACKGROUND_JOBS_ENABLED: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate operations, security and compact accessibility header
+        run: |
+          python -m py_compile operations.py background_scheduler.py governance.py governance_routes.py pwa_core.py main.py
+          python - <<'PY'
+          import json
+          import time
+          from operations import create_backup, run_migrations, validate_backup
+          from governance import _totp, begin_admin_totp, confirm_admin_totp, get_admin, init_governance_db, verify_admin_second_factor
+
+          init_governance_db(); run_migrations()
+          payload = create_backup()
+          result = validate_backup(json.loads(json.dumps(payload)))
+          assert result["valid"] and result["tables"] > 0
+
+          secret = begin_admin_totp("admin")
+          codes = confirm_admin_totp("admin", _totp(secret, int(time.time()) // 30))
+          assert len(codes) == 8
+          admin = get_admin("admin")
+          assert admin.totp_enabled and verify_admin_second_factor(admin, codes[0])
+          assert not verify_admin_second_factor(get_admin("admin"), codes[0]), "Recovery code must be one-time"
+
+          css = open("static/accessibility.css", encoding="utf-8").read()
+          assert "width:44px" in css and "bottom:calc(84px" in css
+          render = open("render.yaml", encoding="utf-8").read()
+          assert "type: cron" not in render
+          print("Operations and security smoke tests passed")
+          PY

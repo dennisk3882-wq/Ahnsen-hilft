@@ -16,6 +16,7 @@ from database import Base, SessionLocal, engine
 from pwa_models import PWAUser, PushSubscription
 from push_service import VAPID_SUBJECT, push_configured
 from warning_service import get_warning_stats, init_warning_db, probe_warning_sources
+from operations import SchemaMigration
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -272,6 +273,36 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
 
     add("database_write", "Datenbank Schreiben & Lesen", "Kernsystem", check_database_write)
 
+    def check_operations_schema():
+        required = {"schema_migrations", "platform_assets", "rate_limit_events"}
+        missing = sorted(required - tables)
+        if missing:
+            return "error", "Betriebstabellen fehlen: " + ", ".join(missing)
+        db = SessionLocal()
+        try:
+            versions = db.query(SchemaMigration).count()
+        finally:
+            db.close()
+        if versions < 4:
+            return "warn", f"Nur {versions} versionierte Migration(en) protokolliert."
+        return "ok", f"Versionierte Migrationen, dauerhafte Medien und gemeinsames Rate-Limit aktiv ({versions} Migrationen)."
+
+    add("operations_schema", "Migrationen & dauerhafte Medien", "Kernsystem", check_operations_schema)
+
+    def check_accessibility_assets():
+        css_path = STATIC_DIR / "accessibility.css"
+        js_path = STATIC_DIR / "accessibility.js"
+        if not css_path.exists() or not js_path.exists():
+            return "error", "Barrierefreiheits-CSS oder -JavaScript fehlt."
+        css = css_path.read_text(encoding="utf-8")
+        js = js_path.read_text(encoding="utf-8")
+        required_css = (":focus-visible", "prefers-reduced-motion", "bottom:calc(84px", "width:44px")
+        if any(value not in css for value in required_css) or "aria-pressed" not in js:
+            return "error", "Tastatur-, Bewegungs- oder mobile Aa-Regeln sind unvollständig."
+        return "ok", "Tastaturfokus, Bewegungsreduktion und kompakte mobile Aa-Leiste sind eingebaut."
+
+    add("accessibility", "Barrierefreiheit", "PWA", check_accessibility_assets)
+
     def check_accounts():
         if "pwa_users" not in tables:
             return "error", "Tabelle pwa_users fehlt."
@@ -455,20 +486,20 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
     add("security", "Sitzungen & Zugangsschutz", "Sicherheit & Betrieb", check_security)
 
     def check_cron():
-        event = get_last_system_event("muell_cron")
+        event = get_last_system_event("background_scheduler") or get_last_system_event("muell_cron")
         if not event:
-            return "warn", "Noch kein protokollierter Müll-Cronlauf seit Einbau der Systemdiagnose."
+            return "warn", "Noch kein protokollierter Hintergrundlauf seit dem letzten Start."
         age_seconds = max(0.0, (datetime.utcnow() - event.created_at).total_seconds())
         age_minutes = int(age_seconds // 60)
         if event.status == "error":
-            return "error", f"Letzter Cronlauf vor {age_minutes} Min. meldete Fehler: {event.message}"
+            return "error", f"Letzter Hintergrundlauf vor {age_minutes} Min. meldete Fehler: {event.message}"
         if age_seconds > 3 * 60 * 60:
-            return "error", f"Letzter protokollierter Cronlauf liegt {age_minutes} Minuten zurück. Erwartet wird stündlich."
+            return "error", f"Letzter Hintergrundlauf liegt {age_minutes} Minuten zurück. Erwartet wird spätestens alle 30 Minuten."
         if event.status == "warn":
-            return "warn", f"Letzter Cronlauf vor {age_minutes} Min.: {event.message}"
-        return "ok", f"Cronjob zuletzt vor {age_minutes} Min. aktiv: {event.message}"
+            return "warn", f"Letzter Hintergrundlauf vor {age_minutes} Min.: {event.message}"
+        return "ok", f"Hintergrundaufgaben zuletzt vor {age_minutes} Min. aktiv: {event.message}"
 
-    add("cron", "Müll-Erinnerungs-Cronjob", "Sicherheit & Betrieb", check_cron)
+    add("cron", "Kostenlose Hintergrundaufgaben", "Sicherheit & Betrieb", check_cron)
 
     def check_render():
         commit = str(os.getenv("RENDER_GIT_COMMIT") or "").strip()

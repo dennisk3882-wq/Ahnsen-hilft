@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import os
+import secrets
 import struct
 import time
 from datetime import datetime
@@ -128,6 +129,7 @@ def save_admin(username: str, display_name: str, role: str, password: str = "") 
             if len(password) < 12:
                 raise ValueError("Das Passwort benötigt mindestens 12 Zeichen.")
             item.password_hash = hash_password(password)
+            item.session_version = int(item.session_version or 1) + 1
         item.display_name = display_name[:120] or username
         item.role = role if role in ROLES else "read_only"
         item.updated_at = datetime.utcnow()
@@ -136,19 +138,81 @@ def save_admin(username: str, display_name: str, role: str, password: str = "") 
         db.close()
 
 
-def set_admin_totp(username: str, enabled: bool) -> str:
+def begin_admin_totp(username: str) -> str:
     db = SessionLocal()
     try:
         item = db.query(AdminUser).filter(AdminUser.username == username).first()
         if not item:
             return ""
-        if enabled and not item.totp_secret:
-            item.totp_secret = new_totp_secret()
-        item.totp_enabled = bool(enabled)
+        item.totp_pending_secret = new_totp_secret()
         item.updated_at = datetime.utcnow(); db.commit(); db.refresh(item)
-        return item.totp_secret
+        return item.totp_pending_secret
     finally:
         db.close()
+
+
+def _recovery_hash(code: str) -> str:
+    normalized = str(code or "").strip().upper().replace(" ", "")
+    key = str(os.getenv("PWA_SESSION_SECRET") or os.getenv("DASHBOARD_SESSION_SECRET") or "ahnsen-disabled").encode()
+    return hmac.new(key, normalized.encode(), hashlib.sha256).hexdigest()
+
+
+def confirm_admin_totp(username: str, code: str) -> list[str]:
+    db = SessionLocal()
+    try:
+        item = db.query(AdminUser).filter(AdminUser.username == username).first()
+        if not item or not verify_totp(item.totp_pending_secret, code):
+            return []
+        recovery_codes = [f"AHNS-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}" for _ in range(8)]
+        item.totp_secret = item.totp_pending_secret
+        item.totp_pending_secret = ""
+        item.totp_enabled = True
+        item.recovery_codes_hash = json.dumps([_recovery_hash(value) for value in recovery_codes])
+        item.session_version = int(item.session_version or 1) + 1
+        item.updated_at = datetime.utcnow(); db.commit()
+        return recovery_codes
+    finally:
+        db.close()
+
+
+def disable_admin_totp(username: str) -> None:
+    db = SessionLocal()
+    try:
+        item = db.query(AdminUser).filter(AdminUser.username == username).first()
+        if item:
+            item.totp_secret = ""; item.totp_pending_secret = ""; item.totp_enabled = False
+            item.recovery_codes_hash = ""; item.session_version = int(item.session_version or 1) + 1
+            item.updated_at = datetime.utcnow(); db.commit()
+    finally:
+        db.close()
+
+
+def verify_admin_second_factor(admin: AdminUser, code: str) -> bool:
+    if not admin.totp_enabled:
+        return True
+    if verify_totp(admin.totp_secret, code):
+        return True
+    candidate = _recovery_hash(code)
+    db = SessionLocal()
+    try:
+        item = db.query(AdminUser).filter(AdminUser.id == admin.id).first()
+        hashes = json.loads(item.recovery_codes_hash or "[]") if item else []
+        match = next((value for value in hashes if hmac.compare_digest(value, candidate)), None)
+        if not match:
+            return False
+        hashes.remove(match)
+        item.recovery_codes_hash = json.dumps(hashes); item.updated_at = datetime.utcnow(); db.commit()
+        return True
+    finally:
+        db.close()
+
+
+def set_admin_totp(username: str, enabled: bool) -> str:
+    """Compatibility wrapper for older callers."""
+    if not enabled:
+        disable_admin_totp(username)
+        return ""
+    return begin_admin_totp(username)
 
 
 def update_case(ticket: str, values: dict, actor: str = "Verwaltung") -> Meldung | None:
