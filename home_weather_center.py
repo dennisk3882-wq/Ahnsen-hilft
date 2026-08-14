@@ -132,6 +132,11 @@ WEATHER_PAGE_JS = r'''
       $('weather-data-note').textContent = data.error;
       $('weather-data-note').hidden = false;
     }
+    const source = $('weather-provider');
+    if (source && data.provider) {
+      source.textContent = data.provider;
+      source.href = String(data.provider_url || 'https://open-meteo.com/');
+    }
   }
 
   fetch('/api/wetter', {cache:'no-store'})
@@ -306,7 +311,7 @@ async def weather_page():
     <section class="weather-section"><div class="weather-section-head"><div><span class="eyebrow">Heute</span><h2>Tagesverlauf</h2></div><small>00–23 Uhr · aktuelle Stunde markiert</small></div><div class="weather-hourly" id="weather-hourly"></div></section>
     <section class="weather-section"><div class="weather-section-head"><div><span class="eyebrow">Vorschau</span><h2>Die nächsten 5 Tage</h2></div></div><div class="weather-days" id="weather-days"></div></section>
   </div>
-  <p class="weather-attribution">Wetterdaten: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Prognosen können sich ändern; amtliche Gefahrenwarnungen findest du weiterhin separat unter Warnlage.</p>
+  <p class="weather-attribution">Wetterdaten: <a id="weather-provider" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Prognosen können sich ändern; amtliche Gefahrenwarnungen findest du weiterhin separat unter Warnlage.</p>
 </section>
 {WEATHER_PAGE_JS}
 '''
