@@ -57,7 +57,7 @@ jobs:
           item = update_case("AHS-TEST", {"status":"In Bearbeitung", "responsibility":"Bauhof", "assigned_to":"Team Nord", "priority":"Hoch", "public_note":"Die Prüfung läuft."}, "Testverwaltung")
           assert item.status == "In Bearbeitung" and item.responsibility == "Bauhof"
           assert case_history("AHS-TEST")
-          assert b"Rückmeldung der Verwaltung" in status_page(report=item).body
+          assert "Rückmeldung der Verwaltung".encode() in status_page(report=item).body
 
           first = save_content_revision("aktuelles", "test", "Entwurf", "Test", {"body":"A"}, "Redaktion")
           second = save_content_revision("aktuelles", "test", "Freigegeben", "Test", {"body":"B"}, "Redaktion")
