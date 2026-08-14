@@ -80,6 +80,6 @@ def neighborhood_page(*, rows, logged_user, favorites: set[int], subscriptions: 
     return base.page("Nachbarschaftshilfe", body, active="more", body_class="community-view")
 
 
-# Die bestehende Route importiert neighborhood_page beim Laden. runtime_extensions lädt
+# Die bestehende Route importiert neighborhood_page beim Laden. feature_routes lädt
 # diesen Patch vor dem finalen Router-Override und ersetzt die Funktion zentral.
 base.neighborhood_page = neighborhood_page

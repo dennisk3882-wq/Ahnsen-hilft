@@ -55,8 +55,8 @@ def send_user_notification(
             "body": str(body or "")[:500],
             "url": str(url or "/profil")[:500],
             "tag": str(tag or "ahnsen-hilft")[:120],
-            "icon": "/pwa/icon-192.png",
-            "badge": "/pwa/icon-192.png",
+            "icon": "/pwa/ahnsen-app-v7-192.png",
+            "badge": "/pwa/ahnsen-app-v7-192.png",
         },
         ensure_ascii=False,
     )

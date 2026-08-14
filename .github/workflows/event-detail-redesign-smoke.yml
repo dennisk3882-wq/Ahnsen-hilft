@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate event detail and recap UI
         run: |
-          python -m py_compile event_time_utils.py event_detail_redesign.py runtime_extensions.py
+          python -m py_compile event_time_utils.py event_detail_redesign.py feature_routes.py
           python - <<'PY'
           import asyncio
           import json
@@ -84,8 +84,8 @@ jobs:
           db.close()
 
           import pwa_main
-          from runtime_extensions import install_runtime_extensions
-          install_runtime_extensions()
+          from feature_routes import install_feature_routes
+          install_feature_routes()
           assert pwa_main.app.state.event_detail_redesign_installed is True
 
           matching = [r for r in pwa_main.app.router.routes if getattr(r, 'path', '') == '/aktuelles-termine/{event_id}']

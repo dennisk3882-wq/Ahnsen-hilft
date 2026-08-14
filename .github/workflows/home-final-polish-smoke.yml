@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate final homepage polish
         run: |
-          python -m py_compile home_dashboard_final_polish.py home_hero_inline_patch.py runtime_extensions.py
+          python -m py_compile home_dashboard_final_polish.py home_hero_inline_patch.py feature_routes.py
           python - <<'PY'
           import asyncio
           from datetime import timedelta
@@ -77,8 +77,8 @@ jobs:
 
           startup()
           import pwa_main
-          from runtime_extensions import install_runtime_extensions
-          install_runtime_extensions()
+          from feature_routes import install_feature_routes
+          install_feature_routes()
 
           roots = [
               route for route in pwa_main.app.router.routes

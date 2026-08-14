@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate final current events polish
         run: |
-          python -m py_compile event_time_utils.py event_storage_polish.py current_events_final_polish.py runtime_extensions.py
+          python -m py_compile event_time_utils.py event_storage_polish.py current_events_final_polish.py feature_routes.py
           python - <<'PY'
           import asyncio
           from datetime import date, timedelta
@@ -57,8 +57,8 @@ jobs:
           assert display_event_title("Liam's Geburtstag") == 'Liams Geburtstag'
 
           import pwa_main
-          from runtime_extensions import install_runtime_extensions
-          install_runtime_extensions()
+          from feature_routes import install_feature_routes
+          install_feature_routes()
           assert pwa_main.app.state.current_events_final_polish_installed is True
 
           # Admin must use a native mobile/browser time picker instead of free text.

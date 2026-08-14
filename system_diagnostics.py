@@ -427,15 +427,13 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
     add("service_worker", "Service Worker / Offline", "PWA", check_service_worker)
 
     def check_manifest_icons():
-        svg = STATIC_DIR / "icon-ahnsen.svg"
-        legacy_192 = STATIC_DIR / "icon-192.png"
-        legacy_512 = STATIC_DIR / "icon-512.png"
-        versioned_192 = STATIC_DIR / "ahnsen-app-v5-192.png"
-        versioned_512 = STATIC_DIR / "ahnsen-app-v5-512.png"
-        icons_ok = svg.exists() and (versioned_192.exists() or legacy_192.exists()) and (versioned_512.exists() or legacy_512.exists())
+        current_180 = STATIC_DIR / "ahnsen-app-v7-180.png"
+        current_192 = STATIC_DIR / "ahnsen-app-v7-192.png"
+        current_512 = STATIC_DIR / "ahnsen-app-v7-512.png"
+        icons_ok = current_180.exists() and current_192.exists() and current_512.exists()
         if "/manifest.webmanifest" not in routes or not icons_ok:
             return "error", "Manifest oder erforderliche App-Icons fehlen."
-        return "ok", "Manifest, Ahnsen-App-Icon und Installationsgrößen sind vorhanden."
+        return "ok", "Manifest und die freigegebenen v7-Fotoicons sind vorhanden."
 
     add("manifest", "Manifest & App-Icons", "PWA", check_manifest_icons)
 

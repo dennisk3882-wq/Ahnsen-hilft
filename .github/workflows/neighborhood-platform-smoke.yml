@@ -24,7 +24,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate neighborhood platform
         run: |
-          python -m py_compile neighborhood_models.py neighborhood_ui.py neighborhood_routes.py runtime_extensions.py
+          python -m py_compile neighborhood_models.py neighborhood_ui.py neighborhood_routes.py feature_routes.py
           python - <<'PY'
           import neighborhood_routes as nr
           import neighborhood_ui as ui

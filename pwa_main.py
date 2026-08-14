@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import struct
 import threading
 import time
 from pathlib import Path
@@ -14,9 +15,8 @@ from pwa_core import STATIC_DIR, app
 from platform_runtime import get_platform_snapshot
 
 
-ICON_VERSION = "v5"
-SERVICE_WORKER_VERSION = "v8"
-ICON_SOURCE = STATIC_DIR / "icon-ahnsen.svg"
+ICON_VERSION = "v7"
+SERVICE_WORKER_VERSION = "v9"
 ICON_SIZES = {180, 192, 512}
 GEOCODER_REVERSE_URL = os.getenv(
     "GEOCODER_REVERSE_URL",
@@ -36,23 +36,17 @@ def _icon_path(size: int) -> Path:
 
 
 def _ensure_icons() -> None:
-    """Render the versioned raster icons from the professional Ahnsen SVG."""
-    import cairosvg
-
-    if not ICON_SOURCE.exists():
-        raise RuntimeError(f"Icon source missing: {ICON_SOURCE}")
-
-    source_mtime = ICON_SOURCE.stat().st_mtime
+    """Validate the committed, approved Ahnsen stone-photo icons."""
     for size in ICON_SIZES:
         target = _icon_path(size)
-        if target.exists() and target.stat().st_mtime >= source_mtime:
-            continue
-        cairosvg.svg2png(
-            url=str(ICON_SOURCE),
-            write_to=str(target),
-            output_width=size,
-            output_height=size,
-        )
+        if not target.exists():
+            raise RuntimeError(f"Icon missing: {target}")
+        data = target.read_bytes()
+        if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) < 24:
+            raise RuntimeError(f"Invalid PNG icon: {target}")
+        width, height = struct.unpack(">II", data[16:24])
+        if (width, height) != (size, size):
+            raise RuntimeError(f"Unexpected icon dimensions: {target} ({width}x{height})")
 
 
 _ensure_icons()
@@ -164,7 +158,7 @@ def reverse_location(lat: float, lon: float):
         return JSONResponse({"address": address, "source": "OpenStreetMap"})
 
 
-async def manifest_v5():
+async def manifest_current():
     cfg = get_platform_snapshot()
     icon_192 = cfg.get("pwa_icon_192_url") or f"/pwa/ahnsen-app-{ICON_VERSION}-192.png"
     icon_512 = cfg.get("pwa_icon_512_url") or f"/pwa/ahnsen-app-{ICON_VERSION}-512.png"
@@ -210,9 +204,9 @@ async def versioned_icon(size: int):
     )
 
 
-async def legacy_icon(size: int):
-    """Serve the new design even for old icon URLs used by existing pages."""
-    if size not in {192, 512}:
+async def compatible_icon(size: int):
+    """Serve the approved v7 photo for every retained legacy icon URL."""
+    if size not in ICON_SIZES:
         raise HTTPException(status_code=404, detail="Icon nicht gefunden")
     _ensure_icons()
     return FileResponse(
@@ -269,7 +263,7 @@ if (typeof document !== 'undefined') {
       }
 
       document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(link => {
-        link.href = '/pwa/ahnsen-app-v5-180.png';
+        link.href = '/pwa/ahnsen-app-v7-180.png';
       });
     };
 
@@ -381,13 +375,13 @@ if (typeof document !== 'undefined') {
 """
 
 
-async def pwa_javascript_v6():
+async def pwa_javascript_current():
     cfg = get_platform_snapshot()
     source = (STATIC_DIR / "pwa.js").read_text(encoding="utf-8")
     source = source.replace("ahnsen-hilft-public-v3", f"{cfg['platform_slug']}-public-v8")
     source = source.replace("Ahnsen hilft", cfg["platform_name"])
-    source = source.replace("/pwa/icon-192.png", cfg.get("pwa_icon_192_url") or "/pwa/ahnsen-app-v5-192.png")
-    source = source.replace("/pwa/icon-512.png", cfg.get("pwa_icon_512_url") or "/pwa/ahnsen-app-v5-512.png")
+    source = source.replace("/pwa/icon-192.png", cfg.get("pwa_icon_192_url") or "/pwa/ahnsen-app-v7-192.png")
+    source = source.replace("/pwa/icon-512.png", cfg.get("pwa_icon_512_url") or "/pwa/ahnsen-app-v7-512.png")
     source = source.replace("?worker=3", f"?worker={SERVICE_WORKER_VERSION}")
     source = source.replace(
         "          const registration = await navigator.serviceWorker.ready;\n",
@@ -402,7 +396,7 @@ async def pwa_javascript_v6():
         1,
     )
     return Response(
-        source + _PUSH_HELPER.replace("/pwa/ahnsen-app-v5-180.png", cfg.get("apple_touch_icon_url") or "/pwa/ahnsen-app-v5-180.png") + _LOCATION_HELPER,
+        source + _PUSH_HELPER.replace("/pwa/ahnsen-app-v5-180.png", cfg.get("apple_touch_icon_url") or "/pwa/ahnsen-app-v7-180.png") + _LOCATION_HELPER,
         media_type="application/javascript; charset=utf-8",
         headers={
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -417,21 +411,33 @@ for route in reversed(
     [
         APIRoute(
             "/manifest.webmanifest",
-            manifest_v5,
+            manifest_current,
             methods=["GET"],
-            name="manifest_v5",
+            name="manifest_current",
+        ),
+        APIRoute(
+            "/pwa/ahnsen-app-v7-{size}.png",
+            versioned_icon,
+            methods=["GET"],
+            name="current_ahnsen_icon",
+        ),
+        APIRoute(
+            "/pwa/ahnsen-app-v6-{size}.png",
+            compatible_icon,
+            methods=["GET"],
+            name="compatible_ahnsen_icon_v6",
         ),
         APIRoute(
             "/pwa/ahnsen-app-v5-{size}.png",
-            versioned_icon,
+            compatible_icon,
             methods=["GET"],
-            name="versioned_ahnsen_icon",
+            name="compatible_ahnsen_icon_v5",
         ),
         APIRoute(
             "/pwa/icon-{size}.png",
-            legacy_icon,
+            compatible_icon,
             methods=["GET"],
-            name="legacy_icon_v5",
+            name="compatible_legacy_icon",
         ),
         APIRoute(
             "/api/location/address",
@@ -441,9 +447,9 @@ for route in reversed(
         ),
         APIRoute(
             "/pwa.js",
-            pwa_javascript_v6,
+            pwa_javascript_current,
             methods=["GET"],
-            name="pwa_javascript_v6",
+            name="pwa_javascript_current",
         ),
     ]
 ):
@@ -502,3 +508,11 @@ if not getattr(app.state, "dgh_center_installed", False):
     for _dgh_route in reversed(list(_dgh_center_router.routes)):
         app.router.routes.insert(0, _dgh_route)
     app.state.dgh_center_installed = True
+
+# All remaining public feature routes are installed explicitly during module
+# bootstrap. This replaces the former hidden route mutation from a database
+# initializer and makes the final route order reproducible in tests and on
+# Render.
+from feature_routes import install_feature_routes
+
+install_feature_routes()

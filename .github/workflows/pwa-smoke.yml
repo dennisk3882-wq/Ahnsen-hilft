@@ -155,9 +155,9 @@ jobs:
           assert Path("static/pwa-extra.css").stat().st_size > 500
           assert Path("static/warning.css").stat().st_size > 500
           assert Path("static/pwa.js").stat().st_size > 1000
-          assert Path("static/icon-192.png").exists()
-          assert Path("static/icon-512.png").exists()
-          assert Path("static/icon-ahnsen.svg").exists()
+          for size in (180, 192, 512):
+              icon = Path(f"static/ahnsen-app-v7-{size}.png")
+              assert icon.exists() and icon.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
 
           pwa_script = Path("static/pwa.js").read_text(encoding="utf-8")
           worker_section = pwa_script.split("} else {", 1)[0]
@@ -166,9 +166,9 @@ jobs:
           assert "'/verwaltung'" not in worker_section
           assert "event.request.mode === 'navigate'" in worker_section
 
-          manifest = asyncio.run(pwa_main.manifest_v5())
+          manifest = asyncio.run(pwa_main.manifest_current())
           assert b"DGH anfragen" in manifest.body and b"Mein Profil" in manifest.body
-          assert b"ahnsen-app-v5-512.png" in manifest.body
+          assert b"ahnsen-app-v7-512.png" in manifest.body
 
           diagnostic_report = run_system_checks(pwa_main.app, deep=False)
           assert diagnostic_report["summary"]["error"] == 0, [
@@ -180,8 +180,8 @@ jobs:
               "push", "warning_monitor", "geolocation", "geocoder", "service_worker", "manifest", "security", "cron",
           } <= diagnostic_keys
 
-          import whatsapp
-          response = whatsapp.send_whatsapp_message("123", "test")
-          assert response.status_code == 410
+          route_paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
+          assert "/webhook" not in route_paths
+          assert "/whatsapp-bot" not in route_paths
           print("PWA smoke tests passed")
           PY

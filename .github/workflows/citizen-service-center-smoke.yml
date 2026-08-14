@@ -20,7 +20,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate Bürgerservice center
         run: |
-          python -m py_compile citizen_service_center.py home_hero_inline_patch.py runtime_extensions.py
+          python -m py_compile citizen_service_center.py home_hero_inline_patch.py feature_routes.py
           python - <<'PY'
           from fastapi.responses import HTMLResponse
           import citizen_service_center as service
@@ -53,7 +53,7 @@ jobs:
           assert 'Anträge, Dokumente &amp; Rathausservices.' in polished
           assert 'href="/buergerinformationen"' not in polished
 
-          runtime = open('runtime_extensions.py', encoding='utf-8').read()
+          runtime = open('feature_routes.py', encoding='utf-8').read()
           assert 'citizen_service_center_installed' in runtime
           assert 'from citizen_service_center import router as citizen_service_router' in runtime
           print('Citizen service center smoke tests passed')

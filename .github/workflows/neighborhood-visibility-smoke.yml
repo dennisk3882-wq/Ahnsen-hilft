@@ -24,7 +24,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate final neighborhood actions
         run: |
-          python -m py_compile neighborhood_visibility_patch.py runtime_extensions.py
+          python -m py_compile neighborhood_visibility_patch.py feature_routes.py
           python - <<'PY'
           from pwa_models import PWAUser
           import neighborhood_enhanced_patch as enhanced

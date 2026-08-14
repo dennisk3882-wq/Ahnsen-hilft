@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate duplicate intelligence and administration workflow
         run: |
-          python -m py_compile models.py crud.py mangel_duplicates.py mangel_duplicate_patch.py runtime_extensions.py
+          python -m py_compile models.py crud.py mangel_duplicates.py mangel_duplicate_patch.py feature_routes.py
           python - <<'PY'
           import asyncio
           import json
@@ -113,8 +113,8 @@ jobs:
           assert (reset.duplicate_state or '') == '' and reset.duplicate_candidate_ticket is None and reset.duplicate_score == 0
 
           import pwa_main
-          from runtime_extensions import install_runtime_extensions
-          install_runtime_extensions()
+          from feature_routes import install_feature_routes
+          install_feature_routes()
           assert pwa_main.app.state.mangel_duplicate_workflow_installed is True
 
           def module(path, method):
