@@ -128,6 +128,7 @@ def easy_language_page() -> HTMLResponse:
 
 def readiness_snapshot() -> dict:
     cfg = get_platform_snapshot()
+    email_user = str(os.getenv("EMAIL_USER", "")).strip()
     checks = (
         ("Verantwortliche Stelle", all(_configured(cfg.get(k, "")) for k in ("contact_name", "contact_address", "contact_email", "contact_phone")), "Name, Anschrift, E-Mail und Telefon vollständig"),
         ("Offizielle Basis-URL", _configured(cfg.get("public_base_url", "")), "Eigene Domain und kanonische URL hinterlegt"),
@@ -137,7 +138,7 @@ def readiness_snapshot() -> dict:
         ("Datenschutz freigegeben", os.getenv("OFFICIAL_PRIVACY_APPROVED", "").casefold() == "true", "Rechtsgrundlagen und Fristen durch Verantwortlichen bestätigt"),
         ("Barrierefreiheit freigegeben", os.getenv("OFFICIAL_ACCESSIBILITY_APPROVED", "").casefold() == "true", "Selbstbewertung abgeschlossen und Erklärung gemeldet"),
         ("Löschfristen beschlossen", os.getenv("OFFICIAL_RETENTION_APPROVED", "").casefold() == "true", "Löschkonzept organisatorisch freigegeben"),
-        ("Amtliches Postfach", not str(os.getenv("EMAIL_USER", "")).casefold().endswith("@gmail.com"), "Funktionspostfach statt Privat-/Testkonto"),
+        ("Amtliches Postfach", bool(email_user) and not email_user.casefold().endswith("@gmail.com"), "Funktionspostfach statt Privat-/Testkonto"),
         ("Produktionsregion", os.getenv("RENDER_REGION", "frankfurt").casefold() == "frankfurt", "Webdienst und Datenbank Frankfurt"),
     )
     ready = sum(1 for _, state, _ in checks if state)
