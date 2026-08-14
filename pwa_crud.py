@@ -230,6 +230,7 @@ def update_user_password(user_id: int, new_password: str) -> bool:
         if not user:
             return False
         user.password_hash = hash_password(new_password)
+        user.session_version = int(user.session_version or 1) + 1
         user.aktualisiert_am = datetime.utcnow()
         db.commit()
         return True

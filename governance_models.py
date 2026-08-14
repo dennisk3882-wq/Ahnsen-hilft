@@ -17,6 +17,9 @@ class AdminUser(Base):
     role = Column(String(40), default="read_only", nullable=False)
     totp_secret = Column(String(64), default="", nullable=False)
     totp_enabled = Column(Boolean, default=False, nullable=False)
+    totp_pending_secret = Column(String(64), default="", nullable=False)
+    recovery_codes_hash = Column(Text, default="", nullable=False)
+    session_version = Column(Integer, default=1, nullable=False)
     active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -50,4 +53,3 @@ class ContentRevision(Base):
     payload_json = Column(Text, default="{}", nullable=False)
     actor = Column(String(120), default="Verwaltung", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-

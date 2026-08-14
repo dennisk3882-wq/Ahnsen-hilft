@@ -66,7 +66,7 @@ jobs:
 
           html = page("Test", "<h1>Inhalt</h1>").body.decode()
           assert "skip-link" in html and "accessibility-toggle" in html
-          assert "/accessibility.css?v=1" in html and "/accessibility.js?v=1" in html
+          assert "/accessibility.css?v=2" in html and "/accessibility.js?v=1" in html
           script = open("static/accessibility.js", encoding="utf-8").read()
           css = open("static/accessibility.css", encoding="utf-8").read()
           assert "localStorage" in script and "prefers-reduced-motion" in css and ":focus-visible" in css

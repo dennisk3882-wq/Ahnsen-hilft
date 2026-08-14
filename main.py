@@ -70,7 +70,8 @@ from gemeinde_dashboard import gemeinde_dashboard
 from homepage_import import lade_alte_homepage_inhalte
 from veranstaltungen_crud import get_veranstaltung
 from push_service import send_category_notification
-from governance import authenticate_admin, has_permission, init_governance_db, save_content_revision, verify_totp
+from governance import authenticate_admin, has_permission, init_governance_db, save_content_revision, verify_admin_second_factor
+from operations import get_asset, run_migrations, save_asset
 
 
 app = FastAPI()
@@ -102,19 +103,20 @@ def startup():
     init_dgh_db()
     init_muelltermine_db()
     init_gemeinde_db()
+    run_migrations()
     init_governance_db()
 
 
-def _session_signatur(zeitstempel, username, role):
-    inhalt = f"{username}:{role}:{zeitstempel}".encode("utf-8")
+def _session_signatur(zeitstempel, username, role, session_version):
+    inhalt = f"{username}:{role}:{zeitstempel}:{session_version}".encode("utf-8")
     geheimnis = DASHBOARD_SESSION_SECRET.encode("utf-8")
     return hmac.new(geheimnis, inhalt, hashlib.sha256).hexdigest()
 
 
-def _neue_session(username, role):
+def _neue_session(username, role, session_version=1):
     zeitstempel = str(int(time.time()))
     encoded_user = base64.urlsafe_b64encode(username.encode()).decode().rstrip("=")
-    return f"{zeitstempel}.{encoded_user}.{role}.{_session_signatur(zeitstempel, username, role)}"
+    return f"{zeitstempel}.{encoded_user}.{role}.{session_version}.{_session_signatur(zeitstempel, username, role, session_version)}"
 
 
 def _session_context(request):
@@ -124,8 +126,9 @@ def _session_context(request):
     token = request.cookies.get(SESSION_COOKIE, "")
 
     try:
-        zeitstempel, encoded_user, role, signatur = token.split(".", 3)
+        zeitstempel, encoded_user, role, version_text, signatur = token.split(".", 4)
         erstellt_am = int(zeitstempel)
+        session_version = int(version_text)
         username = base64.urlsafe_b64decode(encoded_user + "=" * (-len(encoded_user) % 4)).decode()
     except (TypeError, ValueError):
         return None
@@ -134,12 +137,12 @@ def _session_context(request):
     if erstellt_am > jetzt + 60 or jetzt - erstellt_am > SESSION_MAX_AGE:
         return None
 
-    erwartet = _session_signatur(zeitstempel, username, role)
+    erwartet = _session_signatur(zeitstempel, username, role, session_version)
     if not secrets.compare_digest(signatur, erwartet):
         return None
     from governance import get_admin
     admin = get_admin(username)
-    if not admin or admin.role != role:
+    if not admin or admin.role != role or int(admin.session_version or 1) != session_version:
         return None
     return {"username": username, "role": role, "display_name": admin.display_name}
 
@@ -475,7 +478,7 @@ async def login(
         return response
 
     admin = authenticate_admin(username, password)
-    if not admin or (admin.totp_enabled and not verify_totp(admin.totp_secret, otp)):
+    if not admin or not verify_admin_second_factor(admin, otp):
         response = portal_home_page(
             _public_home_daten(),
             "Benutzername oder Passwort ist nicht korrekt.",
@@ -486,7 +489,7 @@ async def login(
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
         key=SESSION_COOKIE,
-        value=_neue_session(admin.username, admin.role),
+        value=_neue_session(admin.username, admin.role, int(admin.session_version or 1)),
         max_age=SESSION_MAX_AGE,
         httponly=True,
         secure=True,
@@ -528,6 +531,18 @@ async def upload_asset(dateiname: str):
         pfad,
         media_type=media_type,
         headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/media/{key}")
+async def database_asset(key: str):
+    item = get_asset(key)
+    if not item:
+        raise HTTPException(status_code=404, detail="Datei nicht gefunden")
+    return Response(
+        content=item["content"],
+        media_type=item["content_type"],
+        headers={"Cache-Control": "public, max-age=86400", "ETag": item["checksum"]},
     )
 
 
@@ -1023,14 +1038,9 @@ async def gemeindeseite_upload(
             status_code=303,
         )
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    dateiname = (
-        f"{feld}-{int(time.time())}-{_sicherer_dateiname(originalname)}{endung}"
-    )
-    ziel = _upload_datei_pfad(dateiname)
-    ziel.write_bytes(inhalt)
-
-    set_gemeinde_einstellung(feld, f"/uploads/{dateiname}")
+    content_type = datei.content_type or mimetypes.guess_type(originalname)[0] or "application/octet-stream"
+    save_asset(feld, originalname, content_type, inhalt)
+    set_gemeinde_einstellung(feld, f"/media/{feld}")
 
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis="

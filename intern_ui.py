@@ -62,6 +62,7 @@ def intern_nav(active=""):
         ("berichte", "/intern/audit", "Audit"),
         ("gemeindeseite", "/intern/inhalte/versionen", "Versionen"),
         ("system", "/intern/benutzer", "Zugänge"),
+        ("system", "/intern/sicherung", "Sicherung"),
         ("system", "/intern/plattform", "Plattform"),
         ("system", "/intern/system", "System"),
     ]
