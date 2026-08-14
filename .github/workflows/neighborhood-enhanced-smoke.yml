@@ -73,8 +73,10 @@ jobs:
 
           rows=[(post,u1,db.query(NeighborPostMeta).filter_by(post_id=post.id).first(),db.query(NeighborPostPublicDetail).filter_by(post_id=post.id).first())]
           html=enhanced._home_html(rows,u2,set(),set(),category='Fahrdienst').body.decode('utf-8')
-          for text in ('Aktuell in Ahnsen','Hilfe suchen','Hilfe anbieten','Ich kann helfen','keine öffentliche Kommentarspalte','Nähe Ortsmitte','14 Tagen','30 Tagen'):
+          for text in ('Aktuell in Ahnsen','Ich kann helfen','keine öffentliche Kommentarspalte','Nähe Ortsmitte','14 Tagen','30 Tagen'):
               assert text in html, text
+          assert 'Hilfe suchen' not in html
+          assert 'Hilfe anbieten' not in html
           db.close()
 
           # Runtime layering: enhanced duplicate endpoints must precede base endpoints.
