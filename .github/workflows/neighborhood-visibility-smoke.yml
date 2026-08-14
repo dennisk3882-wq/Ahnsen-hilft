@@ -24,11 +24,10 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate final neighborhood actions
         run: |
-          python -m py_compile neighborhood_visibility_patch.py feature_routes.py
+          python -m py_compile neighborhood_enhanced_patch.py feature_routes.py
           python - <<'PY'
           from pwa_models import PWAUser
           import neighborhood_enhanced_patch as enhanced
-          import neighborhood_visibility_patch  # noqa: F401
 
           user = PWAUser(id=1, email='test@example.test', password_hash='x', name='Test Nutzer', aktiv=True)
           html = enhanced._home_html([], user, set(), set()).body.decode('utf-8')

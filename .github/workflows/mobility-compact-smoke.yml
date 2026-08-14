@@ -29,12 +29,12 @@ jobs:
         run: pip install -r requirements.txt
       - name: Validate compact mobility UI
         run: |
-          python -m py_compile mobility_compact_patch.py feature_routes.py
+          python -m py_compile mobility_trip_buttons_patch.py feature_routes.py
           python - <<'PY'
-          import mobility_compact_patch as compact
+          import mobility_trip_buttons_patch as compact
           import mobility_citizen as legacy
 
-          html = compact.content()
+          html = compact.compact_content()
           assert 'Wie kommst du ans Ziel?' in html
           assert 'Beste Verbindung suchen' in html
           assert '.mob-citizen .cit-board' in html

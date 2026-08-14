@@ -8,7 +8,7 @@ from config import EMAIL_PASSWORD, EMAIL_TO, EMAIL_USER
 
 
 def _send_message(message: EmailMessage) -> None:
-    if not EMAIL_USER or not EMAIL_PASSWORD or not EMAIL_TO:
+    if not EMAIL_USER or not EMAIL_PASSWORD or not message.get("To"):
         raise RuntimeError("E-Mail-Umgebungsvariablen fehlen")
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
         smtp.ehlo()
@@ -59,6 +59,24 @@ Zeit:
             subtype=subtype,
             filename=f"{ticket}.{subtype}",
         )
+    _send_message(msg)
+
+
+def send_password_reset_email(recipient: str, reset_url: str) -> None:
+    """Send a short-lived reset link directly to the citizen account address."""
+    msg = EmailMessage()
+    msg["Subject"] = f"{get_platform_snapshot()['platform_name']} – Passwort zurücksetzen"
+    msg["From"] = EMAIL_USER
+    msg["To"] = str(recipient or "").strip()
+    msg.set_content(
+        f"""Du hast angefordert, dein Passwort für {get_platform_snapshot()['platform_name']} zurückzusetzen.
+
+Öffne innerhalb von 30 Minuten diesen einmalig nutzbaren Link:
+{reset_url}
+
+Falls du das nicht angefordert hast, ignoriere diese Nachricht. Dein bisheriges Passwort bleibt unverändert.
+"""
+    )
     _send_message(msg)
 
 

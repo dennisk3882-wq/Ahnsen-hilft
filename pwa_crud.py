@@ -4,13 +4,14 @@ import base64
 import hashlib
 import hmac
 import os
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
 from database import Base, SessionLocal, engine
-from pwa_models import PWAUser, PushDelivery, PushSubscription
+from pwa_models import PWAUser, PasswordResetToken, PushDelivery, PushSubscription
 
 
 PUSH_PREFERENCE_DEFAULTS = {
@@ -232,6 +233,74 @@ def update_user_password(user_id: int, new_password: str) -> bool:
         user.password_hash = hash_password(new_password)
         user.session_version = int(user.session_version or 1) + 1
         user.aktualisiert_am = datetime.utcnow()
+        db.commit()
+        return True
+    finally:
+        db.close()
+
+
+def create_password_reset(email: str, lifetime_minutes: int = 30) -> tuple[str, str] | None:
+    """Create a single-use reset token without revealing whether an account exists."""
+    db = SessionLocal()
+    try:
+        user = db.query(PWAUser).filter(PWAUser.email == normalize_email(email), PWAUser.aktiv.is_(True)).first()
+        if not user:
+            return None
+        now = datetime.utcnow()
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        ).update({PasswordResetToken.used_at: now}, synchronize_session=False)
+        token = secrets.token_urlsafe(32)
+        db.add(PasswordResetToken(
+            user_id=user.id,
+            token_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+            expires_at=now + timedelta(minutes=max(10, min(int(lifetime_minutes), 120))),
+        ))
+        db.commit()
+        return user.email, token
+    finally:
+        db.close()
+
+
+def password_reset_valid(token: str) -> bool:
+    digest = hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
+    db = SessionLocal()
+    try:
+        return db.query(PasswordResetToken).filter(
+            PasswordResetToken.token_hash == digest,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > datetime.utcnow(),
+        ).first() is not None
+    finally:
+        db.close()
+
+
+def consume_password_reset(token: str, new_password: str) -> bool:
+    if len(str(new_password or "")) < 10:
+        return False
+    digest = hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
+    db = SessionLocal()
+    try:
+        item = db.query(PasswordResetToken).filter(
+            PasswordResetToken.token_hash == digest,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > datetime.utcnow(),
+        ).first()
+        if not item:
+            return False
+        user = db.query(PWAUser).filter(PWAUser.id == item.user_id, PWAUser.aktiv.is_(True)).first()
+        if not user:
+            return False
+        now = datetime.utcnow()
+        user.password_hash = hash_password(new_password)
+        user.session_version = int(user.session_version or 1) + 1
+        user.aktualisiert_am = now
+        item.used_at = now
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        ).update({PasswordResetToken.used_at: now}, synchronize_session=False)
         db.commit()
         return True
     finally:

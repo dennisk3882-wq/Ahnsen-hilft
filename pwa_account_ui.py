@@ -76,7 +76,7 @@ def _alert(message: str = "", success: bool = False) -> str:
     return f'<div class="{cls}" role="status">{escape(message)}</div>'
 
 
-def account_page(mode: str, error: str = "", values: dict | None = None, next_url: str = "/profil") -> HTMLResponse:
+def account_page(mode: str, error: str = "", values: dict | None = None, next_url: str = "/profil", message: str = "") -> HTMLResponse:
     values = values or {}
     register = mode == "register"
     title = "Konto erstellen" if register else "Anmelden"
@@ -101,6 +101,7 @@ def account_page(mode: str, error: str = "", values: dict | None = None, next_ur
   <span class="eyebrow">{eyebrow}</span>
   <h1>{title}</h1>
   <p>{'Mit einem Konto siehst du deine Meldungen, DGH-Anfragen und Push-Einstellungen an einem Ort.' if register else 'Öffne dein persönliches Profil und verfolge deine Vorgänge.'}</p>
+  {_alert(message, success=True)}
   {_alert(error)}
   <form class="account-form" method="post" action="/{'registrieren' if register else 'anmelden'}">
     <input type="hidden" name="next" value="{escape(next_url)}">
@@ -112,9 +113,48 @@ def account_page(mode: str, error: str = "", values: dict | None = None, next_ur
     {consent}
     <button class="primary-button" type="submit">{title}</button>
   </form>
+  {'<a class="account-switch" href="/passwort-vergessen">Passwort vergessen?</a>' if not register else ''}
   <a class="account-switch" href="{switch_href}?next={escape(next_url)}">{switch_label}</a>
 </section>"""
     return page(title, content, active="profile", body_class="account-view")
+
+
+def password_reset_request_page(message: str = "", error: str = "") -> HTMLResponse:
+    content = f"""
+{_extra_css()}
+<section class="auth-card">
+  <a class="back-link" href="/anmelden">← Zur Anmeldung</a>
+  <span class="auth-icon">{icon('message')}</span>
+  <span class="eyebrow">Kontohilfe</span>
+  <h1>Passwort vergessen</h1>
+  <p>Gib deine E-Mail-Adresse ein. Wenn ein aktives Konto besteht, erhältst du einen einmalig nutzbaren Link, der 30 Minuten gültig ist.</p>
+  {_alert(message, success=True)}{_alert(error)}
+  <form class="account-form" method="post" action="/passwort-vergessen">
+    <label class="field"><span>E-Mail-Adresse</span><input name="email" type="email" maxlength="254" autocomplete="email" required></label>
+    <button class="primary-button" type="submit">Link anfordern</button>
+  </form>
+</section>"""
+    return page("Passwort vergessen", content, active="profile", body_class="account-view")
+
+
+def password_reset_page(token: str, error: str = "") -> HTMLResponse:
+    content = f"""
+{_extra_css()}
+<section class="auth-card">
+  <a class="back-link" href="/anmelden">← Zur Anmeldung</a>
+  <span class="auth-icon">{icon('shield')}</span>
+  <span class="eyebrow">Kontohilfe</span>
+  <h1>Neues Passwort</h1>
+  <p>Lege ein neues Passwort mit mindestens zehn Zeichen fest. Danach werden alle bisherigen Sitzungen beendet.</p>
+  {_alert(error)}
+  <form class="account-form" method="post" action="/passwort-zuruecksetzen">
+    <input type="hidden" name="token" value="{escape(token)}">
+    <label class="field"><span>Neues Passwort</span><input name="password" type="password" minlength="10" autocomplete="new-password" required></label>
+    <label class="field"><span>Passwort wiederholen</span><input name="password_confirm" type="password" minlength="10" autocomplete="new-password" required></label>
+    <button class="primary-button" type="submit">Passwort sicher ändern</button>
+  </form>
+</section>"""
+    return page("Passwort zurücksetzen", content, active="profile", body_class="account-view")
 
 
 def _status_class(status: str) -> str:
