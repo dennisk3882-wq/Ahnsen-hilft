@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 from fastapi.responses import HTMLResponse
 
 from crud import get_meldung, statistik, suche_meldungen
+from governance import case_history
 from intern_ui import intern_nav, intern_nav_css
 
 
@@ -74,7 +75,7 @@ def _status_form(ticket, current):
         for status in ("Offen", "In Bearbeitung", "Erledigt")
     )
     return f"""
-    <form class="admin-status-form" method="get" action="/status" onsubmit="return confirm('Status wirklich ändern? Wenn der Bürger Push für eigene Mängel aktiviert hat, erhält er direkt eine Benachrichtigung.')">
+    <form class="admin-status-form" method="post" action="/status" onsubmit="return confirm('Status wirklich ändern? Wenn der Bürger Push für eigene Mängel aktiviert hat, erhält er direkt eine Benachrichtigung.')">
         <input type="hidden" name="ticket" value="{escape(ticket)}">
         <select name="neuer_status" aria-label="Status für {escape(ticket)}">{options}</select>
         <button type="submit">Speichern</button>
@@ -354,6 +355,7 @@ def meldung_detail_page(ticket):
         )
 
     status_class = status_klasse(m.status)
+    history = case_history(m.ticket)
     datum = m.erstellt_am.strftime("%d.%m.%Y um %H:%M Uhr")
     source = escape(m.whatsapp_absender or "Bürger-PWA")
 
@@ -424,14 +426,14 @@ def meldung_detail_page(ticket):
                 <aside>
                     <section class="admin-detail-card">
                         <h2>Status ändern</h2>
-                        <form class="admin-detail-status" method="get" action="/status">
-                            <input type="hidden" name="ticket" value="{escape(m.ticket)}">
-                            <select name="neuer_status">
-                                <option value="Offen" {"selected" if m.status == "Offen" else ""}>Offen</option>
-                                <option value="In Bearbeitung" {"selected" if m.status == "In Bearbeitung" else ""}>In Bearbeitung</option>
-                                <option value="Erledigt" {"selected" if m.status == "Erledigt" else ""}>Erledigt</option>
-                            </select>
-                            <button type="submit">Status speichern</button>
+                        <form class="admin-note-form" method="post" action="/intern/meldung/{escape(m.ticket)}/workflow">
+                            <label>Status<select name="status"><option {"selected" if m.status == "Offen" else ""}>Offen</option><option {"selected" if m.status == "In Bearbeitung" else ""}>In Bearbeitung</option><option {"selected" if m.status == "Warten auf Rückmeldung" else ""}>Warten auf Rückmeldung</option><option {"selected" if m.status == "Erledigt" else ""}>Erledigt</option><option {"selected" if m.status == "Abgelehnt" else ""}>Abgelehnt</option></select></label>
+                            <label>Priorität<select name="priority">{"".join(f'<option value="{x}"{" selected" if (m.priority or "Normal") == x else ""}>{x}</option>' for x in ("Niedrig","Normal","Hoch","Dringend"))}</select></label>
+                            <label>Zuständiger Bereich<input name="responsibility" maxlength="120" value="{escape(m.responsibility or '')}" placeholder="z. B. Bauhof"></label>
+                            <label>Bearbeitung durch<input name="assigned_to" maxlength="120" value="{escape(m.assigned_to or '')}"></label>
+                            <label>Frist<input type="datetime-local" name="due_at" value="{m.due_at.strftime('%Y-%m-%dT%H:%M') if m.due_at else ''}"></label>
+                            <label>Öffentliche Rückmeldung<textarea name="public_note" maxlength="2000" placeholder="Dieser Text ist für den Bürger sichtbar.">{escape(m.public_note or '')}</textarea></label>
+                            <button type="submit">Vorgang aktualisieren</button>
                         </form>
 
                         <h2>Interne Notiz</h2>
@@ -448,6 +450,7 @@ def meldung_detail_page(ticket):
                 <h2>Foto zur Meldung</h2>
                 {foto_html(m, gross=True)}
             </section>
+            <section class="admin-detail-card" style="margin-top:20px"><h2>Bearbeitungsverlauf</h2>{''.join(f'<p><strong>{entry.created_at:%d.%m.%Y %H:%M} · {escape(entry.actor)}</strong><br>{escape(entry.action)}: {escape(entry.old_value)} → {escape(entry.new_value)}</p>' for entry in history) or '<p>Noch keine Änderungen protokolliert.</p>'}</section>
         </main>
     </body>
     </html>

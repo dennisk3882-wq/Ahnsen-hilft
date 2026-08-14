@@ -81,6 +81,12 @@ Datenbankeintrag Doppelversand.
 
 ## Datenschutz und Sicherheit
 
+Vorgangsverwaltung, persönliche Verwaltungsrollen, TOTP-Zwei-Faktor-Anmeldung,
+Inhaltsversionen, Datenauskunft und Barrierefreiheitsoptionen laufen vollständig
+in der bestehenden Python-/PostgreSQL-Anwendung. Dafür ist kein zusätzliches
+Dienst-Abo notwendig; TOTP funktioniert mit üblichen kostenlosen
+Authenticator-Apps.
+
 - Konten sind freiwillig; der Mängelmelder bleibt ohne Konto nutzbar.
 - Passwörter werden mit `scrypt` und individuellem Salt gespeichert.
 - Sitzungen sind signiert, zeitlich begrenzt, HttpOnly und SameSite=Lax.

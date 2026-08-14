@@ -1,0 +1,74 @@
+name: Platform expansion smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./platform-expansion-smoke.db
+      DASHBOARD_USER: admin
+      DASHBOARD_PASSWORD: test-password-with-12-chars
+      DASHBOARD_SESSION_SECRET: dashboard-test-secret
+      PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
+      COOKIE_SECURE: "false"
+      WARNING_BACKGROUND_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate urgent platform expansion
+        run: |
+          python -m py_compile governance.py governance_models.py governance_routes.py pwa_ui.py pwa_account_ui.py
+          python - <<'PY'
+          import asyncio
+          import time
+
+          import pwa_main
+          from database import SessionLocal
+          from governance import _totp, authenticate_admin, case_history, has_permission, init_governance_db, save_content_revision, update_case, verify_totp
+          from models import Meldung
+          from pwa_ui import page, status_page
+
+          paths = {getattr(route, "path", "") for route in pwa_main.app.router.routes}
+          assert {
+              "/intern/meldung/{ticket}/workflow",
+              "/intern/benutzer",
+              "/intern/inhalte/versionen",
+              "/profil/datenexport",
+              "/profil/konto-loeschen",
+          } <= paths
+
+          init_governance_db()
+          admin = authenticate_admin("admin", "test-password-with-12-chars")
+          assert admin and admin.role == "superadmin"
+          assert has_permission("public_works", "cases")
+          assert not has_permission("public_works", "content")
+          secret = "JBSWY3DPEHPK3PXP"
+          assert verify_totp(secret, _totp(secret, int(time.time()) // 30))
+
+          db = SessionLocal()
+          report = Meldung(ticket="AHS-TEST", status="Offen", art="Straße", ort="Ahnsen", beschreibung="Test")
+          db.add(report); db.commit(); db.close()
+          item = update_case("AHS-TEST", {"status":"In Bearbeitung", "responsibility":"Bauhof", "assigned_to":"Team Nord", "priority":"Hoch", "public_note":"Die Prüfung läuft."}, "Testverwaltung")
+          assert item.status == "In Bearbeitung" and item.responsibility == "Bauhof"
+          assert case_history("AHS-TEST")
+          assert "Rückmeldung der Verwaltung".encode() in status_page(report=item).body
+
+          first = save_content_revision("aktuelles", "test", "Entwurf", "Test", {"body":"A"}, "Redaktion")
+          second = save_content_revision("aktuelles", "test", "Freigegeben", "Test", {"body":"B"}, "Redaktion")
+          assert (first.version, second.version, second.state) == (1, 2, "Freigegeben")
+
+          html = page("Test", "<h1>Inhalt</h1>").body.decode()
+          assert "skip-link" in html and "accessibility-toggle" in html
+          assert "/accessibility.css?v=1" in html and "/accessibility.js?v=1" in html
+          script = open("static/accessibility.js", encoding="utf-8").read()
+          css = open("static/accessibility.css", encoding="utf-8").read()
+          assert "localStorage" in script and "prefers-reduced-motion" in css and ":focus-visible" in css
+          print("Platform expansion smoke tests passed")
+          PY

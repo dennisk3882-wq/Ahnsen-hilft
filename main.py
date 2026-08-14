@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse, RedirectResponse, Response
 
+import base64
 import mimetypes
 import hashlib
 import hmac
@@ -69,6 +70,7 @@ from gemeinde_dashboard import gemeinde_dashboard
 from homepage_import import lade_alte_homepage_inhalte
 from veranstaltungen_crud import get_veranstaltung
 from push_service import send_category_notification
+from governance import authenticate_admin, has_permission, init_governance_db, save_content_revision, verify_totp
 
 
 app = FastAPI()
@@ -100,37 +102,50 @@ def startup():
     init_dgh_db()
     init_muelltermine_db()
     init_gemeinde_db()
+    init_governance_db()
 
 
-def _session_signatur(zeitstempel):
-    inhalt = f"{DASHBOARD_USER}:{zeitstempel}".encode("utf-8")
+def _session_signatur(zeitstempel, username, role):
+    inhalt = f"{username}:{role}:{zeitstempel}".encode("utf-8")
     geheimnis = DASHBOARD_SESSION_SECRET.encode("utf-8")
     return hmac.new(geheimnis, inhalt, hashlib.sha256).hexdigest()
 
 
-def _neue_session():
+def _neue_session(username, role):
     zeitstempel = str(int(time.time()))
-    return f"{zeitstempel}.{_session_signatur(zeitstempel)}"
+    encoded_user = base64.urlsafe_b64encode(username.encode()).decode().rstrip("=")
+    return f"{zeitstempel}.{encoded_user}.{role}.{_session_signatur(zeitstempel, username, role)}"
 
 
-def _session_ist_gueltig(request):
+def _session_context(request):
     if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
         return False
 
     token = request.cookies.get(SESSION_COOKIE, "")
 
     try:
-        zeitstempel, signatur = token.split(".", 1)
+        zeitstempel, encoded_user, role, signatur = token.split(".", 3)
         erstellt_am = int(zeitstempel)
+        username = base64.urlsafe_b64decode(encoded_user + "=" * (-len(encoded_user) % 4)).decode()
     except (TypeError, ValueError):
-        return False
+        return None
 
     jetzt = int(time.time())
     if erstellt_am > jetzt + 60 or jetzt - erstellt_am > SESSION_MAX_AGE:
-        return False
+        return None
 
-    erwartet = _session_signatur(zeitstempel)
-    return secrets.compare_digest(signatur, erwartet)
+    erwartet = _session_signatur(zeitstempel, username, role)
+    if not secrets.compare_digest(signatur, erwartet):
+        return None
+    from governance import get_admin
+    admin = get_admin(username)
+    if not admin or admin.role != role:
+        return None
+    return {"username": username, "role": role, "display_name": admin.display_name}
+
+
+def _session_ist_gueltig(request):
+    return bool(_session_context(request))
 
 
 def check_dashboard_login(request: Request):
@@ -146,7 +161,29 @@ def check_dashboard_login(request: Request):
             headers={"Location": "/"},
         )
 
-    return True
+    context = _session_context(request)
+    path = request.url.path
+    required = "read"
+    for prefix, permission in (
+        ("/intern/maengel", "cases"), ("/status", "cases"), ("/notiz", "cases"),
+        ("/intern/meldung", "cases"),
+        ("/intern/veranstaltungen", "events"), ("/veranstaltungen/", "events"),
+        ("/intern/dgh", "dgh"), ("/dgh/", "dgh"),
+        ("/intern/muelltermine", "waste"), ("/muelltermine/", "waste"),
+        ("/intern/nachbarschaft", "moderation"), ("/intern/warnungen", "warnings"),
+        ("/intern/push", "push"), ("/intern/nachrichten", "messages"),
+        ("/intern/gemeindeseite", "content"), ("/gemeindeseite", "content"),
+        ("/intern/inhalte", "content"), ("/intern/plattform", "content"),
+        ("/intern/benutzer", "admin"),
+    ):
+        if path.startswith(prefix):
+            required = permission; break
+    if not has_permission(context["role"], required):
+        raise HTTPException(status_code=403, detail="Deine Verwaltungsrolle darf diesen Bereich nur eingeschränkt verwenden.")
+    if context["role"] == "read_only" and request.method not in {"GET", "HEAD"}:
+        raise HTTPException(status_code=403, detail="Dieses Konto besitzt nur Leserechte.")
+    request.state.admin = context
+    return context
 
 
 def _sicherer_dateiname(name):
@@ -427,6 +464,7 @@ async def public_muelltermine_ics():
 async def login(
     username: str = Form(...),
     password: str = Form(...),
+    otp: str = Form(""),
 ):
     if not DASHBOARD_USER or not DASHBOARD_PASSWORD:
         response = portal_home_page(
@@ -436,10 +474,8 @@ async def login(
         response.status_code = 503
         return response
 
-    benutzer_ok = secrets.compare_digest(username, DASHBOARD_USER)
-    passwort_ok = secrets.compare_digest(password, DASHBOARD_PASSWORD)
-
-    if not (benutzer_ok and passwort_ok):
+    admin = authenticate_admin(username, password)
+    if not admin or (admin.totp_enabled and not verify_totp(admin.totp_secret, otp)):
         response = portal_home_page(
             _public_home_daten(),
             "Benutzername oder Passwort ist nicht korrekt.",
@@ -450,7 +486,7 @@ async def login(
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
         key=SESSION_COOKIE,
-        value=_neue_session(),
+        value=_neue_session(admin.username, admin.role),
         max_age=SESSION_MAX_AGE,
         httponly=True,
         secure=True,
@@ -615,7 +651,7 @@ async def neue_veranstaltung(
     rueckblick_text: str = Form(""),
     bild: UploadFile | None = File(None),
     rueckblick_bilder: list[UploadFile] | None = File(None),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     bild_bytes = None
 
@@ -635,6 +671,8 @@ async def neue_veranstaltung(
         rueckblick_text=rueckblick_text,
         rueckblick_bilder=recap_images,
     )
+    if event:
+        save_content_revision("veranstaltungen", str(event.id), "Freigegeben" if event.aktiv == "Ja" else "Entwurf", event.titel, {"datum":event.datum,"uhrzeit":event.uhrzeit,"ort":event.ort,"kategorie":event.kategorie,"beschreibung":event.beschreibung}, admin["display_name"])
     if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
         background_tasks.add_task(
             send_category_notification,
@@ -663,7 +701,7 @@ async def veranstaltung_bearbeiten(
     rueckblick_bilder_loeschen: str = Form(""),
     bild: UploadFile | None = File(None),
     rueckblick_bilder: list[UploadFile] | None = File(None),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     bild_bytes = None
 
@@ -685,6 +723,8 @@ async def veranstaltung_bearbeiten(
         rueckblick_bilder=recap_images,
         rueckblick_bilder_loeschen=rueckblick_bilder_loeschen == "ja",
     )
+    if event:
+        save_content_revision("veranstaltungen", str(event.id), "Freigegeben" if event.aktiv == "Ja" else "Entwurf", event.titel, {"datum":event.datum,"uhrzeit":event.uhrzeit,"ort":event.ort,"kategorie":event.kategorie,"beschreibung":event.beschreibung}, admin["display_name"])
     if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
         background_tasks.add_task(
             send_category_notification,
@@ -942,10 +982,12 @@ async def gemeindeseite(
 @app.post("/gemeindeseite")
 async def gemeindeseite_speichern(
     request: Request,
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     form = await request.form()
-    update_gemeinde_einstellungen(dict(form))
+    values = dict(form)
+    update_gemeinde_einstellungen(values)
+    save_content_revision("gemeindeseite", "standard", "Freigegeben", "Gemeindeseite", values, admin["display_name"])
 
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis=Gemeindeseite%20wurde%20gespeichert.",
@@ -1041,10 +1083,10 @@ async def meldung_detail(
     return RedirectResponse(url=f"/intern/meldung/{quote(ticket)}", status_code=303)
 
 
-@app.get("/status")
+@app.post("/status")
 async def status_aendern(
-    ticket: str,
-    neuer_status: str,
+    ticket: str = Form(...),
+    neuer_status: str = Form(...),
     _=Depends(check_dashboard_login),
 ):
     update_status(ticket, neuer_status)

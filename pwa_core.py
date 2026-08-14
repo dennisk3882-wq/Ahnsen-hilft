@@ -100,6 +100,7 @@ from system_diagnostics import (
     record_system_event,
     run_system_checks,
 )
+from governance import init_governance_db
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -139,6 +140,7 @@ def startup() -> None:
     init_ratsarchive_db()
     seed_official_ratsarchive()
     init_translation_db()
+    init_governance_db()
     cfg = get_platform_snapshot()
     app.title = f"{cfg['platform_name']} PWA"
     app.description = cfg["description"]
@@ -416,6 +418,7 @@ async def update_profile(request: Request):
         digest_hour=digest_hour,
         quiet_start=_trim(form.get("quiet_start"), 5) or None,
         quiet_end=_trim(form.get("quiet_end"), 5) or None,
+        accessibility={field: _trim(form.get(field), 10) == "ja" for field in ("a11y_large", "a11y_contrast", "a11y_simple", "a11y_reduce")},
     )
     return RedirectResponse(url="/profil?hinweis=Profil%20wurde%20gespeichert.", status_code=303)
 
@@ -740,10 +743,13 @@ async def intern_redirect(request: Request):
     return RedirectResponse(url="/verwaltung/login", status_code=303)
 
 
-@app.get("/status")
-async def admin_report_status(request: Request, background_tasks: BackgroundTasks, ticket: str, neuer_status: str):
+@app.post("/status")
+async def admin_report_status(request: Request, background_tasks: BackgroundTasks):
     legacy.check_dashboard_login(request)
-    allowed = {"Offen", "In Bearbeitung", "Erledigt"}
+    form = await request.form()
+    ticket = _trim(form.get("ticket"), 80)
+    neuer_status = _trim(form.get("neuer_status"), 40)
+    allowed = {"Offen", "In Bearbeitung", "Warten auf Rückmeldung", "Erledigt", "Abgelehnt"}
     if neuer_status not in allowed:
         raise HTTPException(status_code=400, detail="Ungültiger Status")
     before = get_meldung(ticket)
@@ -973,6 +979,16 @@ async def community_javascript():
 @app.get("/warning.css")
 async def warning_css():
     return FileResponse(STATIC_DIR / "warning.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/accessibility.css")
+async def accessibility_css():
+    return FileResponse(STATIC_DIR / "accessibility.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/accessibility.js")
+async def accessibility_javascript():
+    return FileResponse(STATIC_DIR / "accessibility.js", media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/pwa.js")

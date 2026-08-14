@@ -246,6 +246,9 @@ def login_page(fehler=""):
                     <input id="password" name="password" type="password"
                            autocomplete="current-password" required>
 
+                    <label for="otp">Einmalcode <small>(nur bei aktivierter 2FA)</small></label>
+                    <input id="otp" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="123456">
+
                     <button class="login-button" type="submit">
                         Sicher anmelden
                     </button>
@@ -1532,6 +1535,9 @@ def public_home_page(daten, fehler=""):
                             <input name="password" type="password"
                                    autocomplete="current-password" required>
                         </label>
+                        <label>Einmalcode <small>(nur bei aktivierter 2FA)</small>
+                            <input name="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+                        </label>
                         <button class="btn primary" type="submit">
                             Sicher anmelden
                         </button>
@@ -2523,6 +2529,7 @@ def portal_home_page(daten, fehler=""):
             <form method="post" action="/login">
                 <p><input name="username" placeholder="Benutzername" autocomplete="username" required></p>
                 <p><input name="password" placeholder="Passwort" type="password" autocomplete="current-password" required></p>
+                <p><input name="otp" placeholder="Einmalcode (nur bei 2FA)" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></p>
                 <button class="btn blue" type="submit">Sicher anmelden</button>
             </form>
         </aside>
