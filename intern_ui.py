@@ -64,6 +64,7 @@ def intern_nav(active=""):
         ("system", "/intern/benutzer", "Zugänge"),
         ("system", "/intern/sicherung", "Sicherung"),
         ("system", "/intern/plattform", "Plattform"),
+        ("system", "/intern/freigabe", "Freigabe"),
         ("system", "/intern/system", "System"),
     ]
 

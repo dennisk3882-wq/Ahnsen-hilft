@@ -139,3 +139,29 @@ Wenn diese E-Mail angekommen ist, funktionieren SMTP-Anmeldung und Versand.
 """
     )
     _send_message(msg)
+
+
+
+def send_accessibility_feedback(data: dict) -> None:
+    """Send accessibility feedback to the configured administration inbox."""
+    msg = EmailMessage()
+    msg["Subject"] = f"{get_platform_snapshot()['platform_name']} – Barriere gemeldet"
+    msg["From"] = EMAIL_USER
+    msg["To"] = EMAIL_TO
+    reply_to = str(data.get("email") or "").strip()
+    if reply_to:
+        msg["Reply-To"] = reply_to
+    msg.set_content(
+        f"""Neue Rückmeldung zur Barrierefreiheit
+
+Name: {data.get('name') or 'Keine Angabe'}
+E-Mail: {reply_to or 'Keine Angabe'}
+Betroffene Seite: {data.get('url') or 'Keine Angabe'}
+
+Beschreibung:
+{data.get('message')}
+
+Zeit: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
+"""
+    )
+    _send_message(msg)
