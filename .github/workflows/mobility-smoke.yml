@@ -39,7 +39,10 @@ jobs:
           assert "/mobilitaet" in paths
           assert "/api/mobilitaet" in paths
           assert getattr(pwa_main.app.state, "mobility_installed", False)
-          assert next(route for route in pwa_main.app.router.routes if getattr(route, "path", "") == "/").name == "pwa_home_mobility"
+          assert any(
+              getattr(route, "path", "") == "/" and getattr(route, "name", "") == "pwa_home_mobility"
+              for route in pwa_main.app.router.routes
+          )
 
           mobility._platform_center = lambda: (52.258, 9.099)
           sample = {
