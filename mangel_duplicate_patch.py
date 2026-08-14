@@ -112,6 +112,7 @@ def _inject_report_intelligence(response, forced_match=None) -> HTMLResponse:
   }});
   form.addEventListener('submit',async(event)=>{{
     if(hidden.value==='ja'||checking)return;
+    if(!form.checkValidity()){{event.preventDefault();form.reportValidity();return;}}
     event.preventDefault();checking=true;
     try{{
       const fd=new FormData(form);
@@ -193,8 +194,18 @@ async def intelligent_submit_report(request: Request, background_tasks: Backgrou
         "datenschutz": "ja" if privacy_accepted else "",
     }
 
-    if not art or not ort or len(beschreibung) < 10 or not privacy_accepted:
-        return _inject_report_intelligence(core.report_page("Bitte fülle alle Pflichtfelder vollständig aus und bestätige die Datenschutzhinweise.", values))
+    if not art:
+        validation_message = "Bitte wähle eine Kategorie aus."
+    elif not ort:
+        validation_message = "Bitte gib den Ort des Mangels an."
+    elif len(beschreibung) < 10:
+        validation_message = "Bitte beschreibe den Mangel mit mindestens 10 Zeichen."
+    elif not privacy_accepted:
+        validation_message = "Bitte bestätige die Datenschutzhinweise."
+    else:
+        validation_message = ""
+    if validation_message:
+        return _inject_report_intelligence(core.report_page(validation_message, values))
     if email and not core._valid_email(email):
         return _inject_report_intelligence(core.report_page("Bitte gib eine gültige E-Mail-Adresse ein.", values))
 
