@@ -31,7 +31,7 @@ jobs:
 
           import pwa_main
           from database import SessionLocal
-          from governance import _totp, authenticate_admin, case_history, has_permission, save_content_revision, update_case, verify_totp
+          from governance import _totp, authenticate_admin, case_history, has_permission, init_governance_db, save_content_revision, update_case, verify_totp
           from models import Meldung
           from pwa_ui import page, status_page
 
@@ -44,6 +44,7 @@ jobs:
               "/profil/konto-loeschen",
           } <= paths
 
+          init_governance_db()
           admin = authenticate_admin("admin", "test-password-with-12-chars")
           assert admin and admin.role == "superadmin"
           assert has_permission("public_works", "cases")
