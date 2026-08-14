@@ -13,7 +13,7 @@ DEFAULT_GEMEINDE_EINSTELLUNGEN = {
     "plattform_kurzname": "Ahnsen",
     "plattform_beschreibung": "Digitale Bürgerplattform für Ahnsen",
     "standard_sprache": "de",
-    "plattform_sprachen": "de,en,pl,uk,tr,fr,es,it,nl,ro,cs,da,sv,ar,ru",
+    "plattform_sprachen": "de,en,pl,uk,tr",
     "zeitzone": "Europe/Berlin",
     "plattform_basis_url": "https://ahnsen-hilft.onrender.com",
     "plattform_slug": "ahnsen-hilft",
