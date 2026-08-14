@@ -33,7 +33,7 @@ from dgh_crud import (
     save_dgh_termin,
     set_dgh_status,
 )
-from email_service import send_dgh_email, send_email, send_password_reset_email, send_test_email
+from email_service import send_accessibility_feedback, send_dgh_email, send_email, send_password_reset_email, send_test_email
 from gemeinde_crud import get_gemeinde_einstellungen, init_gemeinde_db
 from muelltermine_crud import get_naechste_muelltermine, init_muelltermine_db
 from pwa_account_ui import (
@@ -109,6 +109,13 @@ from governance import authenticate_admin, init_governance_db, verify_admin_seco
 from background_scheduler import start_background_scheduler
 from operations import run_migrations
 from operations import consume_rate_limit
+from compliance_center import (
+    accessibility_page,
+    admin_readiness_page,
+    easy_language_page,
+    legal_notice_page,
+    privacy_page,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -722,12 +729,54 @@ async def pwa_more():
 
 @app.get("/impressum")
 async def pwa_legal_notice():
-    return legal_page("impressum", get_gemeinde_einstellungen())
+    return legal_notice_page()
 
 
 @app.get("/datenschutz")
 async def pwa_privacy():
-    return legal_page("datenschutz", get_gemeinde_einstellungen())
+    return privacy_page()
+
+
+@app.get("/barrierefreiheit")
+async def pwa_accessibility_statement(hinweis: str = "", fehler: str = ""):
+    return accessibility_page(_trim(hinweis, 300), _trim(fehler, 300))
+
+
+@app.post("/barrierefreiheit-feedback")
+async def pwa_accessibility_feedback(request: Request):
+    if not consume_rate_limit("accessibility-feedback", _client_key(request), 4, 3600):
+        return accessibility_page(error="Zu viele Rückmeldungen in kurzer Zeit. Bitte versuche es später erneut.")
+    form = await request.form()
+    if _trim(form.get("website"), 200):
+        return RedirectResponse(url="/barrierefreiheit?hinweis=Vielen%20Dank%20für%20deine%20Rückmeldung.", status_code=303)
+    data = {
+        "name": _trim(form.get("name"), 120),
+        "email": _trim(form.get("email"), 180),
+        "url": _trim(form.get("url"), 500),
+        "message": _trim(form.get("message"), 3000),
+    }
+    if len(data["message"]) < 10 or _trim(form.get("privacy"), 10) != "ja":
+        return accessibility_page(error="Bitte beschreibe die Barriere mit mindestens 10 Zeichen und bestätige die Datenschutzhinweise.")
+    if data["email"] and not _valid_email(data["email"]):
+        return accessibility_page(error="Bitte prüfe die freiwillig angegebene E-Mail-Adresse.")
+    try:
+        send_accessibility_feedback(data)
+        record_system_event("accessibility_feedback", "ok", "Eine Rückmeldung zur Barrierefreiheit wurde an das Verwaltungspostfach gesendet.")
+    except Exception as error:
+        record_system_event("accessibility_feedback", "error", f"Rückmeldung zur Barrierefreiheit konnte nicht gesendet werden: {type(error).__name__}")
+        return accessibility_page(error="Die Rückmeldung konnte gerade nicht zugestellt werden. Bitte versuche es später erneut.")
+    return RedirectResponse(url="/barrierefreiheit?hinweis=Vielen%20Dank.%20Die%20Rückmeldung%20wurde%20zugestellt.", status_code=303)
+
+
+@app.get("/leichte-sprache")
+async def pwa_easy_language():
+    return easy_language_page()
+
+
+@app.get("/intern/freigabe")
+async def admin_official_readiness(request: Request):
+    legacy.check_dashboard_login(request)
+    return admin_readiness_page()
 
 
 @app.get("/api/push/public-key")
@@ -1069,6 +1118,11 @@ async def warning_css():
 @app.get("/accessibility.css")
 async def accessibility_css():
     return FileResponse(STATIC_DIR / "accessibility.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/compliance.css")
+async def compliance_css():
+    return FileResponse(STATIC_DIR / "compliance.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/accessibility.js")
