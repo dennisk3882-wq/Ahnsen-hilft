@@ -11,16 +11,6 @@ DEFAULT_LANGUAGES = {
     "pl": "PL",
     "uk": "UA",
     "tr": "TR",
-    "fr": "FR",
-    "es": "ES",
-    "it": "IT",
-    "nl": "NL",
-    "ro": "RO",
-    "cs": "CZ",
-    "da": "DK",
-    "sv": "SE",
-    "ar": "AR",
-    "ru": "RU",
 }
 
 
@@ -91,7 +81,7 @@ def get_platform_snapshot() -> dict:
     primary = _safe_color(getattr(core, "primary_color", "") or settings.get("hauptfarbe"), "#174936")
     accent = _safe_color(getattr(core, "accent_color", "") or settings.get("akzentfarbe"), "#8da77a")
 
-    raw_languages = str(settings.get("plattform_sprachen") or "de,en,pl,uk,tr,fr,es,it,nl,ro,cs,da,sv,ar,ru")
+    raw_languages = str(settings.get("plattform_sprachen") or "de,en,pl,uk,tr")
     language_codes = []
     for item in re.split(r"[,;|\s]+", raw_languages):
         code = item.strip().casefold()
