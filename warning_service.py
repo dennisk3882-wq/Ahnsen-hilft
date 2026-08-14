@@ -395,6 +395,29 @@ def _deactivate_cancelled_warnings(cancel_warning: OfficialWarning) -> int:
         db.close()
 
 
+def _deactivate_missing_source_warnings(source: str, active_external_ids: set[str]) -> int:
+    """Beendet Warnungen, die nach erfolgreichem Abruf nicht mehr im aktuellen Feed stehen."""
+    db = SessionLocal()
+    try:
+        query = (
+            db.query(OfficialWarning)
+            .filter(OfficialWarning.source == source)
+            .filter(OfficialWarning.active.is_(True))
+            .filter(OfficialWarning.is_cancel.is_(False))
+        )
+        changed = 0
+        for warning in query.all():
+            if warning.external_id not in active_external_ids:
+                warning.active = False
+                warning.last_seen_at = datetime.utcnow()
+                changed += 1
+        if changed:
+            db.commit()
+        return changed
+    finally:
+        db.close()
+
+
 def _warning_push_body(warning: OfficialWarning) -> str:
     prefix = "Entwarnung" if warning.is_cancel else LEVEL_LABELS.get(warning.level, "Amtliche Warnung")
     event = warning.event or warning.title
@@ -462,6 +485,8 @@ def poll_warning_sources(send_push: bool = True) -> dict[str, Any]:
                 summary["changed"] += 1
             if send_push and (is_new or changed):
                 summary["pushed_devices"] += _send_warning_push(warning)
+        active_external_ids = {str(item["external_id"]) for item in items if item.get("active")}
+        summary["changed"] += _deactivate_missing_source_warnings(source, active_external_ids)
 
     try:
         from system_diagnostics import record_system_event
