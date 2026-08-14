@@ -80,6 +80,9 @@ def _inject_report_intelligence(response, forced_match=None) -> HTMLResponse:
   if(!form)return;
   let hidden=form.querySelector('input[name="duplicate_confirm"]');
   if(!hidden){{hidden=document.createElement('input');hidden.type='hidden';hidden.name='duplicate_confirm';hidden.value='';form.appendChild(hidden);}}
+  let consentProof=form.querySelector('input[name="datenschutz_confirm"]');
+  if(!consentProof){{consentProof=document.createElement('input');consentProof.type='hidden';consentProof.name='datenschutz_confirm';consentProof.value='';form.appendChild(consentProof);}}
+  const consent=form.querySelector('input[name="datenschutz"]');
   const modal=document.getElementById('duplicate-modal');
   const card=document.getElementById('duplicate-match-card');
   const cancel=document.getElementById('duplicate-cancel');
@@ -100,10 +103,12 @@ def _inject_report_intelligence(response, forced_match=None) -> HTMLResponse:
   cancel.addEventListener('click',close);
   modal.addEventListener('click',e=>{{if(e.target===modal)close();}});
   confirm.addEventListener('click',()=>{{
+    if(!consent||!consent.checked){{close();consent?.focus();form.requestSubmit();return;}}
     hidden.value='ja';
+    consentProof.value='ja';
     modal.classList.remove('open');
     document.body.style.overflow='';
-    HTMLFormElement.prototype.submit.call(form);
+    form.requestSubmit();
   }});
   form.addEventListener('submit',async(event)=>{{
     if(hidden.value==='ja'||checking)return;
@@ -173,9 +178,22 @@ async def intelligent_submit_report(request: Request, background_tasks: Backgrou
     email = normalize_email(form.get("email"))
     latitude = core._trim(form.get("latitude"), 30)
     longitude = core._trim(form.get("longitude"), 30)
-    values = {"art": art, "ort": ort, "beschreibung": beschreibung, "name": name, "email": email}
+    privacy_accepted = (
+        core._trim(form.get("datenschutz"), 10) == "ja"
+        or core._trim(form.get("datenschutz_confirm"), 10) == "ja"
+    )
+    values = {
+        "art": art,
+        "ort": ort,
+        "beschreibung": beschreibung,
+        "name": name,
+        "email": email,
+        "latitude": latitude,
+        "longitude": longitude,
+        "datenschutz": "ja" if privacy_accepted else "",
+    }
 
-    if not art or not ort or len(beschreibung) < 10 or core._trim(form.get("datenschutz"), 10) != "ja":
+    if not art or not ort or len(beschreibung) < 10 or not privacy_accepted:
         return _inject_report_intelligence(core.report_page("Bitte fülle alle Pflichtfelder vollständig aus und bestätige die Datenschutzhinweise.", values))
     if email and not core._valid_email(email):
         return _inject_report_intelligence(core.report_page("Bitte gib eine gültige E-Mail-Adresse ein.", values))
