@@ -368,6 +368,13 @@ def meldung_detail_page(ticket):
         assignee_options.append(f'<option value="{escape(value, quote=True)}"{" selected" if selected else ""}>{escape(value)} · {escape(item.username)}</option>')
     if m.assigned_to and not known_assignee:
         assignee_options.append(f'<option value="{escape(m.assigned_to, quote=True)}" selected>{escape(m.assigned_to)} · bisherige Angabe</option>')
+    photo_delete_html = ""
+    if m.foto_base64:
+        photo_delete_html = (
+            f'<form method="post" action="/intern/meldung/{escape(m.ticket)}/foto-loeschen" '
+            'onsubmit="return confirm(\'Foto wirklich dauerhaft aus diesem Vorgang entfernen?\')">'
+            '<button class="danger" type="submit">Foto entfernen</button></form>'
+        )
 
     html = f"""
     <!doctype html>
@@ -459,7 +466,7 @@ def meldung_detail_page(ticket):
             <section class="admin-detail-card" style="margin-top:20px">
                 <h2>Foto zur Meldung</h2>
                 {foto_html(m, gross=True)}
-                {f'<form method="post" action="/intern/meldung/{escape(m.ticket)}/foto-loeschen" onsubmit="return confirm(\'Foto wirklich dauerhaft aus diesem Vorgang entfernen?\')"><button class="danger" type="submit">Foto entfernen</button></form>' if m.foto_base64 else ''}
+                {photo_delete_html}
             </section>
             <section class="admin-detail-card" style="margin-top:20px"><h2>Bearbeitungsverlauf</h2>{''.join(f'<p><strong>{entry.created_at:%d.%m.%Y %H:%M} · {escape(entry.actor)}</strong><br>{escape(entry.action)}: {escape(entry.old_value)} → {escape(entry.new_value)}</p>' for entry in history) or '<p>Noch keine Änderungen protokolliert.</p>'}</section>
         </main>
