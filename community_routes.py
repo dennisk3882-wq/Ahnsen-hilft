@@ -28,6 +28,7 @@ from community_crud import (
     get_neighbor_post,
     get_neighbor_posts,
     get_preference,
+    get_report,
     get_reports,
     mark_message_read,
     save_preference,
@@ -39,12 +40,14 @@ from community_crud import (
 )
 from community_dashboard import (
     admin_ideas_page,
+    admin_global_search_page,
     admin_messages_page,
     admin_neighbor_page,
     admin_politics_page,
     audit_page,
     cockpit_page,
     platform_settings_page,
+    report_print_page,
     reports_page,
 )
 from community_search import intelligent_search
@@ -58,6 +61,7 @@ from community_ui import (
     search_page,
 )
 from crud import suche_meldungen
+from dgh_crud import get_alle_dgh_termine
 from gemeinde_crud import set_gemeinde_einstellung
 from platform_runtime import get_platform_snapshot
 from ratsinfo_service import get_ratsinfo_snapshot
@@ -73,6 +77,7 @@ from ratsarchive_service import (
     update_archive_meeting,
 )
 from translation_service import provider_status, translate_texts
+from veranstaltungen_crud import get_aktive_veranstaltungen
 
 
 router = APIRouter()
@@ -375,20 +380,57 @@ async def admin_cockpit(request: Request):
     return cockpit_page(dashboard_stats())
 
 
+@router.get("/intern/suche")
+async def admin_global_search(request: Request, q: str = ""):
+    _admin(request)
+    query = _clean(q, 120)
+    results: list[dict] = []
+    if len(query) >= 2:
+        needle = query.casefold()
+        for item in suche_meldungen(query)[:30]:
+            results.append({"kind": "Mangel", "title": f"{item.ticket} · {item.art}", "detail": f"{item.ort} · {item.status}", "url": f"/intern/meldung/{quote(item.ticket)}"})
+        for user in get_all_users()[:300]:
+            if needle in f"{user.name} {user.email} {user.telefon}".casefold():
+                results.append({"kind": "Bürgerkonto", "title": user.name, "detail": user.email, "url": "/intern/nachrichten"})
+        for row in get_ideas(include_inactive=True):
+            idea = row["idea"]
+            if needle in f"{idea.title} {idea.description} {idea.category}".casefold():
+                results.append({"kind": "Idee", "title": idea.title, "detail": f"{idea.category} · {idea.status}", "url": "/intern/ideen"})
+        for post, _user_item in get_neighbor_posts(admin=True):
+            if needle in f"{post.title} {post.description} {post.category}".casefold():
+                results.append({"kind": "Nachbarschaft", "title": post.title, "detail": f"{post.category} · {post.status}", "url": "/intern/nachbarschaft"})
+        for event in get_aktive_veranstaltungen():
+            if needle in f"{event.titel} {event.beschreibung} {event.ort} {event.datum}".casefold():
+                results.append({"kind": "Veranstaltung", "title": event.titel, "detail": f"{event.datum} · {event.ort}", "url": "/intern/veranstaltungen"})
+        for term in get_alle_dgh_termine():
+            if needle in f"{term.anlass} {term.name} {term.datum} {term.status}".casefold():
+                results.append({"kind": "DGH", "title": term.anlass or "DGH-Termin", "detail": f"{term.datum} · {term.status}", "url": "/intern/dgh"})
+    return admin_global_search_page(query, results[:100])
+
+
 @router.get("/intern/nachrichten")
-async def admin_messages(request: Request, hinweis: str = ""):
+async def admin_messages(request: Request, hinweis: str = "", q: str = "", status: str = ""):
     _admin(request)
     users = get_all_users()
     recent = []
     for user in users[:150]:
         recent.extend(get_messages(user.id, limit=8))
     recent.sort(key=lambda item: getattr(item, "erstellt_am", datetime.min), reverse=True)
-    return admin_messages_page(users, recent[:80], message=hinweis)
+    query = _clean(q, 120)
+    if query:
+        needle = query.casefold()
+        user_labels = {int(item.id): f"{item.name} {item.email}" for item in users}
+        recent = [item for item in recent if needle in f"{item.subject} {item.body} {user_labels.get(int(item.user_id), '')}".casefold()]
+    if status == "gelesen":
+        recent = [item for item in recent if item.gelesen_am]
+    elif status == "ungelesen":
+        recent = [item for item in recent if not item.gelesen_am]
+    return admin_messages_page(users, recent[:80], message=hinweis, search=query, status=status)
 
 
 @router.post("/intern/nachrichten")
 async def admin_send_message(request: Request, background_tasks: BackgroundTasks):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     try:
         user_id = int(str(form.get("user_id") or "0"))
@@ -409,7 +451,7 @@ async def admin_send_message(request: Request, background_tasks: BackgroundTasks
             f"mailbox-{int(datetime.utcnow().timestamp())}-{user_id}",
             None,
         )
-    audit_event("Verwaltung", "Bürgernachricht gesendet", "pwa_user", str(user_id), subject)
+    audit_event(admin["username"], "Bürgernachricht gesendet", "pwa_user", str(user_id), subject)
     return RedirectResponse(url="/intern/nachrichten?hinweis=" + quote("Nachricht wurde zugestellt."), status_code=303)
 
 
@@ -421,7 +463,7 @@ async def admin_ideas(request: Request):
 
 @router.post("/intern/ideen/{idea_id}/status")
 async def admin_idea_status(request: Request, idea_id: int, background_tasks: BackgroundTasks):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     status = _clean(form.get("status"), 40)
     item = update_idea_status(idea_id, status)
@@ -429,7 +471,7 @@ async def admin_idea_status(request: Request, idea_id: int, background_tasks: Ba
         create_message(item.user_id, f"Status deiner Idee: {item.title}", f"Der Status wurde auf „{status}“ geändert.", category="idee", url=f"/ideen/{idea_id}")
         if _send_user_notification:
             background_tasks.add_task(_send_user_notification, item.user_id, "Deine Idee wurde aktualisiert", f"{item.title}: {status}", f"/ideen/{idea_id}", f"idea-{idea_id}-{status}", None)
-        audit_event("Verwaltung", "Ideenstatus geändert", "idea", str(idea_id), status)
+        audit_event(admin["username"], "Ideenstatus geändert", "idea", str(idea_id), status)
     return RedirectResponse(url="/intern/ideen", status_code=303)
 
 
@@ -441,7 +483,7 @@ async def admin_neighbor(request: Request):
 
 @router.post("/intern/nachbarschaft/{post_id}/status")
 async def admin_neighbor_status(request: Request, post_id: int, background_tasks: BackgroundTasks):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     status = _clean(form.get("status"), 40)
     item = update_neighbor_status(post_id, status)
@@ -449,7 +491,7 @@ async def admin_neighbor_status(request: Request, post_id: int, background_tasks
         create_message(item.user_id, f"Nachbarschaftsbeitrag: {item.title}", f"Der Status wurde auf „{status}“ geändert.", category="nachbarschaft", url="/nachbarschaft")
         if _send_user_notification:
             background_tasks.add_task(_send_user_notification, item.user_id, "Nachbarschaftsbeitrag aktualisiert", f"{item.title}: {status}", "/nachbarschaft", f"neighbor-{post_id}-{status}", None)
-        audit_event("Verwaltung", "Nachbarschaftsstatus geändert", "neighbor_post", str(post_id), status)
+        audit_event(admin["username"], "Nachbarschaftsstatus geändert", "neighbor_post", str(post_id), status)
     return RedirectResponse(url="/intern/nachbarschaft", status_code=303)
 
 
@@ -499,7 +541,7 @@ async def _store_archive_uploads(form, meeting_id: int) -> tuple[int, list[str]]
 
 @router.post("/intern/politik/archiv")
 async def admin_create_archive_meeting(request: Request):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     try:
         meeting_id = create_archive_meeting(
@@ -515,7 +557,7 @@ async def admin_create_archive_meeting(request: Request):
     except Exception as error:
         return RedirectResponse(url="/intern/politik?hinweis=" + quote(f"Sitzung konnte nicht gespeichert werden: {str(error)[:180]}"), status_code=303)
     added, errors = await _store_archive_uploads(form, meeting_id)
-    audit_event("Verwaltung", "Ratssitzung archiviert", "council_meeting", str(meeting_id), f"{added} Dokumente")
+    audit_event(admin["username"], "Ratssitzung archiviert", "council_meeting", str(meeting_id), f"{added} Dokumente")
     message = f"Sitzung gespeichert · {added} neue PDF-Datei(en)."
     if errors:
         message += " Hinweise: " + " | ".join(errors[:3])
@@ -524,7 +566,7 @@ async def admin_create_archive_meeting(request: Request):
 
 @router.post("/intern/politik/archiv/{meeting_id}")
 async def admin_update_archive_meeting(request: Request, meeting_id: int):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     try:
         updated = update_archive_meeting(
@@ -541,17 +583,17 @@ async def admin_update_archive_meeting(request: Request, meeting_id: int):
     except Exception as error:
         return RedirectResponse(url="/intern/politik?hinweis=" + quote(f"Änderung fehlgeschlagen: {str(error)[:180]}"), status_code=303)
     if updated:
-        audit_event("Verwaltung", "Ratssitzung bearbeitet", "council_meeting", str(meeting_id))
+        audit_event(admin["username"], "Ratssitzung bearbeitet", "council_meeting", str(meeting_id))
     return RedirectResponse(url="/intern/politik?hinweis=" + quote("Sitzung aktualisiert." if updated else "Sitzung nicht gefunden."), status_code=303)
 
 
 @router.post("/intern/politik/archiv/{meeting_id}/dokument")
 async def admin_add_archive_document(request: Request, meeting_id: int):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     added, errors = await _store_archive_uploads(form, meeting_id)
     if added:
-        audit_event("Verwaltung", "Ratsdokument hinzugefügt", "council_meeting", str(meeting_id), f"{added} Dokumente")
+        audit_event(admin["username"], "Ratsdokument hinzugefügt", "council_meeting", str(meeting_id), f"{added} Dokumente")
     message = f"{added} neue PDF-Datei(en) gespeichert."
     if errors:
         message += " Hinweise: " + " | ".join(errors[:3])
@@ -560,23 +602,23 @@ async def admin_add_archive_document(request: Request, meeting_id: int):
 
 @router.post("/intern/politik/dokument/{document_id}/loeschen")
 async def admin_delete_archive_document(request: Request, document_id: int):
-    _admin(request)
+    admin = _admin(request)
     if delete_archive_document(document_id):
-        audit_event("Verwaltung", "Ratsdokument gelöscht", "council_document", str(document_id))
+        audit_event(admin["username"], "Ratsdokument gelöscht", "council_document", str(document_id))
     return RedirectResponse(url="/intern/politik?hinweis=" + quote("Dokument entfernt."), status_code=303)
 
 
 @router.post("/intern/politik/archiv/{meeting_id}/loeschen")
 async def admin_delete_archive_meeting(request: Request, meeting_id: int):
-    _admin(request)
+    admin = _admin(request)
     if delete_archive_meeting(meeting_id):
-        audit_event("Verwaltung", "Ratssitzung gelöscht", "council_meeting", str(meeting_id))
+        audit_event(admin["username"], "Ratssitzung gelöscht", "council_meeting", str(meeting_id))
     return RedirectResponse(url="/intern/politik?hinweis=" + quote("Archiv-Sitzung entfernt."), status_code=303)
 
 
 @router.post("/intern/politik")
 async def admin_create_politics(request: Request):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     title = _clean(form.get("title"), 200)
     if not title:
@@ -586,7 +628,7 @@ async def admin_create_politics(request: Request):
         _clean(form.get("date_text"), 80), _clean(form.get("location"), 160),
         _clean(form.get("source_url"), 500),
     )
-    audit_event("Verwaltung", "Politik-Eintrag veröffentlicht", "civic_item", str(item.id), title)
+    audit_event(admin["username"], "Politik-Eintrag veröffentlicht", "civic_item", str(item.id), title)
     return RedirectResponse(url="/intern/politik", status_code=303)
 
 
@@ -606,12 +648,21 @@ async def admin_reports(request: Request, q: str = ""):
 
 @router.post("/intern/berichte/erstellen")
 async def admin_generate_report(request: Request):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     period_key = _clean(form.get("period_key"), 40) or None
     report = generate_monthly_report(period_key)
-    audit_event("Verwaltung", "Digitalbericht erzeugt", "report", str(report.id), report.title)
+    audit_event(admin["username"], "Digitalbericht erzeugt", "report", str(report.id), report.title)
     return RedirectResponse(url="/intern/berichte", status_code=303)
+
+
+@router.get("/intern/berichte/{report_id}/druck")
+async def admin_report_print(request: Request, report_id: int):
+    _admin(request)
+    report = get_report(report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Bericht nicht gefunden")
+    return report_print_page(report)
 
 
 @router.get("/intern/plattform")
@@ -622,7 +673,7 @@ async def admin_platform(request: Request):
 
 @router.post("/intern/plattform")
 async def admin_platform_save(request: Request):
-    _admin(request)
+    admin = _admin(request)
     form = await request.form()
     values = {field: _clean(form.get(field), limit) for field, limit in (
         ("platform_name", 120), ("municipality_name", 120), ("claim", 180),
@@ -672,5 +723,5 @@ async def admin_platform_save(request: Request):
     })
     for key, value in extras.items():
         set_gemeinde_einstellung(key, value)
-    audit_event("Verwaltung", "Plattform-Konfiguration geändert", "municipality_config", str(config.id), config.platform_name)
+    audit_event(admin["username"], "Plattform-Konfiguration geändert", "municipality_config", str(config.id), config.platform_name)
     return RedirectResponse(url="/intern/plattform?hinweis=" + quote("White-Label-Konfiguration gespeichert."), status_code=303)

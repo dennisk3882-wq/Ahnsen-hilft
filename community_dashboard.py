@@ -27,27 +27,48 @@ def cockpit_page(stats: dict) -> HTMLResponse:
         (stats.get("messages_unread", 0), "ungelesene Bürgernachrichten"),
         (stats.get("events", 0), "aktive Veranstaltungen"),
         (stats.get("dgh_total", 0), "DGH-Einträge"),
+        (stats.get("reports_overdue", 0), "Mängel überfällig"),
+        (stats.get("dgh_pending", 0), "offene DGH-Anfragen"),
+        (stats.get("active_warnings", 0), "aktive amtliche Warnungen"),
+        (stats.get("push_devices", 0), "registrierte Push-Geräte"),
+        (stats.get("system_errors", 0), "Systemfehler in 24 Stunden"),
     ]
     metrics = "".join(f'<article class="admin-card metric"><strong>{int(value)}</strong><span>{escape(label)}</span></article>' for value, label in cards)
     tasks = []
     if reports.get("offen", 0): tasks.append(f'{reports.get("offen",0)} offene Mängel prüfen')
+    if stats.get("reports_overdue", 0): tasks.append(f'⏰ {stats["reports_overdue"]} Mängel haben ihre Frist überschritten')
+    if stats.get("reports_urgent", 0): tasks.append(f'🔴 {stats["reports_urgent"]} dringende Mängel priorisiert bearbeiten')
+    if stats.get("reports_unassigned", 0): tasks.append(f'👤 {stats["reports_unassigned"]} offene Mängel ohne zuständige Person')
+    if stats.get("dgh_pending", 0): tasks.append(f'🏠 {stats["dgh_pending"]} DGH-Anfragen warten auf Entscheidung')
+    if stats.get("warning_source_errors", 0): tasks.append(f'⚠️ {stats["warning_source_errors"]} fehlerhafte Warnquellen-Prüfungen in 24 Stunden')
+    if stats.get("system_errors", 0): tasks.append(f'🩺 {stats["system_errors"]} Systemfehler in 24 Stunden prüfen')
+    if stats.get("events_without_image", 0): tasks.append(f'🖼️ {stats["events_without_image"]} veröffentlichte Veranstaltungen ohne Bild')
     if stats.get("neighbor_pending", 0): tasks.append(f'{stats["neighbor_pending"]} Nachbarschaftsbeiträge moderieren')
     if stats.get("ideas_month", 0): tasks.append(f'{stats["ideas_month"]} neue Ideen in diesem Monat')
     if not tasks: tasks.append('Aktuell keine auffälligen offenen Aufgaben aus den neuen Modulen.')
     task_html = "".join(f'<div class="admin-row">{escape(item)}</div>' for item in tasks)
-    body = f"""<section><span class="eyebrow">Verwaltungs-Dashboard 2.0</span><h1>Digitales Cockpit</h1><p>Ein gemeinsamer Überblick über Bürgerkonten, Vorgänge, Beteiligung und Betrieb.</p></section><section class="admin-grid">{metrics}</section><section class="admin-section"><h2>Heute im Blick</h2><div class="admin-list">{task_html}</div></section><section class="admin-section"><h2>Schnellzugriff</h2><div class="admin-grid"><a class="admin-card" href="/intern/nachrichten"><h3>Nachrichten</h3><p>Persönliche Nachrichten an Bürgerkonten senden.</p></a><a class="admin-card" href="/intern/ideen"><h3>Ideenportal</h3><p>Status von Bürgerideen pflegen.</p></a><a class="admin-card" href="/intern/nachbarschaft"><h3>Nachbarschaft</h3><p>Neue Beiträge prüfen und freigeben.</p></a><a class="admin-card" href="/intern/politik"><h3>Politik & Rat</h3><p>Sitzungen, Beschlüsse und Hinweise veröffentlichen.</p></a><a class="admin-card" href="/intern/berichte"><h3>Berichte</h3><p>Digitalberichte erzeugen und durchsuchen.</p></a><a class="admin-card" href="/intern/audit"><h3>Audit-Log</h3><p>Administrative Änderungen nachvollziehen.</p></a></div></section>"""
+    waste_year = int(stats.get("waste_latest_year", 0) or 0)
+    waste_notice = f"Mülltermine zuletzt bis {waste_year} hinterlegt." if waste_year else "Es sind noch keine Mülltermine hinterlegt."
+    body = f"""<section><span class="eyebrow">Verwaltungs-Dashboard</span><h1>Digitales Cockpit</h1><p>Ein gemeinsamer Überblick über Bürgerkonten, Vorgänge, Beteiligung und Betrieb.</p><form class="admin-search" method="get" action="/intern/suche"><input name="q" minlength="2" maxlength="120" placeholder="Mängel, Bürger, Termine, Ideen oder Inhalte suchen" required><button class="admin-button" type="submit">Alles durchsuchen</button></form></section><section class="admin-grid">{metrics}</section><section class="admin-section"><h2>Heute im Blick</h2><div class="admin-list">{task_html}<div class="admin-row">🗑️ {escape(waste_notice)} <a href="/intern/muelltermine">Müllkalender öffnen</a></div><div class="admin-row">🩺 <a href="/intern/system">Systemzustand und externe Dienste prüfen</a></div><div class="admin-row">🔐 <a href="/intern/sicherung">Datensicherung prüfen oder herunterladen</a></div></div></section><section class="admin-section"><h2>Schnellzugriff</h2><div class="admin-grid"><a class="admin-card" href="/intern/maengel"><h3>Mängel</h3><p>Offene, dringende und überfällige Vorgänge bearbeiten.</p></a><a class="admin-card" href="/intern/dgh"><h3>DGH</h3><p>Anfragen entscheiden und Belegung pflegen.</p></a><a class="admin-card" href="/intern/nachrichten"><h3>Nachrichten</h3><p>Persönliche Nachrichten an Bürgerkonten senden.</p></a><a class="admin-card" href="/intern/ideen"><h3>Ideenportal</h3><p>Status von Bürgerideen pflegen.</p></a><a class="admin-card" href="/intern/nachbarschaft"><h3>Nachbarschaft</h3><p>Neue Beiträge prüfen und freigeben.</p></a><a class="admin-card" href="/intern/politik"><h3>Politik & Rat</h3><p>Sitzungen, Beschlüsse und Hinweise veröffentlichen.</p></a><a class="admin-card" href="/intern/berichte"><h3>Berichte</h3><p>Verständliche Digitalberichte erzeugen.</p></a><a class="admin-card" href="/intern/audit"><h3>Audit-Log</h3><p>Administrative Änderungen nachvollziehen.</p></a></div></section>"""
     return _page("Digitales Cockpit", "cockpit", body)
 
 
-def admin_messages_page(users, recent_messages, message: str = "") -> HTMLResponse:
+def admin_messages_page(users, recent_messages, message: str = "", search: str = "", status: str = "") -> HTMLResponse:
     options = "".join(f'<option value="{u.id}">{escape(u.name)} · {escape(u.email)}</option>' for u in users)
+    user_names = {int(u.id): f"{u.name} · {u.email}" for u in users}
     rows = "".join(
-        f'<div class="admin-row"><strong>{escape(m.subject)}</strong><br><small>an Nutzer #{m.user_id} · {m.erstellt_am.strftime("%d.%m.%Y %H:%M") if m.erstellt_am else ""}</small><p>{escape(m.body)}</p></div>'
+        f'<div class="admin-row"><span class="status-chip">{"Gelesen" if m.gelesen_am else "Ungelesen"}</span> <strong>{escape(m.subject)}</strong><br><small>an {escape(user_names.get(int(m.user_id), f"Nutzer #{m.user_id}"))} · {m.erstellt_am.strftime("%d.%m.%Y %H:%M") if m.erstellt_am else ""}</small><p>{escape(m.body)}</p></div>'
         for m in recent_messages[:50]
     ) or '<div class="admin-row">Noch keine Nachrichten.</div>'
     notice = f'<div class="admin-row">{escape(message)}</div>' if message else ""
-    body = f"""<section><span class="eyebrow">Digitaler Briefkasten</span><h1>Nachrichten</h1><p>Persönliche Mitteilungen landen im geschützten Bürgerkonto. Browser-Push weist auf neue Nachrichten hin, ohne den vollständigen Inhalt offen anzuzeigen.</p></section>{notice}<section class="admin-grid"><article class="admin-section"><h2>Nachricht senden</h2><form class="admin-form" method="post" action="/intern/nachrichten"><label>Empfänger<select name="user_id" required><option value="">Bitte wählen</option>{options}</select></label><label>Betreff<input name="subject" maxlength="180" required></label><label>Nachricht<textarea name="body" maxlength="5000" required></textarea></label><button class="admin-button" type="submit">Nachricht zustellen</button></form></article><article class="admin-section"><h2>Letzte Nachrichten</h2><div class="admin-list">{rows}</div></article></section>"""
+    body = f"""<section><span class="eyebrow">Digitaler Briefkasten</span><h1>Nachrichten</h1><p>Persönliche Mitteilungen landen im geschützten Bürgerkonto. Browser-Push weist auf neue Nachrichten hin, ohne den vollständigen Inhalt offenzulegen.</p></section>{notice}<section class="admin-grid"><article class="admin-section"><h2>Nachricht senden</h2><form class="admin-form" method="post" action="/intern/nachrichten"><label>Empfänger<select name="user_id" required><option value="">Bitte wählen</option>{options}</select></label><label>Betreff<input name="subject" maxlength="180" required></label><label>Nachricht<textarea name="body" maxlength="5000" required></textarea></label><button class="admin-button" type="submit">Nachricht zustellen</button></form></article><article class="admin-section"><h2>Letzte Nachrichten</h2><form class="admin-search" method="get"><input name="q" value="{escape(search)}" placeholder="Empfänger, Betreff oder Text"><select name="status"><option value="">Alle</option><option value="ungelesen"{" selected" if status == "ungelesen" else ""}>Ungelesen</option><option value="gelesen"{" selected" if status == "gelesen" else ""}>Gelesen</option></select><button class="admin-button" type="submit">Filtern</button></form><div class="admin-list">{rows}</div></article></section>"""
     return _page("Nachrichten", "nachrichten", body)
+
+
+def admin_global_search_page(query: str, results: list[dict]) -> HTMLResponse:
+    cards = "".join(f'<a class="admin-row" href="{escape(str(item.get("url") or "/intern/cockpit"))}"><span class="status-chip">{escape(str(item.get("kind") or "Treffer"))}</span><h3>{escape(str(item.get("title") or ""))}</h3><p>{escape(str(item.get("detail") or ""))}</p></a>' for item in results)
+    body = f"""<section><span class="eyebrow">Verwaltungsweite Suche</span><h1>Alles durchsuchen</h1><form class="admin-search" method="get"><input name="q" value="{escape(query)}" minlength="2" maxlength="120" required autofocus><button class="admin-button" type="submit">Suchen</button></form></section><section class="admin-section"><h2>{len(results)} Treffer</h2><div class="admin-list">{cards or '<div class="admin-row">Keine passenden Einträge gefunden.</div>'}</div></section>"""
+    return _page("Verwaltungssuche", "cockpit", body)
 
 
 def admin_ideas_page(rows) -> HTMLResponse:
@@ -116,12 +137,54 @@ def reports_page(reports, search: str = "") -> HTMLResponse:
     cards = []
     for report in reports:
         try:
-            pretty = json.dumps(json.loads(report.body), ensure_ascii=False, indent=2)
+            payload = json.loads(report.body)
+            report_stats = payload.get("reports") or {}
+            metrics = [
+                (payload.get("users", 0), "Bürgerkonten"),
+                (report_stats.get("offen", 0), "Mängel offen"),
+                (report_stats.get("bearbeitung", 0), "In Bearbeitung"),
+                (report_stats.get("erledigt", 0), "Erledigt"),
+                (payload.get("reports_overdue", 0), "Überfällig"),
+                (f'{payload.get("reports_completion_rate", 0)} %', "Erledigungsquote"),
+                (f'{payload.get("reports_average_days", 0)} T.', "Ø Bearbeitungszeit"),
+                (payload.get("dgh_pending", 0), "DGH-Anfragen"),
+                (f'{payload.get("dgh_confirmation_rate", 0)} %', "DGH-Bestätigungsquote"),
+                (payload.get("push_devices", 0), "Push-Geräte"),
+                (payload.get("ideas_month", 0), "Neue Ideen"),
+                (payload.get("neighbor_pending", 0), "Moderation offen"),
+            ]
+            metric_html = "".join(f'<div class="admin-card metric"><strong>{escape(str(value or 0))}</strong><span>{escape(label)}</span></div>' for value, label in metrics)
+            pretty = json.dumps(payload, ensure_ascii=False, indent=2)
         except Exception:
+            metric_html = ""
             pretty = report.body
-        cards.append(f'<article class="admin-row"><strong>{escape(report.title)}</strong><br><small>{report.erstellt_am.strftime("%d.%m.%Y %H:%M") if report.erstellt_am else ""}</small><div class="json-box">{escape(pretty)}</div></article>')
-    body = f"""<section><span class="eyebrow">Auswertungen</span><h1>Berichte</h1><p>Gespeicherte Digitalberichte lassen sich durchsuchen und später exportieren.</p></section><section class="admin-section"><form class="admin-form" method="post" action="/intern/berichte/erstellen"><label>Berichtsmonat<input name="period_key" placeholder="YYYY-MM"></label><button class="admin-button" type="submit">Bericht erzeugen</button></form></section><section class="admin-section"><form class="admin-search" method="get"><input name="q" value="{escape(search)}" placeholder="Berichte durchsuchen"><button class="admin-button" type="submit">Suchen</button></form><div class="admin-list">{"".join(cards) or "<div class=admin-row>Noch keine Berichte gespeichert.</div>"}</div></section>"""
+        cards.append(f'<article class="admin-row"><strong>{escape(report.title)}</strong><br><small>{report.erstellt_am.strftime("%d.%m.%Y %H:%M") if report.erstellt_am else ""}</small><div class="admin-grid" style="margin-top:14px">{metric_html}</div><p><a class="admin-button secondary" href="/intern/berichte/{report.id}/druck" target="_blank">Drucken / als PDF speichern</a></p><details><summary>Technische Rohdaten anzeigen</summary><div class="json-box">{escape(pretty)}</div></details></article>')
+    body = f"""<section><span class="eyebrow">Auswertungen</span><h1>Berichte</h1><p>Verständliche Monatsübersichten für Verwaltung und Gemeinderat – technische Rohdaten bleiben bei Bedarf einsehbar.</p></section><section class="admin-section"><form class="admin-form" method="post" action="/intern/berichte/erstellen"><label>Berichtsmonat<input type="month" name="period_key"></label><button class="admin-button" type="submit">Monatsbericht erzeugen</button></form></section><section class="admin-section"><form class="admin-search" method="get"><input name="q" value="{escape(search)}" placeholder="Berichte durchsuchen"><button class="admin-button" type="submit">Suchen</button></form><div class="admin-list">{"".join(cards) or "<div class=admin-row>Noch keine Berichte gespeichert.</div>"}</div></section>"""
     return _page("Berichte", "berichte", body)
+
+
+def report_print_page(report) -> HTMLResponse:
+    try:
+        payload = json.loads(report.body)
+    except Exception:
+        payload = {}
+    report_stats = payload.get("reports") or {}
+    rows = [
+        ("Bürgerkonten", payload.get("users", 0)),
+        ("Mängel gesamt", report_stats.get("gesamt", 0)),
+        ("Mängel offen", report_stats.get("offen", 0)),
+        ("Mängel erledigt", report_stats.get("erledigt", 0)),
+        ("Erledigungsquote", f'{payload.get("reports_completion_rate", 0)} %'),
+        ("Ø Bearbeitungszeit", f'{payload.get("reports_average_days", 0)} Tage'),
+        ("DGH-Anfragen gesamt", payload.get("dgh_total", 0)),
+        ("DGH bestätigt", payload.get("dgh_confirmed", 0)),
+        ("Push-Geräte", payload.get("push_devices", 0)),
+        ("Aktive Warnungen", payload.get("active_warnings", 0)),
+    ]
+    table = "".join(f"<tr><th>{escape(str(label))}</th><td>{escape(str(value))}</td></tr>" for label, value in rows)
+    generated = report.erstellt_am.strftime("%d.%m.%Y %H:%M") if report.erstellt_am else ""
+    html = f"""<!doctype html><html lang='de'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>{escape(report.title)}</title><style>body{{font:16px/1.5 system-ui;max-width:820px;margin:40px auto;padding:0 24px;color:#17221d}}h1{{color:#174936}}table{{width:100%;border-collapse:collapse;margin:28px 0}}th,td{{padding:12px;border-bottom:1px solid #dfe7dc;text-align:left}}td{{font-weight:750}}button{{padding:12px 18px;border:0;border-radius:10px;background:#174936;color:white;font-weight:700}}@media print{{button{{display:none}}body{{margin:0;max-width:none}}}}</style></head><body><p>Gemeinde Ahnsen · Digitalbericht</p><h1>{escape(report.title)}</h1><p>Erzeugt am {escape(generated)}. Dieser Bericht enthält ausschließlich zusammengefasste Kennzahlen.</p><table>{table}</table><button onclick='window.print()'>Drucken / als PDF speichern</button></body></html>"""
+    return HTMLResponse(html)
 
 
 def platform_settings_page(config) -> HTMLResponse:

@@ -64,6 +64,7 @@ def run_migrations() -> None:
         ("2026-08-14-admin-session-v1", "Verwaltungssitzungen widerrufbar", "admin_users", "session_version", "INTEGER NOT NULL DEFAULT 1"),
         ("2026-08-14-admin-2fa-pending", "Bestätigte 2FA-Einrichtung", "admin_users", "totp_pending_secret", "VARCHAR(64) NOT NULL DEFAULT ''"),
         ("2026-08-14-admin-recovery", "2FA-Wiederherstellungscodes", "admin_users", "recovery_codes_hash", "TEXT NOT NULL DEFAULT ''"),
+        ("2026-08-15-admin-last-login", "Letzte erfolgreiche Verwaltungsanmeldung", "admin_users", "last_login_at", "TIMESTAMP"),
     )
     db = SessionLocal()
     try:

@@ -12,11 +12,13 @@ import requests
 from sqlalchemy import Column, DateTime, Integer, String, Text, func, inspect, text
 
 from config import DATABASE_URL, EMAIL_PASSWORD, EMAIL_TO, EMAIL_USER
+from community_models import AuditLog
 from database import Base, SessionLocal, engine
 from pwa_models import PWAUser, PushSubscription
 from push_service import VAPID_SUBJECT, push_configured
 from warning_service import get_warning_stats, init_warning_db, probe_warning_sources
 from operations import SchemaMigration
+from governance_models import AdminUser
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -234,6 +236,21 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
         return "ok", f"FastAPI ist aktiv; {len(routes)} Routen sind registriert."
 
     add("webserver", "Webserver & PWA", "Kernsystem", check_webserver)
+
+    def check_admin_actions():
+        destructive = (
+            "/veranstaltungen/aktiv/{veranstaltung_id}/{aktiv}",
+            "/veranstaltungen/loeschen/{veranstaltung_id}",
+            "/dgh/aktiv/{termin_id}/{aktiv}",
+            "/dgh/loeschen/{termin_id}",
+        )
+        unsafe = [path for path in destructive if "GET" in routes.get(path, set())]
+        missing_post = [path for path in destructive if "POST" not in routes.get(path, set())]
+        if unsafe or missing_post:
+            return "error", "Unsichere Verwaltungsaktionen: " + ", ".join(unsafe + missing_post)
+        return "ok", "Löschen und Aktivieren sind ausschließlich als geschützte POST-Aktionen registriert."
+
+    add("admin_actions", "Sichere Verwaltungsaktionen", "Sicherheit & Betrieb", check_admin_actions)
 
     def check_https():
         if request is None:
@@ -457,7 +474,11 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
             return "error", "Service-Worker-Funktionen fehlen: " + ", ".join(missing)
         if "/pwa.js" not in routes or "/service-worker.js" not in routes:
             return "error", "Service-Worker-Routen sind nicht vollständig registriert."
-        return "ok", "Offline-/Service-Worker-Logik und Push-Ereignisse sind vorhanden."
+        core_source = (BASE_DIR / "pwa_core.py").read_text(encoding="utf-8")
+        private_markers = ("PRIVATE_PREFIXES", "'/intern'", "'/profil'", "'/nachrichten'", "!isPublicCacheable")
+        if any(value not in core_source for value in private_markers):
+            return "error", "Private Verwaltungs-, Profil- oder Nachrichtenseiten sind nicht sicher vom Offline-Cache ausgeschlossen."
+        return "ok", "Offline-/Push-Logik ist vorhanden; private Verwaltungs- und Kontoseiten werden nicht zwischengespeichert."
 
     add("service_worker", "Service Worker / Offline", "PWA", check_service_worker)
 
@@ -488,6 +509,38 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
         return "ok", "Separate Zugangsdaten und ausreichend lange Sitzungsschlüssel sind konfiguriert."
 
     add("security", "Sitzungen & Zugangsschutz", "Sicherheit & Betrieb", check_security)
+
+    def check_admin_accounts():
+        if "admin_users" not in tables:
+            return "error", "Tabelle admin_users fehlt."
+        db = SessionLocal()
+        try:
+            privileged = db.query(AdminUser).filter(AdminUser.active.is_(True), AdminUser.role.in_(["superadmin", "municipality"])).all()
+            missing_2fa = [item.username for item in privileged if not item.totp_enabled]
+        finally:
+            db.close()
+        if missing_2fa:
+            return "warn", "Für privilegierte Konten fehlt noch 2FA: " + ", ".join(missing_2fa)
+        return "ok", "Alle aktiven privilegierten Verwaltungskonten verwenden 2FA."
+
+    add("admin_accounts", "Verwaltungskonten & 2FA", "Sicherheit & Betrieb", check_admin_accounts)
+
+    def check_backup_freshness():
+        db = SessionLocal()
+        try:
+            item = db.query(AuditLog).filter(AuditLog.action == "Gesamtsicherung heruntergeladen").order_by(AuditLog.erstellt_am.desc()).first()
+        finally:
+            db.close()
+        if not item or not item.erstellt_am:
+            return "warn", "Noch keine heruntergeladene Gesamtsicherung im Audit-Protokoll gefunden."
+        age_days = max(0, (datetime.utcnow() - item.erstellt_am).days)
+        if age_days > 14:
+            return "error", f"Die letzte dokumentierte Gesamtsicherung ist {age_days} Tage alt."
+        if age_days > 7:
+            return "warn", f"Die letzte dokumentierte Gesamtsicherung ist {age_days} Tage alt."
+        return "ok", f"Letzte dokumentierte Gesamtsicherung vor {age_days} Tag(en)."
+
+    add("backup_freshness", "Aktualität der Datensicherung", "Sicherheit & Betrieb", check_backup_freshness)
 
     def check_cron():
         event = get_last_system_event("background_scheduler") or get_last_system_event("muell_cron")

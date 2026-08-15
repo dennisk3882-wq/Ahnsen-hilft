@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import struct
 import time
@@ -31,8 +32,8 @@ ROLES = {
 
 ROLE_PERMISSIONS = {
     "superadmin": {"*"},
-    "municipality": {"cases", "content", "dgh", "waste", "events", "clubs", "warnings", "push", "messages", "moderation", "reports", "read"},
-    "mayor": {"cases", "content", "messages", "reports", "read"},
+    "municipality": {"cases", "content", "dgh", "waste", "events", "clubs", "warnings", "push", "messages", "moderation", "politics", "reports", "audit", "compliance", "system", "read"},
+    "mayor": {"cases", "content", "messages", "moderation", "politics", "reports", "audit", "compliance", "read"},
     "public_works": {"cases", "read"},
     "fire_service": {"warnings", "content", "read"},
     "event_editor": {"events", "content", "read"},
@@ -117,6 +118,11 @@ def list_admins() -> list[AdminUser]:
 
 
 def save_admin(username: str, display_name: str, role: str, password: str = "") -> AdminUser:
+    username = str(username or "").strip().lower()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,63}", username):
+        raise ValueError("Der Benutzername benötigt 3–64 Zeichen und darf nur Buchstaben, Zahlen, Punkt, Minus und Unterstrich enthalten.")
+    if role not in ROLES:
+        raise ValueError("Bitte wähle eine gültige Verwaltungsrolle.")
     db = SessionLocal()
     try:
         item = db.query(AdminUser).filter(AdminUser.username == username).first()
@@ -130,10 +136,43 @@ def save_admin(username: str, display_name: str, role: str, password: str = "") 
                 raise ValueError("Das Passwort benötigt mindestens 12 Zeichen.")
             item.password_hash = hash_password(password)
             item.session_version = int(item.session_version or 1) + 1
+        if item.id and item.role == "superadmin" and role != "superadmin":
+            remaining = db.query(AdminUser).filter(AdminUser.role == "superadmin", AdminUser.active.is_(True), AdminUser.id != item.id).count()
+            if remaining == 0:
+                raise ValueError("Mindestens ein aktives Konto mit Vollzugriff muss erhalten bleiben.")
         item.display_name = display_name[:120] or username
-        item.role = role if role in ROLES else "read_only"
+        item.role = role
         item.updated_at = datetime.utcnow()
         db.commit(); db.refresh(item); return item
+    finally:
+        db.close()
+
+
+def set_admin_active(username: str, active: bool, *, actor_username: str = "") -> AdminUser | None:
+    """Suspend or reactivate an account and revoke all of its sessions."""
+    db = SessionLocal()
+    try:
+        item = db.query(AdminUser).filter(AdminUser.username == username).first()
+        if not item:
+            return None
+        if actor_username and item.username == actor_username and not active:
+            raise ValueError("Das aktuell verwendete eigene Konto kann nicht gesperrt werden.")
+        item.active = bool(active)
+        item.session_version = int(item.session_version or 1) + 1
+        item.updated_at = datetime.utcnow()
+        db.commit(); db.refresh(item); return item
+    finally:
+        db.close()
+
+
+def record_admin_login(username: str) -> None:
+    db = SessionLocal()
+    try:
+        item = db.query(AdminUser).filter(AdminUser.username == username).first()
+        if item:
+            item.last_login_at = datetime.utcnow()
+            item.updated_at = datetime.utcnow()
+            db.commit()
     finally:
         db.close()
 

@@ -563,13 +563,28 @@ def mark_notifications_delivered(ids: list[int]) -> None:
 
 def dashboard_stats() -> dict:
     from crud import statistik as report_stats
-    from dgh_crud import get_alle_dgh_termine
+    from dgh_models import DGHTermin
+    from models import Meldung
+    from muelltermine_models import Muelltermin
     from veranstaltungen_crud import get_aktive_veranstaltungen
+    from veranstaltungen_models import Veranstaltung
+    from pwa_models import PushSubscription
+    from system_diagnostics import SystemEvent
+    from warning_service import OfficialWarning, WarningPoll
 
     db = SessionLocal()
     try:
         now = datetime.utcnow()
         month_start = datetime(now.year, now.month, 1)
+        open_statuses = {"Offen", "In Bearbeitung", "Warten auf Rückmeldung"}
+        open_reports = db.query(Meldung).filter(Meldung.status.in_(open_statuses))
+        latest_waste_year = db.query(func.max(Muelltermin.jahr)).scalar()
+        report_summary = report_stats()
+        finished = db.query(Meldung).filter(Meldung.status == "Erledigt", Meldung.updated_at.isnot(None), Meldung.erstellt_am.isnot(None)).all()
+        durations = [max(0.0, (item.updated_at - item.erstellt_am).total_seconds() / 86400) for item in finished if item.updated_at and item.erstellt_am]
+        dgh_total = db.query(DGHTermin).count()
+        dgh_confirmed = db.query(DGHTermin).filter(DGHTermin.status == "Bestätigt", DGHTermin.aktiv == "Ja").count()
+        day_ago = now - timedelta(hours=24)
         return {
             "users": db.query(PWAUser).filter(PWAUser.aktiv.is_(True)).count(),
             "messages_unread": db.query(CitizenMessage).filter(CitizenMessage.gelesen_am.is_(None)).count(),
@@ -580,9 +595,23 @@ def dashboard_stats() -> dict:
             "neighbor_pending": db.query(NeighborPost).filter(NeighborPost.status == "Prüfung").count(),
             "neighbor_active": db.query(NeighborPost).filter(NeighborPost.status == "Freigegeben").count(),
             "civic": db.query(CivicItem).filter(CivicItem.aktiv.is_(True)).count(),
-            "reports": report_stats(),
-            "dgh_total": len(get_alle_dgh_termine()),
+            "reports": report_summary,
+            "reports_overdue": open_reports.filter(Meldung.due_at.isnot(None), Meldung.due_at < now).count(),
+            "reports_urgent": open_reports.filter(Meldung.priority == "Dringend").count(),
+            "reports_unassigned": open_reports.filter(or_(Meldung.assigned_to == "", Meldung.assigned_to.is_(None))).count(),
+            "reports_completion_rate": round((report_summary.get("erledigt", 0) / max(report_summary.get("gesamt", 0), 1)) * 100, 1),
+            "reports_average_days": round(sum(durations) / len(durations), 1) if durations else 0.0,
+            "dgh_total": dgh_total,
+            "dgh_pending": db.query(DGHTermin).filter(DGHTermin.status == "Anfrage", DGHTermin.aktiv == "Ja").count(),
+            "dgh_confirmed": dgh_confirmed,
+            "dgh_confirmation_rate": round((dgh_confirmed / max(dgh_total, 1)) * 100, 1),
+            "waste_latest_year": int(latest_waste_year or 0),
             "events": len(get_aktive_veranstaltungen()),
+            "events_without_image": db.query(Veranstaltung).filter(Veranstaltung.aktiv == "Ja", or_(Veranstaltung.bild_base64.is_(None), Veranstaltung.bild_base64 == "")).count(),
+            "active_warnings": db.query(OfficialWarning).filter(OfficialWarning.active.is_(True), OfficialWarning.is_cancel.is_(False)).count(),
+            "warning_source_errors": db.query(WarningPoll).filter(WarningPoll.status != "ok", WarningPoll.created_at >= day_ago).count(),
+            "system_errors": db.query(SystemEvent).filter(SystemEvent.status == "error", SystemEvent.created_at >= day_ago).count(),
+            "push_devices": db.query(PushSubscription).count(),
         }
     finally:
         db.close()
@@ -607,6 +636,18 @@ def generate_monthly_report(period_key: str | None = None) -> GeneratedReport:
         "neighbor_active": stats["neighbor_active"],
         "neighbor_pending": stats["neighbor_pending"],
         "civic_items": stats["civic"],
+        "reports_overdue": stats["reports_overdue"],
+        "reports_urgent": stats["reports_urgent"],
+        "reports_unassigned": stats["reports_unassigned"],
+        "dgh_pending": stats["dgh_pending"],
+        "waste_latest_year": stats["waste_latest_year"],
+        "reports_completion_rate": stats["reports_completion_rate"],
+        "reports_average_days": stats["reports_average_days"],
+        "dgh_confirmed": stats["dgh_confirmed"],
+        "dgh_confirmation_rate": stats["dgh_confirmation_rate"],
+        "active_warnings": stats["active_warnings"],
+        "push_devices": stats["push_devices"],
+        "system_errors": stats["system_errors"],
     }
     title = f"Digitalbericht {period_key}"
     db = SessionLocal()
@@ -632,5 +673,13 @@ def get_reports(search: str = "", limit: int = 100) -> list[GeneratedReport]:
                 GeneratedReport.body.ilike(like),
             ))
         return query.order_by(GeneratedReport.erstellt_am.desc()).limit(limit).all()
+    finally:
+        db.close()
+
+
+def get_report(report_id: int) -> GeneratedReport | None:
+    db = SessionLocal()
+    try:
+        return db.query(GeneratedReport).filter(GeneratedReport.id == int(report_id)).first()
     finally:
         db.close()

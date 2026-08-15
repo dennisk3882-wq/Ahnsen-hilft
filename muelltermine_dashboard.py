@@ -80,6 +80,7 @@ def muelltermine_dashboard(hinweis="", fehler=""):
                 <td>{escape(termin.wochentag or '-')}</td>
                 <td><div class="waste-tags compact">{_waste_tags(termin.abfuhrarten)}</div></td>
                 <td>{hinweis_badge}</td>
+                <td><details><summary>Bearbeiten</summary><form method="post" action="/muelltermine/termin"><input type="hidden" name="termin_id" value="{termin.id}"><label>Datum<input type="date" name="datum" value="{termin.datum.isoformat()}" required></label><label>Abfuhrarten<input name="abfuhrarten" value="{escape(termin.abfuhrarten or '', quote=True)}" required></label><label><input type="checkbox" name="feiertagsabweichung" value="ja"{" checked" if termin.feiertagsabweichung == "Ja" else ""}> Feiertagsverschiebung</label><button type="submit">Speichern</button></form><form method="post" action="/muelltermine/termin/{termin.id}/loeschen" onsubmit="return confirm('Abfuhrtermin wirklich löschen?')"><button class="danger" type="submit">Löschen</button></form></details></td>
             </tr>
             """
         )
@@ -88,6 +89,7 @@ def muelltermine_dashboard(hinweis="", fehler=""):
             <article class="waste-mobile-card">
                 <div class="waste-mobile-head"><div><small>{escape(termin.wochentag or '-')}</small><h3>{termin.datum.strftime('%d.%m.%Y')}</h3><span>{escape(resttage_text(termin.datum))}</span></div>{hinweis_badge}</div>
                 <div class="waste-tags">{_waste_tags(termin.abfuhrarten)}</div>
+                <details><summary>Termin bearbeiten</summary><form method="post" action="/muelltermine/termin"><input type="hidden" name="termin_id" value="{termin.id}"><label>Datum<input type="date" name="datum" value="{termin.datum.isoformat()}" required></label><label>Abfuhrarten<input name="abfuhrarten" value="{escape(termin.abfuhrarten or '', quote=True)}" required></label><label><input type="checkbox" name="feiertagsabweichung" value="ja"{" checked" if termin.feiertagsabweichung == "Ja" else ""}> Feiertagsverschiebung</label><button type="submit">Speichern</button></form><form method="post" action="/muelltermine/termin/{termin.id}/loeschen" onsubmit="return confirm('Abfuhrtermin wirklich löschen?')"><button class="danger" type="submit">Löschen</button></form></details>
             </article>
             """
         )
@@ -195,8 +197,18 @@ def muelltermine_dashboard(hinweis="", fehler=""):
             </div>
 
             <section class="box">
+                <div class="waste-card-heading"><h2>Einzelnen Termin ergänzen</h2><p>Für kurzfristige Änderungen oder Korrekturen ohne neuen PDF-Import.</p></div>
+                <form class="waste-upload-area" method="post" action="/muelltermine/termin">
+                    <label>Datum<input type="date" name="datum" required></label>
+                    <label>Abfuhrarten<input name="abfuhrarten" maxlength="500" placeholder="z. B. Restabfall, Biotonne" required></label>
+                    <label><input type="checkbox" name="feiertagsabweichung" value="ja"> Feiertagsverschiebung</label>
+                    <button type="submit">Termin hinzufügen</button>
+                </form>
+            </section>
+
+            <section class="box">
                 <div class="waste-table-heading"><h2>Alle Abfuhrtermine</h2><span class="muted">{len(termine)} Einträge</span></div>
-                <div class="waste-table-wrap"><table><thead><tr><th>Datum</th><th>Wochentag</th><th>Abfuhrarten</th><th>Hinweis</th></tr></thead><tbody>{''.join(rows) if rows else '<tr><td colspan="4">Noch keine Termine importiert.</td></tr>'}</tbody></table></div>
+                <div class="waste-table-wrap"><table><thead><tr><th>Datum</th><th>Wochentag</th><th>Abfuhrarten</th><th>Hinweis</th><th>Aktionen</th></tr></thead><tbody>{''.join(rows) if rows else '<tr><td colspan="5">Noch keine Termine importiert.</td></tr>'}</tbody></table></div>
                 <div class="waste-mobile-list">{''.join(cards) if cards else '<div class="waste-empty-inline">Noch keine Termine importiert.</div>'}</div>
             </section>
         </main>

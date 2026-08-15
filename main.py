@@ -9,9 +9,11 @@ import os
 import secrets
 import re
 import time
+from io import BytesIO
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
+from urllib.parse import urlparse
 
 from crud import (
     init_db,
@@ -45,10 +47,12 @@ from dgh_crud import (
 )
 from dgh_dashboard import dgh_dashboard
 from muelltermine_crud import (
+    delete_muelltermin,
     get_alle_muelltermine,
     get_naechste_muelltermine,
     importiere_muelltermine,
     init_muelltermine_db,
+    save_muelltermin,
 )
 from muelltermine_dashboard import muelltermine_dashboard
 from muelltermine_parser import lese_muelltermine_aus_pdf
@@ -70,8 +74,9 @@ from gemeinde_dashboard import gemeinde_dashboard
 from homepage_import import lade_alte_homepage_inhalte
 from veranstaltungen_crud import get_veranstaltung
 from push_service import send_category_notification
-from governance import authenticate_admin, has_permission, init_governance_db, save_content_revision, verify_admin_second_factor
+from governance import authenticate_admin, has_permission, init_governance_db, record_admin_login, save_content_revision, verify_admin_second_factor
 from operations import get_asset, run_migrations, save_asset
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 
 app = FastAPI()
@@ -168,6 +173,11 @@ def check_dashboard_login(request: Request):
     path = request.url.path
     required = "read"
     for prefix, permission in (
+        ("/intern/benutzer", "admin"), ("/intern/sicherung", "backup"),
+        ("/intern/system", "system"), ("/intern/freigabe", "compliance"),
+        ("/intern/audit", "audit"), ("/intern/berichte", "reports"),
+        ("/intern/politik", "politics"), ("/intern/ideen", "moderation"),
+        ("/intern/cockpit", "read"),
         ("/intern/maengel", "cases"), ("/status", "cases"), ("/notiz", "cases"),
         ("/intern/meldung", "cases"),
         ("/intern/veranstaltungen", "events"), ("/veranstaltungen/", "events"),
@@ -177,7 +187,6 @@ def check_dashboard_login(request: Request):
         ("/intern/push", "push"), ("/intern/nachrichten", "messages"),
         ("/intern/gemeindeseite", "content"), ("/gemeindeseite", "content"),
         ("/intern/inhalte", "content"), ("/intern/plattform", "content"),
-        ("/intern/benutzer", "admin"),
     ):
         if path.startswith(prefix):
             required = permission; break
@@ -218,20 +227,51 @@ MAX_EVENT_RECAP_IMAGES_PER_UPLOAD = 12
 EVENT_RECAP_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
+def _sanitize_image(data: bytes, *, max_bytes: int, output_format: str | None = None) -> tuple[str, bytes]:
+    """Decode and re-encode uploads so filenames and supplied MIME types are never trusted."""
+    if not data or len(data) > max_bytes:
+        raise HTTPException(status_code=400, detail=f"Das Bild darf höchstens {max_bytes // (1024 * 1024)} MB groß sein")
+    try:
+        with Image.open(BytesIO(data)) as source:
+            source.load()
+            if source.width * source.height > 32_000_000:
+                raise HTTPException(status_code=400, detail="Das Bild hat zu viele Bildpunkte")
+            if getattr(source, "is_animated", False):
+                raise HTTPException(status_code=400, detail="Animierte Bilder werden nicht unterstützt")
+            image = ImageOps.exif_transpose(source)
+            image.thumbnail((5000, 5000), Image.Resampling.LANCZOS)
+            fmt = (output_format or source.format or "JPEG").upper()
+            if fmt not in {"JPEG", "PNG", "WEBP"}:
+                raise HTTPException(status_code=400, detail="Bitte nur JPG, PNG oder WEBP hochladen")
+            if fmt == "JPEG":
+                image = image.convert("RGB")
+            elif image.mode not in {"RGB", "RGBA"}:
+                image = image.convert("RGBA" if "transparency" in image.info else "RGB")
+            target = BytesIO()
+            options = {"optimize": True}
+            if fmt in {"JPEG", "WEBP"}:
+                options["quality"] = 88
+            image.save(target, format=fmt, **options)
+    except HTTPException:
+        raise
+    except (UnidentifiedImageError, OSError, ValueError) as error:
+        raise HTTPException(status_code=400, detail="Die Datei ist kein gültiges Bild") from error
+    mime = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}[fmt]
+    return mime, target.getvalue()
+
+
 async def _read_event_recap_images(files):
     result = []
     for upload in files or []:
         if not upload or not getattr(upload, "filename", ""):
             continue
-        content_type = str(getattr(upload, "content_type", "") or "").lower()
-        if content_type not in EVENT_RECAP_IMAGE_TYPES:
-            raise HTTPException(status_code=400, detail="Rückblick-Fotos müssen JPG, PNG oder WEBP sein")
         data = await upload.read()
         if not data:
             continue
         if len(data) > MAX_EVENT_RECAP_IMAGE_BYTES:
             raise HTTPException(status_code=400, detail="Ein Rückblick-Foto ist größer als 6 MB")
-        result.append((content_type, data))
+        content_type, clean_data = _sanitize_image(data, max_bytes=MAX_EVENT_RECAP_IMAGE_BYTES)
+        result.append((content_type, clean_data))
         if len(result) > MAX_EVENT_RECAP_IMAGES_PER_UPLOAD:
             raise HTTPException(status_code=400, detail="Maximal 12 Rückblick-Fotos pro Upload")
     return result
@@ -486,6 +526,8 @@ async def login(
         response.status_code = 401
         return response
 
+    record_admin_login(admin.username)
+
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
         key=SESSION_COOKIE,
@@ -539,10 +581,13 @@ async def database_asset(key: str):
     item = get_asset(key)
     if not item:
         raise HTTPException(status_code=404, detail="Datei nicht gefunden")
+    content_type = str(item.get("content_type") or "").lower()
+    if content_type not in EVENT_RECAP_IMAGE_TYPES:
+        raise HTTPException(status_code=415, detail="Gespeicherter Medientyp ist nicht freigegeben")
     return Response(
         content=item["content"],
-        media_type=item["content_type"],
-        headers={"Cache-Control": "public, max-age=86400", "ETag": item["checksum"]},
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400", "ETag": item["checksum"], "X-Content-Type-Options": "nosniff"},
     )
 
 
@@ -670,8 +715,8 @@ async def neue_veranstaltung(
 ):
     bild_bytes = None
 
-    if bild:
-        bild_bytes = await bild.read()
+    if bild and bild.filename:
+        _mime, bild_bytes = _sanitize_image(await bild.read(), max_bytes=MAX_EVENT_RECAP_IMAGE_BYTES, output_format="JPEG")
     recap_images = await _read_event_recap_images(rueckblick_bilder)
 
     event = save_veranstaltung(
@@ -688,6 +733,8 @@ async def neue_veranstaltung(
     )
     if event:
         save_content_revision("veranstaltungen", str(event.id), "Freigegeben" if event.aktiv == "Ja" else "Entwurf", event.titel, {"datum":event.datum,"uhrzeit":event.uhrzeit,"ort":event.ort,"kategorie":event.kategorie,"beschreibung":event.beschreibung}, admin["display_name"])
+        from community_crud import audit_event
+        audit_event(admin["username"], "Veranstaltung angelegt", "veranstaltung", str(event.id), event.titel)
     if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
         background_tasks.add_task(
             send_category_notification,
@@ -721,7 +768,7 @@ async def veranstaltung_bearbeiten(
     bild_bytes = None
 
     if bild and bild.filename:
-        bild_bytes = await bild.read()
+        _mime, bild_bytes = _sanitize_image(await bild.read(), max_bytes=MAX_EVENT_RECAP_IMAGE_BYTES, output_format="JPEG")
     recap_images = await _read_event_recap_images(rueckblick_bilder)
 
     event = update_veranstaltung(
@@ -740,6 +787,8 @@ async def veranstaltung_bearbeiten(
     )
     if event:
         save_content_revision("veranstaltungen", str(event.id), "Freigegeben" if event.aktiv == "Ja" else "Entwurf", event.titel, {"datum":event.datum,"uhrzeit":event.uhrzeit,"ort":event.ort,"kategorie":event.kategorie,"beschreibung":event.beschreibung}, admin["display_name"])
+        from community_crud import audit_event
+        audit_event(admin["username"], "Veranstaltung bearbeitet", "veranstaltung", str(event.id), event.titel)
     if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
         background_tasks.add_task(
             send_category_notification,
@@ -753,23 +802,27 @@ async def veranstaltung_bearbeiten(
     return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
 
-@app.get("/veranstaltungen/aktiv/{veranstaltung_id}/{aktiv}")
+@app.post("/veranstaltungen/aktiv/{veranstaltung_id}/{aktiv}")
 async def veranstaltung_aktiv(
     veranstaltung_id: int,
     aktiv: str,
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     set_veranstaltung_aktiv(veranstaltung_id, aktiv)
+    from community_crud import audit_event
+    audit_event(admin["username"], "Veranstaltung geschaltet", "veranstaltung", str(veranstaltung_id), aktiv)
 
     return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
 
-@app.get("/veranstaltungen/loeschen/{veranstaltung_id}")
+@app.post("/veranstaltungen/loeschen/{veranstaltung_id}")
 async def veranstaltung_loeschen(
     veranstaltung_id: int,
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     delete_veranstaltung(veranstaltung_id)
+    from community_crud import audit_event
+    audit_event(admin["username"], "Veranstaltung gelöscht", "veranstaltung", str(veranstaltung_id))
 
     return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
 
@@ -805,16 +858,18 @@ async def dgh_neuer_termin(
     name: str = Form(""),
     telefon: str = Form(""),
     kommentar: str = Form(""),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     try:
-        save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar)
+        item = save_dgh_termin(datum, uhrzeit, anlass, name, telefon, kommentar)
     except ValueError as error:
         return RedirectResponse(
             url=f"/intern/dgh?fehler={quote(str(error))}",
             status_code=303,
         )
 
+    from community_crud import audit_event
+    audit_event(admin["username"], "DGH-Termin angelegt", "dgh", str(getattr(item, "id", "")), datum)
     return RedirectResponse(
         url="/intern/dgh?hinweis=Termin%20wurde%20gespeichert.",
         status_code=303,
@@ -830,10 +885,10 @@ async def dgh_bearbeiten(
     name: str = Form(""),
     telefon: str = Form(""),
     kommentar: str = Form(""),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     try:
-        update_dgh_termin(
+        item = update_dgh_termin(
             termin_id,
             datum,
             uhrzeit,
@@ -851,19 +906,23 @@ async def dgh_bearbeiten(
             status_code=303,
         )
 
+    from community_crud import audit_event
+    audit_event(admin["username"], "DGH-Termin bearbeitet", "dgh", str(termin_id), datum)
     return RedirectResponse(
         url="/intern/dgh?hinweis=Termin%20wurde%20aktualisiert.",
         status_code=303,
     )
 
 
-@app.get("/dgh/aktiv/{termin_id}/{aktiv}")
+@app.post("/dgh/aktiv/{termin_id}/{aktiv}")
 async def dgh_aktiv(
     termin_id: int,
     aktiv: str,
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     set_dgh_termin_aktiv(termin_id, aktiv)
+    from community_crud import audit_event
+    audit_event(admin["username"], "DGH-Termin geschaltet", "dgh", str(termin_id), aktiv)
 
     return RedirectResponse(url="/intern/dgh", status_code=303)
 
@@ -893,12 +952,14 @@ async def dgh_status_aendern(
     )
 
 
-@app.get("/dgh/loeschen/{termin_id}")
+@app.post("/dgh/loeschen/{termin_id}")
 async def dgh_loeschen(
     termin_id: int,
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     delete_dgh_termin(termin_id)
+    from community_crud import audit_event
+    audit_event(admin["username"], "DGH-Termin gelöscht", "dgh", str(termin_id))
 
     return RedirectResponse(url="/intern/dgh", status_code=303)
 
@@ -923,7 +984,7 @@ async def muelltermine(
 @app.post("/muelltermine/import")
 async def muelltermine_import(
     pdf: UploadFile = File(...),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     dateiname = (pdf.filename or "").strip()
 
@@ -944,6 +1005,11 @@ async def muelltermine_import(
                 "/intern/muelltermine?fehler="
                 + quote("Die PDF darf höchstens 10 MB groß sein.")
             ),
+            status_code=303,
+        )
+    if not pdf_bytes.startswith(b"%PDF-"):
+        return RedirectResponse(
+            url="/intern/muelltermine?fehler=" + quote("Die ausgewählte Datei ist keine gültige PDF-Datei."),
             status_code=303,
         )
 
@@ -977,10 +1043,37 @@ async def muelltermine_import(
         f"{anzahl} Abfuhrtermine für {ergebnis['jahr']} "
         "wurden erfolgreich erkannt und übernommen."
     )
+    from community_crud import audit_event
+    audit_event(admin["username"], "Mülltermine importiert", "muelltermine", str(ergebnis["jahr"]), f"{anzahl} Termine · {dateiname}")
     return RedirectResponse(
         url=f"/intern/muelltermine?hinweis={quote(hinweis)}",
         status_code=303,
     )
+
+
+@app.post("/muelltermine/termin")
+async def muelltermin_speichern(
+    datum: str = Form(...),
+    abfuhrarten: str = Form(...),
+    feiertagsabweichung: str = Form(""),
+    termin_id: str = Form(""),
+    admin=Depends(check_dashboard_login),
+):
+    try:
+        item = save_muelltermin(datum, abfuhrarten, feiertagsabweichung == "ja", int(termin_id) if termin_id else None)
+    except (ValueError, TypeError) as error:
+        return RedirectResponse(url="/intern/muelltermine?fehler=" + quote(str(error)), status_code=303)
+    from community_crud import audit_event
+    audit_event(admin["username"], "Mülltermin gepflegt", "muelltermin", str(item.id), item.datum.isoformat())
+    return RedirectResponse(url="/intern/muelltermine?hinweis=" + quote("Abfuhrtermin wurde gespeichert."), status_code=303)
+
+
+@app.post("/muelltermine/termin/{termin_id}/loeschen")
+async def muelltermin_loeschen(termin_id: int, admin=Depends(check_dashboard_login)):
+    if delete_muelltermin(termin_id):
+        from community_crud import audit_event
+        audit_event(admin["username"], "Mülltermin gelöscht", "muelltermin", str(termin_id))
+    return RedirectResponse(url="/intern/muelltermine?hinweis=" + quote("Abfuhrtermin wurde entfernt."), status_code=303)
 
 
 @app.get("/gemeindeseite")
@@ -1003,6 +1096,8 @@ async def gemeindeseite_speichern(
     values = dict(form)
     update_gemeinde_einstellungen(values)
     save_content_revision("gemeindeseite", "standard", "Freigegeben", "Gemeindeseite", values, admin["display_name"])
+    from community_crud import audit_event
+    audit_event(admin["username"], "Gemeindeseite gespeichert", "content", "standard")
 
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis=Gemeindeseite%20wurde%20gespeichert.",
@@ -1014,7 +1109,7 @@ async def gemeindeseite_speichern(
 async def gemeindeseite_upload(
     feld: str = Form(...),
     datei: UploadFile = File(...),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     if feld not in ERLAUBTE_UPLOAD_FELDER:
         raise HTTPException(status_code=400, detail="Dieses Upload-Feld ist nicht erlaubt")
@@ -1038,9 +1133,18 @@ async def gemeindeseite_upload(
             status_code=303,
         )
 
-    content_type = datei.content_type or mimetypes.guess_type(originalname)[0] or "application/octet-stream"
-    save_asset(feld, originalname, content_type, inhalt)
+    try:
+        content_type, inhalt = _sanitize_image(inhalt, max_bytes=5 * 1024 * 1024)
+    except HTTPException as error:
+        return RedirectResponse(
+            url="/intern/gemeindeseite?hinweis=" + quote(str(error.detail)),
+            status_code=303,
+        )
+    safe_extension = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[content_type]
+    save_asset(feld, _sicherer_dateiname(originalname) + safe_extension, content_type, inhalt)
     set_gemeinde_einstellung(feld, f"/media/{feld}")
+    from community_crud import audit_event
+    audit_event(admin["username"], "Gemeindebild hochgeladen", "asset", feld, originalname)
 
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis="
@@ -1052,8 +1156,14 @@ async def gemeindeseite_upload(
 @app.post("/gemeindeseite/import-alt")
 async def gemeindeseite_alt_import(
     url: str = Form("https://www.ahnsen-schaumburg.de/"),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in {"ahnsen-schaumburg.de", "www.ahnsen-schaumburg.de"}:
+        return RedirectResponse(
+            url="/intern/gemeindeseite?hinweis=" + quote("Aus Sicherheitsgründen kann nur die bisherige offizielle Ahnsen-Seite importiert werden."),
+            status_code=303,
+        )
     try:
         daten = lade_alte_homepage_inhalte(url)
         update_gemeinde_einstellungen(
@@ -1070,6 +1180,8 @@ async def gemeindeseite_alt_import(
             status_code=303,
         )
 
+    from community_crud import audit_event
+    audit_event(admin["username"], "Alte Gemeindeseite importiert", "content", "legacy-homepage", url)
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis="
         + quote("Inhalte der alten Homepage wurden übernommen."),
@@ -1108,8 +1220,10 @@ async def status_aendern(
 async def notiz_speichern(
     ticket: str = Form(...),
     notiz: str = Form(""),
-    _=Depends(check_dashboard_login),
+    admin=Depends(check_dashboard_login),
 ):
     update_notiz(ticket, notiz)
+    from community_crud import audit_event
+    audit_event(admin["username"], "Interne Notiz gespeichert", "meldung", ticket)
 
     return RedirectResponse(url=f"/intern/meldung/{quote(ticket)}", status_code=303)

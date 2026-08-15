@@ -230,6 +230,10 @@ async def intelligent_submit_report(request: Request, background_tasks: Backgrou
         photo_bytes = await photo.read()
         if len(photo_bytes) > core.MAX_IMAGE_BYTES:
             return _inject_report_intelligence(core.report_page("Das Foto darf höchstens 8 MB groß sein.", values))
+        try:
+            _mime, photo_bytes = core.legacy._sanitize_image(photo_bytes, max_bytes=core.MAX_IMAGE_BYTES, output_format="JPEG")
+        except HTTPException as error:
+            return _inject_report_intelligence(core.report_page(str(error.detail), values))
 
     location_note = f"\n\nGPS-Position: {latitude}, {longitude}" if latitude and longitude else ""
     data = {"art": art, "ort": ort, "beschreibung": beschreibung + location_note, "foto_bytes": photo_bytes}
@@ -339,7 +343,7 @@ async def intelligent_admin_report_detail(request: Request, ticket: str):
 
 @router.post("/intern/meldung/{ticket}/duplikat")
 async def duplicate_admin_action(request: Request, ticket: str):
-    core.legacy.check_dashboard_login(request)
+    admin = core.legacy.check_dashboard_login(request)
     form = await request.form()
     action = core._trim(form.get("action"), 30)
     primary_ticket = core._trim(form.get("primary_ticket"), 100)
@@ -347,7 +351,7 @@ async def duplicate_admin_action(request: Request, ticket: str):
     result = set_duplicate_decision(ticket, action, primary_ticket)
     if not result:
         raise HTTPException(status_code=400, detail="Dublettenentscheidung konnte nicht gespeichert werden")
-    audit_event("Verwaltung", "Dublettenentscheidung", "meldung", ticket, f"{action} · {primary_ticket or '-'}")
+    audit_event(admin["username"], "Dublettenentscheidung", "meldung", ticket, f"{action} · {primary_ticket or '-'}")
     if action == "merge" and before and before.pwa_user_id:
         # Status remains visible under the original ticket; no extra citizen
         # message is sent merely because administration bundled the case.
