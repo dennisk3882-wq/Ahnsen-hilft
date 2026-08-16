@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#111820" />
-  <meta name="description" content="Bürgermeister 2026 – kommunale Aufbau- und Verwaltungssimulation als PWA." />
+  <meta name="description" content="Bürgermeister 2026 – strategische kommunale Aufbau- und Verwaltungssimulation als PWA." />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
@@ -15,42 +15,34 @@
     <header class="topbar">
       <div class="brand"><span class="crest">🏛️</span><div><strong>BÜRGERMEISTER</strong><small id="cityName">Musterstadt</small></div></div>
       <div class="kpis">
-        <div><span>💶</span><b id="money">350.000 €</b></div>
-        <div><span>👥</span><b id="population">850</b></div>
-        <div><span>🙂</span><b id="happiness">65%</b></div>
+        <div><span>💶</span><b id="money">950.000 €</b></div>
+        <div><span>👥</span><b id="population">620</b></div>
+        <div><span>🙂</span><b id="happiness">63%</b></div>
         <div><span>📅</span><b id="dateLabel">Jan 2026</b></div>
       </div>
-      <button id="menuBtn" class="icon-btn" aria-label="Menü">☰</button>
+      <button id="menuBtn" class="icon-btn" aria-label="Lagezentrum">☰</button>
     </header>
-
     <main>
       <section class="game-shell">
-        <canvas id="gameCanvas" width="1280" height="720" aria-label="Stadtkarte"></canvas>
+        <canvas id="gameCanvas" width="1280" height="720" aria-label="Gemeindekarte"></canvas>
         <div id="toast" class="toast"></div>
-        <div class="speed-controls">
-          <button data-speed="0">⏸</button><button data-speed="1" class="active">▶</button><button data-speed="2">⏩</button>
-        </div>
-        <div class="map-help">Tippe auf ein Feld, um zu bauen. Mit zwei Fingern/Scrollrad zoomst du.</div>
+        <div class="speed-controls"><button data-speed="0">⏸</button><button data-speed="1" class="active">▶</button><button data-speed="2">⏩</button></div>
+        <div class="map-help">Standard: 🔎 Prüfen. Im Baumenü ein Projekt auswählen; Straßen müssen mit dem Rathausnetz verbunden sein.</div>
       </section>
-
       <nav class="dock" aria-label="Spielmenü">
-        <button data-panel="overview" class="active">🏠<span>Übersicht</span></button>
+        <button data-panel="overview" class="active">📊<span>Lage</span></button>
         <button data-panel="build">🏗️<span>Bauen</span></button>
         <button data-panel="finance">💶<span>Finanzen</span></button>
         <button data-panel="citizens">👥<span>Einwohner</span></button>
         <button data-panel="politics">🏛️<span>Politik</span></button>
-        <button data-panel="events">⚠️<span>Ereignisse</span></button>
+        <button data-panel="events">⚠️<span>Aufgaben</span></button>
       </nav>
     </main>
-
     <aside id="panel" class="panel open" aria-live="polite">
-      <div class="panel-head"><div><h2 id="panelTitle">Übersicht</h2><p id="panelSubtitle">Deine Gemeinde auf einen Blick</p></div><button id="closePanel" class="icon-btn">✕</button></div>
+      <div class="panel-head"><div><h2 id="panelTitle">Lagezentrum</h2><p id="panelSubtitle">Probleme lösen, bevor sie zur Krise werden</p></div><button id="closePanel" class="icon-btn" aria-label="Panel schließen">✕</button></div>
       <div id="panelContent" class="panel-content"></div>
     </aside>
-
-    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
-      <div class="modal-card"><div id="modalContent"></div></div>
-    </div>
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-card"><div id="modalContent"></div></div></div>
   </div>
   <script src="game.js"></script>
 </body>
