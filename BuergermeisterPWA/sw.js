@@ -1,4 +1,4 @@
-const CACHE = 'buergermeister-1992-plus-v2';
+const CACHE = 'buergermeister-1992-plus-v3';
 const ASSETS = ['./','index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg'];
 
 self.addEventListener('install', event => {

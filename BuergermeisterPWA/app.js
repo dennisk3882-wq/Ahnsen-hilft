@@ -53,7 +53,7 @@
   ];
 
   const EVENTS = [
-    { minPop:0, apply:g => { g.market.food = Math.max(1, Math.round(g.market.food * .78)); g.log('Gute Ernte: Nahrung ist billiger geworden.', 'good'); } },
+    { minPop:0, apply:g => { g.market.food = Math.max(1, Math.floor(g.market.food * .72)); g.log('Gute Ernte: Nahrung ist billiger geworden.', 'good'); } },
     { minPop:250, apply:g => { const c = rnd(180, 650); g.cash -= c; g.log(`Straßenreparaturen kosten ${money(c)}.`, 'bad'); } },
     { minPop:600, apply:g => { const bonus = rnd(12, 35); g.tempJobBonus += bonus; g.log(`Ein regionaler Betrieb schafft vorübergehend ${bonus} Arbeitsplätze.`, 'good'); } },
     { minPop:900, apply:g => { const c = rnd(300, 1200); g.cash -= c; g.approval -= 2; g.log(`Sturmschäden verursachen ${money(c)} Reparaturkosten.`, 'bad'); } },
@@ -114,7 +114,10 @@
     educationCoverage() { return clamp(this.schoolCapacity() / this.educationNeed(), 0, 1.35); }
 
     foodEfficiency() {
-      return 1 - Math.min(.20, this.inventory.supermarkets * .04);
+      // Eine Nahrungseinheit steht für einen Warenkorb, nicht für eine einzelne Mahlzeit.
+      // 0,68 pro Einwohner hält die Startstadt wirtschaftlich überlebensfähig,
+      // Supermärkte senken Logistikverluste weiterhin um bis zu 20 %.
+      return .68 * (1 - Math.min(.20, this.inventory.supermarkets * .04));
     }
 
     monthlyFoodNeed(pop = this.population) {
@@ -276,13 +279,23 @@
 
     monthlyRevenue() { return this.revenueBreakdown().total; }
 
+    foodProvisionCost() {
+      return Math.round(this.monthlyFoodNeed() * this.market.food);
+    }
+
     forecast() {
       const rev = this.revenueBreakdown();
       const building = this.buildingMaintenance();
       const services = this.serviceCost();
       const interest = this.debtInterest();
       const expenses = building + services + interest;
-      return { ...rev, building, services, interest, expenses, balance: rev.total - expenses };
+      const balance = rev.total - expenses;
+      const foodProvision = this.foodProvisionCost();
+      return {
+        ...rev, building, services, interest, expenses, balance,
+        foodProvision,
+        sustainableBalance: balance - foodProvision
+      };
     }
 
     advisory() {
@@ -301,7 +314,8 @@
       if (employment < .75) notes.push({type:'bad', text:'Zu wenige Arbeitsplätze: Steuereinnahmen und Zustimmung leiden.'});
       if (edu < .7 && this.population > 450) notes.push({type:'warn', text:'Bildungsversorgung ist zu niedrig und drückt Attraktivität und Produktivität.'});
       if (util < .5 && (this.inventory.shops + this.inventory.supermarkets) > 1) notes.push({type:'warn', text:'Gewerbe ist überbaut: viele Läden haben zu wenig Kundschaft und liefern weniger Einnahmen.'});
-      if (f.balance < 0) notes.push({type:'bad', text:`Der laufende Haushalt liegt voraussichtlich ${money(Math.abs(f.balance))} im Minus.`});
+      if (f.sustainableBalance < 0) notes.push({type:'bad', text:`Nach Wiederbeschaffung der verbrauchten Nahrung fehlen voraussichtlich ${money(Math.abs(f.sustainableBalance))} pro Monat.`});
+      else if (f.balance < 0) notes.push({type:'bad', text:`Der laufende Haushalt liegt voraussichtlich ${money(Math.abs(f.balance))} im Minus.`});
       if (this.cash < 0) notes.push({type:'bad', text:`Schulden verursachen aktuell ${money(f.interest)} Zinsen pro Monat.`});
       if (this.taxRate >= 16) notes.push({type:'warn', text:'Sehr hohe Wohnsteuer bringt kurzfristig Geld, bremst aber Zuzug und Zustimmung.'});
       if (!notes.length) notes.push({type:'good', text:'Die Grundversorgung wirkt stabil. Wachstum ist derzeit vertretbar.'});
@@ -611,7 +625,10 @@
             <div class="resource"><span>Gebäudeunterhalt</span><b class="bad">-${money(f.building)}</b></div>
             <div class="resource"><span>Städtische Dienste</span><b class="bad">-${money(f.services)}</b></div>
             ${f.interest?`<div class="resource"><span>Schuldzinsen</span><b class="bad">-${money(f.interest)}</b></div>`:''}
-            <div class="resource strong"><span>Voraussichtlicher Saldo</span><b class="${f.balance<0?'bad':'good'}">${money(f.balance)}</b></div>
+            <div class="resource"><span>Nahrung · Wiederbeschaffung*</span><b class="bad">-${money(f.foodProvision)}</b></div>
+            <div class="resource"><span>Operativer Saldo</span><b class="${f.balance<0?'bad':'good'}">${money(f.balance)}</b></div>
+            <div class="resource strong"><span>Saldo nach Versorgung*</span><b class="${f.sustainableBalance<0?'bad':'good'}">${money(f.sustainableBalance)}</b></div>
+            <div class="hint">*Planwert: Kosten, um die in einem normalen Monat verbrauchte Nahrung zum aktuellen Marktpreis wieder aufzufüllen.</div>
           </div>
 
           <div class="panel" style="margin-top:10px"><h2>POLITISCHE LAGE</h2>
@@ -692,7 +709,7 @@
       universities: 'Universitäten sind teuer, aber mächtig. Neben 2.200 Bildungsplätzen erhöhen sie die städtische Produktivität um 3 Prozentpunkte je Universität, bis maximal 18% Bonus.',
       shops: 'Geschäfte schaffen bis zu 36 Arbeitsplätze und bis zu 55 $ Gewerbeeinnahmen pro Monat. Diese Werte werden aber mit der Gewerbe-Auslastung multipliziert. Zu viele Geschäfte bei zu wenigen Einwohnern sind deshalb ein Verlustgeschäft.',
       supermarkets: 'Supermärkte schaffen bis zu 145 Arbeitsplätze und bis zu 220 $ Gewerbeeinnahmen. Zusätzlich verbessert jeder Supermarkt die Lebensmittel-Logistik und senkt den monatlichen Nahrungsbedarf um 4%, maximal um 20%. Auch hier entscheidet die Kundennachfrage über die tatsächliche Leistung.',
-      food: 'Jeden Monat muss ausreichend Nahrung zugeteilt werden. Supermärkte senken durch bessere Verteilung den Bedarf etwas. Unterversorgung drückt die Zustimmung, führt zu Wegzug und kann das Spiel beenden.'
+      food: 'Jeden Monat muss ausreichend Nahrung zugeteilt werden. Eine Einheit steht für einen standardisierten Warenkorb; der Grundbedarf liegt bei rund 0,68 Einheiten je Einwohner und Monat. Supermärkte senken Logistikverluste zusätzlich. Unterversorgung drückt die Zustimmung, führt zu Wegzug und kann das Spiel beenden.'
     };
     return texts[key] || ITEMS[key].short;
   }
@@ -728,7 +745,7 @@
     const f = g.forecast();
     const overlay = document.createElement('div'); overlay.className='modal-backdrop';
     overlay.innerHTML = `<div class="modal"><div class="hint">MONATSENDE ${String(g.month).padStart(2,'0')}/${g.year}</div><h2>Entscheidungen des Bürgermeisters</h2>
-      <div class="decision-forecast ${f.balance<0?'negative':'positive'}">Aktuelle Haushaltsprognose: <b>${money(f.balance)}</b></div>
+      <div class="decision-forecast ${f.sustainableBalance<0?'negative':'positive'}">Saldo nach laufender Versorgung: <b>${money(f.sustainableBalance)}</b></div>
       <div class="field"><label>Wohnsteuer: <b id="taxOut">${g.taxRate}%</b></label><input id="tax" type="range" min="0" max="30" value="${g.taxRate}"><div class="hint">Niedrige Steuern fördern Zuzug; hohe Steuern erhöhen Einnahmen, kosten aber Zustimmung.</div></div>
       <div class="field"><label>Nahrung für Einwohner: <b id="foodOut">${fmt.format(defaultFood)}</b></label><input id="food" type="range" min="0" max="${maxFood}" value="${defaultFood}"><div class="hint">Bedarf aktuell ungefähr ${fmt.format(g.monthlyFoodNeed())} Einheiten. Supermärkte sind bereits berücksichtigt.</div></div>
       <div class="field"><label>Maximal aufzunehmende Zuzügler</label><input id="admit" type="number" min="0" max="5000" value="${defaultAdmit}"><div class="hint">Ein Limit schützt dich davor, schneller zu wachsen als Versorgung und Arbeitsmarkt verkraften.</div></div>
