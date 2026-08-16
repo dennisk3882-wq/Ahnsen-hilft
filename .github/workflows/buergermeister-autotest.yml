@@ -42,6 +42,10 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Reachability diagnostics
+        working-directory: BuergermeisterPWA
+        run: node tests/reachability-diagnostic.mjs
+
       - name: Run autonomous test system
         working-directory: BuergermeisterPWA
         shell: bash
