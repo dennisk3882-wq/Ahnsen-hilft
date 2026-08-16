@@ -1,0 +1,11 @@
+{
+  "name":"Bürgermeister 2026",
+  "short_name":"Bürgermeister",
+  "description":"Kommunale Aufbau- und Verwaltungssimulation",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#0c1117",
+  "theme_color":"#111820",
+  "orientation":"landscape-primary",
+  "icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
