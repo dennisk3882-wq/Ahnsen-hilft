@@ -834,8 +834,8 @@
     document.getElementById('menuBtn').onclick = () => { saveGame(g); renderHome(); };
     document.getElementById('monthBtn').onclick = () => openMonthModal(g);
 
-    if (g.ended) openEnding(g);
-    else if (showSummary && g.lastSummary) openSummary(g);
+    if (showSummary && g.lastSummary) openSummary(g, () => maybeShowQueuedOverlays(g));
+    else maybeShowQueuedOverlays(g);
   }
 
   function recommendationFor(g, key) {

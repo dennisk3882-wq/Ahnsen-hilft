@@ -1,6 +1,6 @@
 {
   "mode": "standard",
-  "startedAt": "2026-08-16T16:20:10.629Z",
+  "startedAt": "2026-08-16T16:22:37.444Z",
   "passed": [
     {
       "name": "Static PWA integrity",
@@ -55,6 +55,6 @@
   },
   "simulations": 43,
   "simulatedMonths": 287,
-  "finishedAt": "2026-08-16T16:20:10.834Z",
+  "finishedAt": "2026-08-16T16:22:37.646Z",
   "ok": true
 }
