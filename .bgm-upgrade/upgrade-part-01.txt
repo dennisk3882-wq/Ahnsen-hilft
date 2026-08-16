@@ -1,0 +1,136 @@
+p:22%;transform:scale(.7)"></i>
+              <div class="city-label">${esc(g.cityName)} · Infrastruktur ${g.infrastructureScore()}/100</div>
+              <i class="road-h"></i><i class="road-v"></i>${cityBuildings(g)}
+            </div>'''
+new_scene = '''            <div class="city-scene city-stage-${g.visualStage()}">
+              <img class="city-scene-image" src="${sceneImageFor(g)}" alt="Stadtbild von ${esc(g.cityName)} im Status ${esc(g.status())}">
+              <div class="city-scene-shade"></div>
+              <div class="city-label">${esc(g.cityName)} · Infrastruktur ${g.infrastructureScore()} / 100</div>
+              <div class="city-hotspot-layer">${cityHotspots(g)}</div>
+            </div>'''
+if old_scene in text:
+    text = text.replace(old_scene, new_scene, 1)
+elif 'city-scene-image' not in text:
+    raise RuntimeError('city scene render anchor missing')
+
+if 'class="panel market-panel"' not in text:
+    start = text.find('          <div class="panel" style="margin-top:10px"><h2>KAUFEN / VERKAUFEN</h2><div class="market">')
+    end_anchor = '        <div>\n          <div class="panel"><h2>STADTWERTE</h2>'
+    end = text.find(end_anchor, start)
+    if start < 0 or end < 0:
+        raise RuntimeError('market render block anchors missing')
+    market_block = r'''          <div class="panel market-panel" style="margin-top:10px">
+            <div class="market-head">
+              <div><h2>KAUFEN / VERKAUFEN</h2><p>Marktpreise reagieren auf Stadtgröße, Nachfrage und Knappheit.</p></div>
+              <div class="market-head-badge">MARKT ${String(g.month).padStart(2,'0')}/${g.year}</div>
+            </div>
+            <div class="market">
+            ${Object.entries(ITEMS).map(([key,item]) => {
+              const signal = marketPriceSignal(g,key);
+              const qty = item.tradeQty || 1;
+              return `
+              <div class="market-row">
+                <button class="market-info" data-info="${key}" aria-label="Information zu ${item.name}">i</button>
+                ${marketIcon(key)}
+                <div class="market-copy market-click" data-info="${key}">
+                  <div class="market-title-line"><b>${item.name}</b><span>${marketEffect(key)}</span></div>
+                  <div class="market-meta"><span>Bestand <strong>${fmt.format(g.inventory[key])}</strong></span>${key==='land'?`<span>Frei <strong>${g.landFree()}</strong></span>`:''}${item.maintenance?`<span>Unterhalt <strong>${money(item.maintenance)}/Mon.</strong></span>`:''}</div>
+                </div>
+                <div class="market-price-block">
+                  <small>${item.tradeQty?`${qty} Einheiten`:'Kaufpreis'}</small>
+                  <strong>${money(marketTradeCost(g,key))}</strong>
+                  <span class="market-trend ${signal.cls}">${signal.label}</span>
+                </div>
+                <div class="market-actions">
+                  <button class="market-action buy" data-buy="${key}" ${g.canBuy(key)?'':'disabled'}><b>+${qty}</b><span>Kaufen</span></button>
+                  <button class="market-action sell" data-sell="${key}" ${g.canSell(key)?'':'disabled'}><b>−${qty}</b><span>Verkaufen</span></button>
+                </div>
+              </div>`;
+            }).join('')}
+          </div></div>
+        </div>
+
+'''
+    text = text[:start] + market_block + text[end:]
+
+text = text.replace(
+    '    if (g.ended) openEnding(g);\n    if (showSummary && g.lastSummary) openSummary(g);',
+    "    if (showSummary && g.lastSummary) openSummary(g, () => maybeShowQueuedOverlays(g));\n    else maybeShowQueuedOverlays(g);",
+    1
+)
+text = text.replace('  function openSummary(g) {', '  function openSummary(g, afterClose) {', 1)
+text = text.replace(
+    "    document.body.appendChild(overlay); overlay.querySelector('#closeSummary').onclick=()=>overlay.remove();",
+    "    document.body.appendChild(overlay); overlay.querySelector('#closeSummary').onclick=()=>{ overlay.remove(); if (afterClose) afterClose(); };",
+    1
+)
+
+promotion_ui = r'''  function maybeShowQueuedOverlays(g) {
+    if (g.promotionQueue && g.promotionQueue.length) return openPromotionLetter(g);
+    if (g.ended) return openEnding(g);
+  }
+
+  function openPromotionLetter(g) {
+    const letter = g.promotionQueue.shift();
+    saveGame(g);
+    const overlay=document.createElement('div'); overlay.className='modal-backdrop';
+    overlay.innerHTML=`<div class="modal info-modal"><div class="hint">REGIERUNGSBRIEF</div>
+      <div class="info-title-row"><div><h2>${esc(letter.title)}</h2><div class="hint">${esc(letter.subject)}</div></div><button class="icon-close" aria-label="Schließen">×</button></div>
+      <div class="info-box"><b>An ${esc(g.mayorName)}, Bürgermeister von ${esc(g.cityName)}</b><p>${esc(letter.body)}</p></div>
+      <div class="info-box recommendation"><b>Bewilligte Förderung</b><p>${money(letter.cash)} wurden der Stadtkasse gutgeschrieben. ${esc(g.cityName)} trägt nun offiziell den Status <b>${esc(letter.status)}</b>.</p></div>
+      <div class="info-actions"><button class="btn primary center" id="promoOk" style="width:100%">DANKEND ZUR KENNTNIS GENOMMEN</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const close = () => { overlay.remove(); maybeShowQueuedOverlays(g); };
+    overlay.querySelector('.icon-close').onclick = close;
+    overlay.querySelector('#promoOk').onclick = close;
+    overlay.onclick = e => { if (e.target === overlay) close(); };
+  }
+
+'''
+if 'function openPromotionLetter(g)' not in text:
+    anchor = '  function openEnding(g) {'
+    if anchor not in text:
+        raise RuntimeError('openEnding anchor missing')
+    text = text.replace(anchor, promotion_ui + anchor, 1)
+
+APP.write_text(text, encoding='utf-8')
+
+css = CSS.read_text(encoding='utf-8')
+marker = '/* Bürgermeister visual upgrade v1 */'
+if marker not in css:
+    css += r'''
+
+/* Bürgermeister visual upgrade v1 */
+.city-scene { height:auto !important; min-height:0 !important; aspect-ratio:4/3; position:relative; overflow:hidden; border:2px solid #708ccf; background:#0f1b42; }
+.city-scene-image { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.city-scene-shade { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(7,15,40,.24),rgba(7,15,40,.03) 18%,rgba(7,15,40,.15) 100%); pointer-events:none; }
+.city-label { position:absolute; left:10px; right:10px; top:10px; padding:8px 10px; background:#0b1534e8; border:2px solid #7f9ad8; z-index:5; color:#fff6cf; font-size:.95rem; box-shadow:0 4px 0 rgba(3,8,23,.4); }
+.city-hotspot-layer { position:absolute; inset:0; z-index:6; }
+.city-hotspot { position:absolute; border:2px solid transparent; background:rgba(255,255,255,.01); cursor:pointer; color:#fff6cf; padding:0; overflow:hidden; border-radius:4px; }
+.city-hotspot span { position:absolute; left:4px; bottom:4px; font-size:.62rem; line-height:1; opacity:0; pointer-events:none; background:rgba(9,17,41,.88); border:1px solid rgba(255,243,199,.5); padding:3px 4px; }
+.city-hotspot:hover,.city-hotspot:focus-visible { border-color:var(--warn); background:rgba(240,218,106,.14); outline:none; }
+.city-hotspot:hover span,.city-hotspot:focus-visible span { opacity:1; }
+.city-help { margin-top:8px; }
+.market-panel { background:linear-gradient(180deg,#101f48,#0e1b40); }
+.market-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; padding:2px 2px 8px; border-bottom:1px solid #39578f; }
+.market-head h2 { margin-bottom:3px; }
+.market-head p { margin:0; color:var(--muted); font-size:.75rem; line-height:1.35; }
+.market-head-badge { flex:0 0 auto; padding:5px 7px; border:1px solid #5375b9; background:#0a1736; color:#8fb7ff; font-size:.68rem; letter-spacing:.05em; }
+.market { display:grid; gap:8px; }
+.market-row { display:grid !important; grid-template-columns:34px 50px minmax(0,1fr) 112px 132px !important; align-items:center; gap:9px !important; padding:8px !important; background:linear-gradient(180deg,#142a58,#12234d) !important; border:1px solid #4969aa; box-shadow:inset 0 0 0 1px rgba(7,15,38,.55); transition:transform .08s ease,background .08s ease,border-color .08s ease; }
+.market-row:hover { transform:translateY(-1px); background:linear-gradient(180deg,#183365,#142858) !important; border-color:#6d8ed2; }
+.market-row button { cursor:pointer; }
+.market-row button:disabled { opacity:.32; cursor:not-allowed; }
+.market-info { min-height:30px !important; width:30px !important; border-radius:50%; padding:0 !important; font-weight:bold; color:#d8e9ff !important; background:#173d78 !important; border:2px solid #6e9bdf !important; box-shadow:2px 2px 0 #07102b; }
+.market-info:hover,.market-info:focus-visible { background:#28599e !important; outline:2px solid var(--warn); outline-offset:1px; }
+.market-icon { width:46px; height:46px; display:grid; place-items:center; color:#ffdb68; background:#0b1735; border:1px solid #385c9b; box-shadow:inset 0 0 0 2px rgba(78,111,176,.18); }
+.market-icon svg { width:34px; height:34px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linejoin:round; stroke-linecap:round; }
+.market-icon-houses,.market-icon-shops { color:#ffc768; }.market-icon-towers,.market-icon-universities { color:#9cc6ff; }.market-icon-schools { color:#f2df8e; }.market-icon-supermarkets { color:#72d5d0; }.market-icon-food { color:#e8b86b; }
+.market-copy { min-width:0; cursor:pointer; }.market-title-line { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px 8px; }.market-title-line b { color:#fff2b7; font-size:.96rem; }.market-title-line span { color:#9fc2ff; font-size:.67rem; line-height:1.25; }.market-copy:hover .market-title-line b { color:var(--warn); }
+.market-meta { display:flex; flex-wrap:wrap; gap:3px 10px; margin-top:4px; color:var(--muted); font-size:.66rem; }.market-meta strong { color:#cbdcff; font-weight:normal; }
+.market-price-block { text-align:right; min-width:0; }.market-price-block small { display:block; color:#7996cc; font-size:.61rem; }.market-price-block>strong { display:block; color:#ffd75f; font-size:.92rem; margin:2px 0; white-space:nowrap; }
+.market-trend { display:inline-block; font-size:.60rem; padding:2px 4px; border:1px solid #4a6599; background:#0a1634; white-space:nowrap; }.market-trend.normal { color:#a8b9dd; }.market-trend.rising { color:#f3cf74; border-color:#8b7748; }.market-trend.expensive { color:#f49a87; border-color:#914f49; }.market-trend.cheap { color:#89d89a; border-color:#4d875b; }
+.market-actions { display:grid; grid-template-columns:1fr 1fr; gap:6px; }.market-action { min-height:42px !important; padding:4px 5px !important; border:2px solid #6f8fd2 !important; color:white !important; box-shadow:2px 2px 0 #07102b; }.market-action b { display:block; font-size:.91rem; line-height:1; }.market-action span { display:block; margin-top:3px; font-size:.55rem; color:#d5e2ff; }.market-action.buy { background:#285499 !important; border-color:#7ba4eb !important; }.market-action.sell { background:#7b3f43 !important; border-color:#d8847f !important; }.market-action.buy:hover:not(:disabled) { background:#3569b5 !important; }.market-action.sell:hover:not(:disabled) { background:#965055 !important; }
+@media(max-width:760px){.market-head{align-items:center}.market-head-badge{display:none}.market-row{grid-template-columns:30px 42px minmax(0,1fr) 92px !important;grid-template-areas:'info icon copy price' '. . actions actions';gap:6px !important;padding:7px !important}.market-info{grid-area:info;width:28px !important;min-height:28px !important}.market-icon{grid-area:icon;width:40px;height:40px}.market-icon svg{width:30px;height:30px}.market-copy{grid-area:copy}.market-price-block{grid-area:price}.market-actions{grid-area:actions;justify-self:end;width:min(100%,220px);margin-top:1px}}
+@media(max-width:390px){.market-row{grid-template-columns:28px 38px minmax(0,1fr) 82px !important;gap:5px !important;padding:6px 5px !important}.market-icon{width:36px;height:36px}.m
