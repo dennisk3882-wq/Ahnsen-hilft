@@ -8,6 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="v5.css" />
   <title>Bürgermeister 2026</title>
 </head>
 <body>
@@ -15,9 +16,9 @@
     <header class="topbar">
       <div class="brand"><span class="crest">🏛️</span><div><strong>BÜRGERMEISTER</strong><small id="cityName">Musterstadt</small></div></div>
       <div class="kpis">
-        <div><span>💶</span><b id="money">950.000 €</b></div>
-        <div><span>👥</span><b id="population">620</b></div>
-        <div><span>🙂</span><b id="happiness">63%</b></div>
+        <div><span>💶</span><b id="money">1.250.000 €</b></div>
+        <div><span>👥</span><b id="population">610</b></div>
+        <div><span>🙂</span><b id="happiness">64%</b></div>
         <div><span>📅</span><b id="dateLabel">Jan 2026</b></div>
       </div>
       <button id="menuBtn" class="icon-btn" aria-label="Lagezentrum">☰</button>
@@ -27,7 +28,7 @@
         <canvas id="gameCanvas" width="1280" height="720" aria-label="Gemeindekarte"></canvas>
         <div id="toast" class="toast"></div>
         <div class="speed-controls"><button data-speed="0">⏸</button><button data-speed="1" class="active">▶</button><button data-speed="2">⏩</button></div>
-        <div class="map-help">Standard: 🔎 Prüfen. Im Baumenü ein Projekt auswählen; Straßen müssen mit dem Rathausnetz verbunden sein.</div>
+        <div class="map-help">Standard: 🔎 Prüfen. Im Baumenü ein Projekt auswählen; Straßen, Stadtteile und lokale Versorgung zählen.</div>
       </section>
       <nav class="dock" aria-label="Spielmenü">
         <button data-panel="overview" class="active">📊<span>Lage</span></button>
@@ -35,7 +36,7 @@
         <button data-panel="finance">💶<span>Finanzen</span></button>
         <button data-panel="citizens">👥<span>Einwohner</span></button>
         <button data-panel="politics">🏛️<span>Politik</span></button>
-        <button data-panel="events">⚠️<span>Aufgaben</span></button>
+        <button data-panel="events">🗺️<span>Analyse</span></button>
       </nav>
     </main>
     <aside id="panel" class="panel open" aria-live="polite">
