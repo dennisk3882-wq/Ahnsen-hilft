@@ -21,7 +21,7 @@ on:
         type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: buergermeister-qa-${{ github.ref }}
@@ -36,6 +36,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -74,3 +76,17 @@ jobs:
           path: BuergermeisterPWA/test-report.json
           retention-days: 30
           if-no-files-found: warn
+
+      - name: Promote tested commit to production
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin buergermeister-production
+          PROD_SHA="$(git rev-parse origin/buergermeister-production)"
+          if ! git merge-base --is-ancestor "$PROD_SHA" "$GITHUB_SHA"; then
+            echo "Production branch is not an ancestor of the tested commit. Refusing unsafe promotion."
+            exit 1
+          fi
+          git push origin "$GITHUB_SHA":refs/heads/buergermeister-production
+          echo "Promoted tested commit $GITHUB_SHA to buergermeister-production"
