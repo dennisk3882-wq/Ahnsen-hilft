@@ -70,6 +70,19 @@ function policy(g,objective){
   g.advanceMonth({taxRate:tax,foodAllocation:Math.min(g.inventory.food,g.monthlyFoodNeed()),admitLimit:admit});
 }
 
+function snapshot(g,m){
+  const need=Math.max(1,g.monthlyFoodNeed());
+  return {
+    months:m,pop:g.population,cash:g.cash,approval:g.approval,status:g.status(),ending:g.ending,
+    housing:g.housingCapacity(),housingRatio:Number((g.housingCapacity()/Math.max(1,g.population)).toFixed(3)),
+    jobs:g.jobsCapacity(),employment:Number(g.employmentCoverage().toFixed(3)),
+    commerceUtilization:Number(g.commerceUtilization().toFixed(3)),
+    education:g.schoolCapacity(),educationCoverage:Number(g.educationCoverage().toFixed(3)),
+    attractiveness:g.calculateAttractiveness(),food:g.inventory.food,foodNeed:need,foodMonths:Number((g.inventory.food/need).toFixed(3)),
+    land:g.inventory.land,landFree:g.landFree(),taxRate:g.taxRate,forecast:g.forecast(),inventory:{...g.inventory}
+  };
+}
+
 for(const objective of ['fouryears','cash','population','modern']){
   const outcomes={win:0,loss:0,timeout:0,reasons:{},samples:[]};
   for(let i=0;i<12;i++){
@@ -78,7 +91,7 @@ for(const objective of ['fouryears','cash','population','modern']){
     let m=0;
     while(!g.ended&&m<600){policy(g,objective);m++;}
     if(g.ending?.win)outcomes.win++; else if(g.ended){outcomes.loss++;outcomes.reasons[g.ending.reason]=(outcomes.reasons[g.ending.reason]||0)+1;} else outcomes.timeout++;
-    outcomes.samples.push({months:m,pop:g.population,cash:g.cash,approval:g.approval,status:g.status(),ending:g.ending});
+    outcomes.samples.push(snapshot(g,m));
   }
   console.log('\n===',objective,'===');
   console.log(JSON.stringify(outcomes,null,2));
