@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: buergermeister-2026
+    runtime: python
+    plan: free
+    rootDir: buergermeister-2026
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
