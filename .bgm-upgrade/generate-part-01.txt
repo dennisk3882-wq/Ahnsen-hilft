@@ -1,0 +1,42 @@
+350,172),(470,310),(225,310),(325,310)]): car(d,x,y,[(165,67,45),(47,103,156),(77,125,62),(180,104,43)][i%4])
+    bus(d,268,302)
+    frame_edges(d); return im
+
+def stage_modern():
+    im=Image.new('RGB',(W,H)); d=ImageDraw.Draw(im); backdrop(d,5)
+    # skyline back
+    for i,(x,h) in enumerate([(0,110),(52,135),(108,96),(160,145),(405,125),(458,155),(518,112),(565,140)]): midrise(d,x,155-h,48,h,modern=True)
+    # central boulevard/plaza
+    road_h(d,165,45); road_h(d,330,45); road_v(d,275,52,110,H)
+    sidewalk(d,(0,150,W,164)); sidewalk(d,(0,211,W,225)); sidewalk(d,(0,315,W,329)); sidewalk(d,(0,376,W,390))
+    civic(d,215,78,170,78,'RATHAUS',dome=True)
+    # plaza
+    rect(d,(120,226,480,314),(158,158,145),(105,110,104),2); fountain(d,300,268,29)
+    for x,y in [(145,245),(185,295),(430,245),(400,295)]: bench(d,x,y)
+    for x,y in [(140,235),(185,240),(420,235),(465,240),(145,300),(455,300)]: tree(d,x,y,.72)
+    flowers(d,130,230,340,75,12)
+    shop(d,35,235,105,54,'KAUFHAUS'); shop(d,475,235,98,54,'CAFÉ')
+    university(d,35,335,150,62)
+    # modern office
+    midrise(d,440,337,125,68,modern=True); text(d,(502,355),'NEUSTADT',PAL['gold'],anchor='mm')
+    # vehicles
+    colors=[(162,62,44),(48,104,158),(80,130,61),(183,109,46),(132,75,151)]
+    for i,(x,y) in enumerate([(25,180),(145,180),(400,180),(510,345),(225,345),(340,345)]): car(d,x,y,colors[i%len(colors)])
+    bus(d,355,180)
+    for x in range(15,W,62): lamp(d,x,151)
+    frame_edges(d); return im
+
+STAGES={
+ 'stage-kuhdorf.webp':stage_kuhdorf,
+ 'stage-dorf.webp':stage_dorf,
+ 'stage-kleinstadt.webp':stage_kleinstadt,
+ 'stage-stadt.webp':stage_stadt,
+ 'stage-modern.webp':stage_modern,
+}
+
+for filename,fn in STAGES.items():
+    random.seed(filename)
+    im=fn()
+    # render at 600x420; webp keeps package small while retaining crisp pixel edges
+    im.save(OUT/filename,'WEBP',quality=78,method=6)
+    print(filename,(OUT/filename).stat().st_size)
