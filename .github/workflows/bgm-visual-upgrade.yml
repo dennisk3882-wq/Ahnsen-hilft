@@ -1,0 +1,99 @@
+name: Apply Bürgermeister Visual Upgrade
+
+on:
+  push:
+    branches: [buergermeister-visual-candidate]
+    paths:
+      - '.github/workflows/bgm-visual-upgrade.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install image tooling
+        run: python -m pip install --disable-pip-version-check pillow
+
+      - name: Rebuild upgrade scripts
+        shell: bash
+        run: |
+          cat .bgm-upgrade/upgrade-part-*.txt > /tmp/upgrade_bgm.py
+          cat .bgm-upgrade/generate-part-*.txt > /tmp/generate_bgm_art.py
+          python -m py_compile /tmp/upgrade_bgm.py /tmp/generate_bgm_art.py
+
+      - name: Generate city stage artwork
+        run: python /tmp/generate_bgm_art.py
+
+      - name: Apply visual and market upgrade
+        run: python /tmp/upgrade_bgm.py
+
+      - name: Verify generated assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in stage-kuhdorf.webp stage-dorf.webp stage-kleinstadt.webp stage-stadt.webp stage-modern.webp; do
+            test -s "BuergermeisterPWA/assets/$f"
+          done
+          node --check BuergermeisterPWA/app.js
+
+      - name: Reachability diagnostics
+        working-directory: BuergermeisterPWA
+        run: node tests/reachability-diagnostic.mjs
+
+      - name: Multi-strategy win planner
+        working-directory: BuergermeisterPWA
+        run: node tests/planner-search.mjs
+
+      - name: Autonomous simulation QA
+        working-directory: BuergermeisterPWA
+        run: node tests/autotest.mjs
+
+      - name: Commit tested release
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="f6e383ed994a12da997e63b990e6ee6d5d411ec7"
+          rm -rf .bgm-assets .bgm-upgrade
+          rm -f .github/workflows/bgm-visual-upgrade.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset --soft "$BASE_SHA"
+          git add -A
+          git commit -m "Upgrade Bürgermeister visuals and market"
+          FINAL_SHA="$(git rev-parse HEAD)"
+
+          git fetch origin main buergermeister-production
+          MAIN_SHA="$(git rev-parse origin/main)"
+          PROD_SHA="$(git rev-parse origin/buergermeister-production)"
+          if [[ "$MAIN_SHA" != "$BASE_SHA" ]]; then
+            echo "main moved during candidate build; refusing unsafe release."
+            exit 1
+          fi
+          if [[ "$PROD_SHA" != "$BASE_SHA" ]]; then
+            echo "production moved during candidate build; refusing unsafe release."
+            exit 1
+          fi
+
+          git push origin "$FINAL_SHA":refs/heads/main
+          git push origin "$FINAL_SHA":refs/heads/buergermeister-production
+          echo "Released tested Bürgermeister visual upgrade: $FINAL_SHA"
