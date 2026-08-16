@@ -62,6 +62,7 @@ jobs:
         run: node tests/planner-search.mjs
 
       - name: Run autonomous test system
+        if: always()
         working-directory: BuergermeisterPWA
         run: node tests/autotest.mjs
 
