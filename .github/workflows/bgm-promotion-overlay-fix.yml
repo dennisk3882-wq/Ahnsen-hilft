@@ -60,18 +60,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE_SHA="2336340a37a5f1718a184eaaffcf128fbef24d4d"
+          PROD_BASE="2336340a37a5f1718a184eaaffcf128fbef24d4d"
+          TRIGGER_SHA="$GITHUB_SHA"
           rm -f .github/workflows/bgm-promotion-overlay-fix.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git reset --soft "$BASE_SHA"
-          git add -A
           git commit -m "Fix Bürgermeister promotion letter flow"
           FINAL_SHA="$(git rev-parse HEAD)"
           git fetch origin main buergermeister-production
-          test "$(git rev-parse origin/main)" = "$BASE_SHA"
-          test "$(git rev-parse origin/buergermeister-production)" = "$BASE_SHA"
+          test "$(git rev-parse origin/main)" = "$TRIGGER_SHA"
+          test "$(git rev-parse origin/buergermeister-production)" = "$PROD_BASE"
           git push origin "$FINAL_SHA":refs/heads/main
           git push origin "$FINAL_SHA":refs/heads/buergermeister-production
           echo "Released promotion flow fix: $FINAL_SHA"
