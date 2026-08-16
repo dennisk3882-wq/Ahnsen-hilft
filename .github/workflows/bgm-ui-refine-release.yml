@@ -1,0 +1,67 @@
+name: Refine Bürgermeister Game UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bgm-ui-refine-release.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refine-test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply UI refinement
+        run: python .github/scripts/bgm_ui_refine.py
+
+      - name: Verify UI implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check BuergermeisterPWA/app.js
+          grep -Fq 'class="city-scene-head"' BuergermeisterPWA/app.js
+          grep -Fq 'class="city-scene-meter"' BuergermeisterPWA/app.js
+          grep -Fq 'market-icon-frame' BuergermeisterPWA/app.js
+          grep -Fq 'Bürgermeister UI refinement v2' BuergermeisterPWA/styles.css
+          grep -Fq 'buergermeister-1992-plus-v7' BuergermeisterPWA/sw.js
+          if grep -Fq 'class="city-label"' BuergermeisterPWA/app.js; then
+            echo 'Old infrastructure overlay still present' >&2
+            exit 1
+          fi
+
+      - name: Reachability diagnostics
+        working-directory: BuergermeisterPWA
+        run: node tests/reachability-diagnostic.mjs
+
+      - name: Multi-strategy win planner
+        working-directory: BuergermeisterPWA
+        run: node tests/planner-search.mjs
+
+      - name: Autonomous simulation QA
+        working-directory: BuergermeisterPWA
+        run: node tests/autotest.mjs
+
+      - name: Commit and promote tested UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/scripts/bgm_ui_refine.py .github/workflows/bgm-ui-refine-release.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Refine Bürgermeister city and market UI"
+          git push origin HEAD:main
+          git push origin HEAD:buergermeister-production
