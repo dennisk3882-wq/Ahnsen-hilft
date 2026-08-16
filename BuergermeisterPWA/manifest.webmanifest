@@ -1,0 +1,18 @@
+{
+  "name": "Bürgermeister 1992+",
+  "short_name": "Bürgermeister",
+  "description": "Klassische Bürgermeister-Wirtschaftssimulation als PWA.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#101a39",
+  "theme_color": "#2a4b8d",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
