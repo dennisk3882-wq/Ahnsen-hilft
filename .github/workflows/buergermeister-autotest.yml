@@ -42,22 +42,28 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Select test depth
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.deep }}" == "true" ]]; then
+            echo "DEEP_TEST=1" >> "$GITHUB_ENV"
+            echo "Running DEEP Monte-Carlo suite"
+          else
+            echo "DEEP_TEST=0" >> "$GITHUB_ENV"
+            echo "Running STANDARD verification suite"
+          fi
+
       - name: Reachability diagnostics
         working-directory: BuergermeisterPWA
         run: node tests/reachability-diagnostic.mjs
 
+      - name: Multi-strategy win planner
+        working-directory: BuergermeisterPWA
+        run: node tests/planner-search.mjs
+
       - name: Run autonomous test system
         working-directory: BuergermeisterPWA
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.deep }}" == "true" ]]; then
-            export DEEP_TEST=1
-            echo "Running DEEP Monte-Carlo suite"
-          else
-            export DEEP_TEST=0
-            echo "Running STANDARD verification suite"
-          fi
-          node tests/autotest.mjs
+        run: node tests/autotest.mjs
 
       - name: Upload full QA report
         if: always()
