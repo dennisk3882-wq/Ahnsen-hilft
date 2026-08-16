@@ -23,45 +23,50 @@ function buy(g,key,reserve=0,max=1){let n=0;while(n<max&&g.canBuy(key)){const co
 
 function policy(g,objective){
   const need=Math.max(1,g.monthlyFoodNeed());
-  const reserve=Math.max(250,g.monthlyMaintenance()*2.2);
+  const earlyGrowth=objective!=='fouryears'&&g.cash<6000;
+  const foodTarget=objective==='fouryears'?2.0:(earlyGrowth?1.03:1.55);
+  const reserve=earlyGrowth?Math.max(120,g.monthlyMaintenance()*1.1):Math.max(250,g.monthlyMaintenance()*2.0);
 
   let guard=0;
-  while(g.inventory.food/Math.max(1,g.monthlyFoodNeed())<2.2&&g.canBuy('food')&&guard++<30){
+  while(g.inventory.food/Math.max(1,g.monthlyFoodNeed())<foodTarget&&g.canBuy('food')&&guard++<30){
     const cost=g.market.food*100;
-    if(g.cash-cost<150&&g.inventory.food>=need)break;
+    if(g.cash-cost<(earlyGrowth?80:150)&&g.inventory.food>=need)break;
     g.buy('food');
   }
 
-  if(g.landFree()<4&&g.cash>reserve+g.market.land) buy(g,'land',reserve,4);
+  if(g.landFree()<3&&g.cash>reserve+g.market.land) buy(g,'land',reserve,5);
 
   const housing=g.housingCapacity()/Math.max(1,g.population);
-  if(housing<1.12&&g.cash>reserve){
-    if(g.population>1200&&g.cash>reserve+g.market.towers) buy(g,'towers',reserve,1);
+  if(housing<1.10&&g.cash>reserve){
+    if(g.population>1100&&g.cash>reserve+g.market.towers) buy(g,'towers',reserve,1);
     else buy(g,'houses',reserve,3);
   }
 
   let j=0;
-  while(g.employmentCoverage()<.9&&j++<4&&g.cash>reserve){
-    if(g.population>850&&g.inventory.supermarkets<Math.max(1,Math.floor(g.population/2500))&&g.commerceUtilization('supermarkets')>.55){if(!buy(g,'supermarkets',reserve,1))break;}
-    else if(g.commerceUtilization('shops')>.52){if(!buy(g,'shops',reserve,1))break;}
+  while(g.employmentCoverage()<.92&&j++<5&&g.cash>reserve){
+    if(g.population>800&&g.inventory.supermarkets<Math.max(1,Math.floor(g.population/2300))&&g.commerceUtilization('supermarkets')>.52){if(!buy(g,'supermarkets',reserve,1))break;}
+    else if(g.commerceUtilization('shops')>.50){if(!buy(g,'shops',reserve,1))break;}
     else break;
   }
 
-  if(g.population>450&&g.educationCoverage()<.72&&g.cash>reserve+300){
-    if(g.population>4500&&g.cash>reserve+g.market.universities) buy(g,'universities',reserve,1);
+  if(g.population>430&&g.educationCoverage()<.70&&g.cash>reserve+250){
+    if(g.population>4200&&g.cash>reserve+g.market.universities) buy(g,'universities',reserve,1);
     else buy(g,'schools',reserve,1);
   }
 
   let tax=17;
-  if(g.cash>8000) tax=objective==='cash'?15:13;
-  if(g.cash>30000) tax=objective==='cash'?14:11;
+  if(g.cash>7000) tax=objective==='cash'?16:14;
+  if(g.cash>25000) tax=objective==='cash'?15:12;
+  if(g.cash>80000) tax=objective==='cash'?14:10;
   if(g.approval<35) tax=Math.min(tax,10);
   if(g.approval<24) tax=6;
 
   const spare=Math.max(0,g.housingCapacity()-g.population);
-  let admit=objective==='fouryears'?Math.min(spare,Math.max(4,Math.round(g.population*.06))):Math.min(spare,Math.max(8,Math.round(g.population*.14)));
+  let admit=objective==='fouryears'
+    ?Math.min(spare,Math.max(3,Math.round(g.population*.045)))
+    :Math.min(spare,Math.max(10,Math.round(g.population*(earlyGrowth?.12:.20))));
   if(g.employmentCoverage()<.65)admit=Math.min(admit,Math.max(2,Math.round(g.population*.01)));
-  if(g.inventory.food<g.monthlyFoodNeed()*1.05)admit=0;
+  if(g.inventory.food<g.monthlyFoodNeed()*.92)admit=0;
   g.advanceMonth({taxRate:tax,foodAllocation:Math.min(g.inventory.food,g.monthlyFoodNeed()),admitLimit:admit});
 }
 
