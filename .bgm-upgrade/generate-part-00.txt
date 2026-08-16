@@ -1,0 +1,211 @@
+from PIL import Image, ImageDraw, ImageFont
+from pathlib import Path
+import random, math
+
+W,H=600,420
+OUT=Path('BuergermeisterPWA/assets')
+OUT.mkdir(parents=True,exist_ok=True)
+FONT=ImageFont.load_default()
+
+PAL={
+ 'sky':(91,171,221),'sky2':(62,137,194),'grass':(104,160,69),'grass2':(78,132,58),
+ 'road':(57,63,70),'road2':(73,80,89),'walk':(154,153,142),'line':(233,222,160),
+ 'tree':(54,119,55),'tree2':(37,89,43),'trunk':(103,70,42),'water':(44,132,185),
+ 'navy':(9,33,69),'gold':(238,199,66),'cream':(224,211,171),'red':(151,67,44),
+ 'roof':(122,55,40),'blue_roof':(51,75,98),'stone':(174,169,150),'wall':(210,190,142),
+ 'dark':(36,39,42),'window':(79,137,170),'white':(238,235,215)
+}
+
+def rect(d,xy,fill,outline=None,w=1): d.rectangle(xy,fill=fill,outline=outline,width=w)
+def line(d,xy,fill,w=1): d.line(xy,fill=fill,width=w)
+
+def text(d,xy,s,fill=PAL['white'],anchor=None):
+    d.text(xy,s,font=FONT,fill=fill,anchor=anchor)
+
+def cloud(d,x,y,s=1):
+    c=(235,240,224)
+    for dx,dy,r in [(0,8,14),(18,2,18),(40,9,13),(24,12,18)]:
+        d.ellipse((x+(dx-r)*s,y+(dy-r)*s,x+(dx+r)*s,y+(dy+r)*s),fill=c)
+
+def tree(d,x,y,s=1):
+    rect(d,(x-3*s,y,x+3*s,y+17*s),PAL['trunk'])
+    for dx,dy,r,c in [(-7,-4,11,PAL['tree2']),(7,-5,12,PAL['tree2']),(0,-13,14,PAL['tree']),(0,0,12,PAL['tree'])]:
+        d.ellipse((x+(dx-r)*s,y+(dy-r)*s,x+(dx+r)*s,y+(dy+r)*s),fill=c)
+    for dx,dy in [(-6,-12),(5,-8),(1,-20)]: d.rectangle((x+dx*s,y+dy*s,x+(dx+2)*s,y+(dy+2)*s),fill=(123,166,65))
+
+def bush(d,x,y,s=1):
+    for dx in (-8,0,8): d.ellipse((x+(dx-7)*s,y-7*s,x+(dx+7)*s,y+7*s),fill=PAL['tree'])
+    for dx in (-5,5): d.rectangle((x+dx*s,y-2*s,x+(dx+2)*s,y),fill=(226,154,84))
+
+def road_h(d,y,h=55):
+    rect(d,(0,y,W,y+h),PAL['road'])
+    rect(d,(0,y,W,y+5),PAL['road2']); rect(d,(0,y+h-5,W,y+h),PAL['road2'])
+    for x in range(8,W,34): rect(d,(x,y+h//2-2,x+18,y+h//2+2),PAL['line'])
+
+def road_v(d,x,w=55,y0=0,y1=H):
+    rect(d,(x,y0,x+w,y1),PAL['road'])
+    rect(d,(x,y0,x+5,y1),PAL['road2']); rect(d,(x+w-5,y0,x+w,y1),PAL['road2'])
+    for y in range(y0+8,y1,34): rect(d,(x+w//2-2,y,x+w//2+2,y+18),PAL['line'])
+
+def sidewalk(d,xy): rect(d,xy,PAL['walk'],(118,119,115),2)
+
+def crosswalk_h(d,x,y,w=55):
+    for yy in range(y,y+50,8): rect(d,(x,yy,x+w,yy+4),PAL['white'])
+def crosswalk_v(d,x,y,h=55):
+    for xx in range(x,x+50,8): rect(d,(xx,y,xx+4,y+h),PAL['white'])
+
+def house(d,x,y,w=74,h=60,roof=None,wall=None,stories=1,label=None):
+    roof=roof or random.choice([PAL['roof'],(164,80,42),PAL['blue_roof']]); wall=wall or random.choice([PAL['wall'],(203,183,145),(193,175,136)])
+    rect(d,(x,y,x+w,y+h),wall,(45,52,57),3)
+    d.polygon([(x-5,y+3),(x+w//2,y-25),(x+w+5,y+3)],fill=roof,outline=(68,45,37))
+    for i in range(0,w,10): line(d,(x+i,y-1,x+w//2,y-24),tuple(max(0,c-18) for c in roof),1)
+    dw=14; rect(d,(x+w//2-dw//2,y+h-28,x+w//2+dw//2,y+h),(89,60,39),(40,40,40),2)
+    rect(d,(x+w//2+4,y+h-15,x+w//2+6,y+h-13),PAL['gold'])
+    wy=y+12
+    for row in range(stories):
+        yy=wy+row*22
+        for xx in (x+12,x+w-27):
+            rect(d,(xx,yy,xx+15,yy+13),PAL['window'],PAL['white'],2)
+            line(d,(xx+7,yy,xx+7,yy+13),PAL['white']); line(d,(xx,yy+6,xx+15,yy+6),PAL['white'])
+    if label:
+        rect(d,(x+6,y+h-18,x+w-6,y+h-4),PAL['navy'])
+        text(d,(x+w//2,y+h-11),label, PAL['gold'],anchor='mm')
+
+def shop(d,x,y,w=92,h=60,label='LADEN',awning=True):
+    rect(d,(x,y,x+w,y+h),(177,121,75),(48,49,48),3)
+    rect(d,(x+5,y+8,x+w-5,y+26),(99,62,43))
+    text(d,(x+w//2,y+17),label,PAL['white'],anchor='mm')
+    if awning:
+        for i in range(0,w-10,12): rect(d,(x+5+i,y+27,x+11+i,y+37),PAL['red']); rect(d,(x+11+i,y+27,x+17+i,y+37),PAL['white'])
+    rect(d,(x+10,y+39,x+35,y+h-5),PAL['window'],PAL['white'],2); rect(d,(x+w-35,y+39,x+w-10,y+h-5),PAL['window'],PAL['white'],2)
+    rect(d,(x+w//2-8,y+38,x+w//2+8,y+h), (70,67,60),(38,38,38),2)
+
+def civic(d,x,y,w=110,h=72,label='RATHAUS',dome=False):
+    rect(d,(x,y,x+w,y+h),(188,181,157),(46,52,59),3)
+    d.polygon([(x-8,y+5),(x+w//2,y-18),(x+w+8,y+5)],fill=(72,79,84),outline=(39,42,44))
+    if dome:
+        d.ellipse((x+w//2-22,y-34,x+w//2+22,y+3),fill=(64,93,103),outline=(35,52,60),width=2)
+    for col in (x+18,x+34,x+w-34,x+w-18): rect(d,(col,y+18,col+6,y+h-7),(220,211,181))
+    rect(d,(x+w//2-12,y+35,x+w//2+12,y+h),(73,65,54),(42,42,42),2)
+    text(d,(x+w//2,y+12),label,PAL['navy'],anchor='mm')
+
+def midrise(d,x,y,w=55,h=100,modern=False):
+    wall=random.choice([(159,163,158),(174,168,151),(137,151,159),(191,181,158)])
+    rect(d,(x,y,x+w,y+h),wall,(45,50,55),3)
+    if modern: rect(d,(x+7,y+6,x+w-7,y+h-7),(86,132,156))
+    for yy in range(y+12,y+h-12,19):
+        for xx in range(x+9,x+w-10,15): rect(d,(xx,yy,xx+8,yy+10),PAL['window'],(220,222,209),1)
+    rect(d,(x+8,y+h-18,x+w-8,y+h),(83,70,55))
+
+def school(d,x,y,w=100,h=62):
+    rect(d,(x,y,x+w,y+h),(188,162,119),(52,54,55),3)
+    d.polygon([(x-5,y+2),(x+w//2,y-20),(x+w+5,y+2)],fill=PAL['roof'],outline=(61,45,38))
+    text(d,(x+w//2,y+13),'SCHULE',PAL['navy'],anchor='mm')
+    for xx in range(x+10,x+w-12,20): rect(d,(xx,y+25,xx+12,y+38),PAL['window'],PAL['white'],1)
+    rect(d,(x+w//2-9,y+39,x+w//2+9,y+h),(79,61,42))
+
+def university(d,x,y,w=130,h=70):
+    civic(d,x,y,w,h,'UNIVERSITÄT')
+    for bx in (x-4,x+w+4):
+        rect(d,(bx,y+18,bx+4,y+55),(33,77,138)); text(d,(bx+2,y+34),'U',PAL['white'],anchor='mm')
+
+def fountain(d,cx,cy,r=24):
+    d.ellipse((cx-r,cy-r,cx+r,cy+r),fill=(151,153,145),outline=(72,76,78),width=3)
+    d.ellipse((cx-r+6,cy-r+6,cx+r-6,cy+r-6),fill=PAL['water'])
+    rect(d,(cx-3,cy-19,cx+3,cy+9),(178,180,170)); d.ellipse((cx-8,cy-24,cx+8,cy-9),fill=(196,198,185))
+    line(d,(cx,cy-20,cx-12,cy-33),PAL['water'],2); line(d,(cx,cy-20,cx+12,cy-33),PAL['water'],2)
+
+def bench(d,x,y):
+    rect(d,(x,y,x+26,y+5),(124,72,35),(52,48,38),1); rect(d,(x,y+7,x+26,y+11),(124,72,35),(52,48,38),1)
+    rect(d,(x+4,y+11,x+6,y+17),(52,48,38)); rect(d,(x+20,y+11,x+22,y+17),(52,48,38))
+
+def lamp(d,x,y):
+    rect(d,(x-1,y,x+1,y+22),(46,49,50)); d.ellipse((x-5,y-7,x+5,y+3),fill=(232,216,148),outline=(44,46,47))
+
+def car(d,x,y,c=(164,63,43),vertical=False):
+    if not vertical:
+        rect(d,(x,y,x+28,y+13),c,(41,43,44),2); rect(d,(x+7,y-5,x+21,y),c,(41,43,44),1)
+        rect(d,(x+9,y-4,x+14,y),PAL['window']); rect(d,(x+15,y-4,x+20,y),PAL['window'])
+        d.ellipse((x+4,y+10,x+9,y+15),fill=(25,27,28)); d.ellipse((x+20,y+10,x+25,y+15),fill=(25,27,28))
+    else:
+        rect(d,(x,y,x+13,y+28),c,(41,43,44),2); rect(d,(x-4,y+7,x,y+21),c,(41,43,44),1)
+
+def bus(d,x,y,vertical=False):
+    if not vertical:
+        rect(d,(x,y,x+58,y+18),(37,91,145),(37,42,49),2)
+        for xx in range(x+7,x+48,10): rect(d,(xx,y+3,xx+7,y+9),(130,184,206))
+    else:
+        rect(d,(x,y,x+18,y+58),(37,91,145),(37,42,49),2)
+
+def flowers(d,x,y,w,h,seed=1):
+    rng=random.Random(seed)
+    for _ in range(max(8,w*h//180)):
+        xx=rng.randint(x,x+w); yy=rng.randint(y,y+h)
+        c=rng.choice([(230,138,76),(232,205,71),(210,90,91),(205,154,208)])
+        d.rectangle((xx,yy,xx+2,yy+2),fill=c)
+
+def backdrop(d,urban=0):
+    d.rectangle((0,0,W,95),fill=PAL['sky'])
+    for x in range(0,W,80): cloud(d,x+random.randint(-15,15),25+random.randint(-4,8),.55)
+    d.polygon([(0,95),(0,77),(70,60),(135,82),(200,58),(280,83),(360,61),(455,82),(520,62),(600,80),(600,115)],fill=(59,111,79))
+    d.rectangle((0,90,W,H),fill=PAL['grass'])
+    rng=random.Random(urban+91)
+    for _ in range(180):
+        x=rng.randrange(W); y=rng.randrange(95,H); d.point((x,y),fill=rng.choice([(85,145,62),(121,170,76),(70,129,56)]))
+
+def frame_edges(d):
+    rect(d,(0,0,W-1,H-1),None,(20,46,75),4)
+
+def stage_kuhdorf():
+    im=Image.new('RGB',(W,H)); d=ImageDraw.Draw(im); backdrop(d,0)
+    sidewalk(d,(0,145,W,163)); road_h(d,164,58); sidewalk(d,(0,222,W,239)); road_v(d,270,58,145,H)
+    crosswalk_v(d,274,164,58); crosswalk_h(d,270,168,58)
+    house(d,45,93,78,55); house(d,150,95,78,53,roof=PAL['blue_roof']); shop(d,365,104,88,45,'KAUFHAUS')
+    for x in (22,116,238,490,555): tree(d,x,130,.8)
+    fountain(d,95,315,19); bench(d,135,319); tree(d,52,300,.85); tree(d,520,296,.9); bench(d,455,340)
+    for x,y in [(250,260),(380,274),(520,245),(190,350)]: bush(d,x,y,.65)
+    for x in (18,135,245,470,575): lamp(d,x,146)
+    flowers(d,38,280,120,80,1); frame_edges(d); return im
+
+def stage_dorf():
+    im=Image.new('RGB',(W,H)); d=ImageDraw.Draw(im); backdrop(d,1)
+    road_h(d,150,50); road_h(d,310,50); road_v(d,250,52,150,H)
+    sidewalk(d,(0,137,W,149)); sidewalk(d,(0,201,W,214)); sidewalk(d,(0,297,W,309));
+    house(d,20,82,68,55); house(d,95,80,68,57,roof=PAL['blue_roof']); house(d,172,82,68,55); shop(d,315,90,90,47,'KAUFLADEN'); school(d,470,82,100,55)
+    rect(d,(315,218,455,296),(92,151,70),(120,124,111),2); fountain(d,385,255,20); bench(d,330,270); bench(d,414,270)
+    house(d,25,240,70,56); house(d,110,240,70,56); house(d,440,235,75,61,roof=PAL['blue_roof']); house(d,520,239,63,57)
+    for x,y in [(8,125),(80,220),(220,270),(465,210),(580,240),(290,110)]: tree(d,x,y,.72)
+    for x,y in [(70,178),(200,335),(420,177),(525,335)]: car(d,x,y,random.choice([(155,65,44),(52,106,158),(77,126,62)]))
+    for x in range(15,W,70): lamp(d,x,139)
+    frame_edges(d); return im
+
+def stage_kleinstadt():
+    im=Image.new('RGB',(W,H)); d=ImageDraw.Draw(im); backdrop(d,2)
+    road_h(d,135,45); road_h(d,270,45); road_v(d,205,45,90,H); road_v(d,430,45,90,H)
+    sidewalk(d,(0,122,W,134)); sidewalk(d,(0,181,W,193)); sidewalk(d,(0,257,W,269)); sidewalk(d,(0,316,W,328))
+    house(d,15,65,64,55); house(d,86,64,64,56,roof=PAL['blue_roof']); civic(d,230,60,120,60,'RATHAUS'); school(d,465,62,112,58)
+    shop(d,18,197,110,58,'KAUFLAND'); shop(d,245,205,82,48,'BÄCKEREI'); shop(d,334,205,82,48,'APOTHEKE');
+    shop(d,475,330,95,55,'CAFÉ')
+    for i,x in enumerate([20,100,180,270,350]): house(d,x,335,62,50,roof=PAL['blue_roof'] if i%2 else None)
+    fountain(d,290,115,17); bench(d,245,116); bench(d,326,116)
+    bus(d,500,232); text(d,(528,225),'BUS',PAL['white'],anchor='mm')
+    for x,y in [(5,120),(145,115),(195,245),(415,245),(585,120),(585,330),(400,380)]: tree(d,x,y,.65)
+    colors=[(161,62,44),(49,103,154),(78,126,59),(182,109,45)]
+    for i,(x,y) in enumerate([(85,150),(275,145),(380,150),(470,285),(145,285),(330,285)]): car(d,x,y,colors[i%4])
+    for x in range(10,W,60): lamp(d,x,123)
+    frame_edges(d); return im
+
+def stage_stadt():
+    im=Image.new('RGB',(W,H)); d=ImageDraw.Draw(im); backdrop(d,3)
+    road_h(d,155,46); road_h(d,292,46); road_v(d,265,50,95,H)
+    sidewalk(d,(0,141,W,154)); sidewalk(d,(0,202,W,216)); sidewalk(d,(0,278,W,291)); sidewalk(d,(0,339,W,352))
+    for i,(x,h) in enumerate([(15,92),(75,110),(130,86),(430,100),(500,118),(555,88)]): midrise(d,x,140-h,52,h,modern=i%2==0)
+    civic(d,210,62,150,78,'RATHAUS',dome=True)
+    rect(d,(380,78,432,141),(175,167,145),(51,51,50),3); d.polygon([(377,79),(406,22),(435,79)],fill=(49,91,82),outline=(35,60,57))
+    shop(d,180,217,140,61,'KAUFHAUS'); shop(d,345,230,92,48,'MARKT')
+    midrise(d,465,205,80,72); rect(d,(495,215,515,235),PAL['white']); rect(d,(503,216,508,234),PAL['red']); rect(d,(497,223,514,228),PAL['red'])
+    house(d,20,352,66,48); house(d,95,350,66,50,roof=PAL['blue_roof']); house(d,170,353,66,47)
+    rect(d,(0,405,W,H),PAL['water']); line(d,(0,403,W,403),(172,179,170),4)
+    fountain(d,290,128,20)
+    for x,y in [(10,220),(95,225),(150,265),(385,260),(555,245),(450,365)]: tree(d,x,y,.65)
+    for i,(x,y) in enumerate([(40,172),(130,172),(
