@@ -1,0 +1,65 @@
+name: Bürgermeister Autonomous QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'BuergermeisterPWA/**'
+      - '.github/workflows/buergermeister-autotest.yml'
+  pull_request:
+    paths:
+      - 'BuergermeisterPWA/**'
+      - '.github/workflows/buergermeister-autotest.yml'
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+    inputs:
+      deep:
+        description: 'Run the deep Monte-Carlo suite'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buergermeister-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  autonomous-test:
+    name: Simulation, balance and PWA integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run autonomous test system
+        working-directory: BuergermeisterPWA
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.deep }}" == "true" ]]; then
+            export DEEP_TEST=1
+            echo "Running DEEP Monte-Carlo suite"
+          else
+            export DEEP_TEST=0
+            echo "Running STANDARD verification suite"
+          fi
+          node tests/autotest.mjs
+
+      - name: Upload full QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buergermeister-qa-report-${{ github.run_number }}
+          path: BuergermeisterPWA/test-report.json
+          retention-days: 30
+          if-no-files-found: warn
