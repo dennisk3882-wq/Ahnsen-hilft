@@ -1,0 +1,42 @@
+name: Verify Bürgermeister Render Deployment
+
+on:
+  push:
+    branches: [buergermeister-visual-candidate]
+    paths:
+      - '.github/workflows/bgm-render-verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Wait for tested production release on Render
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://burgermeisterpwa.onrender.com"
+          ok=0
+          for attempt in $(seq 1 24); do
+            echo "Render verification attempt $attempt/24"
+            if curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/sw.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/sw.js \
+              && grep -Fq "buergermeister-1992-plus-v5" /tmp/sw.js \
+              && grep -Fq "assets/stage-modern.webp" /tmp/sw.js \
+              && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/assets/stage-kuhdorf.webp?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/stage.webp \
+              && test -s /tmp/stage.webp \
+              && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/app.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js \
+              && grep -Fq "CITY_STAGE_IMAGES" /tmp/app.js \
+              && grep -Fq "marketPriceSignal" /tmp/app.js \
+              && grep -Fq "openSummary(g, () => maybeShowQueuedOverlays(g))" /tmp/app.js; then
+                ok=1
+                break
+            fi
+            sleep 10
+          done
+          test "$ok" = 1
+          echo "RENDER_LIVE_OK"
+          echo "SW: $(head -n 1 /tmp/sw.js)"
+          echo "Stage bytes: $(wc -c < /tmp/stage.webp)"
