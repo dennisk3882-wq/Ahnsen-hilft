@@ -21,18 +21,26 @@ function engine(seed){
 
 function buy(g,key,reserve=0,max=1){let n=0;while(n<max&&g.canBuy(key)){const cost=g.market[key]*(key==='food'?100:1);if(g.cash-cost<reserve)break;g.buy(key);n++;}return n;}
 
+function stockFood(g,targetMonths,reserveFloor){
+  const need=Math.max(1,g.monthlyFoodNeed());
+  const target=Math.ceil(need*targetMonths);
+  const missing=Math.max(0,target-g.inventory.food);
+  const maxBatches=Math.max(1,Math.ceil(missing/100)+2);
+  let bought=0;
+  while(g.inventory.food<target&&g.canBuy('food')&&bought++<maxBatches){
+    const cost=g.market.food*100;
+    if(g.cash-cost<reserveFloor&&g.inventory.food>=need) break;
+    g.buy('food');
+  }
+}
+
 function policy(g,objective){
   const need=Math.max(1,g.monthlyFoodNeed());
   const earlyGrowth=objective!=='fouryears'&&g.cash<6000;
   const foodTarget=objective==='fouryears'?2.0:(earlyGrowth?1.03:1.55);
   const reserve=earlyGrowth?Math.max(120,g.monthlyMaintenance()*1.1):Math.max(250,g.monthlyMaintenance()*2.0);
 
-  let guard=0;
-  while(g.inventory.food/Math.max(1,g.monthlyFoodNeed())<foodTarget&&g.canBuy('food')&&guard++<30){
-    const cost=g.market.food*100;
-    if(g.cash-cost<(earlyGrowth?80:150)&&g.inventory.food>=need)break;
-    g.buy('food');
-  }
+  stockFood(g,foodTarget,earlyGrowth?80:150);
 
   if(g.landFree()<3&&g.cash>reserve+g.market.land) buy(g,'land',reserve,5);
 
