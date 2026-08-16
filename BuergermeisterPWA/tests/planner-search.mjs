@@ -16,6 +16,18 @@ function load(seed){
   const m=Object.create(Math);m.random=rng(seed);const c=vm.createContext({console,Intl,Date,Math:m});vm.runInContext(s,c,{timeout:3000});return c.__T;
 }
 function buy(g,key,reserve=0,max=1){let n=0;while(n<max&&g.canBuy(key)){const c=g.market[key]*(key==='food'?100:1);if(g.cash-c<reserve)break;g.buy(key);n++;}return n;}
+function stockFood(g,targetMonths,reserveFloor){
+  const need=Math.max(1,g.monthlyFoodNeed());
+  const target=Math.ceil(need*targetMonths);
+  const missing=Math.max(0,target-g.inventory.food);
+  const maxBatches=Math.max(1,Math.ceil(missing/100)+2);
+  let bought=0;
+  while(g.inventory.food<target&&g.canBuy('food')&&bought++<maxBatches){
+    const cost=g.market.food*100;
+    if(g.cash-cost<reserveFloor&&g.inventory.food>=need*.95) break;
+    g.buy('food');
+  }
+}
 
 const PARAMS=[];
 const taxLevels=[10,12,14,16];
@@ -32,12 +44,7 @@ function act(g,p,objective){
   const f=g.forecast();
   const reserve=Math.max(120,Math.min(3500,g.monthlyMaintenance()*1.6));
 
-  let guard=0;
-  while(g.inventory.food/need<p.foodBuffer&&g.canBuy('food')&&guard++<30){
-    const cost=g.market.food*100;
-    if(g.cash-cost<Math.min(reserve,500)&&g.inventory.food>=need*.95) break;
-    g.buy('food');
-  }
+  stockFood(g,p.foodBuffer,Math.min(reserve,500));
 
   if(g.landFree()<3&&g.cash>reserve+g.market.land) buy(g,'land',reserve,6);
 
@@ -103,8 +110,8 @@ function run(objective,p,seed,maxMonths){
 }
 
 const objectives=['fouryears','cash','population','modern'];
-const maxParams=DEEP?PARAMS.length:Math.min(PARAMS.length,180);
-const searchSeeds=DEEP?[101,907,2027]:[101];
+const maxParams=PARAMS.length;
+const searchSeeds=DEEP?[101,907,2027,4093]:[101,907];
 const verifySeeds=DEEP?[101,907,2027,4093,8011,12007,17011,23003]:[101,907,2027,4093];
 const maxMonths=objective=>objective==='fouryears'?72:600;
 let critical=false;
@@ -124,7 +131,7 @@ for(const objective of objectives){
     if(searchWins)candidates.push({p,searchWins,avg:totalMonths/searchWins});
   }
   candidates.sort((a,b)=>b.searchWins-a.searchWins||a.avg-b.avg);
-  const top=candidates.slice(0,DEEP?8:4);
+  const top=candidates.slice(0,DEEP?10:6);
   let best=null;
   for(const c of top){
     const runs=verifySeeds.map(seed=>run(objective,c.p,seed,maxMonths(objective)));
