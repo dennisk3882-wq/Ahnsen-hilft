@@ -1,0 +1,77 @@
+name: Fix Bürgermeister Promotion Overlay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bgm-promotion-overlay-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix-test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Fix promotion overlay flow
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('BuergermeisterPWA/app.js')
+          s = p.read_text(encoding='utf-8')
+          old = "    if (g.ended) openEnding(g);\n    else if (showSummary && g.lastSummary) openSummary(g);"
+          new = "    if (showSummary && g.lastSummary) openSummary(g, () => maybeShowQueuedOverlays(g));\n    else maybeShowQueuedOverlays(g);"
+          if old not in s:
+              raise SystemExit('Expected render overlay flow not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+
+      - name: Verify syntax and promotion hooks
+        shell: bash
+        run: |
+          node --check BuergermeisterPWA/app.js
+          grep -F "openSummary(g, () => maybeShowQueuedOverlays(g))" BuergermeisterPWA/app.js
+          grep -F "function openPromotionLetter(g)" BuergermeisterPWA/app.js
+          grep -F "grantPromotionRewards(oldStatus, this.status())" BuergermeisterPWA/app.js
+
+      - name: Reachability diagnostics
+        working-directory: BuergermeisterPWA
+        run: node tests/reachability-diagnostic.mjs
+
+      - name: Multi-strategy win planner
+        working-directory: BuergermeisterPWA
+        run: node tests/planner-search.mjs
+
+      - name: Autonomous simulation QA
+        working-directory: BuergermeisterPWA
+        run: node tests/autotest.mjs
+
+      - name: Commit tested fix and promote
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="2336340a37a5f1718a184eaaffcf128fbef24d4d"
+          rm -f .github/workflows/bgm-promotion-overlay-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset --soft "$BASE_SHA"
+          git add -A
+          git commit -m "Fix Bürgermeister promotion letter flow"
+          FINAL_SHA="$(git rev-parse HEAD)"
+          git fetch origin main buergermeister-production
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          test "$(git rev-parse origin/buergermeister-production)" = "$BASE_SHA"
+          git push origin "$FINAL_SHA":refs/heads/main
+          git push origin "$FINAL_SHA":refs/heads/buergermeister-production
+          echo "Released promotion flow fix: $FINAL_SHA"
