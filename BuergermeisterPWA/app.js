@@ -10,6 +10,85 @@
   const rnd = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
   const choice = arr => arr[Math.floor(Math.random() * arr.length)];
 
+
+  let deferredInstallPrompt = null;
+
+  function isPwaStandalone() {
+    return typeof window !== 'undefined' && (
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      (window.navigator && window.navigator.standalone === true)
+    );
+  }
+
+  function syncInstallButton() {
+    if (typeof document === 'undefined') return;
+    const btn = document.getElementById('installBtn');
+    const note = document.getElementById('installNote');
+    if (!btn) return;
+
+    if (isPwaStandalone()) {
+      btn.hidden = true;
+      if (note) {
+        note.textContent = 'Die Bürgermeister-App ist bereits auf diesem Gerät installiert.';
+        note.classList.add('installed');
+      }
+      return;
+    }
+
+    btn.hidden = false;
+    btn.disabled = false;
+    btn.classList.toggle('ready', !!deferredInstallPrompt);
+    const label = btn.querySelector('.install-label');
+    if (label) label.textContent = deferredInstallPrompt ? 'APP INSTALLIEREN' : 'AUF HANDY INSTALLIEREN';
+    if (note) {
+      note.classList.remove('installed');
+      note.textContent = deferredInstallPrompt
+        ? 'Bereit zur Installation – ein Tipp öffnet den Systemdialog.'
+        : 'Wie eine normale App starten – direkt vom Startbildschirm.';
+    }
+  }
+
+  async function installPwa() {
+    if (isPwaStandalone()) return;
+    if (deferredInstallPrompt) {
+      const promptEvent = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      try {
+        await promptEvent.prompt();
+        await promptEvent.userChoice;
+      } catch (_) {}
+      syncInstallButton();
+      return;
+    }
+    openInstallHelp();
+  }
+
+  function openInstallHelp() {
+    const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+    const isiOS = /iphone|ipad|ipod/i.test(ua);
+    const isAndroid = /android/i.test(ua);
+    const steps = isiOS
+      ? ['Öffne diese Seite in Safari.', 'Tippe auf Teilen.', 'Wähle „Zum Home-Bildschirm“ und bestätige „Hinzufügen“.']
+      : isAndroid
+        ? ['Öffne das Browser-Menü oben rechts (⋮).', 'Tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.', 'Bestätige anschließend die Installation.']
+        : ['Öffne das Menü deines Browsers.', 'Suche nach „App installieren“ oder „Zum Startbildschirm hinzufügen“.', 'Bestätige die Installation.'];
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-backdrop';
+    overlay.innerHTML = `<div class="modal install-help-modal">
+      <div class="info-title-row"><div><div class="hint">PWA INSTALLIEREN</div><h2>Bürgermeister aufs Gerät</h2></div><button class="icon-close" aria-label="Schließen">×</button></div>
+      <div class="install-help-icon">⇩</div>
+      <p>Nach der Installation erscheint Bürgermeister wie eine App auf deinem Startbildschirm und öffnet ohne normale Browser-Leiste.</p>
+      <ol class="install-steps">${steps.map(step => `<li>${step}</li>`).join('')}</ol>
+      <button class="btn primary center" id="installHelpClose" style="width:100%">VERSTANDEN</button>
+    </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector('.icon-close').onclick = close;
+    overlay.querySelector('#installHelpClose').onclick = close;
+    overlay.onclick = e => { if (e.target === overlay) close(); };
+  }
+
   const ITEMS = {
     land: {
       name: 'Land', base: 120, min: 1, maintenance: 0, sell: .74, unit: 'Acker', footprint: 0,
@@ -632,12 +711,21 @@
           <button class="btn center" id="scoresBtn">3 &nbsp; BESTENLISTE</button>
           <button class="btn center" id="rulesBtn">4 &nbsp; SPIELREGELN</button>
         </div>
+        <div class="install-card" id="installCard">
+          <div class="install-card-copy">
+            <b>Als App auf dem Handy</b>
+            <span id="installNote">Wie eine normale App starten – direkt vom Startbildschirm.</span>
+          </div>
+          <button class="btn install-btn center" id="installBtn"><span class="install-symbol">⇩</span><span class="install-label">AUF HANDY INSTALLIEREN</span></button>
+        </div>
         <p class="footer-note">Eigenständige Neuinterpretation – keine Original-ROMs oder Originalgrafiken.</p>
       </div></section>`;
     document.getElementById('newBtn').onclick = renderSetup;
     document.getElementById('continueBtn').onclick = () => { const g=loadGame(); if(g) renderGame(g); };
     document.getElementById('scoresBtn').onclick = renderScores;
     document.getElementById('rulesBtn').onclick = renderRules;
+    document.getElementById('installBtn').onclick = installPwa;
+    syncInstallButton();
   }
 
   function renderSetup() {
@@ -1021,6 +1109,18 @@
       <p><b>Info-Fenster:</b> Tippe im Markt auf das <b>i</b>, den Namen eines Gebäudes oder direkt auf ein Gebäude im Stadtbild. Dort siehst du die konkreten Auswirkungen und eine Einschätzung für deine aktuelle Stadt.</p>
       <button class="btn" id="backBtn" style="width:100%">ZURÜCK</button></div></section>`;
     document.getElementById('backBtn').onclick=renderHome;
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      syncInstallButton();
+    });
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      syncInstallButton();
+    });
   }
 
   if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
