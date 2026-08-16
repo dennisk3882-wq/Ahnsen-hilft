@@ -23,20 +23,26 @@ jobs:
           for attempt in $(seq 1 24); do
             echo "Render verification attempt $attempt/24"
             if curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/sw.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/sw.js \
-              && grep -Fq "buergermeister-1992-plus-v5" /tmp/sw.js \
-              && grep -Fq "assets/stage-modern.webp" /tmp/sw.js \
-              && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/assets/stage-kuhdorf.webp?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/stage.webp \
-              && test -s /tmp/stage.webp \
+              && grep -Fq "buergermeister-1992-plus-v6" /tmp/sw.js \
+              && grep -Fq "icons/icon-192.png" /tmp/sw.js \
+              && grep -Fq "icons/icon-512.png" /tmp/sw.js \
               && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/app.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js \
-              && grep -Fq "CITY_STAGE_IMAGES" /tmp/app.js \
-              && grep -Fq "marketPriceSignal" /tmp/app.js \
-              && grep -Fq "openSummary(g, () => maybeShowQueuedOverlays(g))" /tmp/app.js; then
+              && grep -Fq "beforeinstallprompt" /tmp/app.js \
+              && grep -Fq "id=\"installBtn\"" /tmp/app.js \
+              && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/manifest.webmanifest?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/manifest.webmanifest \
+              && grep -Fq "icon-192.png" /tmp/manifest.webmanifest \
+              && grep -Fq "icon-512.png" /tmp/manifest.webmanifest \
+              && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/icons/icon-192.png?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/icon192.png \
+              && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/icons/icon-512.png?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/icon512.png \
+              && test -s /tmp/icon192.png \
+              && test -s /tmp/icon512.png; then
                 ok=1
                 break
             fi
             sleep 10
           done
           test "$ok" = 1
-          echo "RENDER_LIVE_OK"
+          echo "RENDER_INSTALL_RELEASE_LIVE_OK"
           echo "SW: $(head -n 1 /tmp/sw.js)"
-          echo "Stage bytes: $(wc -c < /tmp/stage.webp)"
+          echo "Icon192 bytes: $(wc -c < /tmp/icon192.png)"
+          echo "Icon512 bytes: $(wc -c < /tmp/icon512.png)"
