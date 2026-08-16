@@ -761,18 +761,18 @@
   }
 
   const MARKET_ICONS = {
-    land: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 31 24 22l16 9-16 9-16-9Z"/><path d="M24 9v18M18 17c0-5 3-8 6-8s6 3 6 8c-2 2-4 3-6 3s-4-1-6-3Z"/></svg>',
-    houses: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 23 24 8l17 15v18H7V23Z"/><path d="M18 41V28h12v13M13 24h22"/></svg>',
-    towers: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M13 6h22v36H13V6Z"/><path d="M18 12h5v5h-5zm8 0h5v5h-5zm-8 9h5v5h-5zm8 0h5v5h-5zm-8 9h5v5h-5zm8 0h5v5h-5Z"/></svg>',
-    schools: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 19 24 8l18 11-18 10L6 19Z"/><path d="M11 25v13h26V25M24 29v9"/><path d="M38 20v12"/></svg>',
-    universities: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 18 24 7l19 11H5Z"/><path d="M9 21h30M11 21v17m9-17v17m8-17v17m9-17v17M6 40h36"/></svg>',
-    shops: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 18h32l-3-9H11l-3 9Z"/><path d="M9 18v23h30V18M17 41V29h13v12"/><path d="M8 18c2 5 6 5 8 0 2 5 6 5 8 0 2 5 6 5 8 0 2 5 6 5 8 0"/></svg>',
-    supermarkets: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 12h5l4 20h20l4-14H14"/><circle cx="19" cy="39" r="3"/><circle cx="34" cy="39" r="3"/><path d="M20 18v10m7-10v10m7-10v10"/></svg>',
-    food: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 20h28l-3 20H13l-3-20Z"/><path d="M16 20c1-7 5-11 8-11s7 4 8 11M18 27h12M17 33h14"/></svg>'
+    land: '<svg viewBox="0 0 64 64" aria-hidden="true"><path class="accent" d="M12 41 32 30l20 11-20 11-20-11Z"/><path d="M32 11v22"/><path d="M24 20c0-5 4-9 8-9s8 4 8 9c-2 3-5 5-8 5s-6-2-8-5Z"/><path d="M16 44h32"/></svg>',
+    houses: '<svg viewBox="0 0 64 64" aria-hidden="true"><path class="accent" d="M12 30 32 14l20 16v20H12V30Z"/><path d="M20 49V34h24v15"/><path d="M26 49V39h12v10"/><path d="M16 29h32"/></svg>',
+    towers: '<svg viewBox="0 0 64 64" aria-hidden="true"><path class="accent" d="M20 10h24v42H20V10Z"/><path d="M27 18h4v4h-4Zm6 0h4v4h-4Zm-6 10h4v4h-4Zm6 0h4v4h-4Zm-6 10h4v4h-4Zm6 0h4v4h-4Z"/><path d="M28 52V44h8v8"/></svg>',
+    schools: '<svg viewBox="0 0 64 64" aria-hidden="true"><path class="accent" d="M10 28 32 15l22 13-22 12-22-12Z"/><path d="M16 35v15h32V35"/><path d="M32 40v10"/><path d="M48 29v13"/></svg>',
+    universities: '<svg viewBox="0 0 64 64" aria-hidden="true"><path class="accent" d="M8 23 32 11l24 12H8Z"/><path d="M14 27h36"/><path d="M18 27v21m10-21v21m10-21v21m10-21v21"/><path d="M11 50h42"/></svg>',
+    shops: '<svg viewBox="0 0 64 64" aria-hidden="true"><path class="accent" d="M14 23h36l-4-11H18l-4 11Z"/><path d="M14 23v26h36V23"/><path d="M24 49V35h16v14"/><path d="M14 23c3 6 8 6 11 0 3 6 8 6 11 0 3 6 8 6 11 0 3 6 8 6 11 0"/></svg>',
+    supermarkets: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M11 18h8l5 21h22l5-16H22"/><circle class="accent" cx="28" cy="47" r="4"/><circle class="accent" cx="45" cy="47" r="4"/><path d="M29 24v10m8-10v10m8-10v10"/></svg>',
+    food: '<svg viewBox="0 0 64 64" aria-hidden="true"><path class="accent" d="M14 26h36l-4 23H18l-4-23Z"/><path d="M22 26c2-8 6-12 10-12s8 4 10 12"/><path d="M23 34h18M21 41h22"/></svg>'
   };
 
   function marketIcon(key) {
-    return `<span class="market-icon market-icon-${key}">${MARKET_ICONS[key] || ''}</span>`;
+    return `<span class="market-icon market-icon-${key}"><span class="market-icon-frame">${MARKET_ICONS[key] || ''}</span></span>`;
   }
 
   function marketEffect(key) {
@@ -826,15 +826,24 @@
 
       <div class="game-grid">
         <div>
-          <div class="panel">
+          <div class="panel city-panel">
             <h2>STADTBILD · ${esc(g.status())}</h2>
+            <div class="city-scene-head">
+              <div class="city-scene-copy">
+                <b>${esc(g.cityName)}</b>
+                <span>${esc(g.status())} · Stadtansicht</span>
+              </div>
+              <div class="city-scene-infra">
+                <div class="city-scene-infra-top"><span>Infrastruktur</span><b>${g.infrastructureScore()} / 100</b></div>
+                <div class="city-scene-meter"><i style="width:${g.infrastructureScore()}%"></i></div>
+              </div>
+            </div>
             <div class="city-scene city-stage-${g.visualStage()}">
               <img class="city-scene-image" src="${sceneImageFor(g)}" alt="Stadtbild von ${esc(g.cityName)} im Status ${esc(g.status())}">
               <div class="city-scene-shade"></div>
-              <div class="city-label">${esc(g.cityName)} · Infrastruktur ${g.infrastructureScore()} / 100</div>
               <div class="city-hotspot-layer">${cityHotspots(g)}</div>
             </div>
-            <div class="hint city-help">Tipp: Auch Gebäude im Stadtbild können für Informationen angetippt werden.</div>
+            <div class="hint city-help">Tipp: Gebäude im Stadtbild können für Informationen angetippt werden.</div>
           </div>
 
           <div class="panel market-panel" style="margin-top:10px">
