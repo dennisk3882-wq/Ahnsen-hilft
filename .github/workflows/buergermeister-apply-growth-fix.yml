@@ -1,0 +1,41 @@
+name: Apply Bürgermeister Growth Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'BuergermeisterPWA/tools/apply-growth-fix.mjs'
+      - '.github/workflows/buergermeister-apply-growth-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply deterministic growth patch
+        working-directory: BuergermeisterPWA
+        run: node tools/apply-growth-fix.mjs
+      - name: Verify JavaScript syntax
+        working-directory: BuergermeisterPWA
+        run: node --check app.js && node --check sw.js
+      - name: Commit corrected growth logic
+        shell: bash
+        run: |
+          if git diff --quiet -- BuergermeisterPWA/app.js BuergermeisterPWA/sw.js; then
+            echo 'No changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add BuergermeisterPWA/app.js BuergermeisterPWA/sw.js
+          git commit -m 'Fix Bürgermeister employment-driven growth cap'
+          git push origin main
