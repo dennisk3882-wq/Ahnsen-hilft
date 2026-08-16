@@ -32,7 +32,6 @@ function act(g,p,objective){
   const f=g.forecast();
   const reserve=Math.max(120,Math.min(3500,g.monthlyMaintenance()*1.6));
 
-  // Maintain food, but never spend the entire treasury merely to hoard it.
   let guard=0;
   while(g.inventory.food/need<p.foodBuffer&&g.canBuy('food')&&guard++<30){
     const cost=g.market.food*100;
@@ -40,16 +39,13 @@ function act(g,p,objective){
     g.buy('food');
   }
 
-  // Keep enough buildable land for the next small expansion.
   if(g.landFree()<3&&g.cash>reserve+g.market.land) buy(g,'land',reserve,6);
 
-  // Housing is capacity, not a goal by itself.
   if(g.housingCapacity()/Math.max(1,g.population)<p.housingTarget&&g.cash>reserve){
     if(g.population>1400&&g.cash>reserve+g.market.towers&&g.landFree()>=2) buy(g,'towers',reserve,1);
     else buy(g,'houses',reserve,3);
   }
 
-  // Add commercial capacity only if demand remains meaningful afterward.
   let j=0;
   while(g.employmentCoverage()<p.jobTarget&&g.cash>reserve&&j++<5){
     if(g.population>900&&g.inventory.supermarkets<Math.max(1,Math.floor(g.population/2300))&&g.commerceUtilization('supermarkets')>.48){
@@ -59,13 +55,11 @@ function act(g,p,objective){
     }else break;
   }
 
-  // Education is delayed until the town can afford it.
   if(g.population>500&&g.educationCoverage()<.72&&g.cash>reserve+400){
     if(g.population>4500&&g.cash>reserve+g.market.universities*1.05) buy(g,'universities',reserve,1);
     else buy(g,'schools',reserve,1);
   }
 
-  // Supermarkets become a logistics investment in larger towns.
   if(g.population>1500&&g.inventory.supermarkets<Math.max(1,Math.floor(g.population/3000))&&g.commerceUtilization('supermarkets')>.55&&g.cash>reserve+g.market.supermarkets){
     buy(g,'supermarkets',reserve,1);
   }
@@ -91,7 +85,21 @@ function act(g,p,objective){
 function run(objective,p,seed,maxMonths){
   const {Game}=load(seed);const g=new Game({winCondition:objective});let months=0;
   while(!g.ended&&months<maxMonths){act(g,p,objective);months++;}
-  return {win:!!g.ending?.win,months,pop:g.population,cash:g.cash,approval:g.approval,status:g.status(),reason:g.ending?.reason||'timeout'};
+  const need=Math.max(1,g.monthlyFoodNeed());
+  return {
+    win:!!g.ending?.win, months, pop:g.population, cash:g.cash, approval:g.approval,
+    status:g.status(), reason:g.ending?.reason||'timeout',
+    diagnostics:{
+      housing:g.housingCapacity(), housingRatio:Number((g.housingCapacity()/Math.max(1,g.population)).toFixed(3)),
+      jobs:g.jobsCapacity(), employmentCoverage:Number(g.employmentCoverage().toFixed(3)),
+      commerceUtilization:Number(g.commerceUtilization().toFixed(3)),
+      education:g.schoolCapacity(), educationCoverage:Number(g.educationCoverage().toFixed(3)),
+      attractiveness:g.calculateAttractiveness(),
+      food:g.inventory.food, foodNeed:need, foodMonths:Number((g.inventory.food/need).toFixed(3)),
+      land:g.inventory.land, landFree:g.landFree(),
+      forecast:g.forecast(), inventory:{...g.inventory}
+    }
+  };
 }
 
 const objectives=['fouryears','cash','population','modern'];
@@ -104,10 +112,15 @@ let critical=false;
 console.log(`# Multi-strategy planner (${DEEP?'deep':'standard'})`);
 for(const objective of objectives){
   const candidates=[];
+  let bestFailed=null;
   for(let i=0;i<maxParams;i++){
     const p=PARAMS[i];
     let searchWins=0,totalMonths=0;
-    for(const seed of searchSeeds){const r=run(objective,p,seed,maxMonths(objective));if(r.win){searchWins++;totalMonths+=r.months;}}
+    for(const seed of searchSeeds){
+      const r=run(objective,p,seed,maxMonths(objective));
+      if(r.win){searchWins++;totalMonths+=r.months;}
+      else if(!bestFailed || r.pop>bestFailed.result.pop || (r.pop===bestFailed.result.pop&&r.cash>bestFailed.result.cash)) bestFailed={params:p,result:r};
+    }
     if(searchWins)candidates.push({p,searchWins,avg:totalMonths/searchWins});
   }
   candidates.sort((a,b)=>b.searchWins-a.searchWins||a.avg-b.avg);
@@ -120,12 +133,10 @@ for(const objective of objectives){
     if(!best||entry.wins>best.wins||(entry.wins===best.wins&&(entry.medianMonths??9999)<(best.medianMonths??9999)))best=entry;
   }
   console.log(`\n=== ${objective} ===`);
-  console.log(JSON.stringify({searched:maxParams,candidateCount:candidates.length,best},null,2));
+  console.log(JSON.stringify({searched:maxParams,candidateCount:candidates.length,best,bestFailed:candidates.length?undefined:bestFailed},null,2));
   if(!best||best.wins===0){console.error(`UNREACHABLE_BY_PLANNER: ${objective}`);critical=true;}
 }
 
-// Diagnostic only: main autonomous suite decides CI pass/fail. A missing path is printed prominently
-// so balancing work can distinguish proof failure from engine corruption.
 if(critical) {
   console.error('Planner did not find at least one winning path for every objective.');
   process.exitCode = 1;
