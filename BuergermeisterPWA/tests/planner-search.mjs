@@ -39,13 +39,12 @@ for(const tax of taxLevels) for(const foodBuffer of foodBuffers) for(const housi
   PARAMS.push({tax,foodBuffer,housingTarget,growthRate,jobTarget});
 }
 
-function act(g,p,objective){
+function gridAct(g,p,objective){
   const need=Math.max(1,g.monthlyFoodNeed());
   const f=g.forecast();
   const reserve=Math.max(120,Math.min(3500,g.monthlyMaintenance()*1.6));
 
   stockFood(g,p.foodBuffer,Math.min(reserve,500));
-
   if(g.landFree()<3&&g.cash>reserve+g.market.land) buy(g,'land',reserve,6);
 
   if(g.housingCapacity()/Math.max(1,g.population)<p.housingTarget&&g.cash>reserve){
@@ -85,13 +84,55 @@ function act(g,p,objective){
   if(g.employmentCoverage()<.58) admit=Math.min(admit,Math.max(1,Math.round(g.population*.008)));
   if(g.inventory.food<need*.85) admit=0;
   if(g.approval<28) admit=0;
-
   g.advanceMonth({taxRate:tax,foodAllocation:Math.min(g.inventory.food,g.monthlyFoodNeed()),admitLimit:Math.min(5000,admit)});
 }
 
-function run(objective,p,seed,maxMonths){
+function adaptiveAct(g,_p,objective){
+  const earlyGrowth=objective!=='fouryears'&&g.cash<6000;
+  const foodTarget=objective==='fouryears'?2.0:(earlyGrowth?1.03:1.55);
+  const reserve=earlyGrowth?Math.max(120,g.monthlyMaintenance()*1.1):Math.max(250,g.monthlyMaintenance()*2.0);
+
+  stockFood(g,foodTarget,earlyGrowth?80:150);
+  if(g.landFree()<3&&g.cash>reserve+g.market.land) buy(g,'land',reserve,5);
+
+  if(g.housingCapacity()/Math.max(1,g.population)<1.10&&g.cash>reserve){
+    if(g.population>1100&&g.cash>reserve+g.market.towers) buy(g,'towers',reserve,1);
+    else buy(g,'houses',reserve,3);
+  }
+
+  let j=0;
+  while(g.employmentCoverage()<.92&&j++<5&&g.cash>reserve){
+    if(g.population>800&&g.inventory.supermarkets<Math.max(1,Math.floor(g.population/2300))&&g.commerceUtilization('supermarkets')>.52){
+      if(!buy(g,'supermarkets',reserve,1)) break;
+    }else if(g.commerceUtilization('shops')>.50){
+      if(!buy(g,'shops',reserve,1)) break;
+    }else break;
+  }
+
+  if(g.population>430&&g.educationCoverage()<.70&&g.cash>reserve+250){
+    if(g.population>4200&&g.cash>reserve+g.market.universities) buy(g,'universities',reserve,1);
+    else buy(g,'schools',reserve,1);
+  }
+
+  let tax=17;
+  if(g.cash>7000) tax=objective==='cash'?16:14;
+  if(g.cash>25000) tax=objective==='cash'?15:12;
+  if(g.cash>80000) tax=objective==='cash'?14:10;
+  if(g.approval<35) tax=Math.min(tax,10);
+  if(g.approval<24) tax=6;
+
+  const spare=Math.max(0,g.housingCapacity()-g.population);
+  let admit=objective==='fouryears'
+    ?Math.min(spare,Math.max(3,Math.round(g.population*.045)))
+    :Math.min(spare,Math.max(10,Math.round(g.population*(earlyGrowth?.12:.20))));
+  if(g.employmentCoverage()<.65) admit=Math.min(admit,Math.max(2,Math.round(g.population*.01)));
+  if(g.inventory.food<g.monthlyFoodNeed()*.92) admit=0;
+  g.advanceMonth({taxRate:tax,foodAllocation:Math.min(g.inventory.food,g.monthlyFoodNeed()),admitLimit:Math.min(5000,admit)});
+}
+
+function run(objective,p,seed,maxMonths,actor=gridAct){
   const {Game}=load(seed);const g=new Game({winCondition:objective});let months=0;
-  while(!g.ended&&months<maxMonths){act(g,p,objective);months++;}
+  while(!g.ended&&months<maxMonths){actor(g,p,objective);months++;}
   const need=Math.max(1,g.monthlyFoodNeed());
   return {
     win:!!g.ending?.win, months, pop:g.population, cash:g.cash, approval:g.approval,
@@ -101,12 +142,17 @@ function run(objective,p,seed,maxMonths){
       jobs:g.jobsCapacity(), employmentCoverage:Number(g.employmentCoverage().toFixed(3)),
       commerceUtilization:Number(g.commerceUtilization().toFixed(3)),
       education:g.schoolCapacity(), educationCoverage:Number(g.educationCoverage().toFixed(3)),
-      attractiveness:g.calculateAttractiveness(),
-      food:g.inventory.food, foodNeed:need, foodMonths:Number((g.inventory.food/need).toFixed(3)),
-      land:g.inventory.land, landFree:g.landFree(),
+      attractiveness:g.calculateAttractiveness(), food:g.inventory.food, foodNeed:need,
+      foodMonths:Number((g.inventory.food/need).toFixed(3)), land:g.inventory.land, landFree:g.landFree(),
       forecast:g.forecast(), inventory:{...g.inventory}
     }
   };
+}
+
+function adaptiveSeeds(objective){
+  const count=DEEP?24:12;
+  const base=10000+objective.length*1000;
+  return Array.from({length:count},(_,i)=>base+i*97);
 }
 
 const objectives=['fouryears','cash','population','modern'];
@@ -118,6 +164,16 @@ let critical=false;
 
 console.log(`# Multi-strategy planner (${DEEP?'deep':'standard'})`);
 for(const objective of objectives){
+  const adaptiveRuns=adaptiveSeeds(objective).map(seed=>run(objective,null,seed,maxMonths(objective),adaptiveAct));
+  const adaptiveWins=adaptiveRuns.filter(r=>r.win);
+  const adaptiveSummary={
+    runs:adaptiveRuns.length,
+    wins:adaptiveWins.length,
+    winRate:Number((adaptiveWins.length/adaptiveRuns.length).toFixed(3)),
+    fastestWin:adaptiveWins.length?Math.min(...adaptiveWins.map(r=>r.months)):null,
+    sampleWin:adaptiveWins[0]||null
+  };
+
   const candidates=[];
   let bestFailed=null;
   for(let i=0;i<maxParams;i++){
@@ -139,14 +195,17 @@ for(const objective of objectives){
     const entry={params:c.p,wins:wins.length,runs:runs.length,winRate:wins.length/runs.length,medianMonths:wins.length?wins.map(x=>x.months).sort((a,b)=>a-b)[Math.floor(wins.length/2)]:null,samples:runs.slice(0,2)};
     if(!best||entry.wins>best.wins||(entry.wins===best.wins&&(entry.medianMonths??9999)<(best.medianMonths??9999)))best=entry;
   }
+
+  const reachable=adaptiveWins.length>0||!!best?.wins;
   console.log(`\n=== ${objective} ===`);
-  console.log(JSON.stringify({searched:maxParams,candidateCount:candidates.length,best,bestFailed:candidates.length?undefined:bestFailed},null,2));
-  if(!best||best.wins===0){console.error(`UNREACHABLE_BY_PLANNER: ${objective}`);critical=true;}
+  console.log(JSON.stringify({adaptive:adaptiveSummary,grid:{searched:maxParams,candidateCount:candidates.length,best,bestFailed:candidates.length?undefined:bestFailed},reachable},null,2));
+  if(!reachable){console.error(`UNREACHABLE_BY_PLANNER: ${objective}`);critical=true;}
+  else if(adaptiveSummary.winRate<.15&&(!best||best.winRate<.25)) console.warn(`LOW_ROBUSTNESS: ${objective} is reachable but highly sensitive to strategy/random events.`);
 }
 
 if(critical) {
   console.error('Planner did not find at least one winning path for every objective.');
-  process.exitCode = 1;
+  process.exitCode=1;
 } else {
-  console.log('\nREACHABILITY_OK: every win condition has at least one verified strategy.');
+  console.log('\nREACHABILITY_OK: every win condition has at least one verified strategy under real game randomness.');
 }
