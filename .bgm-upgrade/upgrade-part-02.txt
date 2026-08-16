@@ -1,0 +1,24 @@
+arket-icon svg{width:27px;height:27px}.market-title-line span{display:none}.market-price-block>strong{font-size:.80rem}.market-action{min-height:38px !important}}
+'''
+CSS.write_text(css, encoding='utf-8')
+
+sw = SW.read_text(encoding='utf-8')
+assets = "const ASSETS = ['./','index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg','assets/stage-kuhdorf.webp','assets/stage-dorf.webp','assets/stage-kleinstadt.webp','assets/stage-stadt.webp','assets/stage-modern.webp'];"
+sw = re.sub(r"const CACHE = '[^']+';", "const CACHE = 'buergermeister-1992-plus-v5';", sw, count=1)
+sw = re.sub(r"const ASSETS = \[[^\n]+\];", assets, sw, count=1)
+SW.write_text(sw, encoding='utf-8')
+
+if TEST.exists():
+    t = TEST.read_text(encoding='utf-8')
+    stage_assets = "'assets/stage-kuhdorf.webp','assets/stage-dorf.webp','assets/stage-kleinstadt.webp','assets/stage-stadt.webp','assets/stage-modern.webp'"
+    t = t.replace(
+        "const required = ['index.html','styles.css','app.js','manifest.webmanifest','sw.js','icons/icon.svg'];",
+        "const required = ['index.html','styles.css','app.js','manifest.webmanifest','sw.js','icons/icon.svg'," + stage_assets + "];"
+    )
+    t = t.replace(
+        "for (const ref of ['index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg'])",
+        "for (const ref of ['index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg'," + stage_assets + "])"
+    )
+    TEST.write_text(t, encoding='utf-8')
+
+print('Bürgermeister visual upgrade applied successfully.')
