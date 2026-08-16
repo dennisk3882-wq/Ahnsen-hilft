@@ -363,8 +363,13 @@
       const attractiveness = this.calculateAttractiveness();
       const populationAfterLeaving = Math.max(0, this.population - leaving);
       const housingSlots = Math.max(0, this.housingCapacity() - populationAfterLeaving);
-      const jobSupportedPopulation = Math.floor(this.jobsCapacity() / .42);
-      const economicRoom = employment < .55 ? Math.max(2, Math.round(this.population * .01)) : Math.max(5, jobSupportedPopulation - populationAfterLeaving);
+      // Arbeitsplätze und lokale Nachfrage wachsen teilweise mit neuen Einwohnern.
+      // Deshalb darf Zuzug nicht verlangen, dass sämtliche künftigen Jobs schon vorher existieren.
+      // Schlechte Beschäftigung bremst weiterhin stark; gute Beschäftigung schafft echte Wachstumsreserve.
+      const employmentGrowthRate = clamp((employment - .52) * .32, .01, .14);
+      const economicRoom = employment < .55
+        ? Math.max(2, Math.round(this.population * .008))
+        : Math.max(5, Math.round(this.population * employmentGrowthRate));
       const potential = Math.max(0, Math.round((14 + this.population * .016) * (attractiveness / 50) * (0.82 + Math.random()*.36)));
       const newcomers = Math.min(this.admitLimit, housingSlots, Math.max(0,economicRoom), potential);
       this.population = Math.max(0, populationAfterLeaving + newcomers);
