@@ -126,4 +126,9 @@ for(const objective of objectives){
 
 // Diagnostic only: main autonomous suite decides CI pass/fail. A missing path is printed prominently
 // so balancing work can distinguish proof failure from engine corruption.
-if(critical) console.error('Planner did not find at least one winning path for every objective.');
+if(critical) {
+  console.error('Planner did not find at least one winning path for every objective.');
+  process.exitCode = 1;
+} else {
+  console.log('\nREACHABILITY_OK: every win condition has at least one verified strategy.');
+}
