@@ -93,6 +93,8 @@ button { touch-action: manipulation; }
 .road-v::after { content:""; position:absolute; left:14px; top:0; bottom:0; width:2px; background:repeating-linear-gradient(#f0da6a 0 15px,transparent 15px 27px); }
 .building { position:absolute; bottom:74px; border:3px solid #273759; box-shadow: inset 0 -5px rgba(0,0,0,.14); }
 .building::after { content:""; position:absolute; inset:8px; background:repeating-linear-gradient(90deg,#d7e6ff 0 8px,transparent 8px 15px); opacity:.65; }
+.clickable-building { cursor:pointer; }
+.clickable-building:hover { filter:brightness(1.18); outline:2px solid var(--warn); }
 .house { width:52px; height:42px; background:#d3b66b; }
 .house::before { content:""; position:absolute; left:-7px; top:-25px; border-left:31px solid transparent; border-right:31px solid transparent; border-bottom:25px solid #9d4e3d; }
 .tower { width:46px; height:100px; background:#8794a9; }
@@ -101,15 +103,30 @@ button { touch-action: manipulation; }
 .school { width:78px; height:52px; background:#d3c37d; }
 .school::before { content:""; position:absolute; left:28px; top:-20px; border-left:12px solid transparent; border-right:12px solid transparent; border-bottom:20px solid #8e4437; }
 .city-label { position:absolute; left:8px; top:8px; padding:5px 8px; background:#0b1534dd; border:2px solid #7f9ad8; z-index:5; }
+.city-help { margin-top:6px; }
 
 .resource-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .resource { border-bottom: 1px dashed #526ba7; padding: 5px 0; display:flex; justify-content:space-between; gap:10px; }
+.resource.strong { border-top:2px solid #5f7dc1; border-bottom:0; margin-top:5px; padding-top:9px; font-size:1.02rem; }
 .market { display: grid; gap: 7px; }
-.market-row { display:grid; grid-template-columns: minmax(105px, 1.5fr) 72px 58px 58px; align-items:center; gap:6px; padding:6px; background:#142754; border:1px solid #4969aa; }
+.market-row { display:grid; grid-template-columns: 34px minmax(100px, 1.5fr) 72px 58px 58px; align-items:center; gap:6px; padding:6px; background:#142754; border:1px solid #4969aa; }
 .market-name small { display:block; color:var(--muted); font-size:.72rem; }
+.market-click { cursor:pointer; }
+.market-click:hover b { color:var(--warn); text-decoration:underline; }
 .price { text-align:right; color:var(--warn); }
 .market-row button { min-height:34px; border:2px solid #6f8fd2; background:#274987; color:white; cursor:pointer; }
 .market-row button:disabled { opacity:.35; }
+.market-row .market-info {
+  min-height:30px; width:30px; border-radius:50%; padding:0; font-weight:bold; color:#10204a;
+  background:#efcf62; border-color:#fff0a3; box-shadow:2px 2px 0 #07102b;
+}
+.market-row .market-info:hover { filter:brightness(1.12); }
+
+.advisor { border-color:#6d7fb6; }
+.advisor-line { padding:6px 4px; border-bottom:1px dotted #405c9c; font-size:.82rem; line-height:1.35; }
+.advisor-line.good { color:var(--good); }
+.advisor-line.warn { color:var(--warn); }
+.advisor-line.bad { color:var(--bad); }
 
 .event-log { max-height: 185px; overflow:auto; font-size:.83rem; }
 .log-line { padding:5px 0; border-bottom:1px dotted #3d5a9b; }
@@ -122,6 +139,21 @@ button { touch-action: manipulation; }
 .kpi-big { font-size:1.45rem; color:#fff1b7; }
 .status-meter { height:18px; border:2px solid #7691d1; background:#07102b; overflow:hidden; }
 .status-meter > i { display:block; height:100%; background:linear-gradient(90deg,#b24b3e,#dfc44c,#6aaa5d); }
+
+.info-modal { width:min(100%,610px); }
+.info-title-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.info-title-row h2 { margin:2px 0 0; font-size:1.5rem; }
+.icon-close { width:40px; height:40px; border:2px solid #8ca6e5; background:#294a8f; color:white; font-size:1.5rem; cursor:pointer; }
+.info-lead { color:#fff1c3; line-height:1.45; }
+.info-stats { display:grid; gap:5px; margin:12px 0; }
+.info-box { margin-top:12px; padding:10px; background:#0d1a3d; border:1px solid #5675ba; }
+.info-box b { color:var(--warn); }
+.info-box p { margin:6px 0 0; line-height:1.48; }
+.info-box.recommendation { border-color:#8ba65e; background:#17283d; }
+.info-actions { margin-top:14px; }
+.decision-forecast { padding:9px; border:2px solid #5576b9; background:#0d1a3d; margin:8px 0 14px; }
+.decision-forecast.positive b { color:var(--good); }
+.decision-forecast.negative b { color:var(--bad); }
 
 .overlay-message { text-align:center; padding:20px; }
 .overlay-message h1 { font-size:clamp(2rem,7vw,4rem); margin:.2em 0; }
@@ -136,5 +168,14 @@ button { touch-action: manipulation; }
   .game-grid { grid-template-columns: 1fr; }
   .city-scene { height:220px; }
   .two-col, .month-summary { grid-template-columns:1fr; }
-  .market-row { grid-template-columns:minmax(100px,1fr) 66px 54px 54px; font-size:.78rem; }
+  .market-row { grid-template-columns:30px minmax(86px,1fr) 62px 50px 50px; gap:4px; font-size:.75rem; padding:5px 4px; }
+  .market-row .market-info { width:27px; min-height:27px; }
+  .resource-grid { grid-template-columns:1fr; }
+  .info-actions { grid-template-columns:1fr 1fr; }
+}
+
+@media (max-width: 390px) {
+  .market-row { grid-template-columns:28px minmax(76px,1fr) 58px 46px 46px; font-size:.7rem; }
+  .market-row button { padding:2px; }
+  .price { font-size:.72rem; }
 }
