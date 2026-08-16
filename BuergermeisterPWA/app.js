@@ -52,6 +52,77 @@
     [4000, 'Stadt'], [7500, 'Großstadt'], [12000, 'Moderne Stadt'], [22000, 'Metropole']
   ];
 
+
+
+  const CITY_STAGE_ORDER = ['Letztes Kuhdorf', 'Dorf', 'Großes Dorf', 'Kleinstadt', 'Stadt', 'Großstadt', 'Moderne Stadt', 'Metropole'];
+  const CITY_STAGE_IMAGES = {
+    kuhdorf: 'assets/stage-kuhdorf.webp',
+    dorf: 'assets/stage-dorf.webp',
+    kleinstadt: 'assets/stage-kleinstadt.webp',
+    stadt: 'assets/stage-stadt.webp',
+    modern: 'assets/stage-modern.webp'
+  };
+  const CITY_PROMOTIONS = {
+    'Dorf': { cash: 450, title: 'Anerkennung als Dorf', subject: 'Landesamt für Kommunalentwicklung' },
+    'Großes Dorf': { cash: 700, title: 'Förderung für wachsendes Dorf', subject: 'Regionale Entwicklungsstelle' },
+    'Kleinstadt': { cash: 1200, title: 'Aufstufung zur Kleinstadt', subject: 'Niedersächsisches Innenministerium' },
+    'Stadt': { cash: 1800, title: 'Offizieller Stadtstatus', subject: 'Ministerium für Landesentwicklung' },
+    'Großstadt': { cash: 3000, title: 'Starthilfe für die Großstadt', subject: 'Landesdirektion Kommunen' },
+    'Moderne Stadt': { cash: 5000, title: 'Zukunftsprogramm Moderne Stadt', subject: 'Bundesförderung Zukunft Kommunen' },
+    'Metropole': { cash: 9000, title: 'Metropolenförderung', subject: 'Bundeskanzleramt · Kommunale Sondermittel' }
+  };
+  const CITY_HOTSPOTS = {
+    kuhdorf: [
+      { key:'houses', left:5, top:25, width:17, height:19 },
+      { key:'houses', left:25, top:25, width:16, height:19 },
+      { key:'shops', left:52, top:27, width:16, height:15 },
+      { key:'land', left:72, top:22, width:22, height:24 },
+      { key:'land', left:7, top:48, width:29, height:30 },
+      { key:'land', left:55, top:48, width:34, height:30 }
+    ],
+    dorf: [
+      { key:'houses', left:4, top:22, width:11, height:15 },
+      { key:'houses', left:17, top:22, width:12, height:15 },
+      { key:'houses', left:31, top:22, width:11, height:15 },
+      { key:'shops', left:47, top:23, width:14, height:14 },
+      { key:'schools', left:77, top:22, width:13, height:15 },
+      { key:'houses', left:6, top:52, width:12, height:17 },
+      { key:'houses', left:76, top:52, width:12, height:17 },
+      { key:'land', left:35, top:46, width:28, height:22 }
+    ],
+    kleinstadt: [
+      { key:'houses', left:4, top:14, width:10, height:12 },
+      { key:'houses', left:16, top:14, width:12, height:12 },
+      { key:'shops', left:4, top:35, width:18, height:16 },
+      { key:'shops', left:28, top:37, width:10, height:10 },
+      { key:'shops', left:40, top:37, width:10, height:10 },
+      { key:'supermarkets', left:52, top:37, width:10, height:10 },
+      { key:'schools', left:64, top:14, width:18, height:14 },
+      { key:'houses', left:5, top:58, width:15, height:14 },
+      { key:'houses', left:24, top:58, width:15, height:14 },
+      { key:'houses', left:43, top:58, width:15, height:14 },
+      { key:'shops', left:76, top:54, width:15, height:14 }
+    ],
+    stadt: [
+      { key:'towers', left:3, top:14, width:15, height:23 },
+      { key:'schools', left:41, top:14, width:20, height:23 },
+      { key:'schools', left:73, top:13, width:14, height:25 },
+      { key:'shops', left:39, top:49, width:24, height:17 },
+      { key:'supermarkets', left:68, top:56, width:10, height:10 },
+      { key:'houses', left:8, top:61, width:18, height:13 },
+      { key:'houses', left:28, top:60, width:11, height:14 }
+    ],
+    modern: [
+      { key:'schools', left:40, top:16, width:21, height:16 },
+      { key:'shops', left:22, top:37, width:13, height:12 },
+      { key:'shops', left:72, top:33, width:16, height:16 },
+      { key:'universities', left:4, top:61, width:22, height:16 },
+      { key:'supermarkets', left:65, top:59, width:19, height:16 },
+      { key:'towers', left:2, top:8, width:17, height:22 },
+      { key:'towers', left:78, top:5, width:17, height:23 }
+    ]
+  };
+
   const EVENTS = [
     { minPop:0, apply:g => { g.market.food = Math.max(1, Math.floor(g.market.food * .72)); g.log('Gute Ernte: Nahrung ist billiger geworden.', 'good'); } },
     { minPop:250, apply:g => { const c = rnd(180, 650); g.cash -= c; g.log(`Straßenreparaturen kosten ${money(c)}.`, 'bad'); } },
@@ -75,12 +146,14 @@
         inventory: { land: 7, houses: 3, towers: 0, schools: 0, universities: 0, shops: 1, supermarkets: 0, food: 450 },
         market: {}, logs: [], score: 0, losingDebtMonths: 0, lowApprovalMonths: 0,
         severeFoodMonths: 0, commerceMomentum: 1, tempJobBonus: 0, monthsPlayed: 0,
-        lastSummary: null, ended: false, ending: null
+        lastSummary: null, ended: false, ending: null, seenPromotions: [], promotionQueue: []
       }, data);
       this.version = 2;
       this.inventory = { land:7, houses:3, towers:0, schools:0, universities:0, shops:1, supermarkets:0, food:450, ...(data.inventory || {}) };
       this.logs = Array.isArray(data.logs) ? data.logs : [];
       this.market = { ...(data.market || {}) };
+      this.seenPromotions = Array.isArray(data.seenPromotions) ? data.seenPromotions : [];
+      this.promotionQueue = Array.isArray(data.promotionQueue) ? data.promotionQueue : [];
       this.ensureMarket();
     }
 
@@ -100,6 +173,50 @@
       if (this.population >= 9000 && infra >= 62) s = 'Moderne Stadt';
       if (this.population >= 16000 && infra >= 78) s = 'Metropole';
       return s;
+    }
+
+
+    statusRank(name = this.status()) {
+      const idx = CITY_STAGE_ORDER.indexOf(name);
+      return idx === -1 ? 0 : idx;
+    }
+
+    visualStage(name = this.status()) {
+      if (name === 'Letztes Kuhdorf') return 'kuhdorf';
+      if (name === 'Dorf' || name === 'Großes Dorf') return 'dorf';
+      if (name === 'Kleinstadt') return 'kleinstadt';
+      if (name === 'Stadt' || name === 'Großstadt') return 'stadt';
+      return 'modern';
+    }
+
+    grantPromotionRewards(oldStatus, newStatus) {
+      const oldRank = this.statusRank(oldStatus);
+      const newRank = this.statusRank(newStatus);
+      if (newRank <= oldRank) return;
+      for (let i = oldRank + 1; i <= newRank; i++) {
+        const status = CITY_STAGE_ORDER[i];
+        const promo = CITY_PROMOTIONS[status];
+        if (!promo || this.seenPromotions.includes(status)) continue;
+        this.seenPromotions.push(status);
+        this.cash += promo.cash;
+        const lines = {
+          'Dorf': 'Ihre Gemeinde hat die erste Entwicklungsstufe verlassen. Mit der beigefügten Starthilfe sollen Verwaltung und Grundversorgung gefestigt werden.',
+          'Großes Dorf': 'Die Einwohnerzahl wächst verlässlich. Wir bewilligen zusätzliche Strukturmittel, damit Wohnraum, Handel und Ortskern Schritt halten können.',
+          'Kleinstadt': 'Mit dem neuen Status steigen auch die Erwartungen. Das Land unterstützt den Ausbau von Verwaltung, Infrastruktur und öffentlicher Daseinsvorsorge.',
+          'Stadt': 'Die positive Entwicklung Ihrer Kommune wird anerkannt. Die beigefügten Mittel sollen den Übergang zu einer vollwertigen Stadt erleichtern.',
+          'Großstadt': 'Ihre Stadt hat regionale Bedeutung erlangt. Das Förderpaket ist für Verkehr, Nahversorgung und urbane Ordnung vorgesehen.',
+          'Moderne Stadt': 'Ihre Kommune gilt nun als moderne Stadt. Mit dieser Zuwendung sollen Innovation, Lebensqualität und wirtschaftliche Stärke gesichert werden.',
+          'Metropole': 'Als aufstrebendes Zentrum erhält Ihre Stadt ein Sonderbudget für Zukunftsprojekte und überregionale Strahlkraft.'
+        };
+        this.promotionQueue.push({
+          status,
+          cash: promo.cash,
+          subject: promo.subject,
+          title: promo.title,
+          body: lines[status] || 'Die Entwicklung Ihrer Stadt wird mit einer einmaligen Zuwendung gewürdigt.'
+        });
+        this.log(`Aufstieg: ${this.cityName} ist jetzt ${status}. Die Regierung gewährt ${money(promo.cash)} Fördermittel.`, 'good');
+      }
     }
 
     housingCapacity() {
@@ -328,6 +445,7 @@
       this.foodAllocation = clamp(Math.round(Number(settings.foodAllocation)||0), 0, this.inventory.food);
       this.admitLimit = clamp(Math.round(Number(settings.admitLimit)||0), 0, 5000);
 
+      const oldStatus = this.status();
       const oldPop = this.population;
       const oldCash = this.cash;
       const foodNeed = this.monthlyFoodNeed();
@@ -399,6 +517,7 @@
 
       this.rollEvent();
       this.updateMarket();
+      this.grantPromotionRewards(oldStatus, this.status());
       this.checkEnd();
       if (!this.ended) this.incrementDate();
       this.updateScore();
@@ -543,23 +662,56 @@
     });
   }
 
-  function cityBuildings(g) {
-    const elems = [];
-    const add = (cls, key, count, yShift=0) => {
-      const max = cls==='tower'?7:cls==='house'?10:cls==='shop'?5:4;
-      for (let i=0;i<Math.min(count,max);i++) {
-        const left = 3 + ((i*17 + count*7 + (cls.length*11)) % 88);
-        const bottom = 75 + ((i%2)*4) + yShift;
-        elems.push(`<i class="building ${cls} clickable-building" data-info="${key}" title="Info: ${ITEMS[key].name}" style="left:${left}%;bottom:${bottom}px;transform:scale(${.82 + (i%3)*.08});z-index:${2+(i%3)}"></i>`);
-      }
+  function sceneImageFor(g) {
+    return CITY_STAGE_IMAGES[g.visualStage()];
+  }
+
+  function cityHotspots(g) {
+    const stage = g.visualStage();
+    const defs = CITY_HOTSPOTS[stage] || [];
+    return defs.map(spot => `<button class="city-hotspot" data-info="${spot.key}" title="Info: ${ITEMS[spot.key].name}" aria-label="Info zu ${ITEMS[spot.key].name}" style="left:${spot.left}%;top:${spot.top}%;width:${spot.width}%;height:${spot.height}%"><span>${ITEMS[spot.key].name}</span></button>`).join('');
+  }
+
+  const MARKET_ICONS = {
+    land: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 31 24 22l16 9-16 9-16-9Z"/><path d="M24 9v18M18 17c0-5 3-8 6-8s6 3 6 8c-2 2-4 3-6 3s-4-1-6-3Z"/></svg>',
+    houses: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 23 24 8l17 15v18H7V23Z"/><path d="M18 41V28h12v13M13 24h22"/></svg>',
+    towers: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M13 6h22v36H13V6Z"/><path d="M18 12h5v5h-5zm8 0h5v5h-5zm-8 9h5v5h-5zm8 0h5v5h-5zm-8 9h5v5h-5zm8 0h5v5h-5Z"/></svg>',
+    schools: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 19 24 8l18 11-18 10L6 19Z"/><path d="M11 25v13h26V25M24 29v9"/><path d="M38 20v12"/></svg>',
+    universities: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 18 24 7l19 11H5Z"/><path d="M9 21h30M11 21v17m9-17v17m8-17v17m9-17v17M6 40h36"/></svg>',
+    shops: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 18h32l-3-9H11l-3 9Z"/><path d="M9 18v23h30V18M17 41V29h13v12"/><path d="M8 18c2 5 6 5 8 0 2 5 6 5 8 0 2 5 6 5 8 0 2 5 6 5 8 0"/></svg>',
+    supermarkets: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 12h5l4 20h20l4-14H14"/><circle cx="19" cy="39" r="3"/><circle cx="34" cy="39" r="3"/><path d="M20 18v10m7-10v10m7-10v10"/></svg>',
+    food: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 20h28l-3 20H13l-3-20Z"/><path d="M16 20c1-7 5-11 8-11s7 4 8 11M18 27h12M17 33h14"/></svg>'
+  };
+
+  function marketIcon(key) {
+    return `<span class="market-icon market-icon-${key}">${MARKET_ICONS[key] || ''}</span>`;
+  }
+
+  function marketEffect(key) {
+    const labels = {
+      land: 'Baufläche für weitere Entwicklung',
+      houses: '+55 Wohnplätze',
+      towers: '+420 Wohnplätze · wenig Fläche',
+      schools: '+320 Bildungsplätze',
+      universities: '+2.200 Bildung · Produktivität',
+      shops: 'bis 36 Jobs · Gewerbesteuer',
+      supermarkets: 'bis 145 Jobs · bessere Versorgung',
+      food: 'Versorgung · Handel in 100er-Paketen'
     };
-    add('house', 'houses', g.inventory.houses);
-    add('shop', 'shops', g.inventory.shops, 1);
-    add('shop', 'supermarkets', g.inventory.supermarkets, 1);
-    add('school', 'schools', g.inventory.schools, 3);
-    add('school', 'universities', g.inventory.universities, 3);
-    add('tower', 'towers', g.inventory.towers, 0);
-    return elems.join('');
+    return labels[key] || '';
+  }
+
+  function marketPriceSignal(g, key) {
+    const ratio = g.market[key] / ITEMS[key].base;
+    if (ratio >= 1.22) return { cls:'expensive', label:'▲ teuer' };
+    if (ratio >= 1.08) return { cls:'rising', label:'↗ erhöht' };
+    if (ratio <= .78) return { cls:'cheap', label:'▼ günstig' };
+    if (ratio <= .92) return { cls:'cheap', label:'↘ günstig' };
+    return { cls:'normal', label:'● normal' };
+  }
+
+  function marketTradeCost(g, key) {
+    return g.market[key] * (ITEMS[key].tradeQty || 1);
   }
 
   function healthClass(value, goodAt=100, warnAt=80) {
@@ -588,23 +740,43 @@
         <div>
           <div class="panel">
             <h2>STADTBILD · ${esc(g.status())}</h2>
-            <div class="city-scene">
-              <i class="cloud" style="left:8%;top:14%"></i><i class="cloud" style="left:68%;top:22%;transform:scale(.7)"></i>
-              <div class="city-label">${esc(g.cityName)} · Infrastruktur ${g.infrastructureScore()}/100</div>
-              <i class="road-h"></i><i class="road-v"></i>${cityBuildings(g)}
+            <div class="city-scene city-stage-${g.visualStage()}">
+              <img class="city-scene-image" src="${sceneImageFor(g)}" alt="Stadtbild von ${esc(g.cityName)} im Status ${esc(g.status())}">
+              <div class="city-scene-shade"></div>
+              <div class="city-label">${esc(g.cityName)} · Infrastruktur ${g.infrastructureScore()} / 100</div>
+              <div class="city-hotspot-layer">${cityHotspots(g)}</div>
             </div>
             <div class="hint city-help">Tipp: Auch Gebäude im Stadtbild können für Informationen angetippt werden.</div>
           </div>
 
-          <div class="panel" style="margin-top:10px"><h2>KAUFEN / VERKAUFEN</h2><div class="market">
-            ${Object.entries(ITEMS).map(([key,item]) => `
+          <div class="panel market-panel" style="margin-top:10px">
+            <div class="market-head">
+              <div><h2>KAUFEN / VERKAUFEN</h2><p>Marktpreise reagieren auf Stadtgröße, Nachfrage und Knappheit.</p></div>
+              <div class="market-head-badge">MARKT ${String(g.month).padStart(2,'0')}/${g.year}</div>
+            </div>
+            <div class="market">
+            ${Object.entries(ITEMS).map(([key,item]) => {
+              const signal = marketPriceSignal(g,key);
+              const qty = item.tradeQty || 1;
+              return `
               <div class="market-row">
                 <button class="market-info" data-info="${key}" aria-label="Information zu ${item.name}">i</button>
-                <div class="market-name market-click" data-info="${key}"><b>${item.name}</b><small>Bestand: ${fmt.format(g.inventory[key])}${key==='land'?` · frei ${g.landFree()}`:''}</small></div>
-                <div class="price">${money(g.market[key])}${item.tradeQty?'<small>/Stk.</small>':''}</div>
-                <button data-buy="${key}" ${g.canBuy(key)?'':'disabled'}>+${item.tradeQty||1}</button>
-                <button data-sell="${key}" ${g.canSell(key)?'':'disabled'}>-${item.tradeQty||1}</button>
-              </div>`).join('')}
+                ${marketIcon(key)}
+                <div class="market-copy market-click" data-info="${key}">
+                  <div class="market-title-line"><b>${item.name}</b><span>${marketEffect(key)}</span></div>
+                  <div class="market-meta"><span>Bestand <strong>${fmt.format(g.inventory[key])}</strong></span>${key==='land'?`<span>Frei <strong>${g.landFree()}</strong></span>`:''}${item.maintenance?`<span>Unterhalt <strong>${money(item.maintenance)}/Mon.</strong></span>`:''}</div>
+                </div>
+                <div class="market-price-block">
+                  <small>${item.tradeQty?`${qty} Einheiten`:'Kaufpreis'}</small>
+                  <strong>${money(marketTradeCost(g,key))}</strong>
+                  <span class="market-trend ${signal.cls}">${signal.label}</span>
+                </div>
+                <div class="market-actions">
+                  <button class="market-action buy" data-buy="${key}" ${g.canBuy(key)?'':'disabled'}><b>+${qty}</b><span>Kaufen</span></button>
+                  <button class="market-action sell" data-sell="${key}" ${g.canSell(key)?'':'disabled'}><b>−${qty}</b><span>Verkaufen</span></button>
+                </div>
+              </div>`;
+            }).join('')}
           </div></div>
         </div>
 
@@ -766,7 +938,7 @@
     };
   }
 
-  function openSummary(g) {
+  function openSummary(g, afterClose) {
     const s=g.lastSummary; const overlay=document.createElement('div'); overlay.className='modal-backdrop';
     const balance=s.revenue-s.maintenance;
     overlay.innerHTML=`<div class="modal"><div class="hint">MONATSBERICHT</div><h2>Bilanz des vergangenen Monats</h2>
@@ -788,7 +960,29 @@
       <p>Zustimmungsänderung: <b class="${s.approvalDelta<0?'bad':'good'}">${s.approvalDelta>=0?'+':''}${s.approvalDelta} Punkte</b></p>
       <button class="btn primary center" id="closeSummary" style="width:100%">WEITER</button>
     </div>`;
-    document.body.appendChild(overlay); overlay.querySelector('#closeSummary').onclick=()=>overlay.remove();
+    document.body.appendChild(overlay); overlay.querySelector('#closeSummary').onclick=()=>{ overlay.remove(); if (afterClose) afterClose(); };
+  }
+
+  function maybeShowQueuedOverlays(g) {
+    if (g.promotionQueue && g.promotionQueue.length) return openPromotionLetter(g);
+    if (g.ended) return openEnding(g);
+  }
+
+  function openPromotionLetter(g) {
+    const letter = g.promotionQueue.shift();
+    saveGame(g);
+    const overlay=document.createElement('div'); overlay.className='modal-backdrop';
+    overlay.innerHTML=`<div class="modal info-modal"><div class="hint">REGIERUNGSBRIEF</div>
+      <div class="info-title-row"><div><h2>${esc(letter.title)}</h2><div class="hint">${esc(letter.subject)}</div></div><button class="icon-close" aria-label="Schließen">×</button></div>
+      <div class="info-box"><b>An ${esc(g.mayorName)}, Bürgermeister von ${esc(g.cityName)}</b><p>${esc(letter.body)}</p></div>
+      <div class="info-box recommendation"><b>Bewilligte Förderung</b><p>${money(letter.cash)} wurden der Stadtkasse gutgeschrieben. ${esc(g.cityName)} trägt nun offiziell den Status <b>${esc(letter.status)}</b>.</p></div>
+      <div class="info-actions"><button class="btn primary center" id="promoOk" style="width:100%">DANKEND ZUR KENNTNIS GENOMMEN</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const close = () => { overlay.remove(); maybeShowQueuedOverlays(g); };
+    overlay.querySelector('.icon-close').onclick = close;
+    overlay.querySelector('#promoOk').onclick = close;
+    overlay.onclick = e => { if (e.target === overlay) close(); };
   }
 
   function openEnding(g) {

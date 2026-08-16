@@ -117,7 +117,7 @@ function runTest(name, fn) {
 }
 
 function staticAssetChecks() {
-  const required = ['index.html','styles.css','app.js','manifest.webmanifest','sw.js','icons/icon.svg'];
+  const required = ['index.html','styles.css','app.js','manifest.webmanifest','sw.js','icons/icon.svg','assets/stage-kuhdorf.webp','assets/stage-dorf.webp','assets/stage-kleinstadt.webp','assets/stage-stadt.webp','assets/stage-modern.webp'];
   for (const rel of required) assert.ok(fs.existsSync(path.join(ROOT, rel)), `missing ${rel}`);
 
   const index = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -132,7 +132,7 @@ function staticAssetChecks() {
   }
 
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  for (const ref of ['index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg']) assert.ok(sw.includes(ref), `service worker cache is missing ${ref}`);
+  for (const ref of ['index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg','assets/stage-kuhdorf.webp','assets/stage-dorf.webp','assets/stage-kleinstadt.webp','assets/stage-stadt.webp','assets/stage-modern.webp']) assert.ok(sw.includes(ref), `service worker cache is missing ${ref}`);
 
   return `${required.length} core assets + manifest/service-worker references valid`;
 }

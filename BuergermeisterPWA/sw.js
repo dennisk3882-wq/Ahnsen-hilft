@@ -1,5 +1,5 @@
-const CACHE = 'buergermeister-1992-plus-v4';
-const ASSETS = ['./','index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg'];
+const CACHE = 'buergermeister-1992-plus-v5';
+const ASSETS = ['./','index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg','assets/stage-kuhdorf.webp','assets/stage-dorf.webp','assets/stage-kleinstadt.webp','assets/stage-stadt.webp','assets/stage-modern.webp'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

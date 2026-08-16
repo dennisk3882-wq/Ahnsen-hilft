@@ -1,0 +1,60 @@
+{
+  "mode": "standard",
+  "startedAt": "2026-08-16T16:20:10.629Z",
+  "passed": [
+    {
+      "name": "Static PWA integrity",
+      "details": "11 core assets + manifest/service-worker references valid"
+    },
+    {
+      "name": "Core economic contracts",
+      "details": "economy contracts and cross-effects verified"
+    },
+    {
+      "name": "All defeat conditions",
+      "details": "debt, approval, food and depopulation defeats all reachable"
+    },
+    {
+      "name": "Reachability delegated to multi-strategy planner",
+      "details": "The authoritative planner runs as a separate CI gate before this core suite."
+    },
+    {
+      "name": "Randomized invariant fuzzing",
+      "details": "24 randomized games completed without invariant violations"
+    },
+    {
+      "name": "Random-policy balance sampling",
+      "details": "0 random wins, 18 random losses, 0 unresolved"
+    },
+    {
+      "name": "Passive strategy can lose",
+      "details": "passive no-purchase strategy loses as intended (Zwei Monate schwere Versorgungskrise: Die Stadtverwaltung bricht zusammen.)"
+    },
+    {
+      "name": "Balance sanity / diminishing returns",
+      "details": "diminishing retail returns and education productivity effects verified"
+    }
+  ],
+  "warnings": [],
+  "failures": [],
+  "metrics": {
+    "fuzz": {
+      "games": 24,
+      "ended": 24
+    },
+    "randomPolicy": {
+      "games": 18,
+      "wins": 0,
+      "losses": 18,
+      "alive": 0,
+      "endings": {
+        "Zwei Monate schwere Versorgungskrise: Die Stadtverwaltung bricht zusammen.": 9,
+        "Deine Zustimmung lag zu lange unter 18 %. Der Gemeinderat entzieht dir das Vertrauen.": 9
+      }
+    }
+  },
+  "simulations": 43,
+  "simulatedMonths": 287,
+  "finishedAt": "2026-08-16T16:20:10.834Z",
+  "ok": true
+}
