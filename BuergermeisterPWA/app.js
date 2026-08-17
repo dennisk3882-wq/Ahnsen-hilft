@@ -333,7 +333,7 @@
       const capacity = this.foodExportCapacity();
       const sold = capacity > 0 ? Math.min(offered, capacity) : 0;
       const retained = Math.max(0, offered - sold);
-      const unitPrice = this.market.food * .65;
+      const unitPrice = this.market.food * 1.65;
       const revenue = Math.round(sold * unitPrice);
       return { selected, need, consumed, offered, capacity, sold, retained, unitPrice, revenue };
     }
@@ -1055,7 +1055,7 @@
     if (key === 'supermarkets') {
       rows.push(['Nahrungsbedarf', '-4% je Supermarkt, max. -20%']);
       rows.push(['Regionaler Nahrungsverkauf', `bis zu ${fmt.format(g.foodExportCapacity())} Einheiten/Monat aktuell`]);
-      rows.push(['Exportpreis', '65% des aktuellen Nahrungspreises']);
+      rows.push(['Verkaufspreis', '165% des aktuellen Nahrungspreises (+65% Handelsaufschlag)']);
     }
     if (key === 'universities') rows.push(['Produktivität', '+3% je Universität, max. +18% Uni-Bonus']);
     return rows;
@@ -1069,7 +1069,7 @@
       schools: 'Schulen decken den Bildungsbedarf der Bevölkerung. Gute Bildungsdeckung verbessert Zustimmung, Attraktivität und über die Produktivität auch die Einnahmen.',
       universities: 'Universitäten sind teuer, aber mächtig. Neben 2.200 Bildungsplätzen erhöhen sie die städtische Produktivität um 3 Prozentpunkte je Universität, bis maximal 18% Bonus.',
       shops: 'Geschäfte schaffen bis zu 36 Arbeitsplätze und bis zu 55 $ Gewerbeeinnahmen pro Monat. Diese Werte werden aber mit der Gewerbe-Auslastung multipliziert. Zu viele Geschäfte bei zu wenigen Einwohnern sind deshalb ein Verlustgeschäft.',
-      supermarkets: 'Supermärkte schaffen bis zu 145 Arbeitsplätze und bis zu 220 $ Gewerbeeinnahmen. Zusätzlich verbessert jeder Supermarkt die Lebensmittel-Logistik und senkt den monatlichen Nahrungsbedarf um 4%, maximal um 20%. Jeder Supermarkt kann außerdem bis zu 150 überschüssige Nahrungseinheiten pro Monat regional vermarkten. Dafür werden 65% des aktuellen Nahrungspreises erzielt. Auch hier entscheidet die Kundennachfrage über die normale Gewerbeleistung.',
+      supermarkets: 'Supermärkte schaffen bis zu 145 Arbeitsplätze und bis zu 220 $ Gewerbeeinnahmen. Zusätzlich verbessert jeder Supermarkt die Lebensmittel-Logistik und senkt den monatlichen Nahrungsbedarf um 4%, maximal um 20%. Jeder Supermarkt kann außerdem bis zu 150 überschüssige Nahrungseinheiten pro Monat regional vermarkten. Verkauft wird zum Endkundenpreis von 165% des aktuellen Nahrungspreises, also mit 65% Handelsaufschlag. Auch hier entscheidet die Kundennachfrage über die normale Gewerbeleistung.',
       food: 'Jeden Monat muss ausreichend Nahrung zugeteilt werden. Eine Einheit steht für einen standardisierten Warenkorb; der Grundbedarf liegt bei rund 0,68 Einheiten je Einwohner und Monat. Supermärkte senken Logistikverluste zusätzlich. Stellst du mehr als den Einwohnerbedarf bereit, kann der Überschuss über vorhandene Supermärkte regional verkauft werden. Nicht verkaufte Überschüsse bleiben im Lager. Unterversorgung drückt die Zustimmung, führt zu Wegzug und kann das Spiel beenden.'
     };
     return texts[key] || ITEMS[key].short;
@@ -1257,7 +1257,7 @@
       <p><b>Gewerbe:</b> Geschäfte und Supermärkte funktionieren nicht automatisch mit voller Leistung. Zu viele Verkaufsflächen bei zu wenigen Einwohnern bedeuten geringe Auslastung, weniger Jobs und weniger Gewerbeeinnahmen.</p>
       <p><b>Finanzen:</b> Einnahmen hängen von Beschäftigung, Steuersatz, Gewerbeauslastung und Produktivität ab. Gebäude, Einwohner und Schulden verursachen laufende Kosten.</p>
       <p><b>Bildung:</b> Schulen und Universitäten werden bei größerer Bevölkerung wichtig. Gute Bildungsdeckung stabilisiert die Stadt; Universitäten steigern zusätzlich die Produktivität.</p>
-      <p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik. Überschüssig bereitgestellte Nahrung kann über Supermärkte regional verkauft werden: bis zu 150 Einheiten je Supermarkt und Monat zu 65% des aktuellen Nahrungspreises. Nicht verkaufte Überschüsse bleiben im Lager.</p>
+      <p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik. Überschüssig bereitgestellte Nahrung kann über Supermärkte regional verkauft werden: bis zu 150 Einheiten je Supermarkt und Monat zu 165% des aktuellen Nahrungspreises (65% Handelsaufschlag). Nicht verkaufte Überschüsse bleiben im Lager.</p>
       <p><b>Verlieren:</b> Drei Monate tiefe Überschuldung, dauerhaft extrem schlechte Zustimmung, eine schwere Versorgungskrise oder eine fast entvölkerte Stadt beenden die Amtszeit.</p>
       <p><b>Info-Fenster:</b> Tippe im Markt auf das <b>i</b>, den Namen eines Gebäudes oder direkt auf ein Gebäude im Stadtbild. Dort siehst du die konkreten Auswirkungen und eine Einschätzung für deine aktuelle Stadt.</p>
       <button class="btn" id="backBtn" style="width:100%">ZURÜCK</button></div></section>`;
