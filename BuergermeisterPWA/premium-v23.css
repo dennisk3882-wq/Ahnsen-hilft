@@ -1,0 +1,37 @@
+/* Bürgermeister Premium Raster UI v23 */
+:root{--v23-ui:url("assets/v23-ui-icons.webp");--v23-market:url("assets/v23-market-icons.webp");--v23-city:url("assets/v23-city-stages.webp")}
+
+/* Eight genuine rendered development stages */
+.city-scene{aspect-ratio:2.05!important;background-image:var(--v23-city)!important;background-size:100% 800%!important;background-repeat:no-repeat!important;background-position-x:center!important;filter:saturate(1.04) contrast(1.025)!important;border:1px solid rgba(83,202,222,.72)!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.025),inset 0 -30px 65px rgba(1,8,13,.08),0 16px 36px rgba(0,0,0,.32)!important}
+.city-scene-image{opacity:0!important;pointer-events:none!important}
+.city-scene-shade{background:linear-gradient(180deg,rgba(3,15,22,.01),transparent 72%,rgba(2,10,16,.10))!important;box-shadow:inset 0 0 28px rgba(0,0,0,.10)!important}
+.city-stage-kuhdorf{background-position-y:0%!important}.city-stage-dorf{background-position-y:14.2857%!important}.city-stage-grosses-dorf{background-position-y:28.5714%!important}.city-stage-kleinstadt{background-position-y:42.8571%!important}.city-stage-stadt{background-position-y:57.1429%!important}.city-stage-grossstadt{background-position-y:71.4286%!important}.city-stage-moderne-stadt{background-position-y:85.7143%!important}.city-stage-metropole{background-position-y:100%!important}
+
+/* Premium crest and HUD art */
+.compact-city-identity::before{content:""!important;background-image:var(--v23-ui),linear-gradient(180deg,#18394b,#071b28)!important;background-repeat:no-repeat!important;background-size:232px 232px,auto!important;background-position:-58px -116px,0 0!important;border:2px solid rgba(244,200,92,.86)!important;box-shadow:0 0 19px rgba(244,200,92,.15),inset 0 0 0 3px rgba(244,200,92,.06)!important}
+.compact-metric::before{content:""!important;width:30px!important;height:30px!important;background-image:var(--v23-ui)!important;background-repeat:no-repeat!important;background-size:120px 120px!important;filter:drop-shadow(0 3px 4px rgba(0,0,0,.36))!important}
+.compact-metric:nth-child(1)::before{background-position:0 0!important}.compact-metric:nth-child(2)::before{background-position:-30px 0!important}.compact-metric:nth-child(3)::before{background-position:-60px 0!important}.compact-metric:nth-child(4)::before{background-position:-90px 0!important}
+.city-panel-title::before{content:""!important;background-image:var(--v23-ui)!important;background-repeat:no-repeat!important;background-size:176px 176px!important;background-position:-44px -88px!important;border-color:rgba(244,200,92,.48)!important;box-shadow:0 0 18px rgba(244,200,92,.15)!important}
+
+/* Premium quick status icons */
+.city-quick-strip>div::before{content:""!important;width:28px!important;height:28px!important;background-image:var(--v23-ui)!important;background-repeat:no-repeat!important;background-size:112px 112px!important;filter:drop-shadow(0 2px 3px rgba(0,0,0,.34))!important}
+.city-quick-strip>div:nth-child(1)::before{background-position:0 -28px!important}.city-quick-strip>div:nth-child(2)::before{background-position:-28px -28px!important}.city-quick-strip>div:nth-child(3)::before{background-position:-56px -28px!important}.city-quick-strip>div:nth-child(4)::before{background-position:-84px -28px!important}
+
+/* Premium navigation icons */
+.game-tab::before{content:""!important;display:inline-block!important;width:25px!important;height:25px!important;vertical-align:middle!important;background-image:var(--v23-ui)!important;background-repeat:no-repeat!important;background-size:100px 100px!important;filter:drop-shadow(0 2px 3px rgba(0,0,0,.30))!important}
+.game-tab:nth-child(1)::before{background-position:0 -50px!important}.game-tab:nth-child(2)::before{background-position:-25px -50px!important}.game-tab:nth-child(3)::before{background-position:-50px -50px!important}.game-tab:nth-child(4)::before{background-position:-75px -50px!important}
+
+/* Genuine rendered isometric market assets */
+.market-icon-button,.market-icon-button .market-icon{width:78px!important;height:78px!important}.market-icon-frame{width:72px!important;height:72px!important;border-radius:50%!important;overflow:hidden!important;background-image:var(--v23-market)!important;background-repeat:no-repeat!important;background-size:225px 225px!important;background-color:#06131e!important;border:1px solid rgba(75,224,238,.95)!important;box-shadow:0 0 0 3px rgba(31,105,129,.34),0 0 23px rgba(52,221,236,.38),0 11px 20px rgba(0,0,0,.40)!important}.market-icon-frame::before,.market-icon-frame svg{display:none!important}
+.market-icon-land .market-icon-frame{background-position:0 0!important}.market-icon-houses .market-icon-frame{background-position:-76px 0!important}.market-icon-towers .market-icon-frame{background-position:-153px 0!important}.market-icon-schools .market-icon-frame{background-position:0 -74px!important}.market-icon-universities .market-icon-frame{background-position:-76px -74px!important}.market-icon-shops .market-icon-frame{background-position:-153px -74px!important}.market-icon-supermarkets .market-icon-frame{background-position:-39px -151px!important}.market-icon-food .market-icon-frame{background-position:-114px -151px!important}
+.market-info-dot{z-index:9!important;border-color:#59d7e2!important;background:#0a3850!important;box-shadow:0 3px 9px rgba(0,0,0,.4),0 0 9px rgba(71,211,228,.22)!important}
+
+/* Extra depth without changing game layout */
+.compact-city-panel,.game-tab-panel,.compact-city-identity,.compact-metric,.compact-market-row{backdrop-filter:blur(2px)!important}.compact-market-row{background:linear-gradient(100deg,rgba(10,37,53,.98),rgba(6,25,37,.98) 72%,rgba(8,32,47,.98))!important}.compact-market-row:hover{border-color:rgba(86,210,224,.72)!important}.market-title-line b,.workspace-head h2,.city-panel-title h2,.compact-city-identity b{text-shadow:0 2px 4px rgba(0,0,0,.36)!important}
+
+@media(max-width:520px){
+  .city-scene{aspect-ratio:2.05!important}
+  .market-icon-button,.market-icon-button .market-icon{width:70px!important;height:70px!important}.market-icon-frame{width:66px!important;height:66px!important;background-size:206.25px 206.25px!important}
+  .market-icon-land .market-icon-frame{background-position:0 0!important}.market-icon-houses .market-icon-frame{background-position:-69.7px 0!important}.market-icon-towers .market-icon-frame{background-position:-140.3px 0!important}.market-icon-schools .market-icon-frame{background-position:0 -67.8px!important}.market-icon-universities .market-icon-frame{background-position:-69.7px -67.8px!important}.market-icon-shops .market-icon-frame{background-position:-140.3px -67.8px!important}.market-icon-supermarkets .market-icon-frame{background-position:-35.8px -138.4px!important}.market-icon-food .market-icon-frame{background-position:-104.5px -138.4px!important}
+  .compact-metric::before{width:27px!important;height:27px!important;background-size:108px 108px!important}.compact-metric:nth-child(1)::before{background-position:0 0!important}.compact-metric:nth-child(2)::before{background-position:-27px 0!important}.compact-metric:nth-child(3)::before{background-position:-54px 0!important}.compact-metric:nth-child(4)::before{background-position:-81px 0!important}
+}
