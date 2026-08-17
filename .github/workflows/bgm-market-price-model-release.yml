@@ -30,101 +30,31 @@ jobs:
 
       - name: Apply stable building market model
         shell: bash
+        env:
+          ASSET_METHODS_B64: ICAgIG5vcm1hbGl6ZUxlZ2FjeVN1cGVybWFya2V0UHJpY2UoKSB7CiAgICAgIGNvbnN0IHRhcmdldCA9IHRoaXMuc3VwZXJtYXJrZXRUYXJnZXRQcmljZSgpOwogICAgICB0aGlzLm1hcmtldC5zdXBlcm1hcmtldHMgPSBNYXRoLm1heCgxLCBNYXRoLnJvdW5kKGNsYW1wKHRoaXMubWFya2V0LnN1cGVybWFya2V0cywgdGFyZ2V0ICogLjgwLCB0YXJnZXQgKiAxLjI1KSkpOwogICAgfQoKICAgIGFzc2V0VGFyZ2V0UHJpY2Uoa2V5KSB7CiAgICAgIGNvbnN0IGl0ZW0gPSBJVEVNU1trZXldOwogICAgICBpZiAoIWl0ZW0gfHwga2V5ID09PSAnZm9vZCcpIHJldHVybiBpdGVtID8gaXRlbS5iYXNlIDogMTsKICAgICAgaWYgKGtleSA9PT0gJ3N1cGVybWFya2V0cycpIHJldHVybiB0aGlzLnN1cGVybWFya2V0VGFyZ2V0UHJpY2UoKTsKCiAgICAgIGNvbnN0IGluZmxhdGlvbiA9IE1hdGgucG93KDEuMDI0LCBNYXRoLm1heCgwLCB0aGlzLm1vbnRoc1BsYXllZCkgLyAxMik7CiAgICAgIGxldCBkZW1hbmQgPSAxOwoKICAgICAgaWYgKGtleSA9PT0gJ2xhbmQnKSB7CiAgICAgICAgY29uc3QgZnJlZSA9IHRoaXMubGFuZEZyZWUoKTsKICAgICAgICBkZW1hbmQgPSBmcmVlIDwgMiA/IDEuMTggOiBmcmVlIDwgNSA/IDEuMDggOiAuOTg7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAnaG91c2VzJyB8fCBrZXkgPT09ICd0b3dlcnMnKSB7CiAgICAgICAgY29uc3QgcmF0aW8gPSB0aGlzLmhvdXNpbmdDYXBhY2l0eSgpIC8gTWF0aC5tYXgoMSwgdGhpcy5wb3B1bGF0aW9uKTsKICAgICAgICBkZW1hbmQgPSBjbGFtcCgxICsgKDEuMDggLSByYXRpbykgKiAuNTAsIC44NiwgMS4yNik7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAnc2Nob29scycpIHsKICAgICAgICBkZW1hbmQgPSB0aGlzLnBvcHVsYXRpb24gPCAzNTAgPyAuOTAgOiBjbGFtcCguOTYgKyAoMSAtIHRoaXMuZWR1Y2F0aW9uQ292ZXJhZ2UoKSkgKiAuMTgsIC45MCwgMS4xNyk7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAndW5pdmVyc2l0aWVzJykgewogICAgICAgIGRlbWFuZCA9IHRoaXMucG9wdWxhdGlvbiA8IDE4MDAgPyAuODYgOiBjbGFtcCguOTQgKyAoMSAtIHRoaXMuZWR1Y2F0aW9uQ292ZXJhZ2UoKSkgKiAuMTYsIC44OCwgMS4xNik7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAnc2hvcHMnKSB7CiAgICAgICAgZGVtYW5kID0gY2xhbXAoLjk0ICsgdGhpcy5jb21tZXJjZVV0aWxpemF0aW9uKCkgKiAuMTIsIC45NCwgMS4wOCk7CiAgICAgIH0KCiAgICAgIHJldHVybiBNYXRoLm1heCgxLCBpdGVtLmJhc2UgKiBpbmZsYXRpb24gKiBkZW1hbmQpOwogICAgfQoKICAgIG5vcm1hbGl6ZUxlZ2FjeUFzc2V0UHJpY2VzKCkgewogICAgICAvLyBWZXJzaW9uZW4gYmlzIHYzIGtvbm50ZW4gR2Viw6R1ZGUgZHVyY2ggbW9uYXRsaWNoZXMgQXVmbXVsdGlwbGl6aWVyZW4ga8O8bnN0bGljaCB2ZXJ0ZXVlcm4uCiAgICAgIC8vIE5haHJ1bmcgYmxlaWJ0IGFic2ljaHRsaWNoIHVuYmVyw7xocnQsIHdlaWwgaWhyIE1hcmt0IGVpbmUgZWlnZW5lIFZlcnNvcmd1bmdzbG9naWsgaGF0LgogICAgICBmb3IgKGNvbnN0IGtleSBvZiBPYmplY3Qua2V5cyhJVEVNUykpIHsKICAgICAgICBpZiAoa2V5ID09PSAnZm9vZCcpIGNvbnRpbnVlOwogICAgICAgIGNvbnN0IHRhcmdldCA9IHRoaXMuYXNzZXRUYXJnZXRQcmljZShrZXkpOwogICAgICAgIGNvbnN0IGN1cnJlbnQgPSB0aGlzLm1hcmtldFtrZXldIHx8IElURU1TW2tleV0uYmFzZTsKICAgICAgICB0aGlzLm1hcmtldFtrZXldID0gTWF0aC5tYXgoMSwgTWF0aC5yb3VuZChjbGFtcChjdXJyZW50LCB0YXJnZXQgKiAuODAsIHRhcmdldCAqIDEuMjUpKSk7CiAgICAgIH0KICAgIH0K
+          UPDATE_MARKET_B64: ICAgIHVwZGF0ZU1hcmtldCgpIHsKICAgICAgY29uc3QgZm9vZEluZmxhdGlvbiA9IDEuMDAyICsgTWF0aC5taW4oLjAwOCwgdGhpcy5tb250aHNQbGF5ZWQgKiAuMDAwMDgpOwogICAgICBmb3IgKGNvbnN0IFtrZXksaXRlbV0gb2YgT2JqZWN0LmVudHJpZXMoSVRFTVMpKSB7CiAgICAgICAgaWYgKGtleSAhPT0gJ2Zvb2QnKSB7CiAgICAgICAgICBjb25zdCB0YXJnZXQgPSB0aGlzLmFzc2V0VGFyZ2V0UHJpY2Uoa2V5KTsKICAgICAgICAgIGNvbnN0IGN1cnJlbnQgPSB0aGlzLm1hcmtldFtrZXldIHx8IGl0ZW0uYmFzZTsKICAgICAgICAgIGNvbnN0IG5vcm1hbGl6ZWQgPSBjbGFtcChjdXJyZW50LCB0YXJnZXQgKiAuNzgsIHRhcmdldCAqIDEuMzQpOwogICAgICAgICAgY29uc3Qgbm9pc3lUYXJnZXQgPSB0YXJnZXQgKiAoMSArIChNYXRoLnJhbmRvbSgpIC0gLjUpICogLjAzKTsKICAgICAgICAgIGNvbnN0IG5leHQgPSBub3JtYWxpemVkICsgKG5vaXN5VGFyZ2V0IC0gbm9ybWFsaXplZCkgKiAuMjM7CiAgICAgICAgICB0aGlzLm1hcmtldFtrZXldID0gY2xhbXAoTWF0aC5yb3VuZChuZXh0KSwgTWF0aC5yb3VuZChpdGVtLmJhc2UgKiAuNjApLCBNYXRoLnJvdW5kKGl0ZW0uYmFzZSAqIDEuOTApKTsKICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgIH0KCiAgICAgICAgLy8gTmFocnVuZyBiZWjDpGx0IGRpZSBiZXN0ZWhlbmRlLCBiZXd1c3N0IHZvbGF0aWxlcmUgVmVyc29yZ3VuZ3Nsb2dpay4KICAgICAgICBsZXQgZmFjdG9yID0gZm9vZEluZmxhdGlvbiAqICgwLjk2NSArIE1hdGgucmFuZG9tKCkgKiAuMDcpOwogICAgICAgIGNvbnN0IHByZXNzdXJlID0gdGhpcy5pbnZlbnRvcnkuZm9vZCA8IHRoaXMubW9udGhseUZvb2ROZWVkKCkgKiAxLjUgPyAxLjAzNSA6IC45OTU7CiAgICAgICAgY29uc3Qgc3VwZXJtYXJrZXRSZWxpZWYgPSAxIC0gTWF0aC5taW4oLjAxOCwgdGhpcy5pbnZlbnRvcnkuc3VwZXJtYXJrZXRzICogLjAwMyk7CiAgICAgICAgZmFjdG9yICo9IHByZXNzdXJlICogc3VwZXJtYXJrZXRSZWxpZWY7CiAgICAgICAgdGhpcy5tYXJrZXQuZm9vZCA9IE1hdGgubWF4KDEsIE1hdGgucm91bmQodGhpcy5tYXJrZXQuZm9vZCAqIGZhY3RvcikpOwogICAgICAgIGNvbnN0IGZsb29yID0gTWF0aC5tYXgoMSwgTWF0aC5yb3VuZChpdGVtLmJhc2UgKiAuNTUpKTsKICAgICAgICBjb25zdCBjZWlsaW5nID0gTWF0aC5yb3VuZChpdGVtLmJhc2UgKiAzLjIgKyA1KTsKICAgICAgICB0aGlzLm1hcmtldC5mb29kID0gY2xhbXAodGhpcy5tYXJrZXQuZm9vZCwgZmxvb3IsIGNlaWxpbmcpOwogICAgICB9CiAgICB9Cg==
         run: |
           python3 - <<'PY'
+          import base64, os, re
           from pathlib import Path
           p = Path('BuergermeisterPWA/app.js')
           s = p.read_text()
-
           s = s.replace('version: 3,', 'version: 4,', 1)
           s = s.replace('this.version = 3;', 'this.version = 4;', 1)
           s = s.replace('if (loadedVersion < 3) this.normalizeLegacySupermarketPrice();', 'if (loadedVersion < 4) this.normalizeLegacyAssetPrices();', 1)
-
-          anchor = '''    normalizeLegacySupermarketPrice() {
-      // Alte Spielstände konnten den Supermarktpreis durch monatliches Aufmultiplizieren
-      // stark aufblasen. Nur diesen Preis einmalig auf einen plausiblen Korridor ziehen.
-      const target = this.supermarketTargetPrice();
-      this.market.supermarkets = Math.max(1, Math.round(clamp(this.market.supermarkets, target * .80, target * 1.25)));
-    }
-'''
-          replacement = '''    normalizeLegacySupermarketPrice() {
-      const target = this.supermarketTargetPrice();
-      this.market.supermarkets = Math.max(1, Math.round(clamp(this.market.supermarkets, target * .80, target * 1.25)));
-    }
-
-    assetTargetPrice(key) {
-      const item = ITEMS[key];
-      if (!item || key === 'food') return item ? item.base : 1;
-      if (key === 'supermarkets') return this.supermarketTargetPrice();
-
-      const inflation = Math.pow(1.024, Math.max(0, this.monthsPlayed) / 12);
-      let demand = 1;
-
-      if (key === 'land') {
-        const free = this.landFree();
-        demand = free < 2 ? 1.18 : free < 5 ? 1.08 : .98;
-      } else if (key === 'houses' || key === 'towers') {
-        const ratio = this.housingCapacity() / Math.max(1, this.population);
-        demand = clamp(1 + (1.08 - ratio) * .50, .86, 1.26);
-      } else if (key === 'schools') {
-        demand = this.population < 350 ? .90 : clamp(.96 + (1 - this.educationCoverage()) * .18, .90, 1.17);
-      } else if (key === 'universities') {
-        demand = this.population < 1800 ? .86 : clamp(.94 + (1 - this.educationCoverage()) * .16, .88, 1.16);
-      } else if (key === 'shops') {
-        demand = clamp(.94 + this.commerceUtilization() * .12, .94, 1.08);
-      }
-
-      return Math.max(1, item.base * inflation * demand);
-    }
-
-    normalizeLegacyAssetPrices() {
-      // Versionen bis v3 konnten Gebäude durch monatliches Aufmultiplizieren künstlich verteuern.
-      // Nahrung bleibt absichtlich unberührt, weil ihr Markt eine eigene Versorgungslogik hat.
-      for (const key of Object.keys(ITEMS)) {
-        if (key === 'food') continue;
-        const target = this.assetTargetPrice(key);
-        const current = this.market[key] || ITEMS[key].base;
-        this.market[key] = Math.max(1, Math.round(clamp(current, target * .80, target * 1.25)));
-      }
-    }
-'''
-          if anchor not in s:
-              raise SystemExit('legacy normalization anchor missing')
-          s = s.replace(anchor, replacement, 1)
-
-          start = s.index('    updateMarket() {')
-          end = s.index('\n    incrementDate() {', start)
-          new_market = '''    updateMarket() {
-      const foodInflation = 1.002 + Math.min(.008, this.monthsPlayed * .00008);
-      for (const [key,item] of Object.entries(ITEMS)) {
-        if (key !== 'food') {
-          const target = this.assetTargetPrice(key);
-          const current = this.market[key] || item.base;
-          const normalized = clamp(current, target * .78, target * 1.34);
-          const noisyTarget = target * (1 + (Math.random() - .5) * .03);
-          const next = normalized + (noisyTarget - normalized) * .23;
-          this.market[key] = clamp(Math.round(next), Math.round(item.base * .60), Math.round(item.base * 1.90));
-          continue;
-        }
-
-        // Nahrung behält die bestehende, bewusst volatilere Versorgungslogik.
-        let factor = foodInflation * (0.965 + Math.random() * .07);
-        const pressure = this.inventory.food < this.monthlyFoodNeed() * 1.5 ? 1.035 : .995;
-        const supermarketRelief = 1 - Math.min(.018, this.inventory.supermarkets * .003);
-        factor *= pressure * supermarketRelief;
-        this.market.food = Math.max(1, Math.round(this.market.food * factor));
-        const floor = Math.max(1, Math.round(item.base * .55));
-        const ceiling = Math.round(item.base * 3.2 + 5);
-        this.market.food = clamp(this.market.food, floor, ceiling);
-      }
-    }
-'''
-          s = s[:start] + new_market + s[end:]
-
+          methods = base64.b64decode(os.environ['ASSET_METHODS_B64']).decode()
+          pattern = r"    normalizeLegacySupermarketPrice\(\) \{.*?\n    \}\n\n    log\(text"
+          s, n = re.subn(pattern, methods + '\n    log(text', s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('asset method anchor missing')
+          market = base64.b64decode(os.environ['UPDATE_MARKET_B64']).decode()
+          pattern = r"    updateMarket\(\) \{.*?\n    \}\n\n    incrementDate\(\) \{"
+          s, n = re.subn(pattern, market + '\n    incrementDate() {', s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('updateMarket anchor missing')
           p.write_text(s)
           sw = Path('BuergermeisterPWA/sw.js')
-          t = sw.read_text().replace('buergermeister-1992-plus-v12', 'buergermeister-1992-plus-v13')
-          sw.write_text(t)
+          sw.write_text(sw.read_text().replace('buergermeister-1992-plus-v12', 'buergermeister-1992-plus-v13'))
           PY
 
       - name: Verify implementation
@@ -147,24 +77,17 @@ jobs:
           const store=new Map();
           const ctx={console,Math,Date,Intl,document:{getElementById:()=>({}),createElement:()=>({})},navigator:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},globalThis:null}; ctx.globalThis=ctx;
           vm.createContext(ctx); vm.runInContext(src,ctx); const Game=ctx.__BGM_TEST__.Game;
-
           const legacy=new Game({version:3,monthsPlayed:53,population:165,inventory:{land:7,houses:3,towers:0,schools:0,universities:0,shops:1,supermarkets:0,food:232},market:{land:132,houses:880,towers:8155,schools:3217,universities:13450,shops:1271,supermarkets:8795,food:1}});
           const p=legacy.market;
           if(p.food !== 1) throw new Error('food must not be normalized');
-          if(p.houses > 700) throw new Error('house price still inflated '+p.houses);
-          if(p.towers > 5600) throw new Error('tower price still inflated '+p.towers);
-          if(p.supermarkets > 6000) throw new Error('supermarket price still inflated '+p.supermarkets);
+          if(p.houses > 700 || p.towers > 5600 || p.supermarkets > 6000) throw new Error('runaway prices remain '+JSON.stringify(p));
           if(p.schools > 3300 || p.universities > 13500 || p.shops > 1400 || p.land > 200) throw new Error('asset normalization implausible '+JSON.stringify(p));
-
           const scarce=new Game({version:4,monthsPlayed:53,population:900,inventory:{land:20,houses:14,towers:0,schools:1,universities:0,shops:3,supermarkets:0,food:1000}});
           const roomy=new Game({version:4,monthsPlayed:53,population:400,inventory:{land:20,houses:20,towers:0,schools:1,universities:0,shops:3,supermarkets:0,food:1000}});
           if(!(scarce.assetTargetPrice('houses') > roomy.assetTargetPrice('houses'))) throw new Error('housing scarcity should raise house target');
-
           for(let i=0;i<72;i++){legacy.updateMarket();legacy.monthsPlayed++;}
-          for(const key of ['land','houses','towers','schools','universities','shops','supermarkets']) {
-            if(legacy.market[key] > ITEMS_LIMIT(key)) throw new Error(key+' still drifts too high '+legacy.market[key]);
-          }
-          function ITEMS_LIMIT(key){return ({land:220,houses:800,towers:6500,schools:4500,universities:19000,shops:1700,supermarkets:7200})[key]}
+          const limits={land:220,houses:800,towers:6500,schools:4500,universities:19000,shops:1700,supermarkets:7200};
+          for(const key of Object.keys(limits)) if(legacy.market[key] > limits[key]) throw new Error(key+' still drifts too high '+legacy.market[key]);
           console.log('BUILDING_MARKET_OK',legacy.market);
           NODE
 
