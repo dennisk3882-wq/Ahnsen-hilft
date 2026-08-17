@@ -321,6 +321,23 @@
       return Math.max(0, Math.ceil(pop * this.foodEfficiency()));
     }
 
+    foodExportCapacity() {
+      return Math.max(0, this.inventory.supermarkets * 150);
+    }
+
+    foodExportPreview(allocation = this.foodAllocation) {
+      const selected = clamp(Math.round(Number(allocation) || 0), 0, this.inventory.food);
+      const need = this.monthlyFoodNeed();
+      const consumed = Math.min(selected, need);
+      const offered = Math.max(0, selected - consumed);
+      const capacity = this.foodExportCapacity();
+      const sold = capacity > 0 ? Math.min(offered, capacity) : 0;
+      const retained = Math.max(0, offered - sold);
+      const unitPrice = this.market.food * .65;
+      const revenue = Math.round(sold * unitPrice);
+      return { selected, need, consumed, offered, capacity, sold, retained, unitPrice, revenue };
+    }
+
     retailDemandUnits(pop = this.population) {
       return Math.max(.35, pop / 180);
     }
@@ -529,12 +546,14 @@
       const oldPop = this.population;
       const oldCash = this.cash;
       const foodNeed = this.monthlyFoodNeed();
-      const foodServed = Math.min(this.foodAllocation, this.inventory.food);
+      const foodTrade = this.foodExportPreview(this.foodAllocation);
+      const foodServed = foodTrade.consumed;
       const foodRatio = foodNeed ? foodServed / foodNeed : 1;
-      this.inventory.food -= foodServed;
+      this.inventory.food -= foodTrade.consumed + foodTrade.sold;
 
       const finance = this.forecast();
-      this.cash += finance.balance;
+      const monthBalance = finance.balance + foodTrade.revenue;
+      this.cash += monthBalance;
 
       const housingRatio = this.housingCapacity() / Math.max(1,this.population);
       const employment = this.employmentCoverage();
@@ -546,7 +565,7 @@
       approvalDelta += housingRatio >= 1.08 ? 2 : housingRatio >= 1 ? 0 : -8;
       approvalDelta += employment >= .98 ? 2 : employment >= .82 ? 0 : employment >= .65 ? -4 : -8;
       approvalDelta += education >= .9 ? 2 : education >= .65 ? 0 : this.population > 450 ? -3 : 0;
-      approvalDelta += finance.balance >= 0 ? 1 : -1;
+      approvalDelta += monthBalance >= 0 ? 1 : -1;
       if (this.cash < -5000) approvalDelta -= 2;
       if (finance.utilization < .4 && this.inventory.shops + this.inventory.supermarkets > 2) approvalDelta -= 1;
       this.approval = clamp(this.approval + approvalDelta, 0, 100);
@@ -585,14 +604,16 @@
 
       this.lastSummary = {
         oldPop, newPop:this.population, newcomers, leaving, births,
-        revenue:finance.total, residentRevenue:finance.residents, commerceRevenue:finance.commerce,
+        revenue:finance.total + foodTrade.revenue, residentRevenue:finance.residents, commerceRevenue:finance.commerce,
+        foodExportRevenue:foodTrade.revenue, foodExportSold:foodTrade.sold, foodExportCapacity:foodTrade.capacity, foodRetained:foodTrade.retained,
         maintenance:finance.expenses, building:finance.building, services:finance.services, interest:finance.interest,
         oldCash, newCash:this.cash, foodServed, foodNeed, foodRatio, attractiveness, approvalDelta,
         commerceUtilization: finance.utilization
       };
 
-      this.log(`Monat: ${money(finance.total)} Einnahmen, ${money(finance.expenses)} Kosten, ${newcomers} Zuzüge, ${leaving} Wegzüge.`);
-      if (finance.balance < 0) this.log(`Haushaltsdefizit: ${money(finance.balance)}.`, 'bad');
+      this.log(`Monat: ${money(finance.total + foodTrade.revenue)} Einnahmen, ${money(finance.expenses)} Kosten, ${newcomers} Zuzüge, ${leaving} Wegzüge.`);
+      if (foodTrade.sold > 0) this.log(`Regionalverkauf: ${fmt.format(foodTrade.sold)} Nahrung über Supermärkte verkauft, +${money(foodTrade.revenue)}.`, 'good');
+      if (monthBalance < 0) this.log(`Haushaltsdefizit: ${money(monthBalance)}.`, 'bad');
       if (finance.utilization < .45 && this.inventory.shops + this.inventory.supermarkets > 1) this.log('Gewerbe schwach ausgelastet: zu viele Verkaufsflächen für die Einwohnerzahl.', 'bad');
 
       this.rollEvent();
@@ -1031,7 +1052,11 @@
     if (item.jobs) rows.push(['Arbeitsplätze maximal', `bis zu +${fmt.format(item.jobs)}`]);
     if (item.commerceTax) rows.push(['Gewerbeeinnahmen maximal', `bis zu +${money(item.commerceTax)}/Monat`]);
     if (key === 'food') rows.push(['Kaufmenge', '+100 Einheiten']);
-    if (key === 'supermarkets') rows.push(['Nahrungsbedarf', '-4% je Supermarkt, max. -20%']);
+    if (key === 'supermarkets') {
+      rows.push(['Nahrungsbedarf', '-4% je Supermarkt, max. -20%']);
+      rows.push(['Regionaler Nahrungsverkauf', `bis zu ${fmt.format(g.foodExportCapacity())} Einheiten/Monat aktuell`]);
+      rows.push(['Exportpreis', '65% des aktuellen Nahrungspreises']);
+    }
     if (key === 'universities') rows.push(['Produktivität', '+3% je Universität, max. +18% Uni-Bonus']);
     return rows;
   }
@@ -1044,8 +1069,8 @@
       schools: 'Schulen decken den Bildungsbedarf der Bevölkerung. Gute Bildungsdeckung verbessert Zustimmung, Attraktivität und über die Produktivität auch die Einnahmen.',
       universities: 'Universitäten sind teuer, aber mächtig. Neben 2.200 Bildungsplätzen erhöhen sie die städtische Produktivität um 3 Prozentpunkte je Universität, bis maximal 18% Bonus.',
       shops: 'Geschäfte schaffen bis zu 36 Arbeitsplätze und bis zu 55 $ Gewerbeeinnahmen pro Monat. Diese Werte werden aber mit der Gewerbe-Auslastung multipliziert. Zu viele Geschäfte bei zu wenigen Einwohnern sind deshalb ein Verlustgeschäft.',
-      supermarkets: 'Supermärkte schaffen bis zu 145 Arbeitsplätze und bis zu 220 $ Gewerbeeinnahmen. Zusätzlich verbessert jeder Supermarkt die Lebensmittel-Logistik und senkt den monatlichen Nahrungsbedarf um 4%, maximal um 20%. Auch hier entscheidet die Kundennachfrage über die tatsächliche Leistung.',
-      food: 'Jeden Monat muss ausreichend Nahrung zugeteilt werden. Eine Einheit steht für einen standardisierten Warenkorb; der Grundbedarf liegt bei rund 0,68 Einheiten je Einwohner und Monat. Supermärkte senken Logistikverluste zusätzlich. Unterversorgung drückt die Zustimmung, führt zu Wegzug und kann das Spiel beenden.'
+      supermarkets: 'Supermärkte schaffen bis zu 145 Arbeitsplätze und bis zu 220 $ Gewerbeeinnahmen. Zusätzlich verbessert jeder Supermarkt die Lebensmittel-Logistik und senkt den monatlichen Nahrungsbedarf um 4%, maximal um 20%. Jeder Supermarkt kann außerdem bis zu 150 überschüssige Nahrungseinheiten pro Monat regional vermarkten. Dafür werden 65% des aktuellen Nahrungspreises erzielt. Auch hier entscheidet die Kundennachfrage über die normale Gewerbeleistung.',
+      food: 'Jeden Monat muss ausreichend Nahrung zugeteilt werden. Eine Einheit steht für einen standardisierten Warenkorb; der Grundbedarf liegt bei rund 0,68 Einheiten je Einwohner und Monat. Supermärkte senken Logistikverluste zusätzlich. Stellst du mehr als den Einwohnerbedarf bereit, kann der Überschuss über vorhandene Supermärkte regional verkauft werden. Nicht verkaufte Überschüsse bleiben im Lager. Unterversorgung drückt die Zustimmung, führt zu Wegzug und kann das Spiel beenden.'
     };
     return texts[key] || ITEMS[key].short;
   }
@@ -1088,12 +1113,14 @@
         <div class="live-forecast-grid">
           <div><span>Einwohnersteuer</span><b id="liveResidentTax">+${money(baseForecast.residents)}</b></div>
           <div><span>Steuereffekt</span><b id="liveTaxDelta">±0 $</b></div>
+          <div><span>Regionalverkauf</span><b id="liveFoodExport">+0 $</b></div>
+          <div><span>Überschuss</span><b id="liveFoodSurplus">0 / ${fmt.format(g.foodExportCapacity())}</b></div>
           <div><span>Operativer Saldo</span><b id="liveOperating">${money(baseForecast.balance)}</b></div>
-          <div><span>Versorgung</span><b id="liveFoodCoverage">${foodNeed ? Math.round(defaultFood/foodNeed*100) : 100}%</b></div>
+          <div><span>Versorgung</span><b id="liveFoodCoverage">${foodNeed ? Math.min(100, Math.round(defaultFood/foodNeed*100)) : 100}%</b></div>
         </div>
       </div>
       <div class="field"><label>Wohnsteuer: <b id="taxOut">${g.taxRate}%</b></label><input id="tax" type="range" min="0" max="30" value="${g.taxRate}"><div class="hint">Der Saldo oben wird live neu berechnet. Höhere Steuern bringen sofort mehr Einnahmen, senken aber Attraktivität und Zustimmung.</div></div>
-      <div class="field"><label>Nahrung für Einwohner: <b id="foodOut">${fmt.format(defaultFood)}</b></label><input id="food" type="range" min="0" max="${maxFood}" value="${defaultFood}"><div class="hint">Bedarf aktuell ungefähr ${fmt.format(foodNeed)} Einheiten. Die Versorgungsquote oben reagiert ebenfalls live.</div></div>
+      <div class="field"><label>Nahrung für Einwohner: <b id="foodOut">${fmt.format(defaultFood)}</b></label><input id="food" type="range" min="0" max="${maxFood}" value="${defaultFood}"><div class="hint">Bedarf aktuell ungefähr ${fmt.format(foodNeed)} Einheiten. Mehr bereitgestellte Nahrung wird bei vorhandenen Supermärkten bis zur Absatzgrenze regional verkauft; der Rest bleibt im Lager.</div></div>
       <div class="field"><label>Maximal aufzunehmende Zuzügler</label><input id="admit" type="number" min="0" max="5000" value="${defaultAdmit}"><div class="hint">Neue Einwohner wirken erst ab dem Folgemonat auf die Steuereinnahmen. Das Limit beeinflusst deshalb den aktuellen Saldo nicht künstlich.</div></div>
       <div class="two-col"><button class="btn" id="cancelMonth">ABBRECHEN</button><button class="btn primary" id="confirmMonth">MONAT BERECHNEN</button></div>
     </div>`;
@@ -1108,6 +1135,8 @@
     const taxDeltaOut=overlay.querySelector('#liveTaxDelta');
     const operatingOut=overlay.querySelector('#liveOperating');
     const foodCoverageOut=overlay.querySelector('#liveFoodCoverage');
+    const foodExportOut=overlay.querySelector('#liveFoodExport');
+    const foodSurplusOut=overlay.querySelector('#liveFoodSurplus');
 
     const liveProjection = () => {
       const selectedTax = clamp(Number(tax.value) || 0, 0, 30);
@@ -1115,17 +1144,22 @@
       const employment = clamp(g.employmentCoverage(), 0, 1);
       const taxableFactor = .58 + employment * .42;
       const residentTax = Math.round(g.population * taxableFactor * (selectedTax / 100) * 13.5 * g.productivityFactor());
-      const totalRevenue = residentTax + baseForecast.commerce;
+      const exportTrade = g.foodExportPreview(selectedFood);
+      const totalRevenue = residentTax + baseForecast.commerce + exportTrade.revenue;
       const operatingBalance = totalRevenue - baseForecast.expenses;
       const sustainableBalance = operatingBalance - baseForecast.foodProvision;
       const taxDelta = residentTax - baseForecast.residents;
-      const coverage = foodNeed ? Math.round(selectedFood / foodNeed * 100) : 100;
+      const coverage = foodNeed ? Math.min(100, Math.round(exportTrade.consumed / foodNeed * 100)) : 100;
 
       taxOut.textContent = `${selectedTax}%`;
       foodOut.textContent = fmt.format(Math.round(selectedFood));
       residentTaxOut.textContent = `+${money(residentTax)}`;
       taxDeltaOut.textContent = taxDelta === 0 ? '±0 $' : `${taxDelta > 0 ? '+' : ''}${money(taxDelta)}`;
       taxDeltaOut.className = taxDelta > 0 ? 'good' : taxDelta < 0 ? 'bad' : '';
+      foodExportOut.textContent = `+${money(exportTrade.revenue)}`;
+      foodExportOut.className = exportTrade.revenue > 0 ? 'good' : '';
+      foodSurplusOut.textContent = `${fmt.format(exportTrade.sold)} / ${fmt.format(exportTrade.capacity)}`;
+      foodSurplusOut.className = exportTrade.sold > 0 ? 'good' : '';
       operatingOut.textContent = money(operatingBalance);
       operatingOut.className = operatingBalance >= 0 ? 'good' : 'bad';
       saldoOut.textContent = money(sustainableBalance);
@@ -1151,6 +1185,7 @@
       <div class="month-summary">
         <div class="summary-row"><span>Einwohnersteuern</span><b class="good">+${money(s.residentRevenue)}</b></div>
         <div class="summary-row"><span>Gewerbe</span><b class="good">+${money(s.commerceRevenue)}</b></div>
+        ${s.foodExportRevenue?`<div class="summary-row"><span>Nahrungs-Regionalverkauf (${fmt.format(s.foodExportSold)} Einh.)</span><b class="good">+${money(s.foodExportRevenue)}</b></div>`:''}
         <div class="summary-row"><span>Gebäude</span><b class="bad">-${money(s.building)}</b></div>
         <div class="summary-row"><span>Städtische Dienste</span><b class="bad">-${money(s.services)}</b></div>
         ${s.interest?`<div class="summary-row"><span>Schuldzinsen</span><b class="bad">-${money(s.interest)}</b></div>`:''}
@@ -1222,7 +1257,7 @@
       <p><b>Gewerbe:</b> Geschäfte und Supermärkte funktionieren nicht automatisch mit voller Leistung. Zu viele Verkaufsflächen bei zu wenigen Einwohnern bedeuten geringe Auslastung, weniger Jobs und weniger Gewerbeeinnahmen.</p>
       <p><b>Finanzen:</b> Einnahmen hängen von Beschäftigung, Steuersatz, Gewerbeauslastung und Produktivität ab. Gebäude, Einwohner und Schulden verursachen laufende Kosten.</p>
       <p><b>Bildung:</b> Schulen und Universitäten werden bei größerer Bevölkerung wichtig. Gute Bildungsdeckung stabilisiert die Stadt; Universitäten steigern zusätzlich die Produktivität.</p>
-      <p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik.</p>
+      <p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik. Überschüssig bereitgestellte Nahrung kann über Supermärkte regional verkauft werden: bis zu 150 Einheiten je Supermarkt und Monat zu 65% des aktuellen Nahrungspreises. Nicht verkaufte Überschüsse bleiben im Lager.</p>
       <p><b>Verlieren:</b> Drei Monate tiefe Überschuldung, dauerhaft extrem schlechte Zustimmung, eine schwere Versorgungskrise oder eine fast entvölkerte Stadt beenden die Amtszeit.</p>
       <p><b>Info-Fenster:</b> Tippe im Markt auf das <b>i</b>, den Namen eines Gebäudes oder direkt auf ein Gebäude im Stadtbild. Dort siehst du die konkreten Auswirkungen und eine Einschätzung für deine aktuelle Stadt.</p>
       <button class="btn" id="backBtn" style="width:100%">ZURÜCK</button></div></section>`;
