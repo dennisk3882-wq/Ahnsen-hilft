@@ -1076,21 +1076,68 @@
 
   function openMonthModal(g) {
     const maxFood = g.inventory.food;
-    const defaultFood = Math.min(maxFood, g.monthlyFoodNeed());
+    const foodNeed = g.monthlyFoodNeed();
+    const defaultFood = Math.min(maxFood, foodNeed);
     const defaultAdmit = Math.max(0, Math.min(1000, g.housingCapacity()-g.population));
-    const f = g.forecast();
+    const baseForecast = g.forecast();
     const overlay = document.createElement('div'); overlay.className='modal-backdrop';
-    overlay.innerHTML = `<div class="modal"><div class="hint">MONATSENDE ${String(g.month).padStart(2,'0')}/${g.year}</div><h2>Entscheidungen des Bürgermeisters</h2>
-      <div class="decision-forecast ${f.sustainableBalance<0?'negative':'positive'}">Saldo nach laufender Versorgung: <b>${money(f.sustainableBalance)}</b></div>
-      <div class="field"><label>Wohnsteuer: <b id="taxOut">${g.taxRate}%</b></label><input id="tax" type="range" min="0" max="30" value="${g.taxRate}"><div class="hint">Niedrige Steuern fördern Zuzug; hohe Steuern erhöhen Einnahmen, kosten aber Zustimmung.</div></div>
-      <div class="field"><label>Nahrung für Einwohner: <b id="foodOut">${fmt.format(defaultFood)}</b></label><input id="food" type="range" min="0" max="${maxFood}" value="${defaultFood}"><div class="hint">Bedarf aktuell ungefähr ${fmt.format(g.monthlyFoodNeed())} Einheiten. Supermärkte sind bereits berücksichtigt.</div></div>
-      <div class="field"><label>Maximal aufzunehmende Zuzügler</label><input id="admit" type="number" min="0" max="5000" value="${defaultAdmit}"><div class="hint">Ein Limit schützt dich davor, schneller zu wachsen als Versorgung und Arbeitsmarkt verkraften.</div></div>
+    overlay.innerHTML = `<div class="modal month-decision-modal"><div class="hint">MONATSENDE ${String(g.month).padStart(2,'0')}/${g.year}</div><h2>Entscheidungen des Bürgermeisters</h2>
+      <div class="decision-forecast ${baseForecast.sustainableBalance<0?'negative':'positive'}" id="liveForecastBox">
+        <div class="decision-forecast-label">Voraussichtlicher Saldo nach Versorgung</div>
+        <b class="decision-forecast-value" id="liveSaldo">${money(baseForecast.sustainableBalance)}</b>
+        <div class="live-forecast-grid">
+          <div><span>Einwohnersteuer</span><b id="liveResidentTax">+${money(baseForecast.residents)}</b></div>
+          <div><span>Steuereffekt</span><b id="liveTaxDelta">±0 $</b></div>
+          <div><span>Operativer Saldo</span><b id="liveOperating">${money(baseForecast.balance)}</b></div>
+          <div><span>Versorgung</span><b id="liveFoodCoverage">${foodNeed ? Math.round(defaultFood/foodNeed*100) : 100}%</b></div>
+        </div>
+      </div>
+      <div class="field"><label>Wohnsteuer: <b id="taxOut">${g.taxRate}%</b></label><input id="tax" type="range" min="0" max="30" value="${g.taxRate}"><div class="hint">Der Saldo oben wird live neu berechnet. Höhere Steuern bringen sofort mehr Einnahmen, senken aber Attraktivität und Zustimmung.</div></div>
+      <div class="field"><label>Nahrung für Einwohner: <b id="foodOut">${fmt.format(defaultFood)}</b></label><input id="food" type="range" min="0" max="${maxFood}" value="${defaultFood}"><div class="hint">Bedarf aktuell ungefähr ${fmt.format(foodNeed)} Einheiten. Die Versorgungsquote oben reagiert ebenfalls live.</div></div>
+      <div class="field"><label>Maximal aufzunehmende Zuzügler</label><input id="admit" type="number" min="0" max="5000" value="${defaultAdmit}"><div class="hint">Neue Einwohner wirken erst ab dem Folgemonat auf die Steuereinnahmen. Das Limit beeinflusst deshalb den aktuellen Saldo nicht künstlich.</div></div>
       <div class="two-col"><button class="btn" id="cancelMonth">ABBRECHEN</button><button class="btn primary" id="confirmMonth">MONAT BERECHNEN</button></div>
     </div>`;
     document.body.appendChild(overlay);
-    const tax=overlay.querySelector('#tax'), food=overlay.querySelector('#food');
-    tax.oninput=()=>overlay.querySelector('#taxOut').textContent=`${tax.value}%`;
-    food.oninput=()=>overlay.querySelector('#foodOut').textContent=fmt.format(Number(food.value));
+    const tax=overlay.querySelector('#tax');
+    const food=overlay.querySelector('#food');
+    const taxOut=overlay.querySelector('#taxOut');
+    const foodOut=overlay.querySelector('#foodOut');
+    const forecastBox=overlay.querySelector('#liveForecastBox');
+    const saldoOut=overlay.querySelector('#liveSaldo');
+    const residentTaxOut=overlay.querySelector('#liveResidentTax');
+    const taxDeltaOut=overlay.querySelector('#liveTaxDelta');
+    const operatingOut=overlay.querySelector('#liveOperating');
+    const foodCoverageOut=overlay.querySelector('#liveFoodCoverage');
+
+    const liveProjection = () => {
+      const selectedTax = clamp(Number(tax.value) || 0, 0, 30);
+      const selectedFood = clamp(Number(food.value) || 0, 0, maxFood);
+      const employment = clamp(g.employmentCoverage(), 0, 1);
+      const taxableFactor = .58 + employment * .42;
+      const residentTax = Math.round(g.population * taxableFactor * (selectedTax / 100) * 13.5 * g.productivityFactor());
+      const totalRevenue = residentTax + baseForecast.commerce;
+      const operatingBalance = totalRevenue - baseForecast.expenses;
+      const sustainableBalance = operatingBalance - baseForecast.foodProvision;
+      const taxDelta = residentTax - baseForecast.residents;
+      const coverage = foodNeed ? Math.round(selectedFood / foodNeed * 100) : 100;
+
+      taxOut.textContent = `${selectedTax}%`;
+      foodOut.textContent = fmt.format(Math.round(selectedFood));
+      residentTaxOut.textContent = `+${money(residentTax)}`;
+      taxDeltaOut.textContent = taxDelta === 0 ? '±0 $' : `${taxDelta > 0 ? '+' : ''}${money(taxDelta)}`;
+      taxDeltaOut.className = taxDelta > 0 ? 'good' : taxDelta < 0 ? 'bad' : '';
+      operatingOut.textContent = money(operatingBalance);
+      operatingOut.className = operatingBalance >= 0 ? 'good' : 'bad';
+      saldoOut.textContent = money(sustainableBalance);
+      forecastBox.classList.toggle('positive', sustainableBalance >= 0);
+      forecastBox.classList.toggle('negative', sustainableBalance < 0);
+      foodCoverageOut.textContent = `${coverage}%`;
+      foodCoverageOut.className = coverage >= 100 ? 'good' : coverage >= 90 ? 'warn' : 'bad';
+    };
+
+    tax.addEventListener('input', liveProjection);
+    food.addEventListener('input', liveProjection);
+    liveProjection();
     overlay.querySelector('#cancelMonth').onclick=()=>overlay.remove();
     overlay.querySelector('#confirmMonth').onclick=()=>{
       const settings={taxRate:tax.value,foodAllocation:food.value,admitLimit:overlay.querySelector('#admit').value}; overlay.remove(); g.advanceMonth(settings);

@@ -457,3 +457,21 @@ button { touch-action: manipulation; }
   .sticky-month-btn { font-size:.57rem; }
   .sticky-plan b { font-size:.58rem; }
 }
+
+
+/* Bürgermeister live month forecast v1 */
+.month-decision-modal { width:min(100%,680px); }
+.decision-forecast { padding:10px 12px !important; }
+.decision-forecast-label { color:#9eb5df; font-size:.64rem; text-transform:uppercase; letter-spacing:.04em; }
+.decision-forecast-value { display:block; margin:3px 0 9px; font-size:1.28rem; color:#fff0bc; }
+.decision-forecast.positive .decision-forecast-value { color:var(--good); }
+.decision-forecast.negative .decision-forecast-value { color:var(--bad); }
+.live-forecast-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; }
+.live-forecast-grid > div { min-width:0; padding:6px 7px; border:1px solid #4969a7; background:rgba(7,16,40,.34); }
+.live-forecast-grid span { display:block; color:#819aca; font-size:.54rem; }
+.live-forecast-grid b { display:block; margin-top:2px; color:#fff1c1; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media(max-width:520px){
+  .month-decision-modal { max-height:calc(100dvh - 24px); overflow:auto; }
+  .live-forecast-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .decision-forecast-value { font-size:1.12rem; }
+}
