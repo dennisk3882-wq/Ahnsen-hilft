@@ -35,6 +35,15 @@ jobs:
           s=p.read_text()
           s=s.replace('pattern=r"function load\\(seed\\)\\{[\\s\\S]*?return c\\.__T;\\}"', 'pattern=r"function load\\(seed\\)\\s*\\{[\\s\\S]*?\\n\\}"')
           s=s.replace('pattern=r"function engine\\(seed\\)\\{[\\s\\S]*?return c\\.__TEST__;\\n\\}"', 'pattern=r"function engine\\(seed\\)\\s*\\{[\\s\\S]*?\\n\\}"')
+          old="""engine_block = engine_block.replace('saveGame(this); renderGame(this, true);', "globalThis.BGM_HOOKS?.save?.(this); globalThis.BGM_HOOKS?.render?.(this, true);")
+          engine_block = engine_block.replace('saveGame(this); renderGame(this);', "globalThis.BGM_HOOKS?.save?.(this); globalThis.BGM_HOOKS?.render?.(this);")
+          engine_block = engine_block.replace('addScore(this);', "globalThis.BGM_HOOKS?.score?.(this);")"""
+          new="""engine_block = re.sub(r'saveGame\\(this\\);', "globalThis.BGM_HOOKS?.save?.(this);", engine_block)
+          engine_block = re.sub(r'renderGame\\(this,\\s*true\\);', "globalThis.BGM_HOOKS?.render?.(this, true);", engine_block)
+          engine_block = re.sub(r'renderGame\\(this\\);', "globalThis.BGM_HOOKS?.render?.(this);", engine_block)
+          engine_block = re.sub(r'addScore\\(this\\);', "globalThis.BGM_HOOKS?.score?.(this);", engine_block)"""
+          if old not in s: raise SystemExit('engine hook migration block missing')
+          s=s.replace(old,new)
           p.write_text(s)
           PY
           python3 -m py_compile /tmp/bgm_full_polish.py
@@ -64,7 +73,7 @@ jobs:
           rm -f .github/scripts/bgm_patch.part1 .github/scripts/bgm_patch.part2 .github/scripts/bgm_patch.part3 .github/scripts/bgm_patch.part4
           rm -f .github/workflows/bgm-full-polish-once.yml
           git config user.name 'github-actions[bot]'
-          git config user.email '4189827+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'Complete Bürgermeister gameplay and quality overhaul'
           git push origin HEAD:main
