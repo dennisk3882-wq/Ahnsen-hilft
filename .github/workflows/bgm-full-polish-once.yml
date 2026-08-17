@@ -66,14 +66,16 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.55.0
           npx playwright install chromium
           node tests/e2e.mjs
-      - name: Commit verified release
+      - name: Commit verified game release
         shell: bash
         run: |
           set -euo pipefail
+          # Workflow-Dateien werden separat über die GitHub-Verbindung gepflegt.
+          # So verhindert GitHubs Workflow-Schutz keinen bereits vollständig geprüften Spiel-Commit.
+          git restore --source=HEAD -- .github/workflows
           rm -f .github/scripts/bgm_patch.part1 .github/scripts/bgm_patch.part2 .github/scripts/bgm_patch.part3 .github/scripts/bgm_patch.part4
-          rm -f .github/workflows/bgm-full-polish-once.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add BuergermeisterPWA .github/scripts
           git commit -m 'Complete Bürgermeister gameplay and quality overhaul'
           git push origin HEAD:main
