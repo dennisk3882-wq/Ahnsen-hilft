@@ -1,0 +1,17 @@
+/* Bürgermeister reference-grade raster artwork v22 */
+.city-scene{aspect-ratio:1.445!important;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important;overflow:hidden!important}
+.city-stage-kuhdorf{background-image:url("assets/v22-stage-kuhdorf.webp")!important}
+.city-scene-image{opacity:0!important;pointer-events:none!important}
+.market-icon-button,.market-icon-button .market-icon{width:78px!important;height:78px!important}
+.market-icon-frame{width:72px!important;height:72px!important;border-radius:50%!important;overflow:hidden!important;background-image:url("assets/v22-icons-sheet.webp")!important;background-repeat:no-repeat!important;background-size:405.44px 304.08px!important;border:1px solid rgba(75,224,238,.95)!important;box-shadow:0 0 0 3px rgba(31,105,129,.38),0 0 20px rgba(52,221,236,.42),0 10px 20px rgba(0,0,0,.42)!important}
+.market-icon-frame::before,.market-icon-frame svg{display:none!important}
+.market-icon-land .market-icon-frame{background-position:-9.8px -40.6px!important}
+.market-icon-houses .market-icon-frame{background-position:-85.4px -40.6px!important}
+.market-icon-towers .market-icon-frame{background-position:-161px -39.2px!important}
+.market-icon-schools .market-icon-frame{background-position:-233.8px -40.6px!important}
+.market-icon-universities .market-icon-frame{background-position:-309.4px -40.6px!important}
+.market-icon-shops .market-icon-frame{background-position:-9.8px -124.6px!important}
+.market-icon-supermarkets .market-icon-frame{background-position:-85.4px -124.6px!important}
+.market-icon-food .market-icon-frame{background-position:-161px -124.6px!important}
+.market-info-dot{z-index:9!important}
+@media(max-width:520px){.market-icon-button,.market-icon-button .market-icon{width:70px!important;height:70px!important}.market-icon-frame{width:66px!important;height:66px!important;background-size:371.6px 278.7px!important}.market-icon-land .market-icon-frame{background-position:-9px -37.2px!important}.market-icon-houses .market-icon-frame{background-position:-78.3px -37.2px!important}.market-icon-towers .market-icon-frame{background-position:-147.6px -35.9px!important}.market-icon-schools .market-icon-frame{background-position:-214.3px -37.2px!important}.market-icon-universities .market-icon-frame{background-position:-283.6px -37.2px!important}.market-icon-shops .market-icon-frame{background-position:-9px -114.2px!important}.market-icon-supermarkets .market-icon-frame{background-position:-78.3px -114.2px!important}.market-icon-food .market-icon-frame{background-position:-147.6px -114.2px!important}}
