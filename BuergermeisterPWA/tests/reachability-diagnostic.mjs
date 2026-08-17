@@ -8,15 +8,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 function rng(seed){ let a=seed>>>0; return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}; }
 
 function engine(seed){
-  let s=fs.readFileSync(path.join(ROOT,'app.js'),'utf8');
-  s=s.replace("const app = document.getElementById('app');",'const app = null;');
-  s=s.replace(/saveGame\(this\);\s*renderGame\(this(?:,\s*true)?\);/g,';');
-  s=s.replace(/addScore\(this\);/g,';');
-  s=s.replace(/\s*if \('serviceWorker' in navigator\)[\s\S]*?\s*renderHome\(\);\s*\}\)\(\);\s*$/,"\n  globalThis.__TEST__={Game,ITEMS};\n})();\n");
+  const s=fs.readFileSync(path.join(ROOT,'game-engine.js'),'utf8');
   const m=Object.create(Math); m.random=rng(seed);
-  const c=vm.createContext({console,Intl,Date,Math:m});
+  const c=vm.createContext({console,Intl,Date,Math:m,BGM_HOOKS:{save(){},render(){},score(){}}});
   vm.runInContext(s,c,{timeout:3000});
-  return c.__TEST__;
+  return c.BGM_ENGINE;
 }
 
 function buy(g,key,reserve=0,max=1){let n=0;while(n<max&&g.canBuy(key)){const cost=g.market[key]*(key==='food'?100:1);if(g.cash-cost<reserve)break;g.buy(key);n++;}return n;}
@@ -57,7 +53,7 @@ function policy(g,objective){
     else break;
   }
 
-  if(g.population>430&&g.educationCoverage()<.70&&g.cash>reserve+250){
+  if(g.population>430&&g.educationCoverage()<.78&&g.cash>reserve+250){
     if(g.population>4200&&g.cash>reserve+g.market.universities) buy(g,'universities',reserve,1);
     else buy(g,'schools',reserve,1);
   }

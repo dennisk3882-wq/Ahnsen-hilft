@@ -475,3 +475,13 @@ button { touch-action: manipulation; }
   .live-forecast-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .decision-forecast-value { font-size:1.12rem; }
 }
+
+
+/* Bürgermeister full polish v15 */
+html,body{overflow-x:hidden}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.save-tools,.backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.backup-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.term-report{margin:14px 0;padding:12px;border:2px solid #6f8fd2;background:#0d1a3d;text-align:left}.term-report h2{margin:0 0 10px;text-align:center}.term-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.term-grid>div{display:flex;justify-content:space-between;gap:10px;background:#101e47;padding:7px}.election-result{font-size:1.25rem;font-weight:bold;text-align:center;margin-top:12px;padding:8px;border-top:1px dashed #6f8fd2}
+.live-forecast-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.city-stage-kuhdorf .city-scene-image,.city-stage-dorf .city-scene-image,.city-stage-grosses-dorf .city-scene-image,.city-stage-kleinstadt .city-scene-image,.city-stage-stadt .city-scene-image,.city-stage-grossstadt .city-scene-image,.city-stage-moderne-stadt .city-scene-image,.city-stage-metropole .city-scene-image{image-rendering:auto}
+@media(max-width:600px){.save-tools,.backup-grid,.term-grid{grid-template-columns:1fr}.live-forecast-grid{grid-template-columns:1fr 1fr}.market-row,.compact-market-row{min-width:0}.market-copy{min-width:0}.market-title-line{min-width:0}.market-effect{white-space:normal}}

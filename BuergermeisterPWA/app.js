@@ -3,6 +3,7 @@
 
   const SAVE_KEY = 'buergermeister1992plus.save.v1';
   const SCORE_KEY = 'buergermeister1992plus.scores.v1';
+  const BACKUP_KEY = 'buergermeister1992plus.backups.v1';
   const app = document.getElementById('app');
   const fmt = new Intl.NumberFormat('de-DE');
   const money = n => `${n < 0 ? '-' : ''}${fmt.format(Math.abs(Math.round(n)))} $`;
@@ -83,669 +84,14 @@
       <ol class="install-steps">${steps.map(step => `<li>${step}</li>`).join('')}</ol>
       <button class="btn primary center" id="installHelpClose" style="width:100%">VERSTANDEN</button>
     </div>`;
-    document.body.appendChild(overlay);
+    document.body.appendChild(overlay); enhanceDialog(overlay);
     const close = () => overlay.remove();
     overlay.querySelector('.icon-close').onclick = close;
     overlay.querySelector('#installHelpClose').onclick = close;
     overlay.onclick = e => { if (e.target === overlay) close(); };
   }
 
-  const ITEMS = {
-    land: {
-      name: 'Land', base: 120, min: 1, maintenance: 0, sell: .74, unit: 'Acker', footprint: 0,
-      short: 'Baufläche für die weitere Stadtentwicklung.'
-    },
-    houses: {
-      name: 'Haus', base: 430, min: 0, maintenance: 9, sell: .68, capacity: 55, footprint: 1,
-      short: 'Schafft 55 Wohnplätze und ermöglicht Zuzug.'
-    },
-    towers: {
-      name: 'Hochhaus', base: 3600, min: 0, maintenance: 92, sell: .66, capacity: 420, footprint: 2,
-      short: 'Viel Wohnraum auf wenig Land, aber hoher Unterhalt.'
-    },
-    schools: {
-      name: 'Schule', base: 2500, min: 0, maintenance: 120, sell: .63, service: 320, footprint: 3,
-      short: 'Versorgt bis zu 320 Einwohner mit Bildungsinfrastruktur.'
-    },
-    universities: {
-      name: 'Universität', base: 11200, min: 0, maintenance: 490, sell: .61, service: 2200, footprint: 8,
-      short: 'Große Bildungsreserve und Produktivitätsschub für die Stadt.'
-    },
-    shops: {
-      name: 'Geschäft', base: 900, min: 0, maintenance: 28, sell: .69, jobs: 36, footprint: 1,
-      commerceTax: 55, demandPop: 180,
-      short: 'Schafft Arbeitsplätze und Gewerbeeinnahmen – wenn genügend Kunden da sind.'
-    },
-    supermarkets: {
-      name: 'Supermarkt', base: 4300, min: 0, maintenance: 135, sell: .65, jobs: 145, footprint: 3,
-      commerceTax: 220, demandPop: 850,
-      short: 'Großer Arbeitgeber, Gewerbesteuer und bessere Lebensmittelversorgung.'
-    },
-    food: {
-      name: 'Nahrung', base: 2, min: 0, maintenance: 0, sell: .45, unit: 'Einheiten', tradeQty: 100, footprint: 0,
-      short: 'Wird monatlich verbraucht. Versorgungsausfälle sind sehr gefährlich.'
-    }
-  };
-
-  const CITY_LEVELS = [
-    [0, 'Letztes Kuhdorf'], [350, 'Dorf'], [900, 'Großes Dorf'], [1800, 'Kleinstadt'],
-    [4000, 'Stadt'], [7500, 'Großstadt'], [12000, 'Moderne Stadt'], [22000, 'Metropole']
-  ];
-
-
-
-  const CITY_STAGE_ORDER = ['Letztes Kuhdorf', 'Dorf', 'Großes Dorf', 'Kleinstadt', 'Stadt', 'Großstadt', 'Moderne Stadt', 'Metropole'];
-  const CITY_STAGE_IMAGES = {
-    kuhdorf: 'assets/stage-kuhdorf.webp',
-    dorf: 'assets/stage-dorf.webp',
-    kleinstadt: 'assets/stage-kleinstadt.webp',
-    stadt: 'assets/stage-stadt.webp',
-    modern: 'assets/stage-modern.webp'
-  };
-  const CITY_PROMOTIONS = {
-    'Dorf': { cash: 450, title: 'Anerkennung als Dorf', subject: 'Landesamt für Kommunalentwicklung' },
-    'Großes Dorf': { cash: 700, title: 'Förderung für wachsendes Dorf', subject: 'Regionale Entwicklungsstelle' },
-    'Kleinstadt': { cash: 1200, title: 'Aufstufung zur Kleinstadt', subject: 'Niedersächsisches Innenministerium' },
-    'Stadt': { cash: 1800, title: 'Offizieller Stadtstatus', subject: 'Ministerium für Landesentwicklung' },
-    'Großstadt': { cash: 3000, title: 'Starthilfe für die Großstadt', subject: 'Landesdirektion Kommunen' },
-    'Moderne Stadt': { cash: 5000, title: 'Zukunftsprogramm Moderne Stadt', subject: 'Bundesförderung Zukunft Kommunen' },
-    'Metropole': { cash: 9000, title: 'Metropolenförderung', subject: 'Bundeskanzleramt · Kommunale Sondermittel' }
-  };
-  const CITY_HOTSPOTS = {
-    kuhdorf: [
-      { key:'houses', left:5, top:25, width:17, height:19 },
-      { key:'houses', left:25, top:25, width:16, height:19 },
-      { key:'shops', left:52, top:27, width:16, height:15 },
-      { key:'land', left:72, top:22, width:22, height:24 },
-      { key:'land', left:7, top:48, width:29, height:30 },
-      { key:'land', left:55, top:48, width:34, height:30 }
-    ],
-    dorf: [
-      { key:'houses', left:4, top:22, width:11, height:15 },
-      { key:'houses', left:17, top:22, width:12, height:15 },
-      { key:'houses', left:31, top:22, width:11, height:15 },
-      { key:'shops', left:47, top:23, width:14, height:14 },
-      { key:'schools', left:77, top:22, width:13, height:15 },
-      { key:'houses', left:6, top:52, width:12, height:17 },
-      { key:'houses', left:76, top:52, width:12, height:17 },
-      { key:'land', left:35, top:46, width:28, height:22 }
-    ],
-    kleinstadt: [
-      { key:'houses', left:4, top:14, width:10, height:12 },
-      { key:'houses', left:16, top:14, width:12, height:12 },
-      { key:'shops', left:4, top:35, width:18, height:16 },
-      { key:'shops', left:28, top:37, width:10, height:10 },
-      { key:'shops', left:40, top:37, width:10, height:10 },
-      { key:'supermarkets', left:52, top:37, width:10, height:10 },
-      { key:'schools', left:64, top:14, width:18, height:14 },
-      { key:'houses', left:5, top:58, width:15, height:14 },
-      { key:'houses', left:24, top:58, width:15, height:14 },
-      { key:'houses', left:43, top:58, width:15, height:14 },
-      { key:'shops', left:76, top:54, width:15, height:14 }
-    ],
-    stadt: [
-      { key:'towers', left:3, top:14, width:15, height:23 },
-      { key:'schools', left:41, top:14, width:20, height:23 },
-      { key:'schools', left:73, top:13, width:14, height:25 },
-      { key:'shops', left:39, top:49, width:24, height:17 },
-      { key:'supermarkets', left:68, top:56, width:10, height:10 },
-      { key:'houses', left:8, top:61, width:18, height:13 },
-      { key:'houses', left:28, top:60, width:11, height:14 }
-    ],
-    modern: [
-      { key:'schools', left:40, top:16, width:21, height:16 },
-      { key:'shops', left:22, top:37, width:13, height:12 },
-      { key:'shops', left:72, top:33, width:16, height:16 },
-      { key:'universities', left:4, top:61, width:22, height:16 },
-      { key:'supermarkets', left:65, top:59, width:19, height:16 },
-      { key:'towers', left:2, top:8, width:17, height:22 },
-      { key:'towers', left:78, top:5, width:17, height:23 }
-    ]
-  };
-
-  const EVENTS = [
-    { minPop:0, apply:g => { g.market.food = Math.max(1, Math.floor(g.market.food * .72)); g.log('Gute Ernte: Nahrung ist billiger geworden.', 'good'); } },
-    { minPop:250, apply:g => { const c = rnd(180, 650); g.cash -= c; g.log(`Straßenreparaturen kosten ${money(c)}.`, 'bad'); } },
-    { minPop:600, apply:g => { const bonus = rnd(12, 35); g.tempJobBonus += bonus; g.log(`Ein regionaler Betrieb schafft vorübergehend ${bonus} Arbeitsplätze.`, 'good'); } },
-    { minPop:900, apply:g => { const c = rnd(300, 1200); g.cash -= c; g.approval -= 2; g.log(`Sturmschäden verursachen ${money(c)} Reparaturkosten.`, 'bad'); } },
-    { minPop:1200, apply:g => { g.cash -= 250; g.approval += 5; g.log('Stadtfest: -250 $, aber die Stimmung steigt.', 'good'); } },
-    { minPop:2000, apply:g => { g.commerceMomentum = clamp(g.commerceMomentum + .08, .75, 1.35); g.log('Investoren erhöhen die Gewerbedynamik.', 'good'); } },
-    { minPop:3000, apply:g => { g.market.food = Math.round(g.market.food * 1.45); g.approval -= 3; g.log('Lebensmittelskandal: Nahrung wird deutlich teurer.', 'bad'); } },
-    { minPop:5000, apply:g => { const b = 1400; g.cash += b; g.log(`Bildungsförderung: +${money(b)}.`, 'good'); } },
-    { minPop:6500, apply:g => { if (g.housingCapacity() < g.population * 1.04) { g.approval -= 7; g.log('Pressekritik wegen Wohnraummangel.', 'bad'); } } },
-    { minPop:1500, apply:g => { if (g.commerceUtilization() < .55) { g.approval -= 2; g.log('Mehrere Geschäfte klagen über zu wenig Kundschaft.', 'bad'); } } }
-  ];
-
-  class Game {
-    constructor(data = {}) {
-      const loadedVersion = Number(data.version || 2);
-      Object.assign(this, {
-        version: 4,
-        cityName: 'Neustadt', mayorName: 'Bürgermeister', winCondition: 'modern',
-        year: 1992, month: 1, cash: 1000, population: 125,
-        approval: 62, taxRate: 8, foodAllocation: 125, admitLimit: 80,
-        inventory: { land: 7, houses: 3, towers: 0, schools: 0, universities: 0, shops: 1, supermarkets: 0, food: 450 },
-        market: {}, logs: [], score: 0, losingDebtMonths: 0, lowApprovalMonths: 0,
-        severeFoodMonths: 0, commerceMomentum: 1, tempJobBonus: 0, monthsPlayed: 0,
-        lastSummary: null, ended: false, ending: null, seenPromotions: [], promotionQueue: []
-      }, data);
-      this.version = 4;
-      this.inventory = { land:7, houses:3, towers:0, schools:0, universities:0, shops:1, supermarkets:0, food:450, ...(data.inventory || {}) };
-      this.logs = Array.isArray(data.logs) ? data.logs : [];
-      this.market = { ...(data.market || {}) };
-      this.seenPromotions = Array.isArray(data.seenPromotions) ? data.seenPromotions : [];
-      this.promotionQueue = Array.isArray(data.promotionQueue) ? data.promotionQueue : [];
-      this.ensureMarket();
-      if (loadedVersion < 4) this.normalizeLegacyAssetPrices();
-    }
-
-    ensureMarket() {
-      for (const [key, item] of Object.entries(ITEMS)) if (!this.market[key]) this.market[key] = item.base;
-    }
-
-    supermarketTargetPrice() {
-      const base = ITEMS.supermarkets.base;
-      const inflation = Math.pow(1.024, Math.max(0, this.monthsPlayed) / 12);
-      // Ein Supermarkt wird erst bei echter regionaler Nachfrage knapper.
-      const desired = Math.max(.15, this.population / 1100);
-      const gap = desired - this.inventory.supermarkets;
-      const demand = clamp(.94 + gap * .08, .88, 1.24);
-      return Math.max(1, base * inflation * demand);
-    }
-
-    normalizeLegacySupermarketPrice() {
-      const target = this.supermarketTargetPrice();
-      this.market.supermarkets = Math.max(1, Math.round(clamp(this.market.supermarkets, target * .80, target * 1.25)));
-    }
-
-    assetTargetPrice(key) {
-      const item = ITEMS[key];
-      if (!item || key === 'food') return item ? item.base : 1;
-      if (key === 'supermarkets') return this.supermarketTargetPrice();
-
-      const inflation = Math.pow(1.024, Math.max(0, this.monthsPlayed) / 12);
-      let demand = 1;
-
-      if (key === 'land') {
-        const free = this.landFree();
-        demand = free < 2 ? 1.18 : free < 5 ? 1.08 : .98;
-      } else if (key === 'houses' || key === 'towers') {
-        const ratio = this.housingCapacity() / Math.max(1, this.population);
-        demand = clamp(1 + (1.08 - ratio) * .50, .86, 1.26);
-      } else if (key === 'schools') {
-        demand = this.population < 350 ? .90 : clamp(.96 + (1 - this.educationCoverage()) * .18, .90, 1.17);
-      } else if (key === 'universities') {
-        demand = this.population < 1800 ? .86 : clamp(.94 + (1 - this.educationCoverage()) * .16, .88, 1.16);
-      } else if (key === 'shops') {
-        demand = clamp(.94 + this.commerceUtilization() * .12, .94, 1.08);
-      }
-
-      return Math.max(1, item.base * inflation * demand);
-    }
-
-    normalizeLegacyAssetPrices() {
-      // Versionen bis v3 konnten Gebäude durch monatliches Aufmultiplizieren künstlich verteuern.
-      // Nahrung bleibt absichtlich unberührt, weil ihr Markt eine eigene Versorgungslogik hat.
-      for (const key of Object.keys(ITEMS)) {
-        if (key === 'food') continue;
-        const target = this.assetTargetPrice(key);
-        const current = this.market[key] || ITEMS[key].base;
-        this.market[key] = Math.max(1, Math.round(clamp(current, target * .80, target * 1.25)));
-      }
-    }
-
-    log(text, type='') {
-      this.logs.unshift({ text, type, stamp: `${String(this.month).padStart(2,'0')}/${this.year}` });
-      this.logs = this.logs.slice(0, 55);
-    }
-
-    status() {
-      let s = CITY_LEVELS[0][1];
-      for (const [threshold, name] of CITY_LEVELS) if (this.population >= threshold) s = name;
-      const infra = this.infrastructureScore();
-      if (this.population >= 9000 && infra >= 62) s = 'Moderne Stadt';
-      if (this.population >= 16000 && infra >= 78) s = 'Metropole';
-      return s;
-    }
-
-
-    statusRank(name = this.status()) {
-      const idx = CITY_STAGE_ORDER.indexOf(name);
-      return idx === -1 ? 0 : idx;
-    }
-
-    visualStage(name = this.status()) {
-      if (name === 'Letztes Kuhdorf') return 'kuhdorf';
-      if (name === 'Dorf' || name === 'Großes Dorf') return 'dorf';
-      if (name === 'Kleinstadt') return 'kleinstadt';
-      if (name === 'Stadt' || name === 'Großstadt') return 'stadt';
-      return 'modern';
-    }
-
-    grantPromotionRewards(oldStatus, newStatus) {
-      const oldRank = this.statusRank(oldStatus);
-      const newRank = this.statusRank(newStatus);
-      if (newRank <= oldRank) return;
-      for (let i = oldRank + 1; i <= newRank; i++) {
-        const status = CITY_STAGE_ORDER[i];
-        const promo = CITY_PROMOTIONS[status];
-        if (!promo || this.seenPromotions.includes(status)) continue;
-        this.seenPromotions.push(status);
-        this.cash += promo.cash;
-        const lines = {
-          'Dorf': 'Ihre Gemeinde hat die erste Entwicklungsstufe verlassen. Mit der beigefügten Starthilfe sollen Verwaltung und Grundversorgung gefestigt werden.',
-          'Großes Dorf': 'Die Einwohnerzahl wächst verlässlich. Wir bewilligen zusätzliche Strukturmittel, damit Wohnraum, Handel und Ortskern Schritt halten können.',
-          'Kleinstadt': 'Mit dem neuen Status steigen auch die Erwartungen. Das Land unterstützt den Ausbau von Verwaltung, Infrastruktur und öffentlicher Daseinsvorsorge.',
-          'Stadt': 'Die positive Entwicklung Ihrer Kommune wird anerkannt. Die beigefügten Mittel sollen den Übergang zu einer vollwertigen Stadt erleichtern.',
-          'Großstadt': 'Ihre Stadt hat regionale Bedeutung erlangt. Das Förderpaket ist für Verkehr, Nahversorgung und urbane Ordnung vorgesehen.',
-          'Moderne Stadt': 'Ihre Kommune gilt nun als moderne Stadt. Mit dieser Zuwendung sollen Innovation, Lebensqualität und wirtschaftliche Stärke gesichert werden.',
-          'Metropole': 'Als aufstrebendes Zentrum erhält Ihre Stadt ein Sonderbudget für Zukunftsprojekte und überregionale Strahlkraft.'
-        };
-        this.promotionQueue.push({
-          status,
-          cash: promo.cash,
-          subject: promo.subject,
-          title: promo.title,
-          body: lines[status] || 'Die Entwicklung Ihrer Stadt wird mit einer einmaligen Zuwendung gewürdigt.'
-        });
-        this.log(`Aufstieg: ${this.cityName} ist jetzt ${status}. Die Regierung gewährt ${money(promo.cash)} Fördermittel.`, 'good');
-      }
-    }
-
-    housingCapacity() {
-      return this.inventory.houses * ITEMS.houses.capacity + this.inventory.towers * ITEMS.towers.capacity;
-    }
-
-    schoolCapacity() {
-      return this.inventory.schools * ITEMS.schools.service + this.inventory.universities * ITEMS.universities.service;
-    }
-
-    educationNeed() { return Math.max(1, Math.round(this.population * .22)); }
-    educationCoverage() { return clamp(this.schoolCapacity() / this.educationNeed(), 0, 1.35); }
-
-    foodEfficiency() {
-      // Eine Nahrungseinheit steht für einen Warenkorb, nicht für eine einzelne Mahlzeit.
-      // 0,68 pro Einwohner hält die Startstadt wirtschaftlich überlebensfähig,
-      // Supermärkte senken Logistikverluste weiterhin um bis zu 20 %.
-      return .68 * (1 - Math.min(.20, this.inventory.supermarkets * .04));
-    }
-
-    monthlyFoodNeed(pop = this.population) {
-      return Math.max(0, Math.ceil(pop * this.foodEfficiency()));
-    }
-
-    foodExportCapacity() {
-      return Math.max(0, this.inventory.supermarkets * 150);
-    }
-
-    foodExportPreview(allocation = this.foodAllocation) {
-      const selected = clamp(Math.round(Number(allocation) || 0), 0, this.inventory.food);
-      const need = this.monthlyFoodNeed();
-      const consumed = Math.min(selected, need);
-      const offered = Math.max(0, selected - consumed);
-      const capacity = this.foodExportCapacity();
-      const sold = capacity > 0 ? Math.min(offered, capacity) : 0;
-      const retained = Math.max(0, offered - sold);
-      const unitPrice = this.market.food * 1.65;
-      const revenue = Math.round(sold * unitPrice);
-      return { selected, need, consumed, offered, capacity, sold, retained, unitPrice, revenue };
-    }
-
-    retailDemandUnits(pop = this.population) {
-      return Math.max(.35, pop / 180);
-    }
-
-    retailSupplyUnits(extraKey = null) {
-      let shops = this.inventory.shops;
-      let supers = this.inventory.supermarkets;
-      if (extraKey === 'shops') shops++;
-      if (extraKey === 'supermarkets') supers++;
-      return shops + supers * 4.7;
-    }
-
-    commerceUtilization(extraKey = null) {
-      const supply = this.retailSupplyUnits(extraKey);
-      if (supply <= 0) return 0;
-      return clamp(this.retailDemandUnits() / supply, .22, 1);
-    }
-
-    rawCommercialJobs(extraKey = null) {
-      let shops = this.inventory.shops;
-      let supers = this.inventory.supermarkets;
-      if (extraKey === 'shops') shops++;
-      if (extraKey === 'supermarkets') supers++;
-      return shops * ITEMS.shops.jobs + supers * ITEMS.supermarkets.jobs;
-    }
-
-    jobsCapacity(extraKey = null) {
-      const commercial = Math.round(this.rawCommercialJobs(extraKey) * this.commerceUtilization(extraKey));
-      const baseLocalEconomy = Math.round(this.population * .20);
-      return commercial + baseLocalEconomy + this.tempJobBonus;
-    }
-
-    employmentNeed() { return Math.max(1, Math.round(this.population * .42)); }
-    employmentCoverage() { return clamp(this.jobsCapacity() / this.employmentNeed(), 0, 1.25); }
-
-    productivityFactor() {
-      const education = clamp(this.educationCoverage(), 0, 1);
-      const universityBonus = Math.min(.18, this.inventory.universities * .03);
-      return .92 + education * .08 + universityBonus;
-    }
-
-    landUsed() {
-      return Object.entries(ITEMS).reduce((sum, [key, item]) => sum + (item.footprint || 0) * (this.inventory[key] || 0), 0);
-    }
-
-    landFree() { return Math.max(0, this.inventory.land - this.landUsed()); }
-
-    infrastructureScore() {
-      const housing = clamp(this.housingCapacity() / Math.max(1,this.population) * 24, 0, 24);
-      const education = clamp(this.educationCoverage() * 20, 0, 22);
-      const jobs = clamp(this.employmentCoverage() * 20, 0, 22);
-      const services = clamp((this.inventory.shops>0?5:0)+(this.inventory.supermarkets>0?7:0)+(this.inventory.schools>0?6:0)+(this.inventory.universities>0?9:0),0,24);
-      const finance = this.cash >= 0 ? 8 : clamp(8 + this.cash / 2500, 0, 8);
-      return Math.round(clamp(housing + education + jobs + services + finance, 0, 100));
-    }
-
-    canBuy(key) {
-      const item = ITEMS[key];
-      const qty = item.tradeQty || 1;
-      const price = this.market[key] * qty;
-      if (this.cash < price) return false;
-      if ((item.footprint || 0) > this.landFree()) return false;
-      return true;
-    }
-
-    canSell(key) {
-      const item = ITEMS[key];
-      const qty = item.tradeQty || 1;
-      if (this.inventory[key] - qty < item.min) return false;
-      if (key === 'land' && this.inventory.land - 1 < this.landUsed()) return false;
-      return true;
-    }
-
-    buy(key) {
-      if (!this.canBuy(key)) return;
-      const item = ITEMS[key];
-      const qty = item.tradeQty || 1;
-      const total = this.market[key] * qty;
-      this.cash -= total;
-      this.inventory[key] += qty;
-      this.nudgePrice(key, true);
-      this.log(`${item.name} gekauft: -${money(total)}.`);
-      saveGame(this); renderGame(this);
-    }
-
-    sell(key) {
-      if (!this.canSell(key)) return;
-      const item = ITEMS[key];
-      const qty = item.tradeQty || 1;
-      const revenue = Math.round(this.market[key] * item.sell * qty);
-      this.inventory[key] -= qty;
-      this.cash += revenue;
-      this.nudgePrice(key, false);
-      this.log(`${item.name} verkauft: +${money(revenue)}.`);
-      saveGame(this); renderGame(this);
-    }
-
-    nudgePrice(key, bought) {
-      const factor = bought ? 1.035 : .985;
-      this.market[key] = Math.max(1, Math.round(this.market[key] * factor));
-    }
-
-    calculateAttractiveness() {
-      const housingRatio = this.housingCapacity() / Math.max(1, this.population);
-      const employment = this.employmentCoverage();
-      const education = this.educationCoverage();
-      const foodReserveMonths = this.inventory.food / Math.max(1, this.monthlyFoodNeed());
-      let a = 46;
-      a += clamp((10 - this.taxRate) * 2.3, -30, 23);
-      a += clamp((housingRatio - 1) * 34, -38, 18);
-      a += clamp((employment - .82) * 34, -30, 14);
-      a += clamp((education - .65) * 15, -10, 10);
-      a += clamp(foodReserveMonths * 3, 0, 9);
-      a += (this.approval - 50) * .20;
-      a += this.inventory.supermarkets > 0 ? Math.min(5, this.inventory.supermarkets * 1.5) : 0;
-      if (this.cash < 0) a += clamp(this.cash / 1800, -12, 0);
-      if (this.commerceUtilization() < .45) a -= 3;
-      return Math.round(clamp(a, 0, 100));
-    }
-
-    buildingMaintenance() {
-      return Math.round(Object.entries(ITEMS).reduce((sum,[key,item]) => sum + (item.maintenance || 0) * (this.inventory[key] || 0), 0));
-    }
-
-    serviceCost() {
-      const sizeCost = this.population * .075;
-      const densityCost = this.inventory.towers * 18;
-      return Math.round(sizeCost + densityCost);
-    }
-
-    debtInterest() {
-      return this.cash < 0 ? Math.max(5, Math.round(Math.abs(this.cash) * .015)) : 0;
-    }
-
-    monthlyMaintenance() {
-      return this.buildingMaintenance() + this.serviceCost() + this.debtInterest();
-    }
-
-    revenueBreakdown() {
-      const employment = clamp(this.employmentCoverage(), 0, 1);
-      const taxableFactor = .58 + employment * .42;
-      const residentTax = this.population * taxableFactor * (this.taxRate / 100) * 13.5 * this.productivityFactor();
-      const utilization = this.commerceUtilization();
-      const commerceBase = this.inventory.shops * ITEMS.shops.commerceTax + this.inventory.supermarkets * ITEMS.supermarkets.commerceTax;
-      const commerce = commerceBase * utilization * this.commerceMomentum * this.productivityFactor();
-      return {
-        residents: Math.round(residentTax),
-        commerce: Math.round(commerce),
-        total: Math.round(residentTax + commerce),
-        utilization
-      };
-    }
-
-    monthlyRevenue() { return this.revenueBreakdown().total; }
-
-    foodProvisionCost() {
-      return Math.round(this.monthlyFoodNeed() * this.market.food);
-    }
-
-    forecast() {
-      const rev = this.revenueBreakdown();
-      const building = this.buildingMaintenance();
-      const services = this.serviceCost();
-      const interest = this.debtInterest();
-      const expenses = building + services + interest;
-      const balance = rev.total - expenses;
-      const foodProvision = this.foodProvisionCost();
-      return {
-        ...rev, building, services, interest, expenses, balance,
-        foodProvision,
-        sustainableBalance: balance - foodProvision
-      };
-    }
-
-    advisory() {
-      const notes = [];
-      const housing = this.housingCapacity() / Math.max(1, this.population);
-      const employment = this.employmentCoverage();
-      const edu = this.educationCoverage();
-      const foodMonths = this.inventory.food / Math.max(1, this.monthlyFoodNeed());
-      const util = this.commerceUtilization();
-      const f = this.forecast();
-
-      if (foodMonths < 1) notes.push({type:'bad', text:'Nahrung reicht nicht für einen vollen Monat. Versorgung hat höchste Priorität.'});
-      else if (foodMonths < 2) notes.push({type:'warn', text:'Nahrungsreserve ist knapp. Ein Preissprung kann gefährlich werden.'});
-      if (housing < 1.03) notes.push({type:'bad', text:'Kaum freie Wohnungen: weiterer Zuzug wird ausgebremst.'});
-      else if (housing > 1.75 && this.population > 500) notes.push({type:'warn', text:'Sehr viel leerer Wohnraum bindet Kapital und Unterhalt.'});
-      if (employment < .75) notes.push({type:'bad', text:'Zu wenige Arbeitsplätze: Steuereinnahmen und Zustimmung leiden.'});
-      if (edu < .7 && this.population > 450) notes.push({type:'warn', text:'Bildungsversorgung ist zu niedrig und drückt Attraktivität und Produktivität.'});
-      if (util < .5 && (this.inventory.shops + this.inventory.supermarkets) > 1) notes.push({type:'warn', text:'Gewerbe ist überbaut: viele Läden haben zu wenig Kundschaft und liefern weniger Einnahmen.'});
-      if (f.sustainableBalance < 0) notes.push({type:'bad', text:`Nach Wiederbeschaffung der verbrauchten Nahrung fehlen voraussichtlich ${money(Math.abs(f.sustainableBalance))} pro Monat.`});
-      else if (f.balance < 0) notes.push({type:'bad', text:`Der laufende Haushalt liegt voraussichtlich ${money(Math.abs(f.balance))} im Minus.`});
-      if (this.cash < 0) notes.push({type:'bad', text:`Schulden verursachen aktuell ${money(f.interest)} Zinsen pro Monat.`});
-      if (this.taxRate >= 16) notes.push({type:'warn', text:'Sehr hohe Wohnsteuer bringt kurzfristig Geld, bremst aber Zuzug und Zustimmung.'});
-      if (!notes.length) notes.push({type:'good', text:'Die Grundversorgung wirkt stabil. Wachstum ist derzeit vertretbar.'});
-      return notes.slice(0, 4);
-    }
-
-    advanceMonth(settings) {
-      if (this.ended) return;
-      this.taxRate = clamp(Number(settings.taxRate)||0, 0, 30);
-      this.foodAllocation = clamp(Math.round(Number(settings.foodAllocation)||0), 0, this.inventory.food);
-      this.admitLimit = clamp(Math.round(Number(settings.admitLimit)||0), 0, 5000);
-
-      const oldStatus = this.status();
-      const oldPop = this.population;
-      const oldCash = this.cash;
-      const foodNeed = this.monthlyFoodNeed();
-      const foodTrade = this.foodExportPreview(this.foodAllocation);
-      const foodServed = foodTrade.consumed;
-      const foodRatio = foodNeed ? foodServed / foodNeed : 1;
-      this.inventory.food -= foodTrade.consumed + foodTrade.sold;
-
-      const finance = this.forecast();
-      const monthBalance = finance.balance + foodTrade.revenue;
-      this.cash += monthBalance;
-
-      const housingRatio = this.housingCapacity() / Math.max(1,this.population);
-      const employment = this.employmentCoverage();
-      const education = this.educationCoverage();
-
-      let approvalDelta = 0;
-      approvalDelta += this.taxRate <= 6 ? 3 : this.taxRate <= 10 ? 1 : this.taxRate <= 13 ? -1 : this.taxRate <= 17 ? -4 : -9;
-      approvalDelta += foodRatio >= 1 ? 2 : foodRatio >= .9 ? -2 : foodRatio >= .7 ? -9 : -18;
-      approvalDelta += housingRatio >= 1.08 ? 2 : housingRatio >= 1 ? 0 : -8;
-      approvalDelta += employment >= .98 ? 2 : employment >= .82 ? 0 : employment >= .65 ? -4 : -8;
-      approvalDelta += education >= .9 ? 2 : education >= .65 ? 0 : this.population > 450 ? -3 : 0;
-      approvalDelta += monthBalance >= 0 ? 1 : -1;
-      if (this.cash < -5000) approvalDelta -= 2;
-      if (finance.utilization < .4 && this.inventory.shops + this.inventory.supermarkets > 2) approvalDelta -= 1;
-      this.approval = clamp(this.approval + approvalDelta, 0, 100);
-
-      let leaving = 0;
-      if (foodRatio < 1) leaving += Math.round(this.population * (1-foodRatio) * .24);
-      if (housingRatio < .95) leaving += Math.round(this.population * (.95-housingRatio) * .14);
-      if (employment < .7) leaving += Math.round(this.population * (.7-employment) * .06);
-      if (this.approval < 35) leaving += Math.round(this.population * ((35-this.approval)/100) * .045);
-      leaving = Math.min(this.population, leaving);
-
-      const attractiveness = this.calculateAttractiveness();
-      const populationAfterLeaving = Math.max(0, this.population - leaving);
-      const housingSlots = Math.max(0, this.housingCapacity() - populationAfterLeaving);
-      // Arbeitsplätze und lokale Nachfrage wachsen teilweise mit neuen Einwohnern.
-      // Deshalb darf Zuzug nicht verlangen, dass sämtliche künftigen Jobs schon vorher existieren.
-      // Schlechte Beschäftigung bremst weiterhin stark; gute Beschäftigung schafft echte Wachstumsreserve.
-      const employmentGrowthRate = clamp((employment - .52) * .32, .01, .14);
-      const economicRoom = employment < .55
-        ? Math.max(2, Math.round(this.population * .008))
-        : Math.max(5, Math.round(this.population * employmentGrowthRate));
-      const potential = Math.max(0, Math.round((14 + this.population * .016) * (attractiveness / 50) * (0.82 + Math.random()*.36)));
-      const newcomers = Math.min(this.admitLimit, housingSlots, Math.max(0,economicRoom), potential);
-      this.population = Math.max(0, populationAfterLeaving + newcomers);
-
-      const births = Math.max(0, Math.round(this.population * (foodRatio >= .95 && housingRatio >= 1 ? .0016 : .0003)));
-      this.population += births;
-
-      if (foodRatio < .65) this.severeFoodMonths++; else this.severeFoodMonths = 0;
-      if (this.cash < -15000) this.losingDebtMonths++; else this.losingDebtMonths = Math.max(0,this.losingDebtMonths-1);
-      if (this.approval < 18) this.lowApprovalMonths++; else this.lowApprovalMonths = 0;
-
-      this.tempJobBonus = Math.max(0, Math.round(this.tempJobBonus * .75));
-      this.commerceMomentum = clamp(this.commerceMomentum * .996, .78, 1.30);
-      this.monthsPlayed++;
-
-      this.lastSummary = {
-        oldPop, newPop:this.population, newcomers, leaving, births,
-        revenue:finance.total + foodTrade.revenue, residentRevenue:finance.residents, commerceRevenue:finance.commerce,
-        foodExportRevenue:foodTrade.revenue, foodExportSold:foodTrade.sold, foodExportCapacity:foodTrade.capacity, foodRetained:foodTrade.retained,
-        maintenance:finance.expenses, building:finance.building, services:finance.services, interest:finance.interest,
-        oldCash, newCash:this.cash, foodServed, foodNeed, foodRatio, attractiveness, approvalDelta,
-        commerceUtilization: finance.utilization
-      };
-
-      this.log(`Monat: ${money(finance.total + foodTrade.revenue)} Einnahmen, ${money(finance.expenses)} Kosten, ${newcomers} Zuzüge, ${leaving} Wegzüge.`);
-      if (foodTrade.sold > 0) this.log(`Regionalverkauf: ${fmt.format(foodTrade.sold)} Nahrung über Supermärkte verkauft, +${money(foodTrade.revenue)}.`, 'good');
-      if (monthBalance < 0) this.log(`Haushaltsdefizit: ${money(monthBalance)}.`, 'bad');
-      if (finance.utilization < .45 && this.inventory.shops + this.inventory.supermarkets > 1) this.log('Gewerbe schwach ausgelastet: zu viele Verkaufsflächen für die Einwohnerzahl.', 'bad');
-
-      this.rollEvent();
-      this.updateMarket();
-      this.grantPromotionRewards(oldStatus, this.status());
-      this.checkEnd();
-      if (!this.ended) this.incrementDate();
-      this.updateScore();
-      saveGame(this);
-      renderGame(this, true);
-    }
-
-    rollEvent() {
-      if (Math.random() > .34) return;
-      const possible = EVENTS.filter(e => this.population >= e.minPop);
-      if (!possible.length) return;
-      choice(possible).apply(this);
-      this.approval = clamp(this.approval,0,100);
-    }
-
-    updateMarket() {
-      const foodInflation = 1.002 + Math.min(.008, this.monthsPlayed * .00008);
-      for (const [key,item] of Object.entries(ITEMS)) {
-        if (key !== 'food') {
-          const target = this.assetTargetPrice(key);
-          const current = this.market[key] || item.base;
-          const normalized = clamp(current, target * .78, target * 1.34);
-          const noisyTarget = target * (1 + (Math.random() - .5) * .03);
-          const next = normalized + (noisyTarget - normalized) * .23;
-          this.market[key] = clamp(Math.round(next), Math.round(item.base * .60), Math.round(item.base * 1.90));
-          continue;
-        }
-
-        // Nahrung behält die bestehende, bewusst volatilere Versorgungslogik.
-        let factor = foodInflation * (0.965 + Math.random() * .07);
-        const pressure = this.inventory.food < this.monthlyFoodNeed() * 1.5 ? 1.035 : .995;
-        const supermarketRelief = 1 - Math.min(.018, this.inventory.supermarkets * .003);
-        factor *= pressure * supermarketRelief;
-        this.market.food = Math.max(1, Math.round(this.market.food * factor));
-        const floor = Math.max(1, Math.round(item.base * .55));
-        const ceiling = Math.round(item.base * 3.2 + 5);
-        this.market.food = clamp(this.market.food, floor, ceiling);
-      }
-    }
-
-    incrementDate() {
-      this.month++;
-      if (this.month > 12) { this.month = 1; this.year++; }
-    }
-
-    updateScore() {
-      const f = this.forecast();
-      this.score = Math.max(0, Math.round(
-        this.population*4 + this.cash*.18 + this.infrastructureScore()*230 + this.approval*65 +
-        Math.max(0,f.balance)*.25 - Math.max(0,-this.cash)*.55
-      ));
-    }
-
-    checkEnd() {
-      let win = false, reason = '';
-      if (this.winCondition === 'cash' && this.cash >= 200000) { win=true; reason='Die Stadtkasse hat 200.000 $ überschritten.'; }
-      if (this.winCondition === 'population' && this.population >= 10000) { win=true; reason='Deine Stadt hat 10.000 Einwohner erreicht.'; }
-      if (this.winCondition === 'modern' && (this.status() === 'Moderne Stadt' || this.status() === 'Metropole')) { win=true; reason='Aus dem Kuhdorf ist eine moderne Stadt geworden.'; }
-      if (this.winCondition === 'fouryears' && this.monthsPlayed >= 48) { win=true; reason='Vier Jahre Amtszeit sind geschafft.'; }
-      if (win) return this.finish(true, reason);
-
-      if (this.losingDebtMonths >= 3) return this.finish(false, 'Die Stadt war drei Monate tief überschuldet. Die Kommunalaufsicht übernimmt.');
-      if (this.lowApprovalMonths >= 3) return this.finish(false, 'Deine Zustimmung lag zu lange unter 18 %. Der Gemeinderat entzieht dir das Vertrauen.');
-      if (this.severeFoodMonths >= 2) return this.finish(false, 'Zwei Monate schwere Versorgungskrise: Die Stadtverwaltung bricht zusammen.');
-      if (this.population < 35 && this.monthsPlayed >= 6) return this.finish(false, 'Fast alle Einwohner haben die Stadt verlassen.');
-    }
-
-    finish(win, reason) {
-      this.ended = true;
-      this.ending = { win, reason };
-      this.updateScore();
-      addScore(this);
-    }
-  }
+  const { Game, ITEMS, CITY_LEVELS, CITY_STAGE_ORDER, CITY_STAGE_IMAGES, CITY_PROMOTIONS, CITY_HOTSPOTS, EVENTS } = globalThis.BGM_ENGINE;
 
   function newGame(data) {
     const g = new Game({
@@ -758,10 +104,55 @@
     saveGame(g); renderGame(g);
   }
 
-  function saveGame(g) { localStorage.setItem(SAVE_KEY, JSON.stringify(g)); }
+  function getBackups() {
+    try { const data=JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]'); return Array.isArray(data)?data:[]; }
+    catch { return []; }
+  }
+
+  function saveGame(g) {
+    const raw = JSON.stringify(g);
+    localStorage.setItem(SAVE_KEY, raw);
+    const backups = getBackups();
+    if (!backups.length || backups[0].monthsPlayed !== g.monthsPlayed) {
+      backups.unshift({ monthsPlayed:g.monthsPlayed, stamp:new Date().toISOString(), data:raw });
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(backups.slice(0,14)));
+    }
+  }
+
   function loadGame() {
-    try { const raw = localStorage.getItem(SAVE_KEY); return raw ? new Game(JSON.parse(raw)) : null; }
+    try { const raw=localStorage.getItem(SAVE_KEY); return raw ? new Game(JSON.parse(raw)) : null; }
     catch { return null; }
+  }
+
+  function exportSave() {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const g = loadGame();
+    const blob = new Blob([raw], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`buergermeister-${(g?.cityName||'spielstand').replace(/[^a-z0-9_-]+/gi,'-').toLowerCase()}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function importSave() {
+    const input=document.createElement('input'); input.type='file'; input.accept='.json,application/json';
+    input.onchange=async()=>{
+      const file=input.files?.[0]; if(!file)return;
+      try { const parsed=JSON.parse(await file.text()); const g=new Game(parsed); saveGame(g); renderGame(g); }
+      catch { alert('Der Spielstand konnte nicht gelesen werden.'); }
+    };
+    input.click();
+  }
+
+  function restoreBackup(monthsAgo) {
+    const current=loadGame(); if(!current)return;
+    const target=Math.max(0,current.monthsPlayed-monthsAgo);
+    const backups=getBackups();
+    const hit=backups.find(b=>b.monthsPlayed===target) || backups.find(b=>b.monthsPlayed<=target);
+    if(!hit)return;
+    try { const g=new Game(JSON.parse(hit.data)); localStorage.setItem(SAVE_KEY, JSON.stringify(g)); renderGame(g); }
+    catch { alert('Die Sicherung ist beschädigt.'); }
   }
 
   function addScore(g) {
@@ -772,7 +163,32 @@
   }
 
   function getScores() { try { return JSON.parse(localStorage.getItem(SCORE_KEY) || '[]'); } catch { return []; } }
+  globalThis.BGM_HOOKS = { save:saveGame, render:renderGame, score:addScore };
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function enhanceDialog(backdrop) {
+    if (!backdrop || backdrop.dataset.a11yReady) return;
+    backdrop.dataset.a11yReady='1';
+    const dialog=backdrop.querySelector('.modal'); if(!dialog)return;
+    dialog.setAttribute('role','dialog'); dialog.setAttribute('aria-modal','true'); dialog.setAttribute('tabindex','-1');
+    const focusables=()=>[...dialog.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')];
+    const previous=document.activeElement;
+    setTimeout(()=>{ const list=focusables(); (list[0]||dialog).focus(); },0);
+    backdrop.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){
+        const close=backdrop.querySelector('.icon-close,#cancelMonth,#infoClose,#closeSummary,#promoOk,#endHome,#installHelpClose');
+        if(close){e.preventDefault();close.click();}
+      }
+      if(e.key==='Tab'){
+        const list=focusables(); if(!list.length)return;
+        const first=list[0],last=list[list.length-1];
+        if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+        else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+      }
+    });
+    const observer=new MutationObserver(()=>{if(!document.body.contains(backdrop)){observer.disconnect(); if(previous?.focus) previous.focus();}});
+    observer.observe(document.body,{childList:true,subtree:true});
+  }
 
   function renderHome() {
     const hasSave = !!loadGame();
@@ -787,6 +203,7 @@
           <button class="btn center" id="continueBtn" ${hasSave?'':'disabled'}>2 &nbsp; SPIEL FORTSETZEN</button>
           <button class="btn center" id="scoresBtn">3 &nbsp; BESTENLISTE</button>
           <button class="btn center" id="rulesBtn">4 &nbsp; SPIELREGELN</button>
+          <button class="btn center" id="saveManagerBtn">5 &nbsp; SPIELSTÄNDE / BACKUP</button>
         </div>
         <div class="install-card" id="installCard">
           <div class="install-card-copy">
@@ -801,8 +218,35 @@
     document.getElementById('continueBtn').onclick = () => { const g=loadGame(); if(g) renderGame(g); };
     document.getElementById('scoresBtn').onclick = renderScores;
     document.getElementById('rulesBtn').onclick = renderRules;
+    document.getElementById('saveManagerBtn').onclick = renderSaveManager;
     document.getElementById('installBtn').onclick = installPwa;
     syncInstallButton();
+  }
+
+
+  function renderSaveManager() {
+    const g=loadGame();
+    const backups=getBackups();
+    const available = n => g && backups.some(b=>b.monthsPlayed===Math.max(0,g.monthsPlayed-n));
+    app.innerHTML=`<section class="crt form-card"><div class="screen"><div class="hint">SPIELSTÄNDE</div><h1>Sichern & wiederherstellen</h1>
+      <p class="hint">Automatische Monatssicherungen bleiben lokal auf diesem Gerät. Zusätzlich kannst du einen Spielstand als JSON-Datei exportieren.</p>
+      <div class="save-tools">
+        <button class="btn primary center" id="exportSave" ${g?'':'disabled'}>SPIELSTAND EXPORTIEREN</button>
+        <button class="btn center" id="importSave">SPIELSTAND IMPORTIEREN</button>
+      </div>
+      <h2>Automatische Sicherungen</h2>
+      <div class="backup-grid">
+        <button class="btn center" data-restore="1" ${available(1)?'':'disabled'}>VOR 1 MONAT</button>
+        <button class="btn center" data-restore="3" ${available(3)?'':'disabled'}>VOR 3 MONATEN</button>
+        <button class="btn center" data-restore="12" ${available(12)?'':'disabled'}>VOR 12 MONATEN</button>
+      </div>
+      <p class="hint">Gespeicherte Monatspunkte: ${backups.length}</p>
+      <button class="btn" id="saveBack" style="width:100%;margin-top:12px">ZURÜCK</button>
+    </div></section>`;
+    document.getElementById('exportSave').onclick=exportSave;
+    document.getElementById('importSave').onclick=importSave;
+    document.querySelectorAll('[data-restore]').forEach(b=>b.onclick=()=>restoreBackup(Number(b.dataset.restore)));
+    document.getElementById('saveBack').onclick=renderHome;
   }
 
   function renderSetup() {
@@ -814,7 +258,7 @@
         <option value="modern">Moderne Stadt aufbauen</option>
         <option value="cash">200.000 $ Stadtkasse</option>
         <option value="population">10.000 Einwohner</option>
-        <option value="fouryears">4 Jahre Amtszeit / Bestwert</option>
+        <option value="fouryears">4 Jahre Amtszeit / Wiederwahl</option>
       </select></div>
       <div class="two-col"><button class="btn" id="backBtn">ZURÜCK</button><button class="btn primary" id="startBtn">SPIEL STARTEN</button></div>
       <p class="hint">Du beginnst bewusst klein: 1.000 $, drei Häuser, ein Geschäft und 125 Einwohner.</p>
@@ -904,7 +348,7 @@
         </div>
         <div class="market-actions compact-actions">
           <button class="market-action buy" data-buy="${key}" ${g.canBuy(key)?'':'disabled'} title="${item.name} kaufen"><b>+${qty}</b><span>Kaufen</span></button>
-          <button class="market-action sell" data-sell="${key}" ${g.canSell(key)?'':'disabled'} title="${item.name} verkaufen"><b>−${qty}</b><span>Verkaufen</span></button>
+          <button class="market-action sell" data-sell="${key}" ${g.canSell(key)?'':'disabled'} title="${key==='food'?'Nahrung sofort an Großhandel verkaufen':item.name+' verkaufen'}"><b>−${qty}</b><span>${key==='food'?'Großhandel':'Verkaufen'}</span></button>
         </div>
       </div>`;
     }).join('');
@@ -1111,7 +555,7 @@
     if (item.service) rows.push(['Zusätzliche Bildungsplätze', `+${fmt.format(item.service)}`]);
     if (item.jobs) rows.push(['Arbeitsplätze maximal', `bis zu +${fmt.format(item.jobs)}`]);
     if (item.commerceTax) rows.push(['Gewerbeeinnahmen maximal', `bis zu +${money(item.commerceTax)}/Monat`]);
-    if (key === 'food') rows.push(['Kaufmenge', '+100 Einheiten']);
+    if (key === 'food') { rows.push(['Kaufmenge', '+100 Einheiten']); rows.push(['Sofortverkauf / Großhandel', '45% des aktuellen Marktwerts']); }
     if (key === 'supermarkets') {
       rows.push(['Nahrungsbedarf', '-4% je Supermarkt, max. -20%']);
       rows.push(['Regionaler Nahrungsverkauf', `bis zu ${fmt.format(g.foodExportCapacity())} Einheiten/Monat aktuell`]);
@@ -1151,7 +595,7 @@
         <button class="btn primary" id="infoBuy" ${g.canBuy(key)?'':'disabled'}>KAUFEN ${item.tradeQty?`(+${item.tradeQty})`:''}</button>
       </div>
     </div>`;
-    document.body.appendChild(overlay);
+    document.body.appendChild(overlay); enhanceDialog(overlay);
     const close = () => overlay.remove();
     overlay.querySelector('.icon-close').onclick = close;
     overlay.querySelector('#infoClose').onclick = close;
@@ -1174,6 +618,8 @@
           <div><span>Einwohnersteuer</span><b id="liveResidentTax">+${money(baseForecast.residents)}</b></div>
           <div><span>Steuereffekt</span><b id="liveTaxDelta">±0 $</b></div>
           <div><span>Regionalverkauf</span><b id="liveFoodExport">+0 $</b></div>
+          <div><span>Wareneinsatz Export</span><b id="liveFoodExportCost">−0 $</b></div>
+          <div><span>Handelsgewinn</span><b id="liveFoodExportMargin">0 $</b></div>
           <div><span>Überschuss</span><b id="liveFoodSurplus">0 / ${fmt.format(g.foodExportCapacity())}</b></div>
           <div><span>Operativer Saldo</span><b id="liveOperating">${money(baseForecast.balance)}</b></div>
           <div><span>Versorgung</span><b id="liveFoodCoverage">${foodNeed ? Math.min(100, Math.round(defaultFood/foodNeed*100)) : 100}%</b></div>
@@ -1184,7 +630,7 @@
       <div class="field"><label>Maximal aufzunehmende Zuzügler</label><input id="admit" type="number" min="0" max="5000" value="${defaultAdmit}"><div class="hint">Neue Einwohner wirken erst ab dem Folgemonat auf die Steuereinnahmen. Das Limit beeinflusst deshalb den aktuellen Saldo nicht künstlich.</div></div>
       <div class="two-col"><button class="btn" id="cancelMonth">ABBRECHEN</button><button class="btn primary" id="confirmMonth">MONAT BERECHNEN</button></div>
     </div>`;
-    document.body.appendChild(overlay);
+    document.body.appendChild(overlay); enhanceDialog(overlay);
     const tax=overlay.querySelector('#tax');
     const food=overlay.querySelector('#food');
     const taxOut=overlay.querySelector('#taxOut');
@@ -1196,6 +642,8 @@
     const operatingOut=overlay.querySelector('#liveOperating');
     const foodCoverageOut=overlay.querySelector('#liveFoodCoverage');
     const foodExportOut=overlay.querySelector('#liveFoodExport');
+    const foodExportCostOut=overlay.querySelector('#liveFoodExportCost');
+    const foodExportMarginOut=overlay.querySelector('#liveFoodExportMargin');
     const foodSurplusOut=overlay.querySelector('#liveFoodSurplus');
 
     const liveProjection = () => {
@@ -1207,7 +655,9 @@
       const exportTrade = g.foodExportPreview(selectedFood);
       const totalRevenue = residentTax + baseForecast.commerce + exportTrade.revenue;
       const operatingBalance = totalRevenue - baseForecast.expenses;
-      const sustainableBalance = operatingBalance - baseForecast.foodProvision;
+      const exportRestockCost = exportTrade.restockCost;
+      const exportMargin = exportTrade.grossMargin;
+      const sustainableBalance = operatingBalance - baseForecast.foodProvision - exportRestockCost;
       const taxDelta = residentTax - baseForecast.residents;
       const coverage = foodNeed ? Math.min(100, Math.round(exportTrade.consumed / foodNeed * 100)) : 100;
 
@@ -1218,6 +668,10 @@
       taxDeltaOut.className = taxDelta > 0 ? 'good' : taxDelta < 0 ? 'bad' : '';
       foodExportOut.textContent = `+${money(exportTrade.revenue)}`;
       foodExportOut.className = exportTrade.revenue > 0 ? 'good' : '';
+      foodExportCostOut.textContent = exportRestockCost ? `−${money(exportRestockCost)}` : '−0 $';
+      foodExportCostOut.className = exportRestockCost ? 'bad' : '';
+      foodExportMarginOut.textContent = money(exportMargin);
+      foodExportMarginOut.className = exportMargin > 0 ? 'good' : exportMargin < 0 ? 'bad' : '';
       foodSurplusOut.textContent = `${fmt.format(exportTrade.sold)} / ${fmt.format(exportTrade.capacity)}`;
       foodSurplusOut.className = exportTrade.sold > 0 ? 'good' : '';
       operatingOut.textContent = money(operatingBalance);
@@ -1241,15 +695,18 @@
   function openSummary(g, afterClose) {
     const s=g.lastSummary; const overlay=document.createElement('div'); overlay.className='modal-backdrop';
     const balance=s.revenue-s.maintenance;
+    const sustainable=Number.isFinite(s.sustainableBalance)?s.sustainableBalance:(balance-(s.foodReplacementCost||0)-(s.foodExportRestockCost||0));
     overlay.innerHTML=`<div class="modal"><div class="hint">MONATSBERICHT</div><h2>Bilanz des vergangenen Monats</h2>
       <div class="month-summary">
         <div class="summary-row"><span>Einwohnersteuern</span><b class="good">+${money(s.residentRevenue)}</b></div>
         <div class="summary-row"><span>Gewerbe</span><b class="good">+${money(s.commerceRevenue)}</b></div>
-        ${s.foodExportRevenue?`<div class="summary-row"><span>Nahrungs-Regionalverkauf (${fmt.format(s.foodExportSold)} Einh.)</span><b class="good">+${money(s.foodExportRevenue)}</b></div>`:''}
+        ${s.foodExportRevenue?`<div class="summary-row"><span>Nahrungs-Regionalverkauf (${fmt.format(s.foodExportSold)} Einh.)</span><b class="good">+${money(s.foodExportRevenue)}</b></div><div class="summary-row"><span>Wareneinsatz Regionalverkauf</span><b class="bad">−${money(s.foodExportRestockCost||0)}</b></div><div class="summary-row"><span>Handelsgewinn Regionalverkauf</span><b class="good">+${money(s.foodExportMargin||0)}</b></div>`:''}
         <div class="summary-row"><span>Gebäude</span><b class="bad">-${money(s.building)}</b></div>
         <div class="summary-row"><span>Städtische Dienste</span><b class="bad">-${money(s.services)}</b></div>
         ${s.interest?`<div class="summary-row"><span>Schuldzinsen</span><b class="bad">-${money(s.interest)}</b></div>`:''}
         <div class="summary-row"><span>Operativer Saldo</span><b class="${balance<0?'bad':'good'}">${money(balance)}</b></div>
+        <div class="summary-row"><span>Nahrung · Wiederbeschaffung</span><b class="bad">−${money(s.foodReplacementCost||0)}</b></div>
+        <div class="summary-row strong"><span>Nachhaltiger Saldo</span><b class="${sustainable<0?'bad':'good'}">${money(sustainable)}</b></div>
         <div class="summary-row"><span>Stadtkasse</span><b>${money(g.cash)}</b></div>
         <div class="summary-row"><span>Gewerbe-Auslastung</span><b>${Math.round(s.commerceUtilization*100)}%</b></div>
         <div class="summary-row"><span>Zuzüge</span><b class="good">+${s.newcomers}</b></div>
@@ -1261,7 +718,7 @@
       <p>Zustimmungsänderung: <b class="${s.approvalDelta<0?'bad':'good'}">${s.approvalDelta>=0?'+':''}${s.approvalDelta} Punkte</b></p>
       <button class="btn primary center" id="closeSummary" style="width:100%">WEITER</button>
     </div>`;
-    document.body.appendChild(overlay); overlay.querySelector('#closeSummary').onclick=()=>{ overlay.remove(); if (afterClose) afterClose(); };
+    document.body.appendChild(overlay); enhanceDialog(overlay); overlay.querySelector('#closeSummary').onclick=()=>{ overlay.remove(); if (afterClose) afterClose(); };
   }
 
   function maybeShowQueuedOverlays(g) {
@@ -1279,7 +736,7 @@
       <div class="info-box recommendation"><b>Bewilligte Förderung</b><p>${money(letter.cash)} wurden der Stadtkasse gutgeschrieben. ${esc(g.cityName)} trägt nun offiziell den Status <b>${esc(letter.status)}</b>.</p></div>
       <div class="info-actions"><button class="btn primary center" id="promoOk" style="width:100%">DANKEND ZUR KENNTNIS GENOMMEN</button></div>
     </div>`;
-    document.body.appendChild(overlay);
+    document.body.appendChild(overlay); enhanceDialog(overlay);
     const close = () => { overlay.remove(); maybeShowQueuedOverlays(g); };
     overlay.querySelector('.icon-close').onclick = close;
     overlay.querySelector('#promoOk').onclick = close;
@@ -1288,19 +745,26 @@
 
   function openEnding(g) {
     const overlay=document.createElement('div'); overlay.className='modal-backdrop';
+    const r=g.termReport;
+    const termHtml=r?`<div class="term-report"><h2>Amtsbilanz nach vier Jahren</h2>
+      <div class="term-grid">
+        <div><span>Finanzen</span><b>${r.finances}/100</b></div><div><span>Wachstum</span><b>${r.growth}/100</b></div>
+        <div><span>Zustimmung</span><b>${r.approval}/100</b></div><div><span>Versorgung</span><b>${r.services}/100</b></div>
+        <div><span>Infrastruktur</span><b>${r.infrastructure}/100</b></div><div><span>Gesamt</span><b>${r.total}/100</b></div>
+      </div><div class="election-result ${r.reelected?'good':'bad'}">Wahlergebnis: ${r.voteShare}%</div></div>`:'';
     overlay.innerHTML=`<div class="modal overlay-message"><div class="hint">SPIELENDE</div>
       <h1 class="${g.ending.win?'good':'bad'}">${g.ending.win?'GEWONNEN!':'ABGEWÄHLT!'}</h1>
-      <p>${esc(g.ending.reason)}</p>
+      <p>${esc(g.ending.reason)}</p>${termHtml}
       <p class="kpi-big">${fmt.format(g.score)} Punkte</p>
       <p>${fmt.format(g.population)} Einwohner · ${money(g.cash)} · ${g.status()}</p>
       <div class="two-col"><button class="btn" id="endHome">HAUPTMENÜ</button><button class="btn primary" id="endNew">NEUES SPIEL</button></div>
     </div>`;
-    document.body.appendChild(overlay);
+    document.body.appendChild(overlay); enhanceDialog(overlay);
     overlay.querySelector('#endHome').onclick=()=>{overlay.remove();renderHome();};
     overlay.querySelector('#endNew').onclick=()=>{overlay.remove();renderSetup();};
   }
 
-  function winText(k) { return ({cash:'200.000 $ Stadtkasse',population:'10.000 Einwohner',modern:'Moderne Stadt',fouryears:'4 Jahre Amtszeit'})[k] || k; }
+  function winText(k) { return ({cash:'200.000 $ Stadtkasse',population:'10.000 Einwohner',modern:'Moderne Stadt',fouryears:'4 Jahre Amtszeit + Wiederwahl'})[k] || k; }
 
   function renderScores() {
     const scores=getScores();
@@ -1317,8 +781,8 @@
       <p><b>Gewerbe:</b> Geschäfte und Supermärkte funktionieren nicht automatisch mit voller Leistung. Zu viele Verkaufsflächen bei zu wenigen Einwohnern bedeuten geringe Auslastung, weniger Jobs und weniger Gewerbeeinnahmen.</p>
       <p><b>Finanzen:</b> Einnahmen hängen von Beschäftigung, Steuersatz, Gewerbeauslastung und Produktivität ab. Gebäude, Einwohner und Schulden verursachen laufende Kosten.</p>
       <p><b>Bildung:</b> Schulen und Universitäten werden bei größerer Bevölkerung wichtig. Gute Bildungsdeckung stabilisiert die Stadt; Universitäten steigern zusätzlich die Produktivität.</p>
-      <p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik. Überschüssig bereitgestellte Nahrung kann über Supermärkte regional verkauft werden: bis zu 150 Einheiten je Supermarkt und Monat zu 165% des aktuellen Nahrungspreises (65% Handelsaufschlag). Nicht verkaufte Überschüsse bleiben im Lager.</p>
-      <p><b>Verlieren:</b> Drei Monate tiefe Überschuldung, dauerhaft extrem schlechte Zustimmung, eine schwere Versorgungskrise oder eine fast entvölkerte Stadt beenden die Amtszeit.</p>
+      <p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik. Überschüssig bereitgestellte Nahrung kann über Supermärkte regional verkauft werden: bis zu 150 Einheiten je Supermarkt und Monat zu 165% des aktuellen Nahrungspreises. Der Monatsplan zieht den Wareneinsatz der exportierten Nahrung ab und zeigt damit nur die echte Handelsmarge. Der rote Großhandels-Verkauf im Markt ist dagegen ein Sofortverkauf zu 45% des Marktwertes. Nicht verkaufte Überschüsse bleiben im Lager.</p>
+      <p><b>Stadtstatus:</b> Ab Großstadt zählen nicht nur Einwohner. Für Moderne Stadt und Metropole müssen auch Infrastruktur, Wohnraum, Arbeit, Bildung, Zustimmung und Versorgung stimmen.</p><p><b>Vier Jahre:</b> Nach 48 Monaten gibt es eine Amtsbilanz und eine echte Wiederwahl. Finanzen, Wachstum, Zustimmung, Versorgung und Infrastruktur entscheiden über das Wahlergebnis.</p><p><b>Verlieren:</b> Drei Monate tiefe Überschuldung, dauerhaft extrem schlechte Zustimmung, eine schwere Versorgungskrise oder eine fast entvölkerte Stadt beenden die Amtszeit. Niederlagen werden immer vor Siegbedingungen ausgewertet.</p>
       <p><b>Info-Fenster:</b> Tippe im Markt auf das <b>i</b>, den Namen eines Gebäudes oder direkt auf ein Gebäude im Stadtbild. Dort siehst du die konkreten Auswirkungen und eine Einschätzung für deine aktuelle Stadt.</p>
       <button class="btn" id="backBtn" style="width:100%">ZURÜCK</button></div></section>`;
     document.getElementById('backBtn').onclick=renderHome;

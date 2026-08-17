@@ -51,28 +51,13 @@ function mulberry32(seed) {
   };
 }
 
-function patchedGameSource(source) {
-  let out = source;
-  out = out.replace("const app = document.getElementById('app');", 'const app = null;');
-  out = out.replace(/saveGame\(this\);\s*renderGame\(this(?:,\s*true)?\);/g, ';');
-  out = out.replace(/addScore\(this\);/g, ';');
-
-  const bootstrap = /\s*if \('serviceWorker' in navigator\)[\s\S]*?\s*renderHome\(\);\s*\}\)\(\);\s*$/;
-  if (!bootstrap.test(out)) throw new Error('Headless bootstrap patch failed: app.js footer changed.');
-  out = out.replace(bootstrap,
-    "\n  globalThis.__BGM_TEST__ = { Game, ITEMS, CITY_LEVELS, EVENTS, clamp };\n})();\n");
-  return out;
-}
-
 function loadEngine(seed = 1) {
-  const appPath = path.join(ROOT, 'app.js');
-  const source = fs.readFileSync(appPath, 'utf8');
-  const math = Object.create(Math);
-  math.random = mulberry32(seed);
-  const context = vm.createContext({ console, Intl, Date, Math: math });
-  vm.runInContext(patchedGameSource(source), context, { filename: 'app.js', timeout: 3000 });
-  if (!context.__BGM_TEST__?.Game) throw new Error('Game engine could not be exposed for testing.');
-  return context.__BGM_TEST__;
+  const source=fs.readFileSync(path.join(ROOT,'game-engine.js'),'utf8');
+  const math=Object.create(Math); math.random=mulberry32(seed);
+  const context=vm.createContext({console,Intl,Date,Math:math,BGM_HOOKS:{save(){},render(){},score(){}}});
+  vm.runInContext(source,context,{filename:'game-engine.js',timeout:3000});
+  if(!context.BGM_ENGINE?.Game) throw new Error('Game engine could not be exposed for testing.');
+  return context.BGM_ENGINE;
 }
 
 function checkFinite(label, value) {
@@ -117,7 +102,7 @@ function runTest(name, fn) {
 }
 
 function staticAssetChecks() {
-  const required = ['index.html','styles.css','app.js','manifest.webmanifest','sw.js','icons/icon.svg','assets/stage-kuhdorf.webp','assets/stage-dorf.webp','assets/stage-kleinstadt.webp','assets/stage-stadt.webp','assets/stage-modern.webp'];
+  const required = ['index.html','styles.css','game-engine.js','app.js','manifest.webmanifest','sw.js','icons/icon.svg','assets/stage-kuhdorf.svg','assets/stage-dorf.svg','assets/stage-grosses-dorf.svg','assets/stage-kleinstadt.svg','assets/stage-stadt.svg','assets/stage-grossstadt.svg','assets/stage-moderne-stadt.svg','assets/stage-metropole.svg'];
   for (const rel of required) assert.ok(fs.existsSync(path.join(ROOT, rel)), `missing ${rel}`);
 
   const index = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -132,7 +117,7 @@ function staticAssetChecks() {
   }
 
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  for (const ref of ['index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg','assets/stage-kuhdorf.webp','assets/stage-dorf.webp','assets/stage-kleinstadt.webp','assets/stage-stadt.webp','assets/stage-modern.webp']) assert.ok(sw.includes(ref), `service worker cache is missing ${ref}`);
+  for (const ref of ['index.html','styles.css','game-engine.js','app.js','manifest.webmanifest','icons/icon.svg','assets/stage-kuhdorf.svg','assets/stage-dorf.svg','assets/stage-grosses-dorf.svg','assets/stage-kleinstadt.svg','assets/stage-stadt.svg','assets/stage-grossstadt.svg','assets/stage-moderne-stadt.svg','assets/stage-metropole.svg']) assert.ok(sw.includes(ref), `service worker cache is missing ${ref}`);
 
   return `${required.length} core assets + manifest/service-worker references valid`;
 }
@@ -171,6 +156,19 @@ function contractChecks() {
   demandGame.inventory.shops += 20;
   const util2 = demandGame.commerceUtilization();
   assert.ok(util2 < util1, 'retail oversupply should reduce utilization');
+
+  const tradeGame=new Game({population:1200,cash:10000,inventory:{land:40,houses:24,towers:0,schools:1,universities:0,shops:4,supermarkets:1,food:2000}});
+  const trade=tradeGame.foodExportPreview(tradeGame.monthlyFoodNeed()+150);
+  assert.ok(trade.revenue>trade.grossMargin && trade.grossMargin>0,'export margin must deduct restocking cost');
+  const withTrade=tradeGame.forecastWithTrade(tradeGame.monthlyFoodNeed()+150);
+  assert.equal(withTrade.sustainableWithTrade,withTrade.sustainableBalance+trade.grossMargin,'trade sustainable forecast broken');
+
+  const defeatFirst=new Game({winCondition:'cash',cash:250000,losingDebtMonths:3});
+  defeatFirst.checkEnd();
+  assert.equal(defeatFirst.ending?.win,false,'defeat must take precedence over victory in same month');
+
+  const modernCandidate=new Game({population:9100,cash:50000,approval:70,inventory:{land:130,houses:30,towers:20,schools:2,universities:0,shops:35,supermarkets:3,food:7000}});
+  assert.notEqual(modernCandidate.status(),'Moderne Stadt','modern city must require adequate education/infrastructure, not population alone');
 
   return 'economy contracts and cross-effects verified';
 }

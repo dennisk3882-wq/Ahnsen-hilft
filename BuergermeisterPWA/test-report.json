@@ -1,10 +1,10 @@
 {
   "mode": "standard",
-  "startedAt": "2026-08-16T17:13:15.297Z",
+  "startedAt": "2026-08-17T10:06:52.367Z",
   "passed": [
     {
       "name": "Static PWA integrity",
-      "details": "11 core assets + manifest/service-worker references valid"
+      "details": "15 core assets + manifest/service-worker references valid"
     },
     {
       "name": "Core economic contracts",
@@ -48,13 +48,13 @@
       "losses": 18,
       "alive": 0,
       "endings": {
-        "Zwei Monate schwere Versorgungskrise: Die Stadtverwaltung bricht zusammen.": 9,
-        "Deine Zustimmung lag zu lange unter 18 %. Der Gemeinderat entzieht dir das Vertrauen.": 9
+        "Zwei Monate schwere Versorgungskrise: Die Stadtverwaltung bricht zusammen.": 8,
+        "Deine Zustimmung lag zu lange unter 18 %. Der Gemeinderat entzieht dir das Vertrauen.": 10
       }
     }
   },
   "simulations": 43,
-  "simulatedMonths": 287,
-  "finishedAt": "2026-08-16T17:13:15.471Z",
+  "simulatedMonths": 290,
+  "finishedAt": "2026-08-17T10:06:52.544Z",
   "ok": true
 }
