@@ -1,2 +1,26 @@
-/* Bürgermeister modern artwork v17 */
-.market-icon-frame{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important;border:0!important;box-shadow:0 0 0 1px rgba(73,200,221,.54),0 0 20px rgba(73,200,221,.16)!important;overflow:hidden!important}.market-icon-frame::before{display:none!important}.market-icon-frame svg{display:none!important}.market-icon-land .market-icon-frame{background-image:url("assets/icon-land.svg")!important}.market-icon-houses .market-icon-frame{background-image:url("assets/icon-houses.svg")!important}.market-icon-towers .market-icon-frame{background-image:url("assets/icon-towers.svg")!important}.market-icon-schools .market-icon-frame{background-image:url("assets/icon-schools.svg")!important}.market-icon-universities .market-icon-frame{background-image:url("assets/icon-universities.svg")!important}.market-icon-shops .market-icon-frame{background-image:url("assets/icon-shops.svg")!important}.market-icon-supermarkets .market-icon-frame{background-image:url("assets/icon-supermarkets.svg")!important}.market-icon-food .market-icon-frame{background-image:url("assets/icon-food.svg")!important}.market-icon-button .market-icon{border-radius:16px!important;width:68px!important;height:68px!important}.market-icon-frame{width:64px!important;height:64px!important;border-radius:16px!important}.market-icon-button{overflow:visible!important}.market-info-dot{z-index:4!important}.city-scene-image{filter:saturate(1.15) contrast(1.07) brightness(1.03)!important}.city-scene{background:#06131d!important;box-shadow:inset 0 0 0 1px rgba(92,209,223,.18),0 14px 34px rgba(0,0,0,.34)!important}.city-stage-moderne-stadt .city-scene-image,.city-stage-metropole .city-scene-image{filter:saturate(1.22) contrast(1.08) brightness(.98)!important}@media(max-width:520px){.market-icon-button,.market-icon-button .market-icon{width:54px!important;height:54px!important}.market-icon-frame{width:52px!important;height:52px!important;border-radius:13px!important}}
+/* Bürgermeister premium artwork v18 */
+.city-scene{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important;background-color:#06131d!important;box-shadow:inset 0 0 0 1px rgba(92,209,223,.22),0 16px 38px rgba(0,0,0,.38)!important}
+.city-scene-image{opacity:0!important;pointer-events:none!important}
+.city-stage-kuhdorf{background-image:url("assets/v18-stage-kuhdorf.svg")!important}
+.city-stage-dorf{background-image:url("assets/v18-stage-dorf.svg")!important}
+.city-stage-grosses-dorf{background-image:url("assets/v18-stage-grosses-dorf.svg")!important}
+.city-stage-kleinstadt{background-image:url("assets/v18-stage-kleinstadt.svg")!important}
+.city-stage-stadt{background-image:url("assets/v18-stage-stadt.svg")!important}
+.city-stage-grossstadt{background-image:url("assets/v18-stage-grossstadt.svg")!important}
+.city-stage-moderne-stadt{background-image:url("assets/v18-stage-moderne-stadt.svg")!important}
+.city-stage-metropole{background-image:url("assets/v18-stage-metropole.svg")!important}
+.city-scene-shade{background:linear-gradient(to bottom,rgba(3,14,22,.01),rgba(3,14,22,0) 70%,rgba(3,14,22,.12))!important;box-shadow:inset 0 0 34px rgba(0,0,0,.14)!important}
+.market-icon-frame{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important;border:0!important;box-shadow:0 0 0 1px rgba(73,200,221,.62),0 0 22px rgba(73,200,221,.17),0 8px 18px rgba(0,0,0,.28)!important;overflow:hidden!important}
+.market-icon-frame::before{display:none!important}.market-icon-frame svg{display:none!important}
+.market-icon-land .market-icon-frame{background-image:url("assets/v18-icon-land.svg")!important}
+.market-icon-houses .market-icon-frame{background-image:url("assets/v18-icon-houses.svg")!important}
+.market-icon-towers .market-icon-frame{background-image:url("assets/v18-icon-towers.svg")!important}
+.market-icon-schools .market-icon-frame{background-image:url("assets/v18-icon-schools.svg")!important}
+.market-icon-universities .market-icon-frame{background-image:url("assets/v18-icon-universities.svg")!important}
+.market-icon-shops .market-icon-frame{background-image:url("assets/v18-icon-shops.svg")!important}
+.market-icon-supermarkets .market-icon-frame{background-image:url("assets/v18-icon-supermarkets.svg")!important}
+.market-icon-food .market-icon-frame{background-image:url("assets/v18-icon-food.svg")!important}
+.market-icon-button,.market-icon-button .market-icon{width:76px!important;height:76px!important}.market-icon-frame{width:70px!important;height:70px!important;border-radius:19px!important}.market-info-dot{z-index:5!important;right:-2px!important;bottom:-2px!important}
+.compact-market-row{min-height:92px!important;grid-template-columns:80px minmax(0,1fr) 130px 150px!important}
+@media(max-width:700px){.compact-market-row{grid-template-columns:72px minmax(0,1fr) 92px 104px!important;gap:8px!important}.market-icon-button,.market-icon-button .market-icon{width:68px!important;height:68px!important}.market-icon-frame{width:64px!important;height:64px!important;border-radius:17px!important}}
+@media(max-width:520px){.market-icon-button,.market-icon-button .market-icon{width:62px!important;height:62px!important}.market-icon-frame{width:58px!important;height:58px!important;border-radius:15px!important}.compact-market-row{grid-template-columns:64px minmax(0,1fr) 78px 100px!important;min-height:86px!important}.city-scene{border-radius:15px!important}}
