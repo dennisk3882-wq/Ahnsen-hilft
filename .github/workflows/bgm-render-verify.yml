@@ -23,17 +23,16 @@ jobs:
           for attempt in $(seq 1 24); do
             echo "Render verification attempt $attempt/24"
             if curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/sw.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/sw.js \
-              && grep -Fq "buergermeister-1992-plus-v10" /tmp/sw.js \
+              && grep -Fq "buergermeister-1992-plus-v12" /tmp/sw.js \
               && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/app.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js \
-              && grep -Fq 'foodExportCapacity()' /tmp/app.js \
-              && grep -Fq 'foodExportPreview' /tmp/app.js \
-              && grep -Fq 'Regionalverkauf' /tmp/app.js \
-              && grep -Fq 'liveFoodExport' /tmp/app.js; then
+              && grep -Fq 'supermarketTargetPrice()' /tmp/app.js \
+              && grep -Fq 'normalizeLegacySupermarketPrice()' /tmp/app.js \
+              && grep -Fq "if (key === 'supermarkets')" /tmp/app.js; then
                 ok=1
                 break
             fi
             sleep 10
           done
           test "$ok" = 1
-          echo "RENDER_FOOD_SURPLUS_LIVE_OK"
+          echo "RENDER_SUPERMARKET_PRICE_FIX_LIVE_OK"
           echo "SW: $(head -n 1 /tmp/sw.js)"
