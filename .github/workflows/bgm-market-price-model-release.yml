@@ -1,4 +1,4 @@
-name: Bürgermeister Building Price Release
+name: Bürgermeister Housing Display Release
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: buergermeister-building-price-release
+  group: buergermeister-housing-display-release
   cancel-in-progress: false
 
 jobs:
@@ -28,46 +28,58 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Apply stable building market model
+      - name: Apply housing display refinement
         shell: bash
-        env:
-          ASSET_METHODS_B64: ICAgIG5vcm1hbGl6ZUxlZ2FjeVN1cGVybWFya2V0UHJpY2UoKSB7CiAgICAgIGNvbnN0IHRhcmdldCA9IHRoaXMuc3VwZXJtYXJrZXRUYXJnZXRQcmljZSgpOwogICAgICB0aGlzLm1hcmtldC5zdXBlcm1hcmtldHMgPSBNYXRoLm1heCgxLCBNYXRoLnJvdW5kKGNsYW1wKHRoaXMubWFya2V0LnN1cGVybWFya2V0cywgdGFyZ2V0ICogLjgwLCB0YXJnZXQgKiAxLjI1KSkpOwogICAgfQoKICAgIGFzc2V0VGFyZ2V0UHJpY2Uoa2V5KSB7CiAgICAgIGNvbnN0IGl0ZW0gPSBJVEVNU1trZXldOwogICAgICBpZiAoIWl0ZW0gfHwga2V5ID09PSAnZm9vZCcpIHJldHVybiBpdGVtID8gaXRlbS5iYXNlIDogMTsKICAgICAgaWYgKGtleSA9PT0gJ3N1cGVybWFya2V0cycpIHJldHVybiB0aGlzLnN1cGVybWFya2V0VGFyZ2V0UHJpY2UoKTsKCiAgICAgIGNvbnN0IGluZmxhdGlvbiA9IE1hdGgucG93KDEuMDI0LCBNYXRoLm1heCgwLCB0aGlzLm1vbnRoc1BsYXllZCkgLyAxMik7CiAgICAgIGxldCBkZW1hbmQgPSAxOwoKICAgICAgaWYgKGtleSA9PT0gJ2xhbmQnKSB7CiAgICAgICAgY29uc3QgZnJlZSA9IHRoaXMubGFuZEZyZWUoKTsKICAgICAgICBkZW1hbmQgPSBmcmVlIDwgMiA/IDEuMTggOiBmcmVlIDwgNSA/IDEuMDggOiAuOTg7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAnaG91c2VzJyB8fCBrZXkgPT09ICd0b3dlcnMnKSB7CiAgICAgICAgY29uc3QgcmF0aW8gPSB0aGlzLmhvdXNpbmdDYXBhY2l0eSgpIC8gTWF0aC5tYXgoMSwgdGhpcy5wb3B1bGF0aW9uKTsKICAgICAgICBkZW1hbmQgPSBjbGFtcCgxICsgKDEuMDggLSByYXRpbykgKiAuNTAsIC44NiwgMS4yNik7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAnc2Nob29scycpIHsKICAgICAgICBkZW1hbmQgPSB0aGlzLnBvcHVsYXRpb24gPCAzNTAgPyAuOTAgOiBjbGFtcCguOTYgKyAoMSAtIHRoaXMuZWR1Y2F0aW9uQ292ZXJhZ2UoKSkgKiAuMTgsIC45MCwgMS4xNyk7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAndW5pdmVyc2l0aWVzJykgewogICAgICAgIGRlbWFuZCA9IHRoaXMucG9wdWxhdGlvbiA8IDE4MDAgPyAuODYgOiBjbGFtcCguOTQgKyAoMSAtIHRoaXMuZWR1Y2F0aW9uQ292ZXJhZ2UoKSkgKiAuMTYsIC44OCwgMS4xNik7CiAgICAgIH0gZWxzZSBpZiAoa2V5ID09PSAnc2hvcHMnKSB7CiAgICAgICAgZGVtYW5kID0gY2xhbXAoLjk0ICsgdGhpcy5jb21tZXJjZVV0aWxpemF0aW9uKCkgKiAuMTIsIC45NCwgMS4wOCk7CiAgICAgIH0KCiAgICAgIHJldHVybiBNYXRoLm1heCgxLCBpdGVtLmJhc2UgKiBpbmZsYXRpb24gKiBkZW1hbmQpOwogICAgfQoKICAgIG5vcm1hbGl6ZUxlZ2FjeUFzc2V0UHJpY2VzKCkgewogICAgICAvLyBWZXJzaW9uZW4gYmlzIHYzIGtvbm50ZW4gR2Viw6R1ZGUgZHVyY2ggbW9uYXRsaWNoZXMgQXVmbXVsdGlwbGl6aWVyZW4ga8O8bnN0bGljaCB2ZXJ0ZXVlcm4uCiAgICAgIC8vIE5haHJ1bmcgYmxlaWJ0IGFic2ljaHRsaWNoIHVuYmVyw7xocnQsIHdlaWwgaWhyIE1hcmt0IGVpbmUgZWlnZW5lIFZlcnNvcmd1bmdzbG9naWsgaGF0LgogICAgICBmb3IgKGNvbnN0IGtleSBvZiBPYmplY3Qua2V5cyhJVEVNUykpIHsKICAgICAgICBpZiAoa2V5ID09PSAnZm9vZCcpIGNvbnRpbnVlOwogICAgICAgIGNvbnN0IHRhcmdldCA9IHRoaXMuYXNzZXRUYXJnZXRQcmljZShrZXkpOwogICAgICAgIGNvbnN0IGN1cnJlbnQgPSB0aGlzLm1hcmtldFtrZXldIHx8IElURU1TW2tleV0uYmFzZTsKICAgICAgICB0aGlzLm1hcmtldFtrZXldID0gTWF0aC5tYXgoMSwgTWF0aC5yb3VuZChjbGFtcChjdXJyZW50LCB0YXJnZXQgKiAuODAsIHRhcmdldCAqIDEuMjUpKSk7CiAgICAgIH0KICAgIH0K
-          UPDATE_MARKET_B64: ICAgIHVwZGF0ZU1hcmtldCgpIHsKICAgICAgY29uc3QgZm9vZEluZmxhdGlvbiA9IDEuMDAyICsgTWF0aC5taW4oLjAwOCwgdGhpcy5tb250aHNQbGF5ZWQgKiAuMDAwMDgpOwogICAgICBmb3IgKGNvbnN0IFtrZXksaXRlbV0gb2YgT2JqZWN0LmVudHJpZXMoSVRFTVMpKSB7CiAgICAgICAgaWYgKGtleSAhPT0gJ2Zvb2QnKSB7CiAgICAgICAgICBjb25zdCB0YXJnZXQgPSB0aGlzLmFzc2V0VGFyZ2V0UHJpY2Uoa2V5KTsKICAgICAgICAgIGNvbnN0IGN1cnJlbnQgPSB0aGlzLm1hcmtldFtrZXldIHx8IGl0ZW0uYmFzZTsKICAgICAgICAgIGNvbnN0IG5vcm1hbGl6ZWQgPSBjbGFtcChjdXJyZW50LCB0YXJnZXQgKiAuNzgsIHRhcmdldCAqIDEuMzQpOwogICAgICAgICAgY29uc3Qgbm9pc3lUYXJnZXQgPSB0YXJnZXQgKiAoMSArIChNYXRoLnJhbmRvbSgpIC0gLjUpICogLjAzKTsKICAgICAgICAgIGNvbnN0IG5leHQgPSBub3JtYWxpemVkICsgKG5vaXN5VGFyZ2V0IC0gbm9ybWFsaXplZCkgKiAuMjM7CiAgICAgICAgICB0aGlzLm1hcmtldFtrZXldID0gY2xhbXAoTWF0aC5yb3VuZChuZXh0KSwgTWF0aC5yb3VuZChpdGVtLmJhc2UgKiAuNjApLCBNYXRoLnJvdW5kKGl0ZW0uYmFzZSAqIDEuOTApKTsKICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgIH0KCiAgICAgICAgLy8gTmFocnVuZyBiZWjDpGx0IGRpZSBiZXN0ZWhlbmRlLCBiZXd1c3N0IHZvbGF0aWxlcmUgVmVyc29yZ3VuZ3Nsb2dpay4KICAgICAgICBsZXQgZmFjdG9yID0gZm9vZEluZmxhdGlvbiAqICgwLjk2NSArIE1hdGgucmFuZG9tKCkgKiAuMDcpOwogICAgICAgIGNvbnN0IHByZXNzdXJlID0gdGhpcy5pbnZlbnRvcnkuZm9vZCA8IHRoaXMubW9udGhseUZvb2ROZWVkKCkgKiAxLjUgPyAxLjAzNSA6IC45OTU7CiAgICAgICAgY29uc3Qgc3VwZXJtYXJrZXRSZWxpZWYgPSAxIC0gTWF0aC5taW4oLjAxOCwgdGhpcy5pbnZlbnRvcnkuc3VwZXJtYXJrZXRzICogLjAwMyk7CiAgICAgICAgZmFjdG9yICo9IHByZXNzdXJlICogc3VwZXJtYXJrZXRSZWxpZWY7CiAgICAgICAgdGhpcy5tYXJrZXQuZm9vZCA9IE1hdGgubWF4KDEsIE1hdGgucm91bmQodGhpcy5tYXJrZXQuZm9vZCAqIGZhY3RvcikpOwogICAgICAgIGNvbnN0IGZsb29yID0gTWF0aC5tYXgoMSwgTWF0aC5yb3VuZChpdGVtLmJhc2UgKiAuNTUpKTsKICAgICAgICBjb25zdCBjZWlsaW5nID0gTWF0aC5yb3VuZChpdGVtLmJhc2UgKiAzLjIgKyA1KTsKICAgICAgICB0aGlzLm1hcmtldC5mb29kID0gY2xhbXAodGhpcy5tYXJrZXQuZm9vZCwgZmxvb3IsIGNlaWxpbmcpOwogICAgICB9CiAgICB9Cg==
         run: |
           python3 - <<'PY'
-          import base64, os, re
           from pathlib import Path
           p = Path('BuergermeisterPWA/app.js')
           s = p.read_text()
-          s = s.replace('version: 3,', 'version: 4,', 1)
-          s = s.replace('this.version = 3;', 'this.version = 4;', 1)
-          s = s.replace('if (loadedVersion < 3) this.normalizeLegacySupermarketPrice();', 'if (loadedVersion < 4) this.normalizeLegacyAssetPrices();', 1)
-          methods = base64.b64decode(os.environ['ASSET_METHODS_B64']).decode()
-          pattern = r"    normalizeLegacySupermarketPrice\(\) \{.*?\n    \}\n\n    log\(text"
-          s, n = re.subn(pattern, methods + '\n    log(text', s, count=1, flags=re.S)
-          if n != 1:
-              raise SystemExit('asset method anchor missing')
-          market = base64.b64decode(os.environ['UPDATE_MARKET_B64']).decode()
-          pattern = r"    updateMarket\(\) \{.*?\n    \}\n\n    incrementDate\(\) \{"
-          s, n = re.subn(pattern, market + '\n    incrementDate() {', s, count=1, flags=re.S)
-          if n != 1:
-              raise SystemExit('updateMarket anchor missing')
+
+          old = """    const housingRatio = Math.round(g.housingCapacity()/Math.max(1,g.population)*100);\n    const eduRatio = Math.round(g.educationCoverage()*100);\n"""
+          new = """    const housingCapacity = g.housingCapacity();\n    const housingRatio = Math.round(housingCapacity/Math.max(1,g.population)*100);\n    const housingFree = Math.max(0, housingCapacity - g.population);\n    const housingDeficit = Math.max(0, g.population - housingCapacity);\n    const housingCoverage = Math.min(100, housingRatio);\n    const eduRatio = Math.round(g.educationCoverage()*100);\n"""
+          if old not in s:
+              raise SystemExit('housing calculation anchor missing')
+          s = s.replace(old, new, 1)
+
+          old = """          <div><span>Land</span><b>${fmt.format(g.landFree())}</b></div>\n          <div><span>Nahrung</span><b class=\"${foodMonths<1?'bad':foodMonths<2?'warn':''}\">${foodMonths.toFixed(1)} Mon.</b></div>\n"""
+          new = """          <div><span>Wohnen</span><b class=\"${housingDeficit>0?'bad':housingFree<15?'warn':'good'}\">${housingDeficit>0?`${fmt.format(housingDeficit)} fehlen`:`${fmt.format(housingFree)} frei`}</b></div>\n          <div><span>Nahrung</span><b class=\"${foodMonths<1?'bad':foodMonths<2?'warn':''}\">${foodMonths.toFixed(1)} Mon.</b></div>\n"""
+          if old not in s:
+              raise SystemExit('quick housing anchor missing')
+          s = s.replace(old, new, 1)
+
+          old = """            <div class=\"metric-card\"><span>Wohnplätze</span><b class=\"${healthClass(housingRatio,105,95)}\">${fmt.format(g.housingCapacity())}</b><small>${housingRatio}% Auslastung</small></div>\n"""
+          new = """            <div class=\"metric-card\"><span>Wohnraum</span><b class=\"${housingDeficit>0?'bad':housingFree<15?'warn':'good'}\">${fmt.format(housingCapacity)} Plätze</b><small>${housingDeficit>0?`${fmt.format(housingDeficit)} fehlen · ${housingCoverage}% Bedarf gedeckt`:`${fmt.format(g.population)} belegt · ${fmt.format(housingFree)} frei`}</small></div>\n"""
+          if old not in s:
+              raise SystemExit('housing card anchor missing')
+          s = s.replace(old, new, 1)
+
+          old = """              <div class=\"resource\"><span>Wohnraumauslastung</span><b>${housingRatio}%</b></div>\n"""
+          new = """              <div class=\"resource\"><span>Wohnraumdeckung</span><b class=\"${housingCoverage<100?'bad':'good'}\">${housingCoverage}%</b></div>\n              <div class=\"resource\"><span>Freie Wohnplätze</span><b class=\"${housingDeficit>0?'bad':housingFree<15?'warn':'good'}\">${housingDeficit>0?`${fmt.format(housingDeficit)} fehlen`:fmt.format(housingFree)}</b></div>\n"""
+          if old not in s:
+              raise SystemExit('political housing anchor missing')
+          s = s.replace(old, new, 1)
+
           p.write_text(s)
           sw = Path('BuergermeisterPWA/sw.js')
-          sw.write_text(sw.read_text().replace('buergermeister-1992-plus-v12', 'buergermeister-1992-plus-v13'))
+          t = sw.read_text()
+          if 'buergermeister-1992-plus-v13' not in t:
+              raise SystemExit('expected cache v13 missing')
+          sw.write_text(t.replace('buergermeister-1992-plus-v13', 'buergermeister-1992-plus-v14', 1))
           PY
 
-      - name: Verify implementation
+      - name: Verify housing UI
         shell: bash
         run: |
           set -euo pipefail
           node --check BuergermeisterPWA/app.js
-          grep -Fq 'assetTargetPrice(key)' BuergermeisterPWA/app.js
-          grep -Fq 'normalizeLegacyAssetPrices()' BuergermeisterPWA/app.js
-          grep -Fq "if (key !== 'food')" BuergermeisterPWA/app.js
-          grep -Fq 'buergermeister-1992-plus-v13' BuergermeisterPWA/sw.js
+          grep -Fq 'const housingFree = Math.max(0, housingCapacity - g.population);' BuergermeisterPWA/app.js
+          grep -Fq '<span>Wohnen</span>' BuergermeisterPWA/app.js
+          grep -Fq '<span>Freie Wohnplätze</span>' BuergermeisterPWA/app.js
+          grep -Fq 'Wohnraumdeckung' BuergermeisterPWA/app.js
+          grep -Fq 'buergermeister-1992-plus-v14' BuergermeisterPWA/sw.js
 
-      - name: Behavioral building price tests
+      - name: Behavioral housing test
         working-directory: BuergermeisterPWA
         shell: bash
         run: |
@@ -77,18 +89,12 @@ jobs:
           const store=new Map();
           const ctx={console,Math,Date,Intl,document:{getElementById:()=>({}),createElement:()=>({})},navigator:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},globalThis:null}; ctx.globalThis=ctx;
           vm.createContext(ctx); vm.runInContext(src,ctx); const Game=ctx.__BGM_TEST__.Game;
-          const legacy=new Game({version:3,monthsPlayed:53,population:165,inventory:{land:7,houses:3,towers:0,schools:0,universities:0,shops:1,supermarkets:0,food:232},market:{land:132,houses:880,towers:8155,schools:3217,universities:13450,shops:1271,supermarkets:8795,food:1}});
-          const p=legacy.market;
-          if(p.food !== 1) throw new Error('food must not be normalized');
-          if(p.houses > 700 || p.towers > 5600 || p.supermarkets > 6000) throw new Error('runaway prices remain '+JSON.stringify(p));
-          if(p.schools > 3300 || p.universities > 13500 || p.shops > 1400 || p.land > 200) throw new Error('asset normalization implausible '+JSON.stringify(p));
-          const scarce=new Game({version:4,monthsPlayed:53,population:900,inventory:{land:20,houses:14,towers:0,schools:1,universities:0,shops:3,supermarkets:0,food:1000}});
-          const roomy=new Game({version:4,monthsPlayed:53,population:400,inventory:{land:20,houses:20,towers:0,schools:1,universities:0,shops:3,supermarkets:0,food:1000}});
-          if(!(scarce.assetTargetPrice('houses') > roomy.assetTargetPrice('houses'))) throw new Error('housing scarcity should raise house target');
-          for(let i=0;i<72;i++){legacy.updateMarket();legacy.monthsPlayed++;}
-          const limits={land:220,houses:800,towers:6500,schools:4500,universities:19000,shops:1700,supermarkets:7200};
-          for(const key of Object.keys(limits)) if(legacy.market[key] > limits[key]) throw new Error(key+' still drifts too high '+legacy.market[key]);
-          console.log('BUILDING_MARKET_OK',legacy.market);
+          const start=new Game();
+          if(start.housingCapacity()!==165) throw new Error('start housing capacity wrong '+start.housingCapacity());
+          if(start.housingCapacity()-start.population!==40) throw new Error('start free housing wrong');
+          const crowded=new Game({population:200,inventory:{land:7,houses:3,towers:0,schools:0,universities:0,shops:1,supermarkets:0,food:450}});
+          if(!(crowded.population-crowded.housingCapacity()>0)) throw new Error('housing deficit scenario missing');
+          console.log('HOUSING_DISPLAY_BEHAVIOR_OK',{capacity:start.housingCapacity(),occupied:start.population,free:start.housingCapacity()-start.population});
           NODE
 
       - name: Reachability diagnostics
@@ -103,14 +109,14 @@ jobs:
         working-directory: BuergermeisterPWA
         run: node tests/autotest.mjs
 
-      - name: Commit tested building market model and promote production
+      - name: Commit tested housing UI and promote production
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add BuergermeisterPWA/app.js BuergermeisterPWA/sw.js
-          git commit -m 'Stabilize all building market prices'
+          git commit -m 'Show free housing clearly'
           RELEASE_SHA="$(git rev-parse HEAD)"
           git push origin HEAD:main
           git fetch origin buergermeister-production
