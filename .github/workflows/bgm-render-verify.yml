@@ -23,20 +23,18 @@ jobs:
           for attempt in $(seq 1 24); do
             echo "Render verification attempt $attempt/24"
             if curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/sw.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/sw.js \
-              && grep -Fq "buergermeister-1992-plus-v8" /tmp/sw.js \
+              && grep -Fq "buergermeister-1992-plus-v9" /tmp/sw.js \
               && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/app.js?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js \
-              && grep -Fq 'data-game-tab="actions"' /tmp/app.js \
-              && grep -Fq 'data-game-tab="finance"' /tmp/app.js \
-              && grep -Fq 'class="game-sticky-bar"' /tmp/app.js \
-              && grep -Fq 'renderCompactMarket' /tmp/app.js \
+              && grep -Fq 'const liveProjection = () =>' /tmp/app.js \
+              && grep -Fq 'liveTaxDelta' /tmp/app.js \
+              && grep -Fq 'liveFoodCoverage' /tmp/app.js \
               && curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$BASE/styles.css?verify=$GITHUB_RUN_ID-$attempt" -o /tmp/styles.css \
-              && grep -Fq 'Bürgermeister compact mobile workspace v1' /tmp/styles.css \
-              && grep -Fq '.game-sticky-bar' /tmp/styles.css; then
+              && grep -Fq 'Bürgermeister live month forecast v1' /tmp/styles.css; then
                 ok=1
                 break
             fi
             sleep 10
           done
           test "$ok" = 1
-          echo "RENDER_COMPACT_MOBILE_LIVE_OK"
+          echo "RENDER_LIVE_MONTH_FORECAST_OK"
           echo "SW: $(head -n 1 /tmp/sw.js)"
