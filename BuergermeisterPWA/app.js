@@ -929,7 +929,11 @@
   function renderGame(g, showSummary=false) {
     const attract = g.calculateAttractiveness();
     const jobRatio = Math.round(g.employmentCoverage()*100);
-    const housingRatio = Math.round(g.housingCapacity()/Math.max(1,g.population)*100);
+    const housingCapacity = g.housingCapacity();
+    const housingRatio = Math.round(housingCapacity/Math.max(1,g.population)*100);
+    const housingFree = Math.max(0, housingCapacity - g.population);
+    const housingDeficit = Math.max(0, g.population - housingCapacity);
+    const housingCoverage = Math.min(100, housingRatio);
     const eduRatio = Math.round(g.educationCoverage()*100);
     const util = Math.round(g.commerceUtilization()*100);
     const foodMonths = g.inventory.food / Math.max(1, g.monthlyFoodNeed());
@@ -965,7 +969,7 @@
           <div class="city-hotspot-layer">${cityHotspots(g)}</div>
         </div>
         <div class="city-quick-strip">
-          <div><span>Land</span><b>${fmt.format(g.landFree())}</b></div>
+          <div><span>Wohnen</span><b class="${housingDeficit>0?'bad':housingFree<15?'warn':'good'}">${housingDeficit>0?`${fmt.format(housingDeficit)} fehlen`:`${fmt.format(housingFree)} frei`}</b></div>
           <div><span>Nahrung</span><b class="${foodMonths<1?'bad':foodMonths<2?'warn':''}">${foodMonths.toFixed(1)} Mon.</b></div>
           <div><span>Jobs</span><b class="${healthClass(jobRatio,95,75)}">${jobRatio}%</b></div>
           <div><span>Plan</span><b class="${planClass}">${money(f.sustainableBalance)}</b></div>
@@ -989,7 +993,7 @@
         <section class="game-tab-panel" data-tab-panel="city" role="tabpanel" hidden>
           <div class="workspace-head"><div><h2>STADTENTWICKLUNG</h2><p>Die wichtigsten Kapazitäten auf einen Blick.</p></div></div>
           <div class="metric-card-grid">
-            <div class="metric-card"><span>Wohnplätze</span><b class="${healthClass(housingRatio,105,95)}">${fmt.format(g.housingCapacity())}</b><small>${housingRatio}% Auslastung</small></div>
+            <div class="metric-card"><span>Wohnraum</span><b class="${housingDeficit>0?'bad':housingFree<15?'warn':'good'}">${fmt.format(housingCapacity)} Plätze</b><small>${housingDeficit>0?`${fmt.format(housingDeficit)} fehlen · ${housingCoverage}% Bedarf gedeckt`:`${fmt.format(g.population)} belegt · ${fmt.format(housingFree)} frei`}</small></div>
             <div class="metric-card"><span>Arbeitsplätze</span><b class="${healthClass(jobRatio,95,75)}">${fmt.format(g.jobsCapacity())}</b><small>${jobRatio}% Deckung</small></div>
             <div class="metric-card"><span>Bildungsplätze</span><b class="${healthClass(eduRatio,90,65)}">${fmt.format(g.schoolCapacity())}</b><small>${eduRatio}% Deckung</small></div>
             <div class="metric-card"><span>Nahrung</span><b class="${foodMonths<1?'bad':foodMonths<2?'warn':''}">${fmt.format(g.inventory.food)}</b><small>${foodMonths.toFixed(1)} Monatsreserven</small></div>
@@ -1002,7 +1006,8 @@
             <summary>Politische Kennzahlen</summary>
             <div class="details-body">
               <div class="mini-progress-row"><span>Zustimmung</span><b>${g.approval}%</b></div><div class="status-meter"><i style="width:${g.approval}%"></i></div>
-              <div class="resource"><span>Wohnraumauslastung</span><b>${housingRatio}%</b></div>
+              <div class="resource"><span>Wohnraumdeckung</span><b class="${housingCoverage<100?'bad':'good'}">${housingCoverage}%</b></div>
+              <div class="resource"><span>Freie Wohnplätze</span><b class="${housingDeficit>0?'bad':housingFree<15?'warn':'good'}">${housingDeficit>0?`${fmt.format(housingDeficit)} fehlen`:fmt.format(housingFree)}</b></div>
               <div class="resource"><span>Arbeitsplatzdeckung</span><b>${jobRatio}%</b></div>
               <div class="resource"><span>Bildungsdeckung</span><b>${eduRatio}%</b></div>
             </div>
