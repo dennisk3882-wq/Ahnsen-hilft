@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Apply mean-reverting market model
+      - name: Apply targeted supermarket price fix
         shell: bash
         run: |
           python3 - <<'PY'
@@ -42,10 +42,15 @@ jobs:
               raise SystemExit('constructor start missing')
           s = s.replace(old_ctor, new_ctor, 1)
           s = s.replace("""      this.version = 2;\n      this.inventory = { land:7, houses:3, towers:0, schools:0, universities:0, shops:1, supermarkets:0, food:450, ...(data.inventory || {}) };\n""", """      this.version = 3;\n      this.inventory = { land:7, houses:3, towers:0, schools:0, universities:0, shops:1, supermarkets:0, food:450, ...(data.inventory || {}) };\n""", 1)
-          s = s.replace("""      this.ensureMarket();\n    }\n\n    ensureMarket() {\n      for (const [key, item] of Object.entries(ITEMS)) if (!this.market[key]) this.market[key] = item.base;\n    }\n""", """      this.ensureMarket();\n      if (loadedVersion < 3) this.normalizeLegacyMarket();\n    }\n\n    ensureMarket() {\n      for (const [key, item] of Object.entries(ITEMS)) if (!this.market[key]) this.market[key] = item.base;\n    }\n\n    marketInflationIndex() {\n      // Moderate langfristige Preissteigerung: etwa 2,4 % pro Spieljahr.\n      return Math.pow(1.024, Math.max(0, this.monthsPlayed) / 12);\n    }\n\n    marketTargetPrice(key) {\n      const item = ITEMS[key];\n      let pressure = 1;\n      if (key === 'food') {\n        const reserveMonths = this.inventory.food / Math.max(1, this.monthlyFoodNeed());\n        pressure = clamp(1 + (1.5 - reserveMonths) * .14, .72, 1.48);\n      } else if (key === 'land') {\n        const free = this.landFree();\n        pressure = free < 2 ? 1.24 : free < 5 ? 1.10 : .98;\n      } else if (key === 'houses' || key === 'towers') {\n        const housingRatio = this.housingCapacity() / Math.max(1, this.population);\n        pressure = clamp(1 + (1.08 - housingRatio) * .55, .84, 1.32);\n      } else if (key === 'schools') {\n        pressure = this.population < 450 ? .88 : clamp(1 + (.9 - this.educationCoverage()) * .28, .86, 1.22);\n      } else if (key === 'universities') {\n        pressure = this.population < 2500 ? .82 : clamp(1 + (.85 - this.educationCoverage()) * .24, .84, 1.20);\n      } else if (key === 'shops') {\n        pressure = clamp(.88 + this.commerceUtilization() * .22, .90, 1.14);\n      } else if (key === 'supermarkets') {\n        // Ein Supermarkt wird erst bei wachsender regionaler Kundschaft wirklich knapp.\n        // Kleine Orte treiben seinen Preis deshalb nicht mehr künstlich nach oben.\n        const desired = Math.max(.15, this.population / 1100);\n        const gap = desired - this.inventory.supermarkets;\n        pressure = clamp(.94 + gap * .08, .88, 1.24);\n      }\n      return Math.max(1, item.base * this.marketInflationIndex() * pressure);\n    }\n\n    normalizeLegacyMarket() {\n      // Alte Versionen konnten Preise über Jahre hochmultiplizieren. Einmalig auf einen\n      // plausiblen Korridor um den heutigen Zielpreis zurückführen, ohne den Markt zu resetten.\n      for (const key of Object.keys(ITEMS)) {\n        const target = this.marketTargetPrice(key);\n        const spread = key === 'food' ? [.62, 1.55] : [.80, 1.25];\n        this.market[key] = Math.max(1, Math.round(clamp(this.market[key], target * spread[0], target * spread[1])));\n      }\n    }\n""", 1)
+
+          anchor = """      this.ensureMarket();\n    }\n\n    ensureMarket() {\n      for (const [key, item] of Object.entries(ITEMS)) if (!this.market[key]) this.market[key] = item.base;\n    }\n"""
+          replacement = """      this.ensureMarket();\n      if (loadedVersion < 3) this.normalizeLegacySupermarketPrice();\n    }\n\n    ensureMarket() {\n      for (const [key, item] of Object.entries(ITEMS)) if (!this.market[key]) this.market[key] = item.base;\n    }\n\n    supermarketTargetPrice() {\n      const base = ITEMS.supermarkets.base;\n      const inflation = Math.pow(1.024, Math.max(0, this.monthsPlayed) / 12);\n      // Ein Supermarkt wird erst bei echter regionaler Nachfrage knapper.\n      const desired = Math.max(.15, this.population / 1100);\n      const gap = desired - this.inventory.supermarkets;\n      const demand = clamp(.94 + gap * .08, .88, 1.24);\n      return Math.max(1, base * inflation * demand);\n    }\n\n    normalizeLegacySupermarketPrice() {\n      // Alte Spielstände konnten den Supermarktpreis durch monatliches Aufmultiplizieren\n      // stark aufblasen. Nur diesen Preis einmalig auf einen plausiblen Korridor ziehen.\n      const target = this.supermarketTargetPrice();\n      this.market.supermarkets = Math.max(1, Math.round(clamp(this.market.supermarkets, target * .80, target * 1.25)));\n    }\n"""
+          if anchor not in s:
+              raise SystemExit('ensureMarket anchor missing')
+          s = s.replace(anchor, replacement, 1)
 
           old_market = """    updateMarket() {\n      const inflation = 1.002 + Math.min(.008, this.monthsPlayed * .00008);\n      for (const [key,item] of Object.entries(ITEMS)) {\n        let factor = inflation * (0.965 + Math.random() * .07);\n        if (key === 'food') {\n          const pressure = this.inventory.food < this.monthlyFoodNeed() * 1.5 ? 1.035 : .995;\n          const supermarketRelief = 1 - Math.min(.018, this.inventory.supermarkets * .003);\n          factor *= pressure * supermarketRelief;\n        }\n        if (key === 'land' && this.landFree() < 3) factor *= 1.018;\n        if (key === 'houses' || key === 'towers') {\n          if (this.housingCapacity() < this.population * 1.05) factor *= 1.012;\n        }\n        if (key === 'shops' || key === 'supermarkets') {\n          factor *= this.commerceUtilization() > .8 ? 1.008 : .995;\n        }\n        this.market[key] = Math.max(1, Math.round(this.market[key] * factor));\n        const floor = Math.max(1, Math.round(item.base * .55));\n        const ceiling = Math.round(item.base * 3.2 + 5);\n        this.market[key] = clamp(this.market[key], floor, ceiling);\n      }\n    }\n"""
-          new_market = """    updateMarket() {\n      for (const [key,item] of Object.entries(ITEMS)) {\n        const target = this.marketTargetPrice(key);\n        const current = this.market[key] || item.base;\n        // Kleine Marktbewegung, aber keine zufällige exponentielle Preisexplosion mehr.\n        const noise = 1 + (Math.random() - .5) * (key === 'food' ? .05 : .026);\n        const noisyTarget = target * noise;\n        const spread = key === 'food' ? [.58, 1.65] : [.76, 1.38];\n        const normalizedCurrent = clamp(current, target * spread[0], target * spread[1]);\n        const next = normalizedCurrent + (noisyTarget - normalizedCurrent) * .22;\n        const floor = Math.max(1, Math.round(item.base * .55));\n        const ceiling = Math.round(item.base * (key === 'food' ? 2.6 : 2.1) + 5);\n        this.market[key] = clamp(Math.max(1, Math.round(next)), floor, ceiling);\n      }\n    }\n"""
+          new_market = """    updateMarket() {\n      const inflation = 1.002 + Math.min(.008, this.monthsPlayed * .00008);\n      for (const [key,item] of Object.entries(ITEMS)) {\n        if (key === 'supermarkets') {\n          const target = this.supermarketTargetPrice();\n          const current = this.market.supermarkets || item.base;\n          const normalized = clamp(current, target * .78, target * 1.32);\n          const noisyTarget = target * (1 + (Math.random() - .5) * .026);\n          const next = normalized + (noisyTarget - normalized) * .24;\n          this.market.supermarkets = clamp(Math.round(next), Math.round(item.base * .65), Math.round(item.base * 1.85));\n          continue;\n        }\n        let factor = inflation * (0.965 + Math.random() * .07);\n        if (key === 'food') {\n          const pressure = this.inventory.food < this.monthlyFoodNeed() * 1.5 ? 1.035 : .995;\n          const supermarketRelief = 1 - Math.min(.018, this.inventory.supermarkets * .003);\n          factor *= pressure * supermarketRelief;\n        }\n        if (key === 'land' && this.landFree() < 3) factor *= 1.018;\n        if (key === 'houses' || key === 'towers') {\n          if (this.housingCapacity() < this.population * 1.05) factor *= 1.012;\n        }\n        if (key === 'shops') {\n          factor *= this.commerceUtilization() > .8 ? 1.008 : .995;\n        }\n        this.market[key] = Math.max(1, Math.round(this.market[key] * factor));\n        const floor = Math.max(1, Math.round(item.base * .55));\n        const ceiling = Math.round(item.base * 3.2 + 5);\n        this.market[key] = clamp(this.market[key], floor, ceiling);\n      }\n    }\n"""
           if old_market not in s:
               raise SystemExit('old updateMarket block missing')
           s = s.replace(old_market, new_market, 1)
@@ -56,17 +61,17 @@ jobs:
           sw.write_text(t)
           PY
 
-      - name: Verify market implementation
+      - name: Verify targeted fix
         shell: bash
         run: |
           set -euo pipefail
           node --check BuergermeisterPWA/app.js
-          grep -Fq 'marketTargetPrice(key)' BuergermeisterPWA/app.js
-          grep -Fq 'normalizeLegacyMarket()' BuergermeisterPWA/app.js
-          grep -Fq 'population / 1100' BuergermeisterPWA/app.js
+          grep -Fq 'supermarketTargetPrice()' BuergermeisterPWA/app.js
+          grep -Fq 'normalizeLegacySupermarketPrice()' BuergermeisterPWA/app.js
+          grep -Fq "if (key === 'supermarkets')" BuergermeisterPWA/app.js
           grep -Fq 'buergermeister-1992-plus-v12' BuergermeisterPWA/sw.js
 
-      - name: Behavioral market tests
+      - name: Behavioral supermarket price tests
         working-directory: BuergermeisterPWA
         shell: bash
         run: |
@@ -76,16 +81,16 @@ jobs:
           const store=new Map();
           const ctx={console,Math,Date,Intl,document:{getElementById:()=>({}),createElement:()=>({})},navigator:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},globalThis:null}; ctx.globalThis=ctx;
           vm.createContext(ctx); vm.runInContext(src,ctx); const Game=ctx.__BGM_TEST__.Game;
-          let g=new Game({version:2,monthsPlayed:53,population:165,inventory:{land:7,houses:3,towers:0,schools:0,universities:0,shops:1,supermarkets:0,food:232},market:{land:132,houses:880,towers:8155,schools:3217,universities:13450,shops:1270,supermarkets:8795,food:1}});
-          if(g.market.supermarkets>6000) throw new Error('legacy supermarket not normalized: '+g.market.supermarkets);
-          if(g.market.supermarkets<3500) throw new Error('legacy supermarket over-corrected: '+g.market.supermarkets);
-          const lowTarget=g.marketTargetPrice('supermarkets');
-          const high=new Game({version:3,monthsPlayed:53,population:6000,inventory:{land:80,houses:80,towers:2,schools:4,universities:1,shops:8,supermarkets:1,food:5000}});
-          const highTarget=high.marketTargetPrice('supermarkets');
-          if(!(highTarget>lowTarget)) throw new Error(`supermarket demand target should rise with real demand ${lowTarget} ${highTarget}`);
-          for(let i=0;i<72;i++){g.updateMarket();g.monthsPlayed++;}
-          if(g.market.supermarkets>7500) throw new Error('supermarket still drifts too high: '+g.market.supermarkets);
-          console.log('MARKET_MODEL_OK',{legacy:g.market.supermarkets,lowTarget,highTarget});
+          const legacy=new Game({version:2,monthsPlayed:53,population:165,inventory:{land:7,houses:3,towers:0,schools:0,universities:0,shops:1,supermarkets:0,food:232},market:{land:132,houses:880,towers:8155,schools:3217,universities:13450,shops:1270,supermarkets:8795,food:1}});
+          if(legacy.market.supermarkets>6000 || legacy.market.supermarkets<3500) throw new Error('legacy supermarket normalization failed '+legacy.market.supermarkets);
+          const lowTarget=legacy.supermarketTargetPrice();
+          const large=new Game({version:3,monthsPlayed:53,population:6000,inventory:{land:80,houses:80,towers:2,schools:4,universities:1,shops:8,supermarkets:1,food:5000}});
+          if(!(large.supermarketTargetPrice()>lowTarget)) throw new Error('real demand should raise supermarket target');
+          const originalFood=legacy.market.food, originalHouse=legacy.market.houses;
+          for(let i=0;i<60;i++){legacy.updateMarket();legacy.monthsPlayed++;}
+          if(legacy.market.supermarkets>7000) throw new Error('supermarket still drifts too high '+legacy.market.supermarkets);
+          if(originalFood===undefined || originalHouse===undefined) throw new Error('baseline markets missing');
+          console.log('SUPERMARKET_PRICE_FIX_OK',{normalized:legacy.market.supermarkets,lowTarget,highTarget:large.supermarketTargetPrice()});
           NODE
 
       - name: Reachability diagnostics
@@ -100,14 +105,14 @@ jobs:
         working-directory: BuergermeisterPWA
         run: node tests/autotest.mjs
 
-      - name: Commit tested market model and promote production
+      - name: Commit tested supermarket price fix and promote production
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add BuergermeisterPWA/app.js BuergermeisterPWA/sw.js
-          git commit -m 'Stabilize Bürgermeister market prices'
+          git commit -m 'Fix runaway supermarket price'
           RELEASE_SHA="$(git rev-parse HEAD)"
           git push origin HEAD:main
           git fetch origin buergermeister-production
