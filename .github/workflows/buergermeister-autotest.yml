@@ -29,9 +29,9 @@ concurrency:
 
 jobs:
   autonomous-test:
-    name: Simulation, balance and PWA integrity
+    name: Simulation, balance, browser and PWA integrity
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout repository
@@ -55,6 +55,13 @@ jobs:
             echo "Running STANDARD verification suite"
           fi
 
+      - name: Syntax and split-engine checks
+        working-directory: BuergermeisterPWA
+        run: |
+          node --check game-engine.js
+          node --check app.js
+          node --check tests/e2e.mjs
+
       - name: Reachability diagnostics
         working-directory: BuergermeisterPWA
         run: node tests/reachability-diagnostic.mjs
@@ -67,6 +74,16 @@ jobs:
         if: always()
         working-directory: BuergermeisterPWA
         run: node tests/autotest.mjs
+
+      - name: Install browser test runtime
+        working-directory: BuergermeisterPWA
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Browser end-to-end smoke
+        working-directory: BuergermeisterPWA
+        run: node tests/e2e.mjs
 
       - name: Upload full QA report
         if: always()
