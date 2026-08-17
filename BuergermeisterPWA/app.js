@@ -12,6 +12,7 @@
 
 
   let deferredInstallPrompt = null;
+  let activeGameTab = 'actions';
 
   function isPwaStandalone() {
     return typeof window !== 'undefined' && (
@@ -806,130 +807,191 @@
     return value >= goodAt ? 'good' : value < warnAt ? 'bad' : 'warn';
   }
 
+  function renderCompactMarket(g) {
+    return Object.entries(ITEMS).map(([key,item]) => {
+      const signal = marketPriceSignal(g,key);
+      const qty = item.tradeQty || 1;
+      const maintenance = item.maintenance ? ` · ${money(item.maintenance)}/Mon.` : '';
+      const free = key === 'land' ? ` · frei ${g.landFree()}` : '';
+      return `<div class="market-row compact-market-row">
+        <button class="market-icon-button" data-info="${key}" aria-label="Information zu ${item.name}" title="Info zu ${item.name}">
+          ${marketIcon(key)}<span class="market-info-dot">i</span>
+        </button>
+        <div class="market-copy market-click" data-info="${key}">
+          <div class="market-title-line"><b>${item.name}</b><span class="market-effect">${marketEffect(key)}</span></div>
+          <div class="market-meta">Bestand <strong>${fmt.format(g.inventory[key])}</strong>${free}${maintenance}</div>
+        </div>
+        <div class="market-price-block">
+          <small>${item.tradeQty?`${qty} Stk.`:'Preis'}</small>
+          <strong>${money(marketTradeCost(g,key))}</strong>
+          <span class="market-trend ${signal.cls}">${signal.label}</span>
+        </div>
+        <div class="market-actions compact-actions">
+          <button class="market-action buy" data-buy="${key}" ${g.canBuy(key)?'':'disabled'} title="${item.name} kaufen"><b>+${qty}</b><span>Kaufen</span></button>
+          <button class="market-action sell" data-sell="${key}" ${g.canSell(key)?'':'disabled'} title="${item.name} verkaufen"><b>−${qty}</b><span>Verkaufen</span></button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function activateGameTab(name) {
+    const allowed = ['actions','city','finance','reports'];
+    activeGameTab = allowed.includes(name) ? name : 'actions';
+    if (typeof document === 'undefined') return;
+    document.querySelectorAll('[data-game-tab]').forEach(btn => {
+      const active = btn.dataset.gameTab === activeGameTab;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-tab-panel]').forEach(panel => {
+      const active = panel.dataset.tabPanel === activeGameTab;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+  }
+
   function renderGame(g, showSummary=false) {
     const attract = g.calculateAttractiveness();
     const jobRatio = Math.round(g.employmentCoverage()*100);
     const housingRatio = Math.round(g.housingCapacity()/Math.max(1,g.population)*100);
     const eduRatio = Math.round(g.educationCoverage()*100);
     const util = Math.round(g.commerceUtilization()*100);
+    const foodMonths = g.inventory.food / Math.max(1, g.monthlyFoodNeed());
     const f = g.forecast();
     const advice = g.advisory();
+    const planClass = f.sustainableBalance < 0 ? 'bad' : 'good';
 
-    app.innerHTML = `<section class="crt"><div class="screen">
-      <div class="topbar">
-        <div class="stat"><b>${esc(g.cityName)}</b><span>${esc(g.mayorName)} · ${g.status()}</span></div>
-        <div class="stat"><b>${String(g.month).padStart(2,'0')}/${g.year}</b><span>Datum</span></div>
-        <div class="stat"><b class="${g.cash<0?'bad':''}">${money(g.cash)}</b><span>Stadtkasse</span></div>
-        <div class="stat"><b>${fmt.format(g.population)}</b><span>Einwohner</span></div>
-        <div class="stat"><b class="${g.approval<30?'bad':g.approval>70?'good':''}">${g.approval} %</b><span>Zustimmung</span></div>
+    app.innerHTML = `<section class="crt game-shell"><div class="screen game-screen">
+      <header class="compact-game-header">
+        <div class="compact-city-identity">
+          <div><b>${esc(g.cityName)}</b><span>${esc(g.mayorName)} · ${esc(g.status())}</span></div>
+          <div class="compact-score">${fmt.format(g.score)} P.</div>
+        </div>
+        <div class="compact-metrics">
+          <div class="compact-metric"><b>${String(g.month).padStart(2,'0')}/${g.year}</b><span>Datum</span></div>
+          <div class="compact-metric"><b class="${g.cash<0?'bad':''}">${money(g.cash)}</b><span>Kasse</span></div>
+          <div class="compact-metric"><b>${fmt.format(g.population)}</b><span>Einwohner</span></div>
+          <div class="compact-metric"><b class="${g.approval<30?'bad':g.approval>70?'good':''}">${g.approval}%</b><span>Zustimmung</span></div>
+        </div>
+      </header>
+
+      <div class="panel city-panel compact-city-panel">
+        <div class="city-panel-top">
+          <div class="city-panel-title"><h2>STADTBILD</h2><span>${esc(g.status())}</span></div>
+          <div class="city-scene-infra compact-infra">
+            <div class="city-scene-infra-top"><span>Infrastruktur</span><b>${g.infrastructureScore()} / 100</b></div>
+            <div class="city-scene-meter"><i style="width:${g.infrastructureScore()}%"></i></div>
+          </div>
+        </div>
+        <div class="city-scene city-stage-${g.visualStage()}">
+          <img class="city-scene-image" src="${sceneImageFor(g)}" alt="Stadtbild von ${esc(g.cityName)} im Status ${esc(g.status())}">
+          <div class="city-scene-shade"></div>
+          <div class="city-hotspot-layer">${cityHotspots(g)}</div>
+        </div>
+        <div class="city-quick-strip">
+          <div><span>Land</span><b>${fmt.format(g.landFree())}</b></div>
+          <div><span>Nahrung</span><b class="${foodMonths<1?'bad':foodMonths<2?'warn':''}">${foodMonths.toFixed(1)} Mon.</b></div>
+          <div><span>Jobs</span><b class="${healthClass(jobRatio,95,75)}">${jobRatio}%</b></div>
+          <div><span>Plan</span><b class="${planClass}">${money(f.sustainableBalance)}</b></div>
+        </div>
+        <div class="city-tap-hint">Gebäude antippen = Detailinfo</div>
       </div>
 
-      <div class="game-grid">
-        <div>
-          <div class="panel city-panel">
-            <h2>STADTBILD · ${esc(g.status())}</h2>
-            <div class="city-scene-head">
-              <div class="city-scene-copy">
-                <b>${esc(g.cityName)}</b>
-                <span>${esc(g.status())} · Stadtansicht</span>
-              </div>
-              <div class="city-scene-infra">
-                <div class="city-scene-infra-top"><span>Infrastruktur</span><b>${g.infrastructureScore()} / 100</b></div>
-                <div class="city-scene-meter"><i style="width:${g.infrastructureScore()}%"></i></div>
-              </div>
-            </div>
-            <div class="city-scene city-stage-${g.visualStage()}">
-              <img class="city-scene-image" src="${sceneImageFor(g)}" alt="Stadtbild von ${esc(g.cityName)} im Status ${esc(g.status())}">
-              <div class="city-scene-shade"></div>
-              <div class="city-hotspot-layer">${cityHotspots(g)}</div>
-            </div>
-            <div class="hint city-help">Tipp: Gebäude im Stadtbild können für Informationen angetippt werden.</div>
+      <nav class="game-tabs" role="tablist" aria-label="Spielbereiche">
+        <button class="game-tab" data-game-tab="actions" role="tab">AKTIONEN</button>
+        <button class="game-tab" data-game-tab="city" role="tab">STADT</button>
+        <button class="game-tab" data-game-tab="finance" role="tab">FINANZEN</button>
+        <button class="game-tab" data-game-tab="reports" role="tab">BERICHTE</button>
+      </nav>
+
+      <main class="game-workspace">
+        <section class="game-tab-panel" data-tab-panel="actions" role="tabpanel">
+          <div class="workspace-head"><div><h2>KAUFEN / VERKAUFEN</h2><p>Antippen für Details · Preise reagieren auf Angebot und Nachfrage.</p></div><span>MARKT ${String(g.month).padStart(2,'0')}/${g.year}</span></div>
+          <div class="market compact-market">${renderCompactMarket(g)}</div>
+        </section>
+
+        <section class="game-tab-panel" data-tab-panel="city" role="tabpanel" hidden>
+          <div class="workspace-head"><div><h2>STADTENTWICKLUNG</h2><p>Die wichtigsten Kapazitäten auf einen Blick.</p></div></div>
+          <div class="metric-card-grid">
+            <div class="metric-card"><span>Wohnplätze</span><b class="${healthClass(housingRatio,105,95)}">${fmt.format(g.housingCapacity())}</b><small>${housingRatio}% Auslastung</small></div>
+            <div class="metric-card"><span>Arbeitsplätze</span><b class="${healthClass(jobRatio,95,75)}">${fmt.format(g.jobsCapacity())}</b><small>${jobRatio}% Deckung</small></div>
+            <div class="metric-card"><span>Bildungsplätze</span><b class="${healthClass(eduRatio,90,65)}">${fmt.format(g.schoolCapacity())}</b><small>${eduRatio}% Deckung</small></div>
+            <div class="metric-card"><span>Nahrung</span><b class="${foodMonths<1?'bad':foodMonths<2?'warn':''}">${fmt.format(g.inventory.food)}</b><small>${foodMonths.toFixed(1)} Monatsreserven</small></div>
+            <div class="metric-card"><span>Freies Land</span><b>${fmt.format(g.landFree())}</b><small>von ${fmt.format(g.inventory.land)}</small></div>
+            <div class="metric-card"><span>Attraktivität</span><b>${attract}/100</b><small>für Zuzug</small></div>
+            <div class="metric-card"><span>Gewerbe</span><b class="${healthClass(util,75,45)}">${util}%</b><small>Auslastung</small></div>
+            <div class="metric-card"><span>Produktivität</span><b>${Math.round(g.productivityFactor()*100)}%</b><small>Steuerbasis</small></div>
           </div>
-
-          <div class="panel market-panel" style="margin-top:10px">
-            <div class="market-head">
-              <div><h2>KAUFEN / VERKAUFEN</h2><p>Marktpreise reagieren auf Stadtgröße, Nachfrage und Knappheit.</p></div>
-              <div class="market-head-badge">MARKT ${String(g.month).padStart(2,'0')}/${g.year}</div>
+          <details class="compact-details">
+            <summary>Politische Kennzahlen</summary>
+            <div class="details-body">
+              <div class="mini-progress-row"><span>Zustimmung</span><b>${g.approval}%</b></div><div class="status-meter"><i style="width:${g.approval}%"></i></div>
+              <div class="resource"><span>Wohnraumauslastung</span><b>${housingRatio}%</b></div>
+              <div class="resource"><span>Arbeitsplatzdeckung</span><b>${jobRatio}%</b></div>
+              <div class="resource"><span>Bildungsdeckung</span><b>${eduRatio}%</b></div>
             </div>
-            <div class="market">
-            ${Object.entries(ITEMS).map(([key,item]) => {
-              const signal = marketPriceSignal(g,key);
-              const qty = item.tradeQty || 1;
-              return `
-              <div class="market-row">
-                <button class="market-info" data-info="${key}" aria-label="Information zu ${item.name}">i</button>
-                ${marketIcon(key)}
-                <div class="market-copy market-click" data-info="${key}">
-                  <div class="market-title-line"><b>${item.name}</b><span>${marketEffect(key)}</span></div>
-                  <div class="market-meta"><span>Bestand <strong>${fmt.format(g.inventory[key])}</strong></span>${key==='land'?`<span>Frei <strong>${g.landFree()}</strong></span>`:''}${item.maintenance?`<span>Unterhalt <strong>${money(item.maintenance)}/Mon.</strong></span>`:''}</div>
-                </div>
-                <div class="market-price-block">
-                  <small>${item.tradeQty?`${qty} Einheiten`:'Kaufpreis'}</small>
-                  <strong>${money(marketTradeCost(g,key))}</strong>
-                  <span class="market-trend ${signal.cls}">${signal.label}</span>
-                </div>
-                <div class="market-actions">
-                  <button class="market-action buy" data-buy="${key}" ${g.canBuy(key)?'':'disabled'}><b>+${qty}</b><span>Kaufen</span></button>
-                  <button class="market-action sell" data-sell="${key}" ${g.canSell(key)?'':'disabled'}><b>−${qty}</b><span>Verkaufen</span></button>
-                </div>
-              </div>`;
-            }).join('')}
-          </div></div>
-        </div>
+          </details>
+          <div class="goal-chip">Ziel: ${winText(g.winCondition)}</div>
+        </section>
 
-        <div>
-          <div class="panel"><h2>STADTWERTE</h2><div class="resource-grid">
-            <div class="resource"><span>Wohnplätze</span><b class="${healthClass(housingRatio,105,95)}">${fmt.format(g.housingCapacity())}</b></div>
-            <div class="resource"><span>Arbeitsplätze</span><b class="${healthClass(jobRatio,95,75)}">${fmt.format(g.jobsCapacity())}</b></div>
-            <div class="resource"><span>Bildungsplätze</span><b class="${healthClass(eduRatio,90,65)}">${fmt.format(g.schoolCapacity())}</b></div>
-            <div class="resource"><span>Nahrung</span><b class="${g.inventory.food<g.monthlyFoodNeed()?'bad':''}">${fmt.format(g.inventory.food)}</b></div>
-            <div class="resource"><span>Freies Land</span><b>${fmt.format(g.landFree())}</b></div>
-            <div class="resource"><span>Attraktivität</span><b>${attract}/100</b></div>
-            <div class="resource"><span>Gewerbe-Auslastung</span><b class="${healthClass(util,75,45)}">${util}%</b></div>
-            <div class="resource"><span>Produktivität</span><b>${Math.round(g.productivityFactor()*100)}%</b></div>
-          </div></div>
+        <section class="game-tab-panel" data-tab-panel="finance" role="tabpanel" hidden>
+          <div class="workspace-head"><div><h2>HAUSHALT</h2><p>Entscheidend ist der Saldo nach der Versorgung.</p></div></div>
+          <div class="finance-summary-grid">
+            <div class="finance-card income"><span>Einnahmen</span><b>+${money(f.total)}</b></div>
+            <div class="finance-card cost"><span>Fixkosten</span><b>−${money(f.expenses)}</b></div>
+            <div class="finance-card cost"><span>Nahrung</span><b>−${money(f.foodProvision)}</b></div>
+            <div class="finance-card ${f.sustainableBalance<0?'negative':'positive'}"><span>Realer Plan</span><b>${money(f.sustainableBalance)}</b></div>
+          </div>
+          <details class="compact-details">
+            <summary>Haushalt im Detail</summary>
+            <div class="details-body">
+              <div class="resource"><span>Einwohnersteuern</span><b class="good">+${money(f.residents)}</b></div>
+              <div class="resource"><span>Gewerbeeinnahmen</span><b class="good">+${money(f.commerce)}</b></div>
+              <div class="resource"><span>Gebäudeunterhalt</span><b class="bad">−${money(f.building)}</b></div>
+              <div class="resource"><span>Städtische Dienste</span><b class="bad">−${money(f.services)}</b></div>
+              ${f.interest?`<div class="resource"><span>Schuldzinsen</span><b class="bad">−${money(f.interest)}</b></div>`:''}
+              <div class="resource"><span>Nahrung · Wiederbeschaffung</span><b class="bad">−${money(f.foodProvision)}</b></div>
+              <div class="resource strong"><span>Saldo nach Versorgung</span><b class="${planClass}">${money(f.sustainableBalance)}</b></div>
+            </div>
+          </details>
+          <div class="finance-note">Der Planwert berücksichtigt die Wiederbeschaffung der in einem normalen Monat verbrauchten Nahrung.</div>
+        </section>
 
-          <div class="panel advisor" style="margin-top:10px"><h2>LAGEBERICHT</h2>
+        <section class="game-tab-panel" data-tab-panel="reports" role="tabpanel" hidden>
+          <div class="workspace-head"><div><h2>BERICHTE</h2><p>Nur Hinweise, die aktuell für deine Entscheidungen relevant sind.</p></div></div>
+          <div class="compact-advisor">
             ${advice.map(n=>`<div class="advisor-line ${n.type}">● ${esc(n.text)}</div>`).join('')}
           </div>
+          <details class="compact-details">
+            <summary>Rathaus-Protokoll (${g.logs.length})</summary>
+            <div class="details-body event-log compact-log">${g.logs.map(l=>`<div class="log-line ${l.type}"><span class="hint">${l.stamp}</span> ${esc(l.text)}</div>`).join('') || '<div class="hint">Noch keine Meldungen.</div>'}</div>
+          </details>
+          <details class="compact-details">
+            <summary>Spielstatus</summary>
+            <div class="details-body">
+              <div class="resource"><span>Stadtstatus</span><b>${esc(g.status())}</b></div>
+              <div class="resource"><span>Infrastruktur</span><b>${g.infrastructureScore()}/100</b></div>
+              <div class="resource"><span>Punktestand</span><b>${fmt.format(g.score)}</b></div>
+              <div class="resource"><span>Siegziel</span><b>${winText(g.winCondition)}</b></div>
+            </div>
+          </details>
+        </section>
+      </main>
 
-          <div class="panel" style="margin-top:10px"><h2>HAUSHALT · PROGNOSE</h2>
-            <div class="resource"><span>Einwohnersteuern</span><b class="good">+${money(f.residents)}</b></div>
-            <div class="resource"><span>Gewerbeeinnahmen</span><b class="good">+${money(f.commerce)}</b></div>
-            <div class="resource"><span>Gebäudeunterhalt</span><b class="bad">-${money(f.building)}</b></div>
-            <div class="resource"><span>Städtische Dienste</span><b class="bad">-${money(f.services)}</b></div>
-            ${f.interest?`<div class="resource"><span>Schuldzinsen</span><b class="bad">-${money(f.interest)}</b></div>`:''}
-            <div class="resource"><span>Nahrung · Wiederbeschaffung*</span><b class="bad">-${money(f.foodProvision)}</b></div>
-            <div class="resource"><span>Operativer Saldo</span><b class="${f.balance<0?'bad':'good'}">${money(f.balance)}</b></div>
-            <div class="resource strong"><span>Saldo nach Versorgung*</span><b class="${f.sustainableBalance<0?'bad':'good'}">${money(f.sustainableBalance)}</b></div>
-            <div class="hint">*Planwert: Kosten, um die in einem normalen Monat verbrauchte Nahrung zum aktuellen Marktpreis wieder aufzufüllen.</div>
-          </div>
-
-          <div class="panel" style="margin-top:10px"><h2>POLITISCHE LAGE</h2>
-            <div class="resource"><span>Zustimmung</span><b>${g.approval}%</b></div><div class="status-meter"><i style="width:${g.approval}%"></i></div>
-            <div class="resource"><span>Wohnraumauslastung</span><b>${housingRatio}%</b></div>
-            <div class="resource"><span>Arbeitsplatzdeckung</span><b>${jobRatio}%</b></div>
-            <div class="resource"><span>Bildungsdeckung</span><b>${eduRatio}%</b></div>
-          </div>
-
-          <div class="panel" style="margin-top:10px"><h2>RATHAUS-PROTOKOLL</h2>
-            <div class="event-log">${g.logs.map(l=>`<div class="log-line ${l.type}"><span class="hint">${l.stamp}</span> ${esc(l.text)}</div>`).join('') || '<div class="hint">Noch keine Meldungen.</div>'}</div>
-          </div>
-
-          <div class="bottom-actions">
-            <button class="btn small" id="menuBtn">MENÜ</button>
-            <button class="btn primary small" id="monthBtn">MONAT ABSCHLIESSEN</button>
-          </div>
-        </div>
+      <div class="game-sticky-bar">
+        <button class="sticky-menu-btn" id="menuBtn" aria-label="Menü">MENÜ</button>
+        <div class="sticky-plan"><span>Monatsplan</span><b class="${planClass}">${money(f.sustainableBalance)}</b></div>
+        <button class="sticky-month-btn" id="monthBtn">MONAT ABSCHLIESSEN</button>
       </div>
-      <div class="footer-note">Ziel: ${winText(g.winCondition)} · Punktestand ${fmt.format(g.score)}</div>
     </div></section>`;
 
     app.querySelectorAll('[data-buy]').forEach(b => b.onclick=()=>g.buy(b.dataset.buy));
     app.querySelectorAll('[data-sell]').forEach(b => b.onclick=()=>g.sell(b.dataset.sell));
     app.querySelectorAll('[data-info]').forEach(el => el.onclick=(ev)=>{ ev.stopPropagation(); openItemInfo(g, el.dataset.info); });
+    app.querySelectorAll('[data-game-tab]').forEach(btn => btn.onclick=()=>activateGameTab(btn.dataset.gameTab));
     document.getElementById('menuBtn').onclick = () => { saveGame(g); renderHome(); };
     document.getElementById('monthBtn').onclick = () => openMonthModal(g);
+    activateGameTab(activeGameTab);
 
     if (showSummary && g.lastSummary) openSummary(g, () => maybeShowQueuedOverlays(g));
     else maybeShowQueuedOverlays(g);
