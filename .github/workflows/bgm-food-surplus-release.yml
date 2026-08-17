@@ -1,0 +1,185 @@
+name: Bürgermeister Food Surplus Trade Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bgm-food-surplus-release.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: buergermeister-food-surplus-release
+  cancel-in-progress: false
+
+jobs:
+  patch-test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply supermarket surplus trading
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('BuergermeisterPWA/app.js')
+          s = p.read_text()
+
+          anchor = """    monthlyFoodNeed(pop = this.population) {\n      return Math.max(0, Math.ceil(pop * this.foodEfficiency()));\n    }\n"""
+          insert = anchor + """\n    foodExportCapacity() {\n      return Math.max(0, this.inventory.supermarkets * 150);\n    }\n\n    foodExportPreview(allocation = this.foodAllocation) {\n      const selected = clamp(Math.round(Number(allocation) || 0), 0, this.inventory.food);\n      const need = this.monthlyFoodNeed();\n      const consumed = Math.min(selected, need);\n      const offered = Math.max(0, selected - consumed);\n      const capacity = this.foodExportCapacity();\n      const sold = capacity > 0 ? Math.min(offered, capacity) : 0;\n      const retained = Math.max(0, offered - sold);\n      const unitPrice = this.market.food * .65;\n      const revenue = Math.round(sold * unitPrice);\n      return { selected, need, consumed, offered, capacity, sold, retained, unitPrice, revenue };\n    }\n"""
+          if anchor not in s:
+              raise SystemExit('monthlyFoodNeed anchor missing')
+          s = s.replace(anchor, insert, 1)
+
+          old = """      const foodNeed = this.monthlyFoodNeed();\n      const foodServed = Math.min(this.foodAllocation, this.inventory.food);\n      const foodRatio = foodNeed ? foodServed / foodNeed : 1;\n      this.inventory.food -= foodServed;\n\n      const finance = this.forecast();\n      this.cash += finance.balance;\n"""
+          new = """      const foodNeed = this.monthlyFoodNeed();\n      const foodTrade = this.foodExportPreview(this.foodAllocation);\n      const foodServed = foodTrade.consumed;\n      const foodRatio = foodNeed ? foodServed / foodNeed : 1;\n      this.inventory.food -= foodTrade.consumed + foodTrade.sold;\n\n      const finance = this.forecast();\n      const monthBalance = finance.balance + foodTrade.revenue;\n      this.cash += monthBalance;\n"""
+          if old not in s:
+              raise SystemExit('advance food block missing')
+          s = s.replace(old, new, 1)
+
+          s = s.replace("approvalDelta += finance.balance >= 0 ? 1 : -1;", "approvalDelta += monthBalance >= 0 ? 1 : -1;", 1)
+
+          old_summary = """        revenue:finance.total, residentRevenue:finance.residents, commerceRevenue:finance.commerce,\n        maintenance:finance.expenses, building:finance.building, services:finance.services, interest:finance.interest,\n        oldCash, newCash:this.cash, foodServed, foodNeed, foodRatio, attractiveness, approvalDelta,\n        commerceUtilization: finance.utilization\n"""
+          new_summary = """        revenue:finance.total + foodTrade.revenue, residentRevenue:finance.residents, commerceRevenue:finance.commerce,\n        foodExportRevenue:foodTrade.revenue, foodExportSold:foodTrade.sold, foodExportCapacity:foodTrade.capacity, foodRetained:foodTrade.retained,\n        maintenance:finance.expenses, building:finance.building, services:finance.services, interest:finance.interest,\n        oldCash, newCash:this.cash, foodServed, foodNeed, foodRatio, attractiveness, approvalDelta,\n        commerceUtilization: finance.utilization\n"""
+          if old_summary not in s:
+              raise SystemExit('summary block missing')
+          s = s.replace(old_summary, new_summary, 1)
+
+          s = s.replace("this.log(`Monat: ${money(finance.total)} Einnahmen, ${money(finance.expenses)} Kosten, ${newcomers} Zuzüge, ${leaving} Wegzüge.`);", "this.log(`Monat: ${money(finance.total + foodTrade.revenue)} Einnahmen, ${money(finance.expenses)} Kosten, ${newcomers} Zuzüge, ${leaving} Wegzüge.`);", 1)
+          s = s.replace("if (finance.balance < 0) this.log(`Haushaltsdefizit: ${money(finance.balance)}.`, 'bad');", "if (foodTrade.sold > 0) this.log(`Regionalverkauf: ${fmt.format(foodTrade.sold)} Nahrung über Supermärkte verkauft, +${money(foodTrade.revenue)}.`, 'good');\n      if (monthBalance < 0) this.log(`Haushaltsdefizit: ${money(monthBalance)}.`, 'bad');", 1)
+
+          old_info = """    if (key === 'supermarkets') rows.push(['Nahrungsbedarf', '-4% je Supermarkt, max. -20%']);\n"""
+          new_info = """    if (key === 'supermarkets') {\n      rows.push(['Nahrungsbedarf', '-4% je Supermarkt, max. -20%']);\n      rows.push(['Regionaler Nahrungsverkauf', `bis zu ${fmt.format(g.foodExportCapacity())} Einheiten/Monat aktuell`]);\n      rows.push(['Exportpreis', '65% des aktuellen Nahrungspreises']);\n    }\n"""
+          if old_info not in s:
+              raise SystemExit('supermarket info anchor missing')
+          s = s.replace(old_info, new_info, 1)
+
+          s = s.replace("Supermärkte schaffen bis zu 145 Arbeitsplätze und bis zu 220 $ Gewerbeeinnahmen. Zusätzlich verbessert jeder Supermarkt die Lebensmittel-Logistik und senkt den monatlichen Nahrungsbedarf um 4%, maximal um 20%. Auch hier entscheidet die Kundennachfrage über die tatsächliche Leistung.", "Supermärkte schaffen bis zu 145 Arbeitsplätze und bis zu 220 $ Gewerbeeinnahmen. Zusätzlich verbessert jeder Supermarkt die Lebensmittel-Logistik und senkt den monatlichen Nahrungsbedarf um 4%, maximal um 20%. Jeder Supermarkt kann außerdem bis zu 150 überschüssige Nahrungseinheiten pro Monat regional vermarkten. Dafür werden 65% des aktuellen Nahrungspreises erzielt. Auch hier entscheidet die Kundennachfrage über die normale Gewerbeleistung.", 1)
+          s = s.replace("Jeden Monat muss ausreichend Nahrung zugeteilt werden. Eine Einheit steht für einen standardisierten Warenkorb; der Grundbedarf liegt bei rund 0,68 Einheiten je Einwohner und Monat. Supermärkte senken Logistikverluste zusätzlich. Unterversorgung drückt die Zustimmung, führt zu Wegzug und kann das Spiel beenden.", "Jeden Monat muss ausreichend Nahrung zugeteilt werden. Eine Einheit steht für einen standardisierten Warenkorb; der Grundbedarf liegt bei rund 0,68 Einheiten je Einwohner und Monat. Supermärkte senken Logistikverluste zusätzlich. Stellst du mehr als den Einwohnerbedarf bereit, kann der Überschuss über vorhandene Supermärkte regional verkauft werden. Nicht verkaufte Überschüsse bleiben im Lager. Unterversorgung drückt die Zustimmung, führt zu Wegzug und kann das Spiel beenden.", 1)
+
+          old_modal_grid = """          <div><span>Einwohnersteuer</span><b id=\"liveResidentTax\">+${money(baseForecast.residents)}</b></div>\n          <div><span>Steuereffekt</span><b id=\"liveTaxDelta\">±0 $</b></div>\n          <div><span>Operativer Saldo</span><b id=\"liveOperating\">${money(baseForecast.balance)}</b></div>\n          <div><span>Versorgung</span><b id=\"liveFoodCoverage\">${foodNeed ? Math.round(defaultFood/foodNeed*100) : 100}%</b></div>\n"""
+          new_modal_grid = """          <div><span>Einwohnersteuer</span><b id=\"liveResidentTax\">+${money(baseForecast.residents)}</b></div>\n          <div><span>Steuereffekt</span><b id=\"liveTaxDelta\">±0 $</b></div>\n          <div><span>Regionalverkauf</span><b id=\"liveFoodExport\">+0 $</b></div>\n          <div><span>Überschuss</span><b id=\"liveFoodSurplus\">0 / ${fmt.format(g.foodExportCapacity())}</b></div>\n          <div><span>Operativer Saldo</span><b id=\"liveOperating\">${money(baseForecast.balance)}</b></div>\n          <div><span>Versorgung</span><b id=\"liveFoodCoverage\">${foodNeed ? Math.min(100, Math.round(defaultFood/foodNeed*100)) : 100}%</b></div>\n"""
+          if old_modal_grid not in s:
+              raise SystemExit('month modal grid missing')
+          s = s.replace(old_modal_grid, new_modal_grid, 1)
+
+          s = s.replace("<div class=\"hint\">Bedarf aktuell ungefähr ${fmt.format(foodNeed)} Einheiten. Die Versorgungsquote oben reagiert ebenfalls live.</div>", "<div class=\"hint\">Bedarf aktuell ungefähr ${fmt.format(foodNeed)} Einheiten. Mehr bereitgestellte Nahrung wird bei vorhandenen Supermärkten bis zur Absatzgrenze regional verkauft; der Rest bleibt im Lager.</div>", 1)
+
+          old_refs = """    const operatingOut=overlay.querySelector('#liveOperating');\n    const foodCoverageOut=overlay.querySelector('#liveFoodCoverage');\n"""
+          new_refs = """    const operatingOut=overlay.querySelector('#liveOperating');\n    const foodCoverageOut=overlay.querySelector('#liveFoodCoverage');\n    const foodExportOut=overlay.querySelector('#liveFoodExport');\n    const foodSurplusOut=overlay.querySelector('#liveFoodSurplus');\n"""
+          if old_refs not in s:
+              raise SystemExit('live refs anchor missing')
+          s = s.replace(old_refs, new_refs, 1)
+
+          old_projection = """      const totalRevenue = residentTax + baseForecast.commerce;\n      const operatingBalance = totalRevenue - baseForecast.expenses;\n      const sustainableBalance = operatingBalance - baseForecast.foodProvision;\n      const taxDelta = residentTax - baseForecast.residents;\n      const coverage = foodNeed ? Math.round(selectedFood / foodNeed * 100) : 100;\n\n      taxOut.textContent = `${selectedTax}%`;\n"""
+          new_projection = """      const exportTrade = g.foodExportPreview(selectedFood);\n      const totalRevenue = residentTax + baseForecast.commerce + exportTrade.revenue;\n      const operatingBalance = totalRevenue - baseForecast.expenses;\n      const sustainableBalance = operatingBalance - baseForecast.foodProvision;\n      const taxDelta = residentTax - baseForecast.residents;\n      const coverage = foodNeed ? Math.min(100, Math.round(exportTrade.consumed / foodNeed * 100)) : 100;\n\n      taxOut.textContent = `${selectedTax}%`;\n"""
+          if old_projection not in s:
+              raise SystemExit('live projection block missing')
+          s = s.replace(old_projection, new_projection, 1)
+
+          old_outputs = """      operatingOut.textContent = money(operatingBalance);\n      operatingOut.className = operatingBalance >= 0 ? 'good' : 'bad';\n      saldoOut.textContent = money(sustainableBalance);\n"""
+          new_outputs = """      foodExportOut.textContent = `+${money(exportTrade.revenue)}`;\n      foodExportOut.className = exportTrade.revenue > 0 ? 'good' : '';\n      foodSurplusOut.textContent = `${fmt.format(exportTrade.sold)} / ${fmt.format(exportTrade.capacity)}`;\n      foodSurplusOut.className = exportTrade.sold > 0 ? 'good' : '';\n      operatingOut.textContent = money(operatingBalance);\n      operatingOut.className = operatingBalance >= 0 ? 'good' : 'bad';\n      saldoOut.textContent = money(sustainableBalance);\n"""
+          if old_outputs not in s:
+              raise SystemExit('live outputs block missing')
+          s = s.replace(old_outputs, new_outputs, 1)
+
+          old_summary_row = """        <div class=\"summary-row\"><span>Gewerbe</span><b class=\"good\">+${money(s.commerceRevenue)}</b></div>\n        <div class=\"summary-row\"><span>Gebäude</span><b class=\"bad\">-${money(s.building)}</b></div>\n"""
+          new_summary_row = """        <div class=\"summary-row\"><span>Gewerbe</span><b class=\"good\">+${money(s.commerceRevenue)}</b></div>\n        ${s.foodExportRevenue?`<div class=\"summary-row\"><span>Nahrungs-Regionalverkauf (${fmt.format(s.foodExportSold)} Einh.)</span><b class=\"good\">+${money(s.foodExportRevenue)}</b></div>`:''}\n        <div class=\"summary-row\"><span>Gebäude</span><b class=\"bad\">-${money(s.building)}</b></div>\n"""
+          if old_summary_row not in s:
+              raise SystemExit('summary UI anchor missing')
+          s = s.replace(old_summary_row, new_summary_row, 1)
+
+          s = s.replace("<p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik.</p>", "<p><b>Versorgung:</b> Zu wenig Nahrung, Wohnraum oder Arbeit führt zu Unzufriedenheit und Wegzug. Supermärkte verbessern die Lebensmittel-Logistik. Überschüssig bereitgestellte Nahrung kann über Supermärkte regional verkauft werden: bis zu 150 Einheiten je Supermarkt und Monat zu 65% des aktuellen Nahrungspreises. Nicht verkaufte Überschüsse bleiben im Lager.</p>", 1)
+
+          p.write_text(s)
+
+          sw = Path('BuergermeisterPWA/sw.js')
+          t = sw.read_text().replace("buergermeister-1992-plus-v9", "buergermeister-1992-plus-v10")
+          sw.write_text(t)
+          PY
+
+      - name: Verify surplus trade implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check BuergermeisterPWA/app.js
+          grep -Fq 'foodExportCapacity()' BuergermeisterPWA/app.js
+          grep -Fq 'foodExportPreview' BuergermeisterPWA/app.js
+          grep -Fq 'Regionalverkauf' BuergermeisterPWA/app.js
+          grep -Fq 'foodTrade.revenue' BuergermeisterPWA/app.js
+          grep -Fq 'buergermeister-1992-plus-v10' BuergermeisterPWA/sw.js
+
+      - name: Behavioral surplus tests
+        working-directory: BuergermeisterPWA
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const vm = require('vm');
+          const src = fs.readFileSync('app.js','utf8').replace(/\n\s*renderHome\(\);\n\}\)\(\);\s*$/, '\n  globalThis.__BGM_TEST__={Game};\n})();');
+          const store = new Map();
+          const context = {
+            console, Math, Date, Intl,
+            document:{getElementById:()=>({}),createElement:()=>({})},
+            navigator:{},
+            localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
+            globalThis:null
+          };
+          context.globalThis=context;
+          vm.createContext(context); vm.runInContext(src, context);
+          const Game=context.__BGM_TEST__.Game;
+          let g=new Game();
+          g.inventory.food=500; g.inventory.supermarkets=0;
+          let q=g.foodExportPreview(200);
+          if(q.sold!==0 || q.revenue!==0 || q.retained<=0) throw new Error('No-supermarket retention failed '+JSON.stringify(q));
+          g.inventory.supermarkets=1; g.market.food=4;
+          q=g.foodExportPreview(400);
+          if(q.sold!==150) throw new Error('One-supermarket capacity failed '+JSON.stringify(q));
+          if(q.revenue!==390) throw new Error('65 percent export price failed '+JSON.stringify(q));
+          g.inventory.supermarkets=2;
+          q=g.foodExportPreview(500);
+          if(q.capacity!==300 || q.sold>300) throw new Error('Multi-supermarket capacity failed '+JSON.stringify(q));
+          console.log('SURPLUS_BEHAVIOR_OK', q);
+          NODE
+
+      - name: Reachability diagnostics
+        working-directory: BuergermeisterPWA
+        run: node tests/reachability-diagnostic.mjs
+
+      - name: Multi-strategy win planner
+        working-directory: BuergermeisterPWA
+        run: node tests/planner-search.mjs
+
+      - name: Autonomous simulation QA
+        working-directory: BuergermeisterPWA
+        run: node tests/autotest.mjs
+
+      - name: Commit tested surplus trade and promote production
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add BuergermeisterPWA/app.js BuergermeisterPWA/sw.js
+          git commit -m 'Add supermarket food surplus trading'
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          git push origin HEAD:main
+          git fetch origin buergermeister-production
+          PROD_SHA="$(git rev-parse origin/buergermeister-production)"
+          if ! git merge-base --is-ancestor "$PROD_SHA" "$RELEASE_SHA"; then
+            echo 'Production branch is not an ancestor; refusing promotion.'
+            exit 1
+          fi
+          git push origin "$RELEASE_SHA":refs/heads/buergermeister-production
+          echo "Promoted $RELEASE_SHA"
