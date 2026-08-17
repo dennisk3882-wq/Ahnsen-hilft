@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+<defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#68c8ee"/><stop offset=".58" stop-color="#b9e4f2"/><stop offset="1" stop-color="#e7f2e3"/></linearGradient>
+  <linearGradient id="mount1" x2="0" y2="1"><stop stop-color="#4a8369"/><stop offset="1" stop-color="#2b5848"/></linearGradient>
+  <linearGradient id="mount2" x2="0" y2="1"><stop stop-color="#6ca76a"/><stop offset="1" stop-color="#3d774f"/></linearGradient>
+  <linearGradient id="grass" x2="0" y2="1"><stop stop-color="#78b85e"/><stop offset="1" stop-color="#376f43"/></linearGradient>
+  <linearGradient id="road" x2="0" y2="1"><stop stop-color="#4e5961"/><stop offset="1" stop-color="#242e34"/></linearGradient>
+  <linearGradient id="walk" x2="0" y2="1"><stop stop-color="#cfd1c6"/><stop offset="1" stop-color="#8e948d"/></linearGradient>
+  <linearGradient id="villaWall" x2="1" y2="1"><stop stop-color="#f4e9cf"/><stop offset=".5" stop-color="#d6c2a1"/><stop offset="1" stop-color="#b69a72"/></linearGradient>
+  <linearGradient id="villaRoof" x2="1" y2="1"><stop stop-color="#ba5b39"/><stop offset="1" stop-color="#713321"/></linearGradient>
+  <linearGradient id="shopWall" x2="1" y2="1"><stop stop-color="#857766"/><stop offset="1" stop-color="#413e3d"/></linearGradient>
+  <radialGradient id="water"><stop stop-color="#d9fbff"/><stop offset=".45" stop-color="#76cfe8"/><stop offset="1" stop-color="#2e7f9f"/></radialGradient>
+  <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#102129" flood-opacity=".42"/></filter>
+  <filter id="smallShadow"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#0b1720" flood-opacity=".35"/></filter>
+  <filter id="cloud"><feGaussianBlur stdDeviation="7"/></filter>
+  <symbol id="tree" viewBox="0 0 80 130">
+    <ellipse cx="41" cy="118" rx="29" ry="8" fill="#132e27" opacity=".25"/>
+    <rect x="35" y="67" width="12" height="48" rx="4" fill="#76503b"/>
+    <circle cx="41" cy="53" r="31" fill="#225d3e"/>
+    <circle cx="26" cy="52" r="19" fill="#3a8352"/>
+    <circle cx="49" cy="34" r="20" fill="#4a995f"/>
+    <circle cx="57" cy="57" r="17" fill="#2c7248"/>
+  </symbol>
+  <symbol id="lamp" viewBox="0 0 38 118">
+    <path d="M19 104V28" stroke="#26353c" stroke-width="6" stroke-linecap="round"/>
+    <path d="M8 107h22" stroke="#26353c" stroke-width="7" stroke-linecap="round"/>
+    <path d="M10 32h18l-4-13H14Z" fill="#17262d" stroke="#5c7078" stroke-width="2"/>
+    <rect x="13" y="23" width="12" height="9" rx="2" fill="#ffe38b"/>
+  </symbol>
+  <symbol id="bench" viewBox="0 0 94 58">
+    <path d="M11 23h72M13 31h68M20 41h54" stroke="#7d4c2d" stroke-width="7" stroke-linecap="round"/>
+    <path d="M24 37 18 55M70 37l7 18" stroke="#26363b" stroke-width="5"/>
+  </symbol>
+  <symbol id="villa" viewBox="0 0 270 255">
+    <ellipse cx="139" cy="239" rx="117" ry="13" fill="#172a25" opacity=".25"/>
+    <path d="M31 103 132 31l106 72v126H31Z" fill="url(#villaWall)" stroke="#6d5b48" stroke-width="5"/>
+    <path d="M13 110 132 16l126 91-21 22-105-74-99 75Z" fill="url(#villaRoof)" stroke="#5c2b20" stroke-width="6"/>
+    <path d="M183 44V13h23v49" fill="#856247" stroke="#4f382b" stroke-width="5"/>
+    <path d="M108 83h54v146h-54Z" fill="#d2c09e" stroke="#7c6a53" stroke-width="4"/>
+    <path d="M118 92h34v26h-34Z" fill="#aee4ee" stroke="#648590" stroke-width="4"/>
+    <path d="M118 136h34v27h-34Z" fill="#aee4ee" stroke="#648590" stroke-width="4"/>
+    <path d="M119 183h32v46h-32Z" fill="#674837"/>
+    <g fill="#bcecf4" stroke="#6d8b93" stroke-width="4">
+      <rect x="52" y="120" width="30" height="31"/><rect x="188" y="120" width="30" height="31"/>
+      <rect x="52" y="169" width="30" height="31"/><rect x="188" y="169" width="30" height="31"/>
+    </g>
+    <path d="M43 228c24-30 54-24 78-8M151 222c31-24 62-18 84 6" fill="none" stroke="#477a3b" stroke-width="11" stroke-linecap="round"/>
+    <path d="M122 230h28" stroke="#e3d6be" stroke-width="6"/>
+  </symbol>
+</defs>
+<rect width="1200" height="760" fill="url(#sky)"/>
+<circle cx="1092" cy="104" r="58" fill="#fff0a3"/>
+<g fill="#fff" opacity=".7" filter="url(#cloud)"><ellipse cx="175" cy="98" rx="105" ry="30"/><ellipse cx="673" cy="81" rx="122" ry="27"/><ellipse cx="880" cy="134" rx="87" ry="23"/></g>
+<path d="M0 259 128 164l90 61 132-128 165 139 129-116 159 120 122-93 195 114v110H0Z" fill="url(#mount1)"/>
+<path d="M0 297 140 220l102 62 136-102 154 108 142-83 141 84 133-72 192 91v91H0Z" fill="url(#mount2)"/>
+<path d="M0 337h1200v423H0Z" fill="url(#grass)"/>
+<g opacity=".42" stroke="#dcc961" stroke-width="9"><path d="M8 360h210"/><path d="M8 382h210"/><path d="M982 356h206"/><path d="M982 378h206"/></g>
+<!-- upper sidewalk and properties -->
+<path d="M0 468h1200v52H0Z" fill="url(#walk)"/>
+<path d="M0 481h1200" stroke="#e7e8df" stroke-width="4" opacity=".7"/>
+<g filter="url(#shadow)"><use href="#villa" x="55" y="270" width="258" height="244"/><use href="#villa" x="302" y="270" width="244" height="233"/></g>
+<!-- Kaufhaus -->
+<g transform="translate(812 302)" filter="url(#shadow)">
+  <ellipse cx="170" cy="205" rx="166" ry="16" fill="#172a25" opacity=".22"/>
+  <path d="M18 62h305v143H18Z" fill="url(#shopWall)" stroke="#3b3836" stroke-width="6"/>
+  <path d="M5 63 52 27h236l50 36Z" fill="#44403c" stroke="#2d2d2d" stroke-width="6"/>
+  <rect x="121" y="18" width="112" height="36" rx="5" fill="#5a5148" stroke="#302d2a" stroke-width="4"/>
+  <text x="177" y="43" text-anchor="middle" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#f2d8af">KAUFHAUS</text>
+  <g><rect x="30" y="92" width="279" height="31" fill="#eee2cb"/><path d="M30 92h279v31H30Z" fill="none" stroke="#6e3a2c" stroke-width="3"/>
+  <g fill="#b54734"><path d="M30 92h25v31H30Z"/><path d="M80 92h25v31H80Z"/><path d="M130 92h25v31H130Z"/><path d="M180 92h25v31H180Z"/><path d="M230 92h25v31H230Z"/><path d="M280 92h25v31H280Z"/></g></g>
+  <g fill="#9ed5dd" stroke="#294852" stroke-width="4"><rect x="41" y="130" width="75" height="49"/><rect x="133" y="130" width="75" height="49"/><rect x="225" y="130" width="75" height="49"/></g>
+  <rect x="145" y="154" width="50" height="51" fill="#4b342d"/>
+</g>
+<!-- roads: strong intersection like reference -->
+<path d="M0 522h1200v126H0Z" fill="url(#road)"/>
+<path d="M544 433h142v327H544Z" fill="url(#road)"/>
+<path d="M0 522h1200M0 648h1200M544 433v327M686 433v327" stroke="#8d9798" stroke-width="5" opacity=".72"/>
+<!-- center road lines -->
+<path d="M25 585h453M755 585h420" stroke="#d7ba54" stroke-width="5" stroke-dasharray="28 22" opacity=".72"/>
+<path d="M615 447v63M615 667v82" stroke="#d7ba54" stroke-width="5" stroke-dasharray="26 21" opacity=".72"/>
+<!-- zebra crossings -->
+<g fill="#e8e8df" opacity=".94">
+  <path d="M493 535h13v98h-13Z"/><path d="M514 535h13v98h-13Z"/><path d="M703 535h13v98h-13Z"/><path d="M724 535h13v98h-13Z"/>
+  <path d="M562 493h106v11H562Z"/><path d="M562 512h106v11H562Z"/><path d="M562 656h106v11H562Z"/><path d="M562 675h106v11H562Z"/>
+</g>
+<!-- park foreground -->
+<path d="M0 648h544v112H0Z" fill="#4f8b4c"/>
+<path d="M686 648h514v112H686Z" fill="#4a8648"/>
+<path d="M0 662c150-24 303-13 544 7v91H0Z" fill="#528f4d"/>
+<path d="M686 669c145-20 318-12 514 7v84H686Z" fill="#4d8949"/>
+<!-- fountain plaza -->
+<g transform="translate(210 676)" filter="url(#smallShadow)">
+  <ellipse cx="0" cy="22" rx="120" ry="56" fill="#b8b2a2" stroke="#868175" stroke-width="5"/>
+  <ellipse cx="0" cy="19" rx="74" ry="39" fill="#6a7777" stroke="#e1ded0" stroke-width="7"/>
+  <ellipse cx="0" cy="17" rx="61" ry="29" fill="url(#water)"/>
+  <path d="M0 19V-25" stroke="#e8e2d0" stroke-width="8" stroke-linecap="round"/>
+  <path d="M0-22c-18 20-35 27-51 31M0-22c18 20 35 27 51 31" fill="none" stroke="#d9f8ff" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="0" cy="16" rx="16" ry="7" fill="#ece6d3"/>
+</g>
+<g><use href="#bench" x="70" y="672" width="92"/><use href="#bench" x="335" y="684" width="92"/><use href="#bench" x="808" y="681" width="92"/><use href="#bench" x="1040" y="690" width="92"/></g>
+<g><use href="#tree" x="12" y="620" width="72"/><use href="#tree" x="430" y="628" width="70"/><use href="#tree" x="719" y="625" width="74"/><use href="#tree" x="925" y="632" width="66"/><use href="#tree" x="1130" y="616" width="70"/></g>
+<g><use href="#lamp" x="470" y="468" width="37"/><use href="#lamp" x="714" y="469" width="37"/><use href="#lamp" x="481" y="638" width="37"/><use href="#lamp" x="702" y="638" width="37"/></g>
+<!-- subtle landscaping -->
+<g fill="#f4df78" opacity=".9"><circle cx="112" cy="705" r="5"/><circle cx="131" cy="716" r="4"/><circle cx="390" cy="708" r="5"/><circle cx="768" cy="718" r="5"/><circle cx="987" cy="706" r="4"/></g>
+<g fill="#e17b72" opacity=".85"><circle cx="104" cy="721" r="4"/><circle cx="408" cy="722" r="4"/><circle cx="792" cy="705" r="4"/><circle cx="1010" cy="721" r="4"/></g>
+</svg>
