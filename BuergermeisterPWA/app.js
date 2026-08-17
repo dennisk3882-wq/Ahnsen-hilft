@@ -220,7 +220,7 @@
     constructor(data = {}) {
       const loadedVersion = Number(data.version || 2);
       Object.assign(this, {
-        version: 3,
+        version: 4,
         cityName: 'Neustadt', mayorName: 'Bürgermeister', winCondition: 'modern',
         year: 1992, month: 1, cash: 1000, population: 125,
         approval: 62, taxRate: 8, foodAllocation: 125, admitLimit: 80,
@@ -229,14 +229,14 @@
         severeFoodMonths: 0, commerceMomentum: 1, tempJobBonus: 0, monthsPlayed: 0,
         lastSummary: null, ended: false, ending: null, seenPromotions: [], promotionQueue: []
       }, data);
-      this.version = 3;
+      this.version = 4;
       this.inventory = { land:7, houses:3, towers:0, schools:0, universities:0, shops:1, supermarkets:0, food:450, ...(data.inventory || {}) };
       this.logs = Array.isArray(data.logs) ? data.logs : [];
       this.market = { ...(data.market || {}) };
       this.seenPromotions = Array.isArray(data.seenPromotions) ? data.seenPromotions : [];
       this.promotionQueue = Array.isArray(data.promotionQueue) ? data.promotionQueue : [];
       this.ensureMarket();
-      if (loadedVersion < 3) this.normalizeLegacySupermarketPrice();
+      if (loadedVersion < 4) this.normalizeLegacyAssetPrices();
     }
 
     ensureMarket() {
@@ -254,10 +254,44 @@
     }
 
     normalizeLegacySupermarketPrice() {
-      // Alte Spielstände konnten den Supermarktpreis durch monatliches Aufmultiplizieren
-      // stark aufblasen. Nur diesen Preis einmalig auf einen plausiblen Korridor ziehen.
       const target = this.supermarketTargetPrice();
       this.market.supermarkets = Math.max(1, Math.round(clamp(this.market.supermarkets, target * .80, target * 1.25)));
+    }
+
+    assetTargetPrice(key) {
+      const item = ITEMS[key];
+      if (!item || key === 'food') return item ? item.base : 1;
+      if (key === 'supermarkets') return this.supermarketTargetPrice();
+
+      const inflation = Math.pow(1.024, Math.max(0, this.monthsPlayed) / 12);
+      let demand = 1;
+
+      if (key === 'land') {
+        const free = this.landFree();
+        demand = free < 2 ? 1.18 : free < 5 ? 1.08 : .98;
+      } else if (key === 'houses' || key === 'towers') {
+        const ratio = this.housingCapacity() / Math.max(1, this.population);
+        demand = clamp(1 + (1.08 - ratio) * .50, .86, 1.26);
+      } else if (key === 'schools') {
+        demand = this.population < 350 ? .90 : clamp(.96 + (1 - this.educationCoverage()) * .18, .90, 1.17);
+      } else if (key === 'universities') {
+        demand = this.population < 1800 ? .86 : clamp(.94 + (1 - this.educationCoverage()) * .16, .88, 1.16);
+      } else if (key === 'shops') {
+        demand = clamp(.94 + this.commerceUtilization() * .12, .94, 1.08);
+      }
+
+      return Math.max(1, item.base * inflation * demand);
+    }
+
+    normalizeLegacyAssetPrices() {
+      // Versionen bis v3 konnten Gebäude durch monatliches Aufmultiplizieren künstlich verteuern.
+      // Nahrung bleibt absichtlich unberührt, weil ihr Markt eine eigene Versorgungslogik hat.
+      for (const key of Object.keys(ITEMS)) {
+        if (key === 'food') continue;
+        const target = this.assetTargetPrice(key);
+        const current = this.market[key] || ITEMS[key].base;
+        this.market[key] = Math.max(1, Math.round(clamp(current, target * .80, target * 1.25)));
+      }
     }
 
     log(text, type='') {
@@ -654,34 +688,27 @@
     }
 
     updateMarket() {
-      const inflation = 1.002 + Math.min(.008, this.monthsPlayed * .00008);
+      const foodInflation = 1.002 + Math.min(.008, this.monthsPlayed * .00008);
       for (const [key,item] of Object.entries(ITEMS)) {
-        if (key === 'supermarkets') {
-          const target = this.supermarketTargetPrice();
-          const current = this.market.supermarkets || item.base;
-          const normalized = clamp(current, target * .78, target * 1.32);
-          const noisyTarget = target * (1 + (Math.random() - .5) * .026);
-          const next = normalized + (noisyTarget - normalized) * .24;
-          this.market.supermarkets = clamp(Math.round(next), Math.round(item.base * .65), Math.round(item.base * 1.85));
+        if (key !== 'food') {
+          const target = this.assetTargetPrice(key);
+          const current = this.market[key] || item.base;
+          const normalized = clamp(current, target * .78, target * 1.34);
+          const noisyTarget = target * (1 + (Math.random() - .5) * .03);
+          const next = normalized + (noisyTarget - normalized) * .23;
+          this.market[key] = clamp(Math.round(next), Math.round(item.base * .60), Math.round(item.base * 1.90));
           continue;
         }
-        let factor = inflation * (0.965 + Math.random() * .07);
-        if (key === 'food') {
-          const pressure = this.inventory.food < this.monthlyFoodNeed() * 1.5 ? 1.035 : .995;
-          const supermarketRelief = 1 - Math.min(.018, this.inventory.supermarkets * .003);
-          factor *= pressure * supermarketRelief;
-        }
-        if (key === 'land' && this.landFree() < 3) factor *= 1.018;
-        if (key === 'houses' || key === 'towers') {
-          if (this.housingCapacity() < this.population * 1.05) factor *= 1.012;
-        }
-        if (key === 'shops') {
-          factor *= this.commerceUtilization() > .8 ? 1.008 : .995;
-        }
-        this.market[key] = Math.max(1, Math.round(this.market[key] * factor));
+
+        // Nahrung behält die bestehende, bewusst volatilere Versorgungslogik.
+        let factor = foodInflation * (0.965 + Math.random() * .07);
+        const pressure = this.inventory.food < this.monthlyFoodNeed() * 1.5 ? 1.035 : .995;
+        const supermarketRelief = 1 - Math.min(.018, this.inventory.supermarkets * .003);
+        factor *= pressure * supermarketRelief;
+        this.market.food = Math.max(1, Math.round(this.market.food * factor));
         const floor = Math.max(1, Math.round(item.base * .55));
         const ceiling = Math.round(item.base * 3.2 + 5);
-        this.market[key] = clamp(this.market[key], floor, ceiling);
+        this.market.food = clamp(this.market.food, floor, ceiling);
       }
     }
 
