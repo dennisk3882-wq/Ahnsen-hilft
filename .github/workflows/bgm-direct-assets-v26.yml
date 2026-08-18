@@ -1,5 +1,6 @@
 name: Bürgermeister Direct Assets v26
 
+# trigger 2026-08-18T10:48+02:00
 on:
   push:
     branches: [main]
@@ -97,6 +98,7 @@ jobs:
           index = root / 'index.html'
           t = index.read_text(encoding='utf-8')
           t = re.sub(r'\?v=\d+', '?v=26', t)
+          t = t.replace('  <script src="art-runtime-v26.js?v=26" defer></script>\n','')
           index.write_text(t,encoding='utf-8')
 
           assets_list = [
@@ -106,7 +108,7 @@ jobs:
           assets_list += [f'assets/market-{k}.webp' for k in market_boxes]
           assets_list += [f'assets/ui-{n}.webp' for row in ui_rows for n in row]
           assets_list += ['assets/ui-menu.webp','assets/ui-confirm.webp','assets/ui-document.webp']
-          sw = "const CACHE='buergermeister-1992-plus-v26';\nconst ASSETS=" + repr(assets_list).replace('\\\\','/') + ";\n" + "self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});\nself.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\nself.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;}).catch(()=>caches.match(event.request).then(hit=>hit||caches.match('./'))));});\n"
+          sw = "const CACHE='buergermeister-1992-plus-v26-direct';\nconst ASSETS=" + repr(assets_list).replace('\\\\','/') + ";\n" + "self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});\nself.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\nself.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;}).catch(()=>caches.match(event.request).then(hit=>hit||caches.match('./'))));});\n"
           (root / 'sw.js').write_text(sw,encoding='utf-8')
           PY
       - name: Commit direct assets
