@@ -1,80 +1,52 @@
 (() => {
   'use strict';
 
-  const VERSION = '26';
-  const CITY_URL = `assets/v23-city-stages.webp?v=${VERSION}`;
-  const MARKET_URL = `assets/v23-market-icons.webp?v=${VERSION}`;
-  const STAGES = ['kuhdorf','dorf','grosses-dorf','kleinstadt','stadt','grossstadt','moderne-stadt','metropole'];
-  const MARKET = {
-    land:[0,0], houses:[1,0], towers:[2,0], schools:[0,1], universities:[1,1], shops:[2,1], supermarkets:[0.5,2], food:[1.5,2]
-  };
+  const CITY_SHEET = 'assets/v23-city-stages.webp?v=27';
+  const MARKET_SHEET = 'assets/v23-market-icons.webp?v=27';
+  const UI_SHEET = 'assets/v23-ui-icons.webp?v=27';
 
-  let scheduled = false;
+  const stageIndex = {kuhdorf:0,dorf:1,'grosses-dorf':2,kleinstadt:3,stadt:4,grossstadt:5,'moderne-stadt':6,metropole:7};
+  const marketPos = {land:[0,0],houses:[-100,0],towers:[-200,0],schools:[0,-100],universities:[-100,-100],shops:[-200,-100],supermarkets:[-50,-200],food:[-150,-200]};
 
-  function important(el, prop, value) {
-    if (el) el.style.setProperty(prop, value, 'important');
-  }
-
-  function applyCity() {
-    const el = document.querySelector('.city-scene');
-    if (!el) return;
-    const stage = STAGES.find(name => el.classList.contains(`city-stage-${name}`)) || 'kuhdorf';
-    const index = Math.max(0, STAGES.indexOf(stage));
-    const rect = el.getBoundingClientRect();
-    const w = Math.max(1, Math.round(rect.width));
-    const h = Math.max(1, Math.round(rect.height));
-
-    important(el, 'background-image', `url("${CITY_URL}")`);
-    important(el, 'background-repeat', 'no-repeat');
-    important(el, 'background-size', `${w}px ${h * 8}px`);
-    important(el, 'background-position', `0px -${index * h}px`);
-    important(el, 'background-color', '#071724');
-    important(el, 'overflow', 'hidden');
-
-    const oldImage = el.querySelector('.city-scene-image');
-    if (oldImage) important(oldImage, 'opacity', '0');
-  }
-
-  function applyMarketIcons() {
-    Object.entries(MARKET).forEach(([key,[col,row]]) => {
-      document.querySelectorAll(`.market-icon-${key} .market-icon-frame`).forEach(frame => {
-        const rect = frame.getBoundingClientRect();
-        const size = Math.max(1, rect.width || 72);
-        important(frame, 'background-image', `url("${MARKET_URL}")`);
-        important(frame, 'background-repeat', 'no-repeat');
-        important(frame, 'background-size', `${size * 3}px ${size * 3}px`);
-        important(frame, 'background-position', `${-col * size}px ${-row * size}px`);
-        important(frame, 'background-color', '#06131e');
-        important(frame, 'border-radius', '50%');
-        important(frame, 'overflow', 'hidden');
-        frame.querySelectorAll('svg').forEach(svg => important(svg, 'display', 'none'));
-      });
+  function city(){
+    document.querySelectorAll('.city-scene').forEach(scene=>{
+      let img=scene.querySelector(':scope > .v27-city-sheet');
+      const cls=[...scene.classList].find(c=>c.startsWith('city-stage-'));
+      const stage=cls?cls.replace('city-stage-',''):'kuhdorf';
+      const idx=stageIndex[stage]??0;
+      if(!img){img=document.createElement('img');img.className='v27-city-sheet';img.src=CITY_SHEET;img.alt='';img.setAttribute('aria-hidden','true');scene.prepend(img);}
+      img.style.setProperty('top',`${-idx*100}%`,'important');
     });
   }
 
-  function apply() {
-    scheduled = false;
-    document.documentElement.dataset.bgmArt = `v${VERSION}`;
-    applyCity();
-    applyMarketIcons();
+  function market(){
+    document.querySelectorAll('.market-icon-frame').forEach(frame=>{
+      const icon=frame.closest('.market-icon'); if(!icon)return;
+      const cls=[...icon.classList].find(c=>c.startsWith('market-icon-')&&c!=='market-icon');
+      const pos=cls?marketPos[cls.replace('market-icon-','')]:null; if(!pos)return;
+      let img=frame.querySelector(':scope > .v27-market-sheet');
+      if(!img){img=document.createElement('img');img.className='v27-market-sheet';img.src=MARKET_SHEET;img.alt='';img.setAttribute('aria-hidden','true');frame.appendChild(img);}
+      img.style.setProperty('left',`${pos[0]}%`,'important');img.style.setProperty('top',`${pos[1]}%`,'important');
+    });
   }
 
-  function schedule() {
-    if (scheduled) return;
-    scheduled = true;
-    requestAnimationFrame(() => requestAnimationFrame(apply));
+  function crop(host,cls,x,y){
+    if(!host||host.querySelector(`:scope > .${cls}`))return;
+    const wrap=document.createElement('span');wrap.className=cls;
+    const img=document.createElement('img');img.src=UI_SHEET;img.alt='';img.setAttribute('aria-hidden','true');img.style.width='400%';img.style.height='400%';img.style.left=`${x}%`;img.style.top=`${y}%`;wrap.appendChild(img);host.prepend(wrap);
   }
 
-  const preloadCity = new Image();
-  preloadCity.onload = schedule;
-  preloadCity.src = CITY_URL;
-  const preloadMarket = new Image();
-  preloadMarket.onload = schedule;
-  preloadMarket.src = MARKET_URL;
+  function ui(){
+    [[0,0],[-100,0],[-200,0],[-300,0]].forEach((p,i)=>crop(document.querySelectorAll('.compact-metric')[i],'v27-ui-icon',...p));
+    [[0,-100],[-100,-100],[-200,-100],[-300,-100]].forEach((p,i)=>crop(document.querySelectorAll('.city-quick-strip>div')[i],'v27-ui-icon',...p));
+    [[0,-200],[-100,-200],[-200,-200],[-300,-200]].forEach((p,i)=>crop(document.querySelectorAll('.game-tab')[i],'v27-tab-icon',...p));
+    crop(document.querySelector('.compact-city-identity'),'v27-crest',-100,-200);
+    crop(document.querySelector('.city-panel-title'),'v27-title-icon',-100,-200);
+  }
 
-  window.addEventListener('resize', schedule, { passive:true });
-  window.addEventListener('load', schedule, { once:true });
-  const root = document.getElementById('app');
-  if (root) new MutationObserver(schedule).observe(root, { childList:true, subtree:true, attributes:true, attributeFilter:['class'] });
-  schedule();
+  function apply(){city();market();ui();document.documentElement.dataset.bgmArt='v27';}
+  let q=false;const schedule=()=>{if(q)return;q=true;requestAnimationFrame(()=>{q=false;apply();});};
+  new MutationObserver(schedule).observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
+  window.addEventListener('resize',schedule,{passive:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 })();
