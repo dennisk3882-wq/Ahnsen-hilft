@@ -1,5 +1,5 @@
-const CACHE='buergermeister-1992-plus-v26';
-const ASSETS=['./','index.html','styles.css?v=26','modern-theme.css?v=26','modern-art.css?v=26','real-art-v22.css?v=26','game-engine.js?v=26','app.js?v=26','art-runtime-v26.js?v=26','manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png','assets/v23-city-stages.webp?v=26','assets/v23-market-icons.webp?v=26','assets/v23-ui-icons.webp?v=26'];
+const CACHE='buergermeister-1992-plus-v27';
+const ASSETS=['./','index.html','styles.css?v=27','modern-theme.css?v=27','modern-art.css?v=27','real-art-v22.css?v=27','graphics-v26.css?v=27','game-engine.js?v=27','app.js?v=27','art-runtime-v26.js?v=27','manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png','assets/v23-city-stages.webp?v=27','assets/v23-market-icons.webp?v=27','assets/v23-ui-icons.webp?v=27'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;}).catch(()=>caches.match(event.request).then(hit=>hit||caches.match('./'))));});
