@@ -579,7 +579,7 @@ async def enhanced_admin(request: Request, hinweis: str = ""):
 
 @router.post("/intern/nachbarschaft/{post_id}/status")
 async def enhanced_admin_status(request: Request, post_id: int, background_tasks: BackgroundTasks):
-    _admin(request); form=await request.form(); status=_clean(form.get("status"),40)
+    admin = _admin(request); form=await request.form(); status=_clean(form.get("status"),40)
     if status not in {"Prüfung","Freigegeben","Erledigt","Abgelehnt"}: return RedirectResponse("/intern/nachbarschaft",status_code=303)
     db=SessionLocal()
     try:
@@ -597,13 +597,13 @@ async def enhanced_admin_status(request: Request, post_id: int, background_tasks
     create_message(owner_id,f"Nachbarschaftsbeitrag: {title}",f"Der Status wurde auf „{status}“ geändert.",category="nachbarschaft",url="/nachbarschaft")
     background_tasks.add_task(send_user_notification,owner_id,"Nachbarschaftsbeitrag aktualisiert",f"{title}: {status}","/nachbarschaft",f"neighbor-post-{post_id}-{status}",None)
     for subscriber in subscribers: background_tasks.add_task(send_user_notification,subscriber,f"Neue Hilfe: {category}",title,"/nachbarschaft",f"neighbor-category-{post_id}-{subscriber}",None)
-    audit_event("Verwaltung","Nachbarschaftsstatus geändert","neighbor_post",str(post_id),status)
+    audit_event(admin["username"],"Nachbarschaftsstatus geändert","neighbor_post",str(post_id),status)
     return RedirectResponse("/intern/nachbarschaft?hinweis="+quote("Status wurde gespeichert."),status_code=303)
 
 
 @router.post("/intern/nachbarschaft/meldung/{report_id}/aktion")
 async def enhanced_admin_action(request: Request, report_id: int, background_tasks: BackgroundTasks):
-    _admin(request); form=await request.form(); action=_clean(form.get("action"),40) or "dismiss"; resolution=_clean(form.get("resolution"),1000); db=SessionLocal()
+    admin = _admin(request); form=await request.form(); action=_clean(form.get("action"),40) or "dismiss"; resolution=_clean(form.get("resolution"),1000); db=SessionLocal()
     try:
         report=db.query(NeighborReport).filter(NeighborReport.id==report_id).first()
         if not report: return RedirectResponse("/intern/nachbarschaft",status_code=303)
@@ -636,18 +636,18 @@ async def enhanced_admin_action(request: Request, report_id: int, background_tas
     labels={"dismiss":"Meldung geschlossen","hide":"Inhalt ausgeblendet","warn":"Verwarnung ausgesprochen","lock_chat":"Chat gesperrt","suspend_7":"7 Tage gesperrt","suspend_30":"30 Tage gesperrt","permanent":"Dauerhaft gesperrt"}
     if target_user and action in {"warn","suspend_7","suspend_30","permanent"}:
         label=labels.get(action,"Moderationsmaßnahme"); create_message(target_user,"Hinweis zur Nachbarschaftshilfe",f"Die Verwaltung hat folgende Maßnahme gesetzt: {label}."+(f"\nHinweis: {resolution}" if resolution else ""),category="nachbarschaft",url="/nachbarschaft"); background_tasks.add_task(send_user_notification,target_user,"Hinweis zur Nachbarschaftshilfe",label,"/nachbarschaft",f"neighbor-moderation-{report_id}-{action}",None)
-    audit_event("Verwaltung",labels.get(action,"Meldung bearbeitet"),"neighbor_report",str(report_id),resolution)
+    audit_event(admin["username"],labels.get(action,"Meldung bearbeitet"),"neighbor_report",str(report_id),resolution)
     return RedirectResponse("/intern/nachbarschaft?hinweis="+quote("Meldung wurde bearbeitet."),status_code=303)
 
 
 @router.post("/intern/nachbarschaft/sperre/{user_id}/aufheben")
 async def enhanced_clear_restriction(request: Request, user_id: int):
-    _admin(request); db=SessionLocal()
+    admin = _admin(request); db=SessionLocal()
     try:
         base=db.query(NeighborRestriction).filter(NeighborRestriction.user_id==user_id).first(); schedule=_schedule(db,user_id)
         if base: base.blocked=False; base.reason=""
         if schedule: schedule.permanent=False; schedule.suspended_until=None; schedule.reason=""; schedule.aktualisiert_am=_now()
         db.commit()
     finally: db.close()
-    audit_event("Verwaltung","Nachbarschaftssperre aufgehoben","pwa_user",str(user_id))
+    audit_event(admin["username"],"Nachbarschaftssperre aufgehoben","pwa_user",str(user_id))
     return RedirectResponse("/intern/nachbarschaft?hinweis="+quote("Einschränkung wurde aufgehoben."),status_code=303)

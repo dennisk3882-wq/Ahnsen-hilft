@@ -70,8 +70,8 @@ def _event_actions(event):
     edit_url = f"/intern/veranstaltungen?bearbeiten_id={event.id}#veranstaltungsformular"
     return f'''<div class="event-actions">
         <a class="event-action secondary" href="{edit_url}">Bearbeiten</a>
-        <a class="event-action" href="/veranstaltungen/aktiv/{event.id}/{aktiv_neu}">{aktiv_button}</a>
-        <a class="event-action danger" href="/veranstaltungen/loeschen/{event.id}" onclick="return confirm('Veranstaltung wirklich löschen?')">Löschen</a>
+        <form method="post" action="/veranstaltungen/aktiv/{event.id}/{aktiv_neu}"><button class="event-action" type="submit">{aktiv_button}</button></form>
+        <form method="post" action="/veranstaltungen/loeschen/{event.id}" onsubmit="return confirm('Veranstaltung wirklich löschen?')"><button class="event-action danger" type="submit">Löschen</button></form>
     </div>'''
 
 
