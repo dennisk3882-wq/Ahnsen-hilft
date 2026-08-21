@@ -1,0 +1,73 @@
+name: Build Eufy Monitor APK
+
+on:
+  push:
+    branches: [ eufy-monitor ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18.17.1'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Install Android build components
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Download embedded Node.js runtime
+        run: |
+          set -eux
+          curl -fL --retry 3 -o /tmp/node-mobile.zip "https://github.com/nodejs-mobile/nodejs-mobile/releases/download/v18.17.3/nodejs-mobile-v18.17.3-android.zip"
+          rm -rf /tmp/node-mobile && mkdir -p /tmp/node-mobile
+          unzip -q /tmp/node-mobile.zip -d /tmp/node-mobile
+          LIBNODE=$(find /tmp/node-mobile -type f -path '*/arm64-v8a/libnode.so' | head -n 1)
+          NODE_HEADERS=$(find /tmp/node-mobile -type d -path '*/include/node' | head -n 1)
+          test -n "$LIBNODE"
+          test -n "$NODE_HEADERS"
+          mkdir -p app/libnode/bin/arm64-v8a app/libnode/include
+          cp "$LIBNODE" app/libnode/bin/arm64-v8a/libnode.so
+          cp -R "$NODE_HEADERS" app/libnode/include/node
+          ls -lh app/libnode/bin/arm64-v8a/libnode.so
+          test -f app/libnode/include/node/node.h
+
+      - name: Build bundled Eufy runtime
+        run: |
+          set -eux
+          cd node-src
+          npm install --omit=dev --ignore-scripts
+          node -e "const x=require('eufy-security-client'); if(!x.EufySecurity) throw new Error('EufySecurity missing'); console.log('eufy runtime import OK')"
+          cd ..
+          mkdir -p app/src/main/assets
+          (cd node-src && zip -qr ../app/src/main/assets/nodejs-project.zip .)
+          ls -lh app/src/main/assets/nodejs-project.zip
+
+      - name: Build APK
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Prepare APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/EufyMonitor-v0.1.apk
+          sha256sum dist/EufyMonitor-v0.1.apk > dist/EufyMonitor-v0.1.apk.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EufyMonitor-APK
+          path: dist/*
+          if-no-files-found: error

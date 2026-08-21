@@ -1,0 +1,13 @@
+{
+  "name": "eufy-monitor-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "dependencies": {
+    "eufy-security-client": "3.8.0"
+  },
+  "overrides": {
+    "got": "13.0.0",
+    "p-throttle": "7.0.0"
+  }
+}
