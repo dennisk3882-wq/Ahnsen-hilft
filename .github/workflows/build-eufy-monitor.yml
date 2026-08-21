@@ -3,6 +3,8 @@ name: Build Eufy Monitor APK
 on:
   push:
     branches: [ eufy-monitor ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
