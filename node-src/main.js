@@ -8,12 +8,17 @@ const { EufySecurity } = require("eufy-security-client");
 
 const CONTROL_PORT = 8787;
 const STREAM_PORT = 8788;
+const MAX_EVENTS = 350;
 let client = null;
 let clientCredentialKey = null;
 let connectInFlight = null;
 let liveDevice = null;
 let streamSocket = null;
 let seq = 0;
+let eventSeq = 1;
+let eventLog = [];
+let stats = { eufyEvents: 0, aiEvents: 0 };
+let listenersInstalled = false;
 let state = {
   phase: "idle",
   message: "Bereit",
@@ -81,16 +86,159 @@ function isTransientProfileError(err) {
     m.includes("timeout");
 }
 
+function safe(value, depth = 0) {
+  if (depth > 4) return String(value);
+  if (value === null || value === undefined) return value;
+  if (Buffer.isBuffer(value)) return `[Buffer ${value.length}]`;
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.slice(0, 60).map(v => safe(v, depth + 1));
+  if (typeof value === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (typeof v === "function") continue;
+      try { out[k] = safe(v, depth + 1); } catch (_) {}
+    }
+    return out;
+  }
+  if (typeof value === "function") return undefined;
+  return value;
+}
+
+function addEvent(source, type, label, device, details, data) {
+  const e = {
+    id: eventSeq++,
+    ts: Date.now(),
+    source: source || "eufy",
+    type: type || "event",
+    label: label || type || "Ereignis",
+    device: device || "",
+    details: details || "",
+    data: safe(data)
+  };
+  eventLog.unshift(e);
+  if (eventLog.length > MAX_EVENTS) eventLog.length = MAX_EVENTS;
+  if (e.source === "local-ai") stats.aiEvents++; else stats.eufyEvents++;
+  return e;
+}
+
+function deviceName(d) {
+  try { return d.getName() || d.getModel() || "Kamera"; } catch (_) { return "Kamera"; }
+}
+
+function deviceSerial(d) {
+  try { return d.getSerial(); } catch (_) { return ""; }
+}
+
+async function getDevice(sn) {
+  if (!client) throw new Error("Nicht mit Eufy verbunden");
+  if (typeof client.getDevice === "function") return client.getDevice(sn);
+  const devices = await client.getDevices();
+  const found = devices.find(d => deviceSerial(d) === sn);
+  if (!found) throw new Error("Gerät nicht gefunden");
+  return found;
+}
+
+async function getStation(sn) {
+  if (!client) throw new Error("Nicht mit Eufy verbunden");
+  if (typeof client.getStation === "function") return client.getStation(sn);
+  const stations = await client.getStations();
+  const found = stations.find(s => {
+    try { return s.getSerial() === sn; } catch (_) { return false; }
+  });
+  if (!found) throw new Error("HomeBase/Station nicht gefunden");
+  return found;
+}
+
+function extractHealth(d) {
+  let battery = null;
+  let wifi = null;
+  let charging = null;
+  try {
+    const meta = d.getPropertiesMetadata(true) || {};
+    for (const m of Object.values(meta)) {
+      const n = String(m.name || "");
+      let v;
+      try { v = d.getPropertyValue(m.name); } catch (_) { continue; }
+      if (battery === null && /battery/i.test(n) && typeof v === "number" && v >= 0 && v <= 100) battery = v;
+      if (wifi === null && /(WifiSignalLevel|WifiRSSI)/i.test(n) && typeof v === "number") wifi = v;
+      if (charging === null && /charging/i.test(n) && typeof v === "boolean") charging = v;
+    }
+  } catch (_) {}
+  const bits = [];
+  if (battery !== null) bits.push(`Akku ${battery}%`);
+  if (charging === true) bits.push("lädt");
+  if (wifi !== null) bits.push(`WLAN ${wifi}`);
+  return bits.length ? bits.join(" · ") : "verbunden";
+}
+
 async function refreshDevices() {
   if (!client) return [];
   const devices = await client.getDevices();
   state.devices = devices.map(d => ({
-    sn: d.getSerial(),
-    stationSn: d.getStationSerial(),
-    name: d.getName() || d.getModel() || "Kamera",
-    model: d.getModel() || ""
+    sn: deviceSerial(d),
+    stationSn: (() => { try { return d.getStationSerial(); } catch (_) { return ""; } })(),
+    name: deviceName(d),
+    model: (() => { try { return d.getModel() || ""; } catch (_) { return ""; } })(),
+    health: extractHealth(d)
   }));
   return state.devices;
+}
+
+function installEventListeners() {
+  if (!client || listenersInstalled) return;
+  listenersInstalled = true;
+
+  const deviceEvents = [
+    ["device motion detected", "motion", "Bewegung"],
+    ["device person detected", "person", "Person"],
+    ["device stranger person detected", "stranger", "Unbekannte Person"],
+    ["device pet detected", "pet", "Tier"],
+    ["device dog detected", "dog", "Hund"],
+    ["device vehicle detected", "vehicle", "Fahrzeug"],
+    ["device sound detected", "sound", "Geräusch"],
+    ["device crying detected", "crying", "Weinen"],
+    ["device rings", "ring", "Klingeln"],
+    ["device package delivered", "package-delivered", "Paket geliefert"],
+    ["device package stranded", "package-stranded", "Paket liegt noch"],
+    ["device package taken", "package-taken", "Paket abgeholt"],
+    ["device someone loitering", "loitering", "Aufenthalt erkannt"],
+    ["device radar motion detected", "radar-motion", "Radar-Bewegung"],
+    ["device low battery", "low-battery", "Akku niedrig"],
+    ["device tampering", "tampering", "Manipulation erkannt"]
+  ];
+
+  for (const [eventName, type, label] of deviceEvents) {
+    try {
+      client.on(eventName, (device, active, extra) => {
+        if (active === false) return;
+        let details = "";
+        if (typeof extra === "string" && extra.trim()) details = extra.trim();
+        addEvent("eufy", type, label, deviceName(device), details, { sn: deviceSerial(device), extra: safe(extra) });
+      });
+    } catch (_) {}
+  }
+
+  try {
+    client.on("device property changed", (device, name, value) => {
+      if (/Battery|Wifi|Motion|Notification|Video|Audio|Microphone|Speaker/i.test(String(name))) {
+        addEvent("eufy-state", "property", "Einstellung geändert", deviceName(device), `${name}: ${String(value)}`, { sn: deviceSerial(device) });
+      }
+    });
+  } catch (_) {}
+
+  try {
+    client.on("station guard mode", (station, mode) => {
+      let name = "HomeBase";
+      try { name = station.getName() || station.getSerial(); } catch (_) {}
+      addEvent("eufy", "guard-mode", "Sicherheitsmodus", name, `Modus ${mode}`, { mode });
+    });
+  } catch (_) {}
+
+  try {
+    client.on("push message", message => {
+      addEvent("eufy-push", "push", "Eufy Push", "", "Push-Nachricht empfangen", safe(message));
+    });
+  } catch (_) {}
 }
 
 async function waitForSettledState(timeoutMs) {
@@ -160,6 +308,7 @@ async function createClient(email, password, verifyOptions) {
     client = null;
     clientCredentialKey = null;
     liveDevice = null;
+    listenersInstalled = false;
     state.devices = [];
     state.phase = "idle";
   }
@@ -174,15 +323,16 @@ async function createClient(email, password, verifyOptions) {
       password,
       country: "DE",
       language: "de",
-      trustedDeviceName: "Galaxy Tab S8 Plus - Eufy Monitor",
+      trustedDeviceName: "Galaxy Tab S8 Plus - Eufy Smart Security",
       persistentDir,
       p2pConnectionSetup: 1,
-      pollingIntervalMinutes: 10,
-      eventDurationSeconds: 10,
-      acceptInvitations: true
+      pollingIntervalMinutes: 5,
+      eventDurationSeconds: 12,
+      acceptInvitations: true,
+      deviceConfig: { simultaneousDetections: true }
     });
     clientCredentialKey = key;
-
+    installEventListeners();
     client.setCameraMaxLivestreamDuration(0);
 
     client.on("tfa request", () => {
@@ -205,6 +355,7 @@ async function createClient(email, password, verifyOptions) {
       } catch (_) {
         state.message = "Verbunden, Geräteliste wird geladen";
       }
+      addEvent("system", "connected", "Eufy verbunden", "", "Smart Security Backend ist bereit");
     });
     client.on("connection error", err => {
       if (isTransientProfileError(err) && (state.phase === "connecting" || connectInFlight)) {
@@ -214,10 +365,12 @@ async function createClient(email, password, verifyOptions) {
       }
       state.phase = "error";
       state.message = messageOf(err) || "Verbindungsfehler";
+      addEvent("system", "connection-error", "Verbindungsfehler", "", state.message);
     });
     client.on("station livestream start", (station, device, metadata, videoStream) => {
       liveDevice = device.getSerial();
       state.message = "Lokaler Livestream aktiv";
+      addEvent("system", "live-start", "Livestream gestartet", deviceName(device), `${metadata.videoWidth}×${metadata.videoHeight}`);
       sendPacket(1, Buffer.from(JSON.stringify({
         codec: metadata.videoCodec,
         fps: metadata.videoFPS,
@@ -229,14 +382,70 @@ async function createClient(email, password, verifyOptions) {
       videoStream.on("data", chunk => sendPacket(2, chunk));
       videoStream.on("error", err => sendPacket(3, Buffer.from(messageOf(err))));
     });
-    client.on("station livestream stop", () => {
+    client.on("station livestream stop", (station, device) => {
       liveDevice = null;
       state.message = "Livestream gestoppt";
+      addEvent("system", "live-stop", "Livestream gestoppt", device ? deviceName(device) : "", "");
       sendPacket(3, Buffer.from("stopped"));
     });
   }
 
   return connectWithRetry(verifyOptions || { force: false });
+}
+
+async function deviceProperties(sn) {
+  const d = await getDevice(sn);
+  const meta = typeof d.getPropertiesMetadata === "function" ? (d.getPropertiesMetadata(true) || {}) : {};
+  const items = [];
+  for (const m of Object.values(meta)) {
+    if (!m || !m.name) continue;
+    let value;
+    try { value = d.getPropertyValue(m.name); } catch (_) { value = undefined; }
+    items.push({
+      name: m.name,
+      label: m.label || "",
+      description: m.description || "",
+      type: m.type || typeof value,
+      readable: m.readable !== false,
+      writeable: m.writeable === true,
+      value: safe(value),
+      default: safe(m.default),
+      min: m.min,
+      max: m.max,
+      steps: m.steps,
+      states: safe(m.states),
+      unit: m.unit || ""
+    });
+  }
+  items.sort((a, b) => (Number(b.writeable) - Number(a.writeable)) || a.name.localeCompare(b.name));
+  return { sn, name: deviceName(d), model: (() => { try { return d.getModel() || ""; } catch (_) { return ""; } })(), items };
+}
+
+async function stationProperties(sn) {
+  const s = await getStation(sn);
+  const meta = typeof s.getPropertiesMetadata === "function" ? (s.getPropertiesMetadata(true) || {}) : {};
+  const items = [];
+  for (const m of Object.values(meta)) {
+    if (!m || !m.name) continue;
+    let value;
+    try { value = s.getPropertyValue(m.name); } catch (_) { value = undefined; }
+    items.push({
+      name: m.name,
+      label: m.label || "",
+      description: m.description || "",
+      type: m.type || typeof value,
+      readable: m.readable !== false,
+      writeable: m.writeable === true,
+      value: safe(value),
+      default: safe(m.default),
+      min: m.min,
+      max: m.max,
+      steps: m.steps,
+      states: safe(m.states),
+      unit: m.unit || ""
+    });
+  }
+  return { sn, name: (() => { try { return s.getName() || sn; } catch (_) { return sn; } })(), items };
 }
 
 function sendPacket(type, payload) {
@@ -264,8 +473,9 @@ net.createServer(socket => {
 http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://127.0.0.1");
+
     if (req.method === "GET" && url.pathname === "/health") {
-      return json(res, 200, { ok: true, version: "0.4", node: process.version });
+      return json(res, 200, { ok: true, version: "1.0-smart", node: process.version });
     }
     if (req.method === "GET" && url.pathname === "/state") {
       if (state.phase === "connected") {
@@ -307,6 +517,97 @@ http.createServer(async (req, res) => {
       }
       return json(res, 200, { ok: true });
     }
+
+    if (req.method === "GET" && url.pathname === "/smart/overview") {
+      if (state.phase === "connected") {
+        try { await refreshDevices(); } catch (_) {}
+      }
+      let stations = [];
+      if (client && state.phase === "connected" && typeof client.getStations === "function") {
+        try {
+          const list = await client.getStations();
+          stations = list.map(s => ({
+            sn: (() => { try { return s.getSerial(); } catch (_) { return ""; } })(),
+            name: (() => { try { return s.getName() || s.getSerial(); } catch (_) { return "HomeBase"; } })()
+          }));
+        } catch (_) {}
+      }
+      return json(res, 200, {
+        phase: state.phase,
+        message: state.message,
+        live: !!liveDevice,
+        liveDevice,
+        devices: state.devices,
+        stations,
+        stats,
+        recent: eventLog.slice(0, 12)
+      });
+    }
+
+    if (req.method === "GET" && url.pathname === "/events") {
+      return json(res, 200, { events: eventLog.slice(0, 250), stats });
+    }
+    if (req.method === "POST" && url.pathname === "/events/clear") {
+      eventLog = [];
+      stats = { eufyEvents: 0, aiEvents: 0 };
+      return json(res, 200, { ok: true });
+    }
+    if (req.method === "POST" && url.pathname === "/ai/event") {
+      const b = await readJson(req);
+      const kind = String(b.kind || "detected");
+      const label = String(b.label || "AI Objekt");
+      let details = `${Math.round(Number(b.score || 0) * 100)}% · Priorität ${Number(b.priority || 0)}`;
+      if (kind === "loitering") details += ` · Aufenthalt ${Math.round(Number(b.visibleMs || 0) / 1000)}s`;
+      const e = addEvent("local-ai", kind, label, "Tablet Smart Vision", details, b);
+      return json(res, 200, { ok: true, event: e });
+    }
+
+    if (req.method === "GET" && url.pathname === "/device/properties") {
+      const sn = String(url.searchParams.get("sn") || "");
+      if (!sn) throw new Error("Geräte-Seriennummer fehlt");
+      return json(res, 200, await deviceProperties(sn));
+    }
+    if (req.method === "POST" && url.pathname === "/device/property") {
+      const b = await readJson(req);
+      const sn = String(b.sn || "");
+      const name = String(b.name || "");
+      if (!client || state.phase !== "connected") throw new Error("Nicht mit Eufy verbunden");
+      if (!sn || !name) throw new Error("Gerät oder Property fehlt");
+      if (typeof client.setDeviceProperty !== "function") throw new Error("Gerätesteuerung wird von dieser Client-Version nicht unterstützt");
+      await client.setDeviceProperty(sn, name, b.value);
+      addEvent("local-control", "property-write", "Einstellung geändert", sn, `${name}: ${String(b.value)}`);
+      await sleep(250);
+      return json(res, 200, { ok: true, sn, name, value: b.value });
+    }
+
+    if (req.method === "GET" && url.pathname === "/station/properties") {
+      const sn = String(url.searchParams.get("sn") || "");
+      if (!sn) throw new Error("Station-Seriennummer fehlt");
+      return json(res, 200, await stationProperties(sn));
+    }
+    if (req.method === "POST" && url.pathname === "/station/property") {
+      const b = await readJson(req);
+      if (!client || state.phase !== "connected") throw new Error("Nicht mit Eufy verbunden");
+      if (typeof client.setStationProperty !== "function") throw new Error("Station-Steuerung wird von dieser Client-Version nicht unterstützt");
+      await client.setStationProperty(String(b.sn || ""), String(b.name || ""), b.value);
+      addEvent("local-control", "station-property", "HomeBase-Einstellung geändert", String(b.sn || ""), `${String(b.name || "")}: ${String(b.value)}`);
+      return json(res, 200, { ok: true });
+    }
+
+    if (req.method === "GET" && url.pathname === "/capabilities") {
+      return json(res, 200, {
+        livestream: !!client && typeof client.startStationLivestream === "function",
+        deviceProperties: !!client && typeof client.setDeviceProperty === "function",
+        stationProperties: !!client && typeof client.setStationProperty === "function",
+        talkback: !!client && typeof client.startStationTalkback === "function",
+        events: true,
+        localAi: true,
+        ultraDetail: true,
+        renderRelay: false,
+        version: "1.0-smart"
+      });
+    }
+
     return json(res, 404, { error: "Nicht gefunden" });
   } catch (e) {
     const msg = messageOf(e);
@@ -315,7 +616,7 @@ http.createServer(async (req, res) => {
     return json(res, 500, { error: msg, ...publicState() });
   }
 }).listen(CONTROL_PORT, "127.0.0.1", () => {
-  console.log("Eufy Monitor bridge v0.4 ready on localhost");
+  console.log("Eufy Smart Security bridge v1.0 ready on localhost");
 });
 
 process.on("uncaughtException", e => console.error("uncaught", e));
