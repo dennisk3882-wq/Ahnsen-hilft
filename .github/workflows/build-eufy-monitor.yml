@@ -61,17 +61,25 @@ jobs:
           (cd node-src && zip -qr ../app/src/main/assets/nodejs-project.zip .)
           ls -lh app/src/main/assets/nodejs-project.zip
 
+      - name: Bundle on-device super-resolution model
+        run: |
+          set -eux
+          mkdir -p app/src/main/assets
+          curl -fL --retry 3 -o app/src/main/assets/espcn_quant.tflite "https://storage.googleapis.com/ailia-models-tflite/espcn/espcn_quant.tflite"
+          test -s app/src/main/assets/espcn_quant.tflite
+          ls -lh app/src/main/assets/espcn_quant.tflite
+
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
 
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/EufyMonitor-v0.1.apk
-          sha256sum dist/EufyMonitor-v0.1.apk > dist/EufyMonitor-v0.1.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk dist/EufyMonitor-AI-Zoom-v0.3.apk
+          sha256sum dist/EufyMonitor-AI-Zoom-v0.3.apk > dist/EufyMonitor-AI-Zoom-v0.3.apk.sha256
 
       - uses: actions/upload-artifact@v4
         with:
-          name: EufyMonitor-APK
+          name: EufyMonitor-AI-Zoom-v0.3
           path: dist/*
           if-no-files-found: error
