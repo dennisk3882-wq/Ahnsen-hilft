@@ -12,6 +12,7 @@ import android.util.Base64;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.PixelCopy;
 import android.view.ScaleGestureDetector;
 import android.view.SurfaceView;
 import android.view.View;
@@ -62,6 +63,8 @@ public class MainActivity extends Activity {
     private static final float MIN_ZOOM = 1.0f;
     private static final float MAX_ZOOM = 6.0f;
 
+    private enum EnhanceMode { OFF, REALTIME, DETAIL }
+
     public native int startNodeWithArguments(String[] arguments);
 
     private final ExecutorService io = Executors.newCachedThreadPool();
@@ -70,15 +73,18 @@ public class MainActivity extends Activity {
     private TextView status;
     private TextView streamStatus;
     private TextView zoomBadge;
+    private TextView enhanceBadge;
     private EditText email;
     private EditText password;
     private EditText challenge;
     private LinearLayout challengeRow;
     private ImageView captchaImage;
+    private ImageView enhancedView;
     private Button connectButton;
     private Button challengeButton;
     private Button liveButton;
     private Button stopButton;
+    private Button enhanceButton;
     private Spinner deviceSpinner;
     private SurfaceView surfaceView;
     private LocalStreamClient streamClient;
@@ -92,6 +98,15 @@ public class MainActivity extends Activity {
     private float lastTouchX = 0f;
     private float lastTouchY = 0f;
 
+    private EnhanceMode enhanceMode = EnhanceMode.OFF;
+    private volatile boolean liveActive = false;
+    private volatile boolean enhanceBusy = false;
+    private Bitmap previousRealtime;
+    private Bitmap shownEnhanced;
+    private SuperResolutionEngine superResolution;
+    private final Runnable realtimeEnhanceLoop = this::runRealtimeEnhance;
+    private final Runnable delayedDetailRefresh = this::captureDetail4K;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,7 +117,15 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        liveActive = false;
+        ui.removeCallbacks(realtimeEnhanceLoop);
+        ui.removeCallbacks(delayedDetailRefresh);
         if (streamClient != null) streamClient.close();
+        if (superResolution != null) {
+            try { superResolution.close(); } catch (Exception ignored) {}
+        }
+        recycle(previousRealtime);
+        recycle(shownEnhanced);
         io.shutdownNow();
         super.onDestroy();
     }
@@ -134,7 +157,7 @@ public class MainActivity extends Activity {
         Button b = new Button(this);
         b.setText(label);
         b.setAllCaps(false);
-        b.setTextSize(15);
+        b.setTextSize(14);
         return b;
     }
 
@@ -196,13 +219,17 @@ public class MainActivity extends Activity {
         deviceSpinner.setBackgroundColor(0xff1d2632);
         liveButton = button("Live starten");
         stopButton = button("Stop");
+        enhanceButton = button("Enhance: AUS");
         liveButton.setEnabled(false);
         stopButton.setEnabled(false);
+        enhanceButton.setEnabled(false);
         camera.addView(deviceSpinner, weight(1f));
         addGap(camera);
-        camera.addView(liveButton, new LinearLayout.LayoutParams(dp(150), ViewGroup.LayoutParams.WRAP_CONTENT));
+        camera.addView(enhanceButton, new LinearLayout.LayoutParams(dp(170), ViewGroup.LayoutParams.WRAP_CONTENT));
         addGap(camera);
-        camera.addView(stopButton, new LinearLayout.LayoutParams(dp(100), ViewGroup.LayoutParams.WRAP_CONTENT));
+        camera.addView(liveButton, new LinearLayout.LayoutParams(dp(140), ViewGroup.LayoutParams.WRAP_CONTENT));
+        addGap(camera);
+        camera.addView(stopButton, new LinearLayout.LayoutParams(dp(90), ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(camera);
 
         FrameLayout video = new FrameLayout(this);
@@ -213,6 +240,13 @@ public class MainActivity extends Activity {
         surfaceView = new SurfaceView(this);
         surfaceView.setClickable(true);
         video.addView(surfaceView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        enhancedView = new ImageView(this);
+        enhancedView.setScaleType(ImageView.ScaleType.FIT_XY);
+        enhancedView.setVisibility(View.GONE);
+        enhancedView.setClickable(false);
+        enhancedView.setFocusable(false);
+        video.addView(enhancedView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         streamStatus = text("Noch kein Livestream", 15);
         streamStatus.setPadding(dp(10), dp(7), dp(10), dp(7));
@@ -230,14 +264,21 @@ public class MainActivity extends Activity {
         zoomOverlay.setMargins(dp(8), dp(8), dp(8), dp(8));
         video.addView(zoomBadge, zoomOverlay);
 
-        TextView zoomHint = text("Zwei Finger: Zoom · Ziehen: Ausschnitt · Doppeltipp: 2×/1×", 12);
+        enhanceBadge = text("Original", 13);
+        enhanceBadge.setPadding(dp(10), dp(6), dp(10), dp(6));
+        enhanceBadge.setBackgroundColor(0x99000000);
+        FrameLayout.LayoutParams enhanceOverlay = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        enhanceOverlay.setMargins(dp(8), dp(8), dp(8), dp(8));
+        video.addView(enhanceBadge, enhanceOverlay);
+
+        TextView zoomHint = text("Zwei Finger: Zoom · Ziehen: Ausschnitt · Doppeltipp: 2×/1× · Enhance: Echtzeit/AI Detail 4K", 12);
         zoomHint.setTextColor(0xffd1dae5);
         zoomHint.setPadding(dp(8), dp(5), dp(8), dp(5));
         zoomHint.setBackgroundColor(0x66000000);
         FrameLayout.LayoutParams hintOverlay = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
         hintOverlay.setMargins(dp(8), dp(8), dp(8), dp(8));
         video.addView(zoomHint, hintOverlay);
-        zoomHint.animate().alpha(0f).setStartDelay(4500).setDuration(800).withEndAction(() -> zoomHint.setVisibility(View.GONE)).start();
+        zoomHint.animate().alpha(0f).setStartDelay(5500).setDuration(800).withEndAction(() -> zoomHint.setVisibility(View.GONE)).start();
 
         LinearLayout.LayoutParams videoParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         videoParams.topMargin = dp(8);
@@ -249,6 +290,7 @@ public class MainActivity extends Activity {
         challengeButton.setOnClickListener(v -> sendChallenge());
         liveButton.setOnClickListener(v -> startLive());
         stopButton.setOnClickListener(v -> stopLive());
+        enhanceButton.setOnClickListener(v -> cycleEnhanceMode());
         zoomBadge.setOnClickListener(v -> resetZoom());
         installZoomGestures();
     }
@@ -260,17 +302,14 @@ public class MainActivity extends Activity {
 
     private void installZoomGestures() {
         scaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-            @Override
-            public boolean onScaleBegin(ScaleGestureDetector detector) {
-                return true;
-            }
+            @Override public boolean onScaleBegin(ScaleGestureDetector detector) { return true; }
 
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
+                hideDetailWhileMoving();
                 float oldScale = zoomScale;
                 float newScale = clamp(oldScale * detector.getScaleFactor(), MIN_ZOOM, MAX_ZOOM);
                 if (Math.abs(newScale - oldScale) < 0.001f) return true;
-
                 int width = surfaceView.getWidth();
                 int height = surfaceView.getHeight();
                 if (width > 0 && height > 0) {
@@ -288,10 +327,7 @@ public class MainActivity extends Activity {
         });
 
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onDown(MotionEvent e) {
-                return true;
-            }
+            @Override public boolean onDown(MotionEvent e) { return true; }
 
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -301,11 +337,10 @@ public class MainActivity extends Activity {
 
             @Override
             public boolean onDoubleTap(MotionEvent e) {
-                if (zoomScale > 1.05f) {
-                    resetZoom();
-                } else {
-                    zoomTo(2.0f, e.getX(), e.getY());
-                }
+                hideDetailWhileMoving();
+                if (zoomScale > 1.05f) resetZoom();
+                else zoomTo(2.0f, e.getX(), e.getY());
+                scheduleDetailRefresh();
                 return true;
             }
         });
@@ -313,13 +348,13 @@ public class MainActivity extends Activity {
         surfaceView.setOnTouchListener((v, event) -> {
             scaleDetector.onTouchEvent(event);
             gestureDetector.onTouchEvent(event);
-
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     lastTouchX = event.getX();
                     lastTouchY = event.getY();
                     break;
                 case MotionEvent.ACTION_POINTER_DOWN:
+                    hideDetailWhileMoving();
                     if (event.getPointerCount() > 1) {
                         lastTouchX = event.getX(0);
                         lastTouchY = event.getY(0);
@@ -327,6 +362,7 @@ public class MainActivity extends Activity {
                     break;
                 case MotionEvent.ACTION_MOVE:
                     if (event.getPointerCount() == 1 && !scaleDetector.isInProgress() && zoomScale > 1.001f) {
+                        hideDetailWhileMoving();
                         float x = event.getX();
                         float y = event.getY();
                         panX += x - lastTouchX;
@@ -350,6 +386,7 @@ public class MainActivity extends Activity {
                 case MotionEvent.ACTION_CANCEL:
                     constrainPan();
                     applyZoom();
+                    scheduleDetailRefresh();
                     break;
                 default:
                     break;
@@ -380,6 +417,7 @@ public class MainActivity extends Activity {
         panX = 0f;
         panY = 0f;
         applyZoom();
+        scheduleDetailRefresh();
     }
 
     private void constrainPan() {
@@ -405,12 +443,227 @@ public class MainActivity extends Activity {
         if (width > 0 && height > 0) {
             surfaceView.setPivotX(width / 2f);
             surfaceView.setPivotY(height / 2f);
+            enhancedView.setPivotX(width / 2f);
+            enhancedView.setPivotY(height / 2f);
         }
         surfaceView.setScaleX(zoomScale);
         surfaceView.setScaleY(zoomScale);
         surfaceView.setTranslationX(panX);
         surfaceView.setTranslationY(panY);
+        if (enhanceMode == EnhanceMode.REALTIME) {
+            enhancedView.setScaleX(zoomScale);
+            enhancedView.setScaleY(zoomScale);
+            enhancedView.setTranslationX(panX);
+            enhancedView.setTranslationY(panY);
+        } else {
+            enhancedView.setScaleX(1f);
+            enhancedView.setScaleY(1f);
+            enhancedView.setTranslationX(0f);
+            enhancedView.setTranslationY(0f);
+        }
         if (zoomBadge != null) zoomBadge.setText(String.format(Locale.GERMANY, "%.1f×", zoomScale));
+    }
+
+    private void cycleEnhanceMode() {
+        if (enhanceMode == EnhanceMode.OFF) setEnhanceMode(EnhanceMode.REALTIME);
+        else if (enhanceMode == EnhanceMode.REALTIME) setEnhanceMode(EnhanceMode.DETAIL);
+        else setEnhanceMode(EnhanceMode.OFF);
+    }
+
+    private void setEnhanceMode(EnhanceMode mode) {
+        enhanceMode = mode;
+        ui.removeCallbacks(realtimeEnhanceLoop);
+        ui.removeCallbacks(delayedDetailRefresh);
+        enhanceBusy = false;
+        if (mode == EnhanceMode.OFF) {
+            enhanceButton.setText("Enhance: AUS");
+            enhanceBadge.setText("Original");
+            enhancedView.setVisibility(View.GONE);
+            recycle(previousRealtime);
+            previousRealtime = null;
+        } else if (mode == EnhanceMode.REALTIME) {
+            enhanceButton.setText("Enhance: Echtzeit");
+            enhanceBadge.setText("Echtzeit · temporal + scharf");
+            enhancedView.setScaleType(ImageView.ScaleType.FIT_XY);
+            applyZoom();
+            if (liveActive) ui.post(realtimeEnhanceLoop);
+        } else {
+            enhanceButton.setText("Enhance: AI Detail 4K");
+            enhanceBadge.setText("AI Detail wird vorbereitet …");
+            enhancedView.setVisibility(View.GONE);
+            enhancedView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            applyZoom();
+            if (liveActive) captureDetail4K();
+        }
+    }
+
+    private void runRealtimeEnhance() {
+        if (enhanceMode != EnhanceMode.REALTIME || !liveActive) return;
+        if (enhanceBusy || surfaceView.getWidth() < 2 || surfaceView.getHeight() < 2) {
+            ui.postDelayed(realtimeEnhanceLoop, 350);
+            return;
+        }
+        enhanceBusy = true;
+        Bitmap capture = Bitmap.createBitmap(surfaceView.getWidth(), surfaceView.getHeight(), Bitmap.Config.ARGB_8888);
+        PixelCopy.request(surfaceView, capture, result -> {
+            if (result != PixelCopy.SUCCESS) {
+                recycle(capture);
+                enhanceBusy = false;
+                if (enhanceMode == EnhanceMode.REALTIME) ui.postDelayed(realtimeEnhanceLoop, 450);
+                return;
+            }
+            io.execute(() -> {
+                Bitmap scaled = null;
+                Bitmap enhanced = null;
+                try {
+                    scaled = FastEnhancer.fitForAi(capture, 1280);
+                    enhanced = FastEnhancer.enhance(scaled, previousRealtime, 0.72f + Math.min(0.55f, (zoomScale - 1f) * 0.12f));
+                    Bitmap nextPrev = scaled.copy(Bitmap.Config.ARGB_8888, false);
+                    Bitmap oldPrev = previousRealtime;
+                    previousRealtime = nextPrev;
+                    recycle(oldPrev);
+                    final Bitmap ready = enhanced;
+                    ui.post(() -> showEnhancedBitmap(ready, "Echtzeit · " + String.format(Locale.GERMANY, "%.1f×", zoomScale) + " · lokal"));
+                    enhanced = null;
+                } catch (Exception e) {
+                    final String msg = e.getMessage();
+                    ui.post(() -> enhanceBadge.setText("Enhance-Fehler: " + msg));
+                } finally {
+                    recycle(capture);
+                    recycle(scaled);
+                    recycle(enhanced);
+                    enhanceBusy = false;
+                    if (enhanceMode == EnhanceMode.REALTIME && liveActive) ui.postDelayed(realtimeEnhanceLoop, 400);
+                }
+            });
+        }, ui);
+    }
+
+    private void captureDetail4K() {
+        if (enhanceMode != EnhanceMode.DETAIL || !liveActive || enhanceBusy) return;
+        if (surfaceView.getWidth() < 2 || surfaceView.getHeight() < 2) return;
+        enhanceBusy = true;
+        enhanceBadge.setText("AI Detail: sammle 3 Frames …");
+        List<Bitmap> frames = new ArrayList<>();
+        captureDetailFrame(frames, 0);
+    }
+
+    private void captureDetailFrame(List<Bitmap> frames, int index) {
+        if (enhanceMode != EnhanceMode.DETAIL || !liveActive) {
+            for (Bitmap b : frames) recycle(b);
+            enhanceBusy = false;
+            return;
+        }
+        Bitmap capture = Bitmap.createBitmap(surfaceView.getWidth(), surfaceView.getHeight(), Bitmap.Config.ARGB_8888);
+        PixelCopy.request(surfaceView, capture, result -> {
+            if (result == PixelCopy.SUCCESS) frames.add(capture); else recycle(capture);
+            if (index < 2) {
+                ui.postDelayed(() -> captureDetailFrame(frames, index + 1), 110);
+            } else {
+                processDetailFrames(frames);
+            }
+        }, ui);
+    }
+
+    private void processDetailFrames(List<Bitmap> frames) {
+        final float detailScale = zoomScale;
+        final float detailPanX = panX;
+        final float detailPanY = panY;
+        io.execute(() -> {
+            Bitmap averaged = null;
+            Bitmap crop = null;
+            Bitmap pre = null;
+            Bitmap ai = null;
+            Bitmap fourK = null;
+            boolean usedAi = false;
+            String error = null;
+            try {
+                if (frames.isEmpty()) throw new Exception("Kein Kamerabild verfügbar");
+                averaged = FastEnhancer.average(frames);
+                crop = FastEnhancer.cropForZoom(averaged, detailScale, detailPanX, detailPanY);
+                pre = FastEnhancer.enhance(crop, null, 0.95f);
+                try {
+                    if (superResolution == null) superResolution = new SuperResolutionEngine(this);
+                    ai = superResolution.enhance(pre);
+                    usedAi = ai != null;
+                } catch (Exception aiError) {
+                    error = aiError.getMessage();
+                }
+                Bitmap sourceFor4k = usedAi ? ai : pre;
+                fourK = FastEnhancer.upscale4k(sourceFor4k);
+                final Bitmap ready = fourK;
+                final boolean finalAi = usedAi;
+                final String aiError = error;
+                ui.post(() -> {
+                    if (enhanceMode == EnhanceMode.DETAIL) {
+                        String label = (finalAi ? "AI Detail" : "Detail") + " · " + ready.getWidth() + "×" + ready.getHeight();
+                        if (!finalAi && aiError != null) label += " · AI-Fallback";
+                        showEnhancedBitmap(ready, label);
+                    } else {
+                        recycle(ready);
+                    }
+                    enhanceBusy = false;
+                });
+                fourK = null;
+            } catch (Exception e) {
+                final String msg = e.getMessage();
+                ui.post(() -> {
+                    enhanceBadge.setText("Detail-Fehler: " + msg);
+                    enhancedView.setVisibility(View.GONE);
+                    enhanceBusy = false;
+                });
+            } finally {
+                for (Bitmap b : frames) recycle(b);
+                recycle(averaged);
+                recycle(crop);
+                recycle(pre);
+                recycle(ai);
+                recycle(fourK);
+            }
+        });
+    }
+
+    private void showEnhancedBitmap(Bitmap bitmap, String label) {
+        if (bitmap == null) return;
+        Bitmap old = shownEnhanced;
+        shownEnhanced = bitmap;
+        enhancedView.setImageBitmap(bitmap);
+        enhancedView.setVisibility(View.VISIBLE);
+        enhanceBadge.setText(label);
+        applyZoom();
+        if (old != bitmap) recycle(old);
+    }
+
+    private void hideDetailWhileMoving() {
+        if (enhanceMode == EnhanceMode.DETAIL) {
+            enhancedView.setVisibility(View.GONE);
+            enhanceBadge.setText("AI Detail: Zoom festlegen …");
+            ui.removeCallbacks(delayedDetailRefresh);
+        }
+    }
+
+    private void scheduleDetailRefresh() {
+        if (enhanceMode != EnhanceMode.DETAIL || !liveActive) return;
+        ui.removeCallbacks(delayedDetailRefresh);
+        ui.postDelayed(delayedDetailRefresh, 220);
+    }
+
+    private void clearEnhancedView() {
+        ui.removeCallbacks(realtimeEnhanceLoop);
+        ui.removeCallbacks(delayedDetailRefresh);
+        enhancedView.setVisibility(View.GONE);
+        enhancedView.setImageDrawable(null);
+        recycle(previousRealtime);
+        previousRealtime = null;
+        recycle(shownEnhanced);
+        shownEnhanced = null;
+        enhanceBusy = false;
+    }
+
+    private static void recycle(Bitmap b) {
+        if (b != null && !b.isRecycled()) {
+            try { b.recycle(); } catch (Exception ignored) {}
+        }
     }
 
     private void toggleImmersive() {
@@ -540,6 +793,7 @@ public class MainActivity extends Activity {
                 connectButton.setEnabled(false);
                 liveButton.setEnabled(!devices.isEmpty());
                 stopButton.setEnabled(true);
+                enhanceButton.setEnabled(!devices.isEmpty());
             });
         } else {
             ui.post(() -> connectButton.setEnabled(true));
@@ -559,6 +813,7 @@ public class MainActivity extends Activity {
             ArrayAdapter<DeviceOption> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, devices);
             deviceSpinner.setAdapter(adapter);
             liveButton.setEnabled(!devices.isEmpty());
+            enhanceButton.setEnabled(!devices.isEmpty());
             if (devices.isEmpty()) status.setText("Verbunden, aber keine Kamera gefunden");
         });
     }
@@ -568,13 +823,20 @@ public class MainActivity extends Activity {
         if (!(selected instanceof DeviceOption)) return;
         DeviceOption d = (DeviceOption) selected;
         resetZoom();
+        clearEnhancedView();
         liveButton.setEnabled(false);
         setStreamStatus("Verbinde lokal mit " + d.name + " …");
         io.execute(() -> {
             try {
                 request("POST", "/live/start", new JSONObject().put("sn", d.sn));
+                liveActive = true;
                 setStreamStatus("Live – " + d.name);
+                ui.post(() -> {
+                    if (enhanceMode == EnhanceMode.REALTIME) ui.post(realtimeEnhanceLoop);
+                    else if (enhanceMode == EnhanceMode.DETAIL) captureDetail4K();
+                });
             } catch (Exception e) {
+                liveActive = false;
                 setStreamStatus("Live-Fehler: " + e.getMessage());
                 ui.post(() -> liveButton.setEnabled(true));
             }
@@ -582,6 +844,9 @@ public class MainActivity extends Activity {
     }
 
     private void stopLive() {
+        liveActive = false;
+        ui.removeCallbacks(realtimeEnhanceLoop);
+        ui.removeCallbacks(delayedDetailRefresh);
         io.execute(() -> {
             try {
                 request("POST", "/live/stop", new JSONObject());
@@ -590,6 +855,8 @@ public class MainActivity extends Activity {
             setStreamStatus("Livestream gestoppt");
             ui.post(() -> {
                 resetZoom();
+                clearEnhancedView();
+                enhanceBadge.setText(enhanceMode == EnhanceMode.OFF ? "Original" : "Enhance wartet auf Livebild");
                 liveButton.setEnabled(!devices.isEmpty());
             });
         });
