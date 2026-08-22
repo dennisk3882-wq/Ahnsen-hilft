@@ -6,11 +6,21 @@
 
     <application
         android:allowBackup="false"
-        android:label="Eufy Monitor"
+        android:label="Eufy Smart Security"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".SmartCenterActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:screenOrientation="sensorLandscape"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:screenOrientation="sensorLandscape"
+            android:exported="false" />
+        <activity
+            android:name=".SmartMainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:screenOrientation="sensorLandscape"
             android:exported="true">
