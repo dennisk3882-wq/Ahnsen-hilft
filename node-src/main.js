@@ -9,6 +9,8 @@ const { EufySecurity } = require("eufy-security-client");
 const CONTROL_PORT = 8787;
 const STREAM_PORT = 8788;
 let client = null;
+let clientCredentialKey = null;
+let connectInFlight = null;
 let liveDevice = null;
 let streamSocket = null;
 let seq = 0;
@@ -19,6 +21,8 @@ let state = {
   captchaId: null,
   captcha: null
 };
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function json(res, code, obj) {
   const body = Buffer.from(JSON.stringify(obj));
@@ -60,6 +64,23 @@ function publicState() {
   };
 }
 
+function messageOf(err) {
+  return String(err && err.message ? err.message : err || "");
+}
+
+function isTransientProfileError(err) {
+  const m = messageOf(err).toLowerCase();
+  return m.includes("passport profile") ||
+    m.includes("get passport") ||
+    m.includes("api get passport") ||
+    m.includes("profile error") ||
+    m.includes("network error") ||
+    m.includes("socket hang up") ||
+    m.includes("econnreset") ||
+    m.includes("etimedout") ||
+    m.includes("timeout");
+}
+
 async function refreshDevices() {
   if (!client) return [];
   const devices = await client.getDevices();
@@ -72,8 +93,77 @@ async function refreshDevices() {
   return state.devices;
 }
 
+async function waitForSettledState(timeoutMs) {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    if (state.phase === "connected" || state.phase === "tfa" || state.phase === "captcha") return;
+    await sleep(150);
+  }
+}
+
+async function connectWithRetry(options) {
+  if (!client) throw new Error("Eufy-Client nicht initialisiert");
+  if (state.phase === "connected") {
+    try { await refreshDevices(); } catch (_) {}
+    return publicState();
+  }
+  if (connectInFlight) return connectInFlight;
+
+  connectInFlight = (async () => {
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      state.phase = "connecting";
+      state.message = attempt === 0 ? "Eufy wird angemeldet …" : "Eufy-Profil wird automatisch erneut geladen …";
+      try {
+        await client.connect(options || { force: false });
+        await waitForSettledState(1800);
+        if (state.phase === "connected") {
+          try { await refreshDevices(); } catch (_) {}
+          return publicState();
+        }
+        if (state.phase === "tfa" || state.phase === "captcha") return publicState();
+      } catch (e) {
+        lastError = e;
+        if (state.phase === "connected") {
+          try { await refreshDevices(); } catch (_) {}
+          return publicState();
+        }
+        if (state.phase === "tfa" || state.phase === "captcha") return publicState();
+        if (!isTransientProfileError(e) || attempt === 2) throw e;
+        state.phase = "connecting";
+        state.message = "Eufy-Profil antwortet verzögert – neuer Versuch läuft …";
+        await sleep(700 + attempt * 650);
+        if (state.phase === "connected") {
+          try { await refreshDevices(); } catch (_) {}
+          return publicState();
+        }
+      }
+    }
+    if (lastError) throw lastError;
+    return publicState();
+  })();
+
+  try {
+    return await connectInFlight;
+  } finally {
+    connectInFlight = null;
+  }
+}
+
 async function createClient(email, password, verifyOptions) {
   if (!email || !password) throw new Error("E-Mail und Passwort fehlen");
+  const key = email + "\u0000" + password;
+
+  if (client && clientCredentialKey !== key) {
+    try { if (liveDevice) await client.stopStationLivestream(liveDevice); } catch (_) {}
+    try { await client.close(); } catch (_) {}
+    client = null;
+    clientCredentialKey = null;
+    liveDevice = null;
+    state.devices = [];
+    state.phase = "idle";
+  }
+
   if (!client) {
     const persistentDir = path.join(__dirname, "state");
     fs.mkdirSync(persistentDir, { recursive: true });
@@ -91,6 +181,7 @@ async function createClient(email, password, verifyOptions) {
       eventDurationSeconds: 10,
       acceptInvitations: true
     });
+    clientCredentialKey = key;
 
     client.setCameraMaxLivestreamDuration(0);
 
@@ -109,11 +200,20 @@ async function createClient(email, password, verifyOptions) {
       state.message = "Verbunden";
       state.captchaId = null;
       state.captcha = null;
-      try { await refreshDevices(); } catch (e) { state.message = "Verbunden, Geräteliste wird geladen"; }
+      try {
+        await refreshDevices();
+      } catch (_) {
+        state.message = "Verbunden, Geräteliste wird geladen";
+      }
     });
     client.on("connection error", err => {
+      if (isTransientProfileError(err) && (state.phase === "connecting" || connectInFlight)) {
+        state.phase = "connecting";
+        state.message = "Eufy-Profil wird erneut geladen …";
+        return;
+      }
       state.phase = "error";
-      state.message = err && err.message ? err.message : "Verbindungsfehler";
+      state.message = messageOf(err) || "Verbindungsfehler";
     });
     client.on("station livestream start", (station, device, metadata, videoStream) => {
       liveDevice = device.getSerial();
@@ -127,7 +227,7 @@ async function createClient(email, password, verifyOptions) {
         sn: liveDevice
       })));
       videoStream.on("data", chunk => sendPacket(2, chunk));
-      videoStream.on("error", err => sendPacket(3, Buffer.from(String(err && err.message || err))));
+      videoStream.on("error", err => sendPacket(3, Buffer.from(messageOf(err))));
     });
     client.on("station livestream stop", () => {
       liveDevice = null;
@@ -136,9 +236,7 @@ async function createClient(email, password, verifyOptions) {
     });
   }
 
-  await client.connect(verifyOptions || { force: false });
-  if (state.phase === "connected") await refreshDevices();
-  return publicState();
+  return connectWithRetry(verifyOptions || { force: false });
 }
 
 function sendPacket(type, payload) {
@@ -167,7 +265,7 @@ http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://127.0.0.1");
     if (req.method === "GET" && url.pathname === "/health") {
-      return json(res, 200, { ok: true, version: "0.1", node: process.version });
+      return json(res, 200, { ok: true, version: "0.4", node: process.version });
     }
     if (req.method === "GET" && url.pathname === "/state") {
       if (state.phase === "connected") {
@@ -184,9 +282,9 @@ http.createServer(async (req, res) => {
       const b = await readJson(req);
       if (!client) throw new Error("Noch keine Eufy-Anmeldung gestartet");
       if (state.phase === "tfa") {
-        await client.connect({ force: true, verifyCode: String(b.code || "") });
+        await connectWithRetry({ force: true, verifyCode: String(b.code || "") });
       } else if (state.phase === "captcha") {
-        await client.connect({ force: true, captcha: { captchaId: state.captchaId, captchaCode: String(b.code || "") } });
+        await connectWithRetry({ force: true, captcha: { captchaId: state.captchaId, captchaCode: String(b.code || "") } });
       }
       if (state.phase === "connected") await refreshDevices();
       return json(res, 200, publicState());
@@ -211,13 +309,13 @@ http.createServer(async (req, res) => {
     }
     return json(res, 404, { error: "Nicht gefunden" });
   } catch (e) {
-    const msg = e && e.message ? e.message : String(e);
+    const msg = messageOf(e);
     state.message = msg;
-    if (state.phase !== "tfa" && state.phase !== "captcha") state.phase = "error";
+    if (state.phase !== "tfa" && state.phase !== "captcha" && state.phase !== "connected") state.phase = "error";
     return json(res, 500, { error: msg, ...publicState() });
   }
 }).listen(CONTROL_PORT, "127.0.0.1", () => {
-  console.log("Eufy Monitor bridge ready on localhost");
+  console.log("Eufy Monitor bridge v0.4 ready on localhost");
 });
 
 process.on("uncaughtException", e => console.error("uncaught", e));
