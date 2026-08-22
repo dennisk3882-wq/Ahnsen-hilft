@@ -9,7 +9,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.InputType;
 import android.util.Base64;
+import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,6 +45,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
@@ -55,6 +59,8 @@ public class MainActivity extends Activity {
 
     private static volatile boolean nodeStarted = false;
     private static final String CONTROL = "http://127.0.0.1:8787";
+    private static final float MIN_ZOOM = 1.0f;
+    private static final float MAX_ZOOM = 6.0f;
 
     public native int startNodeWithArguments(String[] arguments);
 
@@ -63,6 +69,7 @@ public class MainActivity extends Activity {
 
     private TextView status;
     private TextView streamStatus;
+    private TextView zoomBadge;
     private EditText email;
     private EditText password;
     private EditText challenge;
@@ -76,6 +83,14 @@ public class MainActivity extends Activity {
     private SurfaceView surfaceView;
     private LocalStreamClient streamClient;
     private final List<DeviceOption> devices = new ArrayList<>();
+
+    private ScaleGestureDetector scaleDetector;
+    private GestureDetector gestureDetector;
+    private float zoomScale = 1.0f;
+    private float panX = 0f;
+    private float panY = 0f;
+    private float lastTouchX = 0f;
+    private float lastTouchY = 0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -192,14 +207,38 @@ public class MainActivity extends Activity {
 
         FrameLayout video = new FrameLayout(this);
         video.setBackgroundColor(Color.BLACK);
+        video.setClipChildren(true);
+        video.setClipToPadding(true);
+
         surfaceView = new SurfaceView(this);
+        surfaceView.setClickable(true);
         video.addView(surfaceView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
         streamStatus = text("Noch kein Livestream", 15);
         streamStatus.setPadding(dp(10), dp(7), dp(10), dp(7));
         streamStatus.setBackgroundColor(0x99000000);
-        FrameLayout.LayoutParams overlay = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
-        overlay.setMargins(dp(8), dp(8), dp(8), dp(8));
-        video.addView(streamStatus, overlay);
+        FrameLayout.LayoutParams streamOverlay = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
+        streamOverlay.setMargins(dp(8), dp(8), dp(8), dp(8));
+        video.addView(streamStatus, streamOverlay);
+
+        zoomBadge = text("1.0×", 14);
+        zoomBadge.setPadding(dp(12), dp(7), dp(12), dp(7));
+        zoomBadge.setBackgroundColor(0x99000000);
+        zoomBadge.setClickable(true);
+        zoomBadge.setContentDescription("Zoom zurücksetzen");
+        FrameLayout.LayoutParams zoomOverlay = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
+        zoomOverlay.setMargins(dp(8), dp(8), dp(8), dp(8));
+        video.addView(zoomBadge, zoomOverlay);
+
+        TextView zoomHint = text("Zwei Finger: Zoom · Ziehen: Ausschnitt · Doppeltipp: 2×/1×", 12);
+        zoomHint.setTextColor(0xffd1dae5);
+        zoomHint.setPadding(dp(8), dp(5), dp(8), dp(5));
+        zoomHint.setBackgroundColor(0x66000000);
+        FrameLayout.LayoutParams hintOverlay = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
+        hintOverlay.setMargins(dp(8), dp(8), dp(8), dp(8));
+        video.addView(zoomHint, hintOverlay);
+        zoomHint.animate().alpha(0f).setStartDelay(4500).setDuration(800).withEndAction(() -> zoomHint.setVisibility(View.GONE)).start();
+
         LinearLayout.LayoutParams videoParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         videoParams.topMargin = dp(8);
         root.addView(video, videoParams);
@@ -210,12 +249,168 @@ public class MainActivity extends Activity {
         challengeButton.setOnClickListener(v -> sendChallenge());
         liveButton.setOnClickListener(v -> startLive());
         stopButton.setOnClickListener(v -> stopLive());
-        surfaceView.setOnClickListener(v -> toggleImmersive());
+        zoomBadge.setOnClickListener(v -> resetZoom());
+        installZoomGestures();
     }
 
     private void addGap(LinearLayout row) {
         View gap = new View(this);
         row.addView(gap, new LinearLayout.LayoutParams(dp(8), 1));
+    }
+
+    private void installZoomGestures() {
+        scaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                return true;
+            }
+
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                float oldScale = zoomScale;
+                float newScale = clamp(oldScale * detector.getScaleFactor(), MIN_ZOOM, MAX_ZOOM);
+                if (Math.abs(newScale - oldScale) < 0.001f) return true;
+
+                int width = surfaceView.getWidth();
+                int height = surfaceView.getHeight();
+                if (width > 0 && height > 0) {
+                    float focusX = detector.getFocusX() - width / 2f;
+                    float focusY = detector.getFocusY() - height / 2f;
+                    float ratio = newScale / oldScale;
+                    panX = focusX - (focusX - panX) * ratio;
+                    panY = focusY - (focusY - panY) * ratio;
+                }
+                zoomScale = newScale;
+                constrainPan();
+                applyZoom();
+                return true;
+            }
+        });
+
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                toggleImmersive();
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                if (zoomScale > 1.05f) {
+                    resetZoom();
+                } else {
+                    zoomTo(2.0f, e.getX(), e.getY());
+                }
+                return true;
+            }
+        });
+
+        surfaceView.setOnTouchListener((v, event) -> {
+            scaleDetector.onTouchEvent(event);
+            gestureDetector.onTouchEvent(event);
+
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    lastTouchX = event.getX();
+                    lastTouchY = event.getY();
+                    break;
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    if (event.getPointerCount() > 1) {
+                        lastTouchX = event.getX(0);
+                        lastTouchY = event.getY(0);
+                    }
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (event.getPointerCount() == 1 && !scaleDetector.isInProgress() && zoomScale > 1.001f) {
+                        float x = event.getX();
+                        float y = event.getY();
+                        panX += x - lastTouchX;
+                        panY += y - lastTouchY;
+                        lastTouchX = x;
+                        lastTouchY = y;
+                        constrainPan();
+                        applyZoom();
+                    }
+                    break;
+                case MotionEvent.ACTION_POINTER_UP:
+                    int remaining = event.getPointerCount() - 1;
+                    if (remaining == 1) {
+                        int upIndex = event.getActionIndex();
+                        int keepIndex = upIndex == 0 ? 1 : 0;
+                        lastTouchX = event.getX(keepIndex);
+                        lastTouchY = event.getY(keepIndex);
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    constrainPan();
+                    applyZoom();
+                    break;
+                default:
+                    break;
+            }
+            return true;
+        });
+    }
+
+    private void zoomTo(float newScale, float focusXOnView, float focusYOnView) {
+        newScale = clamp(newScale, MIN_ZOOM, MAX_ZOOM);
+        float oldScale = zoomScale;
+        int width = surfaceView.getWidth();
+        int height = surfaceView.getHeight();
+        if (width > 0 && height > 0 && oldScale > 0f) {
+            float focusX = focusXOnView - width / 2f;
+            float focusY = focusYOnView - height / 2f;
+            float ratio = newScale / oldScale;
+            panX = focusX - (focusX - panX) * ratio;
+            panY = focusY - (focusY - panY) * ratio;
+        }
+        zoomScale = newScale;
+        constrainPan();
+        applyZoom();
+    }
+
+    private void resetZoom() {
+        zoomScale = 1.0f;
+        panX = 0f;
+        panY = 0f;
+        applyZoom();
+    }
+
+    private void constrainPan() {
+        if (zoomScale <= 1.001f) {
+            panX = 0f;
+            panY = 0f;
+            return;
+        }
+        float maxX = surfaceView.getWidth() * (zoomScale - 1f) / 2f;
+        float maxY = surfaceView.getHeight() * (zoomScale - 1f) / 2f;
+        panX = clamp(panX, -maxX, maxX);
+        panY = clamp(panY, -maxY, maxY);
+    }
+
+    private float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private void applyZoom() {
+        if (surfaceView == null) return;
+        int width = surfaceView.getWidth();
+        int height = surfaceView.getHeight();
+        if (width > 0 && height > 0) {
+            surfaceView.setPivotX(width / 2f);
+            surfaceView.setPivotY(height / 2f);
+        }
+        surfaceView.setScaleX(zoomScale);
+        surfaceView.setScaleY(zoomScale);
+        surfaceView.setTranslationX(panX);
+        surfaceView.setTranslationY(panY);
+        if (zoomBadge != null) zoomBadge.setText(String.format(Locale.GERMANY, "%.1f×", zoomScale));
     }
 
     private void toggleImmersive() {
@@ -278,7 +473,9 @@ public class MainActivity extends Activity {
                     });
                     return;
                 }
-            } catch (Exception e) { last = e; }
+            } catch (Exception e) {
+                last = e;
+            }
             Thread.sleep(500);
         }
         throw last != null ? last : new Exception("Interne Kamera-Engine antwortet nicht");
@@ -370,6 +567,7 @@ public class MainActivity extends Activity {
         Object selected = deviceSpinner.getSelectedItem();
         if (!(selected instanceof DeviceOption)) return;
         DeviceOption d = (DeviceOption) selected;
+        resetZoom();
         liveButton.setEnabled(false);
         setStreamStatus("Verbinde lokal mit " + d.name + " …");
         io.execute(() -> {
@@ -385,9 +583,15 @@ public class MainActivity extends Activity {
 
     private void stopLive() {
         io.execute(() -> {
-            try { request("POST", "/live/stop", new JSONObject()); } catch (Exception ignored) {}
+            try {
+                request("POST", "/live/stop", new JSONObject());
+            } catch (Exception ignored) {
+            }
             setStreamStatus("Livestream gestoppt");
-            ui.post(() -> liveButton.setEnabled(!devices.isEmpty()));
+            ui.post(() -> {
+                resetZoom();
+                liveButton.setEnabled(!devices.isEmpty());
+            });
         });
     }
 
@@ -405,8 +609,14 @@ public class MainActivity extends Activity {
                     bytes = Base64.decode(b64, Base64.DEFAULT);
                 }
                 Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                if (bmp != null) ui.post(() -> { captchaImage.setImageBitmap(bmp); captchaImage.setVisibility(View.VISIBLE); });
-            } catch (Exception ignored) {}
+                if (bmp != null) {
+                    ui.post(() -> {
+                        captchaImage.setImageBitmap(bmp);
+                        captchaImage.setVisibility(View.VISIBLE);
+                    });
+                }
+            } catch (Exception ignored) {
+            }
         });
     }
 
@@ -421,14 +631,17 @@ public class MainActivity extends Activity {
             c.setDoOutput(true);
             c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             c.setFixedLengthStreamingMode(bytes.length);
-            try (OutputStream out = new BufferedOutputStream(c.getOutputStream())) { out.write(bytes); }
+            try (OutputStream out = new BufferedOutputStream(c.getOutputStream())) {
+                out.write(bytes);
+            }
         }
         int code = c.getResponseCode();
         InputStream raw = code >= 400 ? c.getErrorStream() : c.getInputStream();
         StringBuilder sb = new StringBuilder();
         if (raw != null) {
             try (BufferedReader r = new BufferedReader(new InputStreamReader(raw, StandardCharsets.UTF_8))) {
-                String line; while ((line = r.readLine()) != null) sb.append(line);
+                String line;
+                while ((line = r.readLine()) != null) sb.append(line);
             }
         }
         c.disconnect();
@@ -440,7 +653,8 @@ public class MainActivity extends Activity {
     private byte[] readAll(InputStream in, int max) throws Exception {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         byte[] b = new byte[8192];
-        int total = 0, n;
+        int total = 0;
+        int n;
         while ((n = in.read(b)) >= 0) {
             total += n;
             if (total > max) throw new Exception("Bild zu groß");
@@ -464,7 +678,8 @@ public class MainActivity extends Activity {
                     File parent = out.getParentFile();
                     if (parent != null && !parent.mkdirs() && !parent.isDirectory()) throw new Exception("Ordnerfehler");
                     try (FileOutputStream fos = new FileOutputStream(out)) {
-                        int n; while ((n = zip.read(buffer)) > 0) fos.write(buffer, 0, n);
+                        int n;
+                        while ((n = zip.read(buffer)) > 0) fos.write(buffer, 0, n);
                     }
                 }
                 zip.closeEntry();
@@ -476,16 +691,29 @@ public class MainActivity extends Activity {
         if (f == null || !f.exists()) return;
         if (f.isDirectory()) {
             File[] children = f.listFiles();
-            if (children != null) for (File c : children) deleteRecursively(c);
+            if (children != null) {
+                for (File c : children) deleteRecursively(c);
+            }
         }
         //noinspection ResultOfMethodCallIgnored
         f.delete();
     }
 
     private static class DeviceOption {
-        final String name, model, sn;
-        DeviceOption(String name, String model, String sn) { this.name = name; this.model = model; this.sn = sn; }
-        @Override public String toString() { return model.isEmpty() ? name : name + "  (" + model + ")"; }
+        final String name;
+        final String model;
+        final String sn;
+
+        DeviceOption(String name, String model, String sn) {
+            this.name = name;
+            this.model = model;
+            this.sn = sn;
+        }
+
+        @Override
+        public String toString() {
+            return model.isEmpty() ? name : name + "  (" + model + ")";
+        }
     }
 
     private class LocalStreamClient implements Runnable {
@@ -497,15 +725,21 @@ public class MainActivity extends Activity {
             decoder = new VideoDecoder(view, MainActivity.this::setStreamStatus);
         }
 
-        void start() { io.execute(this); }
+        void start() {
+            io.execute(this);
+        }
 
         void close() {
             closed = true;
             decoder.close();
-            try { if (socket != null) socket.close(); } catch (Exception ignored) {}
+            try {
+                if (socket != null) socket.close();
+            } catch (Exception ignored) {
+            }
         }
 
-        @Override public void run() {
+        @Override
+        public void run() {
             while (!closed) {
                 try {
                     socket = new Socket();
@@ -515,7 +749,9 @@ public class MainActivity extends Activity {
                     while (!closed) {
                         byte[] h = new byte[16];
                         in.readFully(h);
-                        if (h[0] != 'E' || h[1] != 'U' || h[2] != 'F' || h[3] != 'Y') throw new Exception("Ungültige Streamdaten");
+                        if (h[0] != 'E' || h[1] != 'U' || h[2] != 'F' || h[3] != 'Y') {
+                            throw new Exception("Ungültige Streamdaten");
+                        }
                         int type = h[4] & 0xff;
                         int len = ((h[8] & 0xff) << 24) | ((h[9] & 0xff) << 16) | ((h[10] & 0xff) << 8) | (h[11] & 0xff);
                         if (len < 0 || len > 8 * 1024 * 1024) throw new Exception("Ungültige Streamgröße");
@@ -533,10 +769,17 @@ public class MainActivity extends Activity {
                     }
                 } catch (Exception e) {
                     if (!closed) {
-                        try { Thread.sleep(700); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                        try {
+                            Thread.sleep(700);
+                        } catch (InterruptedException ignored) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
                 } finally {
-                    try { if (socket != null) socket.close(); } catch (Exception ignored) {}
+                    try {
+                        if (socket != null) socket.close();
+                    } catch (Exception ignored) {
+                    }
                 }
             }
         }
