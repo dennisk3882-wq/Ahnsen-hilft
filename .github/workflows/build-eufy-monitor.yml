@@ -66,8 +66,10 @@ jobs:
           mkdir -p app/src/main/assets
           curl -fL --retry 3 -o app/src/main/assets/espcn_quant.tflite "https://storage.googleapis.com/ailia-models-tflite/espcn/espcn_quant.tflite"
           curl -fL --retry 3 -o app/src/main/assets/real_esrgan_x4v3.tflite "https://github.com/john-rocky/LiteRT-Models/releases/download/v1/real_esrgan_x4v3.tflite"
+          curl -fL --retry 3 -o app/src/main/assets/efficientdet_lite0.tflite "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite"
           test -s app/src/main/assets/espcn_quant.tflite
           test -s app/src/main/assets/real_esrgan_x4v3.tflite
+          test -s app/src/main/assets/efficientdet_lite0.tflite
           ls -lh app/src/main/assets/*.tflite
 
       - name: Build APK
@@ -76,11 +78,11 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/EufyMonitor-Ultra-Detail-v0.4.apk
-          sha256sum dist/EufyMonitor-Ultra-Detail-v0.4.apk > dist/EufyMonitor-Ultra-Detail-v0.4.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk dist/EufySmartSecurity-v1.0.apk
+          sha256sum dist/EufySmartSecurity-v1.0.apk > dist/EufySmartSecurity-v1.0.apk.sha256
 
       - uses: actions/upload-artifact@v4
         with:
-          name: EufyMonitor-Ultra-Detail-v0.4
+          name: EufySmartSecurity-v1.0
           path: dist/*
           if-no-files-found: error
