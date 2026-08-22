@@ -47,7 +47,6 @@ jobs:
           mkdir -p app/libnode/bin/arm64-v8a app/libnode/include
           cp "$LIBNODE" app/libnode/bin/arm64-v8a/libnode.so
           cp -R "$NODE_HEADERS" app/libnode/include/node
-          ls -lh app/libnode/bin/arm64-v8a/libnode.so
           test -f app/libnode/include/node/node.h
 
       - name: Build bundled Eufy runtime
@@ -61,13 +60,15 @@ jobs:
           (cd node-src && zip -qr ../app/src/main/assets/nodejs-project.zip .)
           ls -lh app/src/main/assets/nodejs-project.zip
 
-      - name: Bundle on-device super-resolution model
+      - name: Bundle on-device AI models
         run: |
           set -eux
           mkdir -p app/src/main/assets
           curl -fL --retry 3 -o app/src/main/assets/espcn_quant.tflite "https://storage.googleapis.com/ailia-models-tflite/espcn/espcn_quant.tflite"
+          curl -fL --retry 3 -o app/src/main/assets/real_esrgan_x4v3.tflite "https://github.com/john-rocky/LiteRT-Models/releases/download/v1/real_esrgan_x4v3.tflite"
           test -s app/src/main/assets/espcn_quant.tflite
-          ls -lh app/src/main/assets/espcn_quant.tflite
+          test -s app/src/main/assets/real_esrgan_x4v3.tflite
+          ls -lh app/src/main/assets/*.tflite
 
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
@@ -75,11 +76,11 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/EufyMonitor-AI-Zoom-v0.3.apk
-          sha256sum dist/EufyMonitor-AI-Zoom-v0.3.apk > dist/EufyMonitor-AI-Zoom-v0.3.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk dist/EufyMonitor-Ultra-Detail-v0.4.apk
+          sha256sum dist/EufyMonitor-Ultra-Detail-v0.4.apk > dist/EufyMonitor-Ultra-Detail-v0.4.apk.sha256
 
       - uses: actions/upload-artifact@v4
         with:
-          name: EufyMonitor-AI-Zoom-v0.3
+          name: EufyMonitor-Ultra-Detail-v0.4
           path: dist/*
           if-no-files-found: error
