@@ -85,7 +85,7 @@ from system_dashboard import system_dashboard_page
 from automation_status import get_automation_status, trigger_ratsarchive_sync
 from warning_dashboard import warning_dashboard_page
 from warning_ui import warning_page
-from community_crud import audit_event, init_community_db, save_preference
+from community_crud import audit_event, get_audit_logs, init_community_db, save_preference
 from ratsarchive_service import init_ratsarchive_db
 from ratsarchive_seed import seed_official_ratsarchive
 from community_routes import configure_community_routes, router as community_router
@@ -105,7 +105,8 @@ from system_diagnostics import (
     record_system_event,
     run_system_checks,
 )
-from governance import authenticate_admin, init_governance_db, verify_admin_second_factor
+from governance import authenticate_admin, init_governance_db, record_admin_login, verify_admin_second_factor
+from admin_access import requires_two_factor, set_current_admin
 from background_scheduler import start_background_scheduler
 from operations import run_migrations
 from operations import consume_rate_limit
@@ -143,6 +144,7 @@ app = FastAPI(
 
 @app.middleware("http")
 async def browser_security(request: Request, call_next):
+    set_current_admin(None)
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = str(request.headers.get("origin") or "")
         fetch_site = str(request.headers.get("sec-fetch-site") or "").casefold()
@@ -851,7 +853,9 @@ async def administration_login_submit(request: Request):
         response = admin_login_page("Benutzername oder Passwort ist nicht korrekt.")
         response.status_code = 401
         return response
-    response = RedirectResponse(url="/intern/cockpit", status_code=303)
+    record_admin_login(admin.username)
+    destination = "/intern/2fa/einrichten" if requires_two_factor(admin.role) and not admin.totp_enabled else "/intern/cockpit"
+    response = RedirectResponse(url=destination, status_code=303)
     response.set_cookie(
         key=legacy.SESSION_COOKIE,
         value=legacy._neue_session(admin.username, admin.role, int(admin.session_version or 1)),
@@ -879,7 +883,7 @@ async def intern_redirect(request: Request):
 
 @app.post("/status")
 async def admin_report_status(request: Request, background_tasks: BackgroundTasks):
-    legacy.check_dashboard_login(request)
+    admin = legacy.check_dashboard_login(request)
     form = await request.form()
     ticket = _trim(form.get("ticket"), 80)
     neuer_status = _trim(form.get("neuer_status"), 40)
@@ -900,13 +904,13 @@ async def admin_report_status(request: Request, background_tasks: BackgroundTask
             "push_meldungen",
         )
     if report and old_status != neuer_status:
-        audit_event("Verwaltung", "Mängelstatus geändert", "meldung", ticket, f"{old_status or '-'} → {neuer_status}")
+        audit_event(admin["username"], "Mängelstatus geändert", "meldung", ticket, f"{old_status or '-'} → {neuer_status}")
     return RedirectResponse(url="/intern/maengel", status_code=303)
 
 
 @app.post("/dgh/status/{termin_id}")
 async def admin_dgh_status(request: Request, background_tasks: BackgroundTasks, termin_id: int):
-    legacy.check_dashboard_login(request)
+    admin = legacy.check_dashboard_login(request)
     form = await request.form()
     status = _trim(form.get("status"), 40)
     if status not in {"Anfrage", "Bestätigt", "Abgelehnt"}:
@@ -926,7 +930,7 @@ async def admin_dgh_status(request: Request, background_tasks: BackgroundTasks, 
             "push_dgh",
         )
     if item and old_status != status:
-        audit_event("Verwaltung", "DGH-Status geändert", "dgh", str(item.id), f"{old_status or '-'} → {status}")
+        audit_event(admin["username"], "DGH-Status geändert", "dgh", str(item.id), f"{old_status or '-'} → {status}")
     return RedirectResponse(url=f"/intern/dgh?hinweis={quote(f'Status wurde auf {status} gesetzt.')}", status_code=303)
 
 
@@ -944,8 +948,9 @@ async def admin_warnings_page(request: Request, hinweis: str = "", fehler: str =
 
 @app.post("/intern/warnungen/pruefen")
 async def admin_warnings_poll(request: Request):
-    legacy.check_dashboard_login(request)
+    admin = legacy.check_dashboard_login(request)
     result = poll_warning_sources(send_push=True)
+    audit_event(admin["username"], "Warnquellen manuell geprüft", "warnings", "poll", json.dumps(result.get("sources", {}), ensure_ascii=False)[:1500])
     failed = [name for name, state in result.get("sources", {}).items() if state.get("status") != "ok"]
     if failed:
         return RedirectResponse(
@@ -959,12 +964,13 @@ async def admin_warnings_poll(request: Request):
 @app.get("/intern/push")
 async def admin_push_page(request: Request, hinweis: str = "", fehler: str = ""):
     legacy.check_dashboard_login(request)
-    return push_dashboard_page(PUSH_BROADCAST_CATEGORIES, hinweis=hinweis, fehler=fehler)
+    history = [item for item in get_audit_logs("Push-Nachricht") if item.object_type == "push"][:30]
+    return push_dashboard_page(PUSH_BROADCAST_CATEGORIES, hinweis=hinweis, fehler=fehler, history=history)
 
 
 @app.post("/intern/push/senden")
 async def admin_push_send(request: Request, background_tasks: BackgroundTasks):
-    legacy.check_dashboard_login(request)
+    admin = legacy.check_dashboard_login(request)
     form = await request.form()
     category = _trim(form.get("category"), 80)
     title = _trim(form.get("title"), 120)
@@ -984,6 +990,7 @@ async def admin_push_send(request: Request, background_tasks: BackgroundTasks):
         url,
         f"admin-{category}",
     )
+    audit_event(admin["username"], "Push-Nachricht gesendet", "push", category, f"{title} · {url}")
     return RedirectResponse(
         url=f"/intern/push?hinweis={quote('Push-Versand wurde gestartet. Es erhalten ihn nur Nutzer, die diese Kategorie aktiviert haben.')}",
         status_code=303,
@@ -1005,19 +1012,20 @@ async def admin_system_page(request: Request, voll: int = 0, hinweis: str = "", 
 
 @app.post("/intern/system/automation/ratsarchive/start")
 async def admin_ratsarchive_sync_start(request: Request):
-    legacy.check_dashboard_login(request)
+    admin = legacy.check_dashboard_login(request)
     ok, message = trigger_ratsarchive_sync()
     try:
         record_system_event("ratsarchive_manual_sync", "ok" if ok else "warn", message)
     except Exception:
         pass
+    audit_event(admin["username"], "Ratsarchiv-Synchronisation gestartet", "system", "ratsarchive", message[:1000])
     parameter = "hinweis" if ok else "fehler"
     return RedirectResponse(url=f"/intern/system?{parameter}={quote(message)}", status_code=303)
 
 
 @app.post("/intern/system/test-push")
 async def admin_system_test_push(request: Request):
-    legacy.check_dashboard_login(request)
+    admin = legacy.check_dashboard_login(request)
     form = await request.form()
     try:
         user_id = int(str(form.get("user_id") or "0"))
@@ -1043,6 +1051,7 @@ async def admin_system_test_push(request: Request):
             )
         except Exception:
             pass
+        audit_event(admin["username"], "Test-Push ausgelöst", "system", str(user.id), f"{sent} Gerät(e)")
         return RedirectResponse(
             url=f"/intern/system?hinweis={quote(f'Test-Push wurde an {sent} Gerät(e) des ausgewählten Kontos versendet.')}",
             status_code=303,
@@ -1056,6 +1065,7 @@ async def admin_system_test_push(request: Request):
         )
     except Exception:
         pass
+    audit_event(admin["username"], "Test-Push fehlgeschlagen", "system", str(user.id), "Kein Gerät erreicht")
     return RedirectResponse(
         url="/intern/system?fehler=Test-Push%20konnte%20an%20kein%20registriertes%20Gerät%20zugestellt%20werden.",
         status_code=303,
@@ -1064,13 +1074,14 @@ async def admin_system_test_push(request: Request):
 
 @app.post("/intern/system/test-email")
 async def admin_system_test_email(request: Request):
-    legacy.check_dashboard_login(request)
+    admin = legacy.check_dashboard_login(request)
     try:
         send_test_email()
         try:
             record_system_event("test_email", "ok", "Test-E-Mail wurde erfolgreich an EMAIL_TO versendet.")
         except Exception:
             pass
+        audit_event(admin["username"], "Test-E-Mail ausgelöst", "system", "email", "Erfolgreich")
         return RedirectResponse(
             url="/intern/system?hinweis=Test-E-Mail%20wurde%20erfolgreich%20an%20die%20konfigurierte%20Verwaltungsadresse%20versendet.",
             status_code=303,
@@ -1084,6 +1095,7 @@ async def admin_system_test_email(request: Request):
             )
         except Exception:
             pass
+        audit_event(admin["username"], "Test-E-Mail fehlgeschlagen", "system", "email", type(error).__name__)
         return RedirectResponse(
             url=f"/intern/system?fehler={quote('Test-E-Mail fehlgeschlagen: ' + str(error)[:180])}",
             status_code=303,
@@ -1184,17 +1196,24 @@ async def service_worker():
         core_assets.append(hero)
     core_json = json.dumps(list(dict.fromkeys(core_assets)), ensure_ascii=False)
     script = f"""
-const CACHE = 'citizen-platform-pwa-v6-accessibility';
+const CACHE = 'citizen-platform-pwa-v5-i18n-public-only-v7';
 const CORE = {core_json};
+const PRIVATE_PREFIXES = ['/intern', '/verwaltung', '/profil', '/nachrichten', '/api', '/anmelden', '/registrieren', '/passwort'];
+const isPublicCacheable = url => !PRIVATE_PREFIXES.some(prefix => url.pathname === prefix || url.pathname.startsWith(prefix + '/'));
 self.addEventListener('install', event => {{ event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); }});
 self.addEventListener('activate', event => {{ event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); }});
 self.addEventListener('fetch', event => {{
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+  if (!isPublicCacheable(url)) {{
+    event.respondWith(fetch(event.request));
+    return;
+  }}
   event.respondWith(fetch(event.request).then(response => {{
     const copy = response.clone();
-    if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, copy));
+    const cacheControl = response.headers.get('cache-control') || '';
+    if (response.ok && !cacheControl.includes('no-store') && response.type === 'basic') caches.open(CACHE).then(cache => cache.put(event.request, copy));
     return response;
   }}).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
 }});
@@ -1265,6 +1284,7 @@ def _reuse_legacy_route(path: str) -> bool:
         "/veranstaltungen/loeschen/",
         "/dgh/",
         "/muelltermine/import",
+        "/muelltermine/termin",
         "/gemeindeseite/",
         "/uploads/",
         "/media/",

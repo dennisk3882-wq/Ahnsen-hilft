@@ -42,7 +42,7 @@ WARNING_BACKGROUND_ENABLED = os.getenv("WARNING_BACKGROUND_ENABLED", "true").cas
 WARNING_REQUEST_TIMEOUT = max(3, min(20, int(os.getenv("WARNING_REQUEST_TIMEOUT", "10") or "10")))
 WARNING_USER_AGENT = os.getenv(
     "WARNING_USER_AGENT",
-    "Ahnsen-hilft/1.0 (+https://ahnsen-hilft.onrender.com)",
+    "Ahnsen-digital/1.0 (+https://ahnsen-digital.onrender.com)",
 ).strip()
 
 DWD_SOURCE_URL = "https://www.dwd.de/warnungen"

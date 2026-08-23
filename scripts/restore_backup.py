@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import getpass
 import json
+import os
 import sys
 from datetime import date, datetime
 from decimal import Decimal
@@ -13,7 +15,7 @@ from sqlalchemy import MetaData, Table, text
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from database import engine  # noqa: E402
-from operations import validate_backup  # noqa: E402
+from operations import load_backup_bytes, validate_backup  # noqa: E402
 
 
 def decode(value):
@@ -34,12 +36,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate or restore an Ahnsen hilft JSON backup.")
     parser.add_argument("backup", type=Path)
     parser.add_argument("--confirm", default="", help="Must be exactly RESTORE-AHNSEN to replace current data.")
+    parser.add_argument("--passphrase-env", default="BACKUP_RESTORE_PASSPHRASE", help="Environment variable containing the backup passphrase.")
     args = parser.parse_args()
-    payload = json.loads(args.backup.read_text(encoding="utf-8"))
+    raw = args.backup.read_bytes()
+    passphrase = os.getenv(args.passphrase_env, "")
+    if raw.startswith(b"AHNSEN-BACKUP-V2") and not passphrase:
+        passphrase = getpass.getpass("Backup passphrase: ")
+    payload, encrypted = load_backup_bytes(raw, passphrase)
     result = validate_backup(payload)
     if not result["valid"]:
         raise SystemExit("Backup is invalid; no data was changed.")
-    print(f"Valid backup: {result['tables']} tables, {result['rows']} rows, created {result['created_at']}")
+    print(f"Valid {'encrypted' if encrypted else 'plain'} backup: {result['tables']} tables, {result['rows']} rows, created {result['created_at']}")
     if args.confirm != "RESTORE-AHNSEN":
         print("Validation only. Pass --confirm RESTORE-AHNSEN for an intentional restore.")
         return 0
@@ -47,7 +54,10 @@ def main() -> int:
     tables_payload = payload["tables"]
     metadata = MetaData()
     tables = {name: Table(name, metadata, autoload_with=engine) for name in tables_payload}
-    names = list(tables)
+    # The reflected metadata contains the real production foreign-key graph;
+    # inserting parents first and deleting children first keeps the restore
+    # deterministic for both PostgreSQL and local SQLite drills.
+    names = [table.name for table in metadata.sorted_tables]
     with engine.begin() as connection:
         if engine.dialect.name == "postgresql":
             quoted = ", ".join(f'"{name}"' for name in names)

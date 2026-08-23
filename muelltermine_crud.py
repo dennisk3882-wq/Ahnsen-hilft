@@ -91,6 +91,47 @@ def get_muelltermin_am(datum):
         db.close()
 
 
+def save_muelltermin(datum_text: str, abfuhrarten: str, feiertagsabweichung: bool = False, termin_id: int | None = None):
+    try:
+        datum = datetime.strptime(str(datum_text or ""), "%Y-%m-%d").date()
+    except ValueError as error:
+        raise ValueError("Bitte ein gültiges Datum auswählen.") from error
+    waste = str(abfuhrarten or "").strip()[:500]
+    if len(waste) < 3:
+        raise ValueError("Bitte mindestens eine Abfuhrart eintragen.")
+    weekdays = ("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag")
+    db = SessionLocal()
+    try:
+        item = db.query(Muelltermin).filter(Muelltermin.id == termin_id).first() if termin_id else None
+        if termin_id and not item:
+            raise ValueError("Abfuhrtermin wurde nicht gefunden.")
+        if not item:
+            item = Muelltermin()
+            db.add(item)
+        item.datum = datum
+        item.jahr = datum.year
+        item.wochentag = weekdays[datum.weekday()]
+        item.abfuhrarten = waste
+        item.feiertagsabweichung = "Ja" if feiertagsabweichung else "Nein"
+        item.quelle = "Manuelle Pflege"
+        item.adresse = "Ahnsen"
+        item.importiert_am = datetime.utcnow()
+        db.commit(); db.refresh(item); return item
+    finally:
+        db.close()
+
+
+def delete_muelltermin(termin_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        item = db.query(Muelltermin).filter(Muelltermin.id == termin_id).first()
+        if not item:
+            return False
+        db.delete(item); db.commit(); return True
+    finally:
+        db.close()
+
+
 def aktiviere_muell_abo(whatsapp_absender):
     db = SessionLocal()
 

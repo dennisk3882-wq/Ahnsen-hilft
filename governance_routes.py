@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from html import escape
 from urllib.parse import quote
 
@@ -8,17 +9,21 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 import main as legacy
+from community_crud import audit_event
+from intern_ui import admin_page as _page
 from community_models import CitizenMessage, CitizenPreference, Idea, IdeaComment, IdeaSupport, NeighborPost
 from database import SessionLocal
 from dgh_models import DGHTermin
-from governance import ROLES, begin_admin_totp, case_history, confirm_admin_totp, disable_admin_totp, list_admins, save_admin, save_content_revision, update_case
+from governance import ROLES, begin_admin_totp, case_history, confirm_admin_totp, create_restore_revision, disable_admin_totp, get_admin, list_admins, review_content_revision, save_admin, save_content_revision, set_admin_active, update_case
+from admin_content import apply_content_payload, content_approval_available
+from admin_access import REQUIRED_2FA_ROLES, ROLE_PERMISSIONS, requires_two_factor
 from governance_models import ContentRevision
 from models import Meldung
 from neighborhood_models import NeighborConversation, NeighborReport
 from pwa_core import _require_user
 from pwa_models import PWAUser, PushDelivery, PushSubscription
 from push_service import send_user_notification
-from operations import create_backup, validate_backup
+from operations import create_backup, encrypt_backup, load_backup_bytes, scheduled_backup_status, validate_backup
 
 
 router = APIRouter()
@@ -34,18 +39,43 @@ async def backup_center(request: Request, hinweis: str = ""):
     if admin["role"] != "superadmin":
         raise HTTPException(status_code=403, detail="Nur der Superadmin darf Gesamtsicherungen verwalten.")
     notice = f"<p role=status>{escape(hinweis)}</p>" if hinweis else ""
-    return HTMLResponse(f"""<!doctype html><html lang=de><meta name=viewport content='width=device-width,initial-scale=1'><title>Datensicherung</title><style>body{{font:16px system-ui;max-width:760px;margin:auto;padding:24px;background:#f7f8f4;color:#17221d}}section{{background:#fff;padding:22px;border-radius:18px;margin:16px 0}}button,a.button{{display:inline-flex;min-height:44px;align-items:center;padding:9px 14px;border:0;border-radius:10px;background:#174936;color:#fff;font-weight:750;text-decoration:none}}input{{display:block;margin:12px 0;max-width:100%}}</style><body><a href='/intern/system'>← System</a><h1>Datensicherung</h1>{notice}<section><h2>Vollständige Sicherung</h2><p>Lädt Datenbankinhalte und dauerhaft gespeicherte Bilder als prüfsichere JSON-Datei herunter. Die Datei enthält personenbezogene Daten und muss geschützt aufbewahrt werden.</p><a class=button href='/intern/sicherung/download'>Sicherung herunterladen</a></section><section><h2>Sicherung prüfen</h2><p>Die Prüffunktion verändert keine Daten. Sie kontrolliert Format, Prüfsumme und Datensatzanzahl vor einer Wiederherstellung.</p><form method=post action='/intern/sicherung/pruefen' enctype='multipart/form-data'><input type=file name=datei accept='application/json,.json' required><button>Sicherung prüfen</button></form></section></body></html>""")
+    status = scheduled_backup_status()
+    automatic = (f"Aktiv · {status['count']} Datei(en) · zuletzt {escape(status['latest'] or 'noch nicht erstellt')} · Aufbewahrung {status['retention_days']} Tage" if status["configured"] else "Noch nicht vollständig konfiguriert: BACKUP_DIRECTORY und BACKUP_ENCRYPTION_KEY müssen im Render-Dienst gesetzt werden.")
+    trigger = '<form method="post" action="/intern/sicherung/automatisch-starten"><button class="admin-button" type="submit">Automatische Sicherung jetzt testen</button></form>' if status["configured"] else ''
+    body = f"""<section><span class="eyebrow">Betrieb & Notfallvorsorge</span><h1>Datensicherung</h1><p>Vollständige, verschlüsselte und prüfbare Sicherung der Datenbank und dauerhaft gespeicherter Bilder.</p></section>{notice}<section class="admin-grid"><article class="admin-section"><h2>Verschlüsselte Sicherung herunterladen</h2><p>Vergib ein Kennwort mit mindestens 12 Zeichen. Es wird nicht gespeichert und wird für eine Wiederherstellung benötigt.</p><form class="admin-form" method="post" action="/intern/sicherung/download"><label>Sicherungskennwort<input type="password" name="passphrase" minlength="12" autocomplete="new-password" required></label><button class="admin-button" type="submit">Verschlüsselte Sicherung erstellen</button></form></article><article class="admin-section"><h2>Sicherung prüfen</h2><p>Entschlüsselt die Datei nur im Arbeitsspeicher und kontrolliert Format, Prüfsumme und Datensatzanzahl, ohne Daten zu verändern.</p><form class="admin-form" method="post" action="/intern/sicherung/pruefen" enctype="multipart/form-data"><label>Sicherungsdatei<input type="file" name="datei" accept=".ahnsenbak,application/octet-stream,application/json,.json" required></label><label>Kennwort<input type="password" name="passphrase" autocomplete="current-password"></label><button class="admin-button" type="submit">Sicherung prüfen</button></form></article></section><section class="admin-section"><h2>Automatische tägliche Sicherung</h2><p>{escape(automatic)}</p><p>Das Verzeichnis muss außerhalb des flüchtigen Webservice-Dateisystems liegen. Der Systemcheck warnt, wenn keine aktuelle Sicherung gefunden wird.</p>{trigger}</section><section class="admin-section"><h2>Wiederherstellung</h2><p>Eine Wiederherstellung bleibt bewusst ein kontrollierter, transaktionaler Servervorgang. Das Restore-Skript validiert zuerst Datei, Prüfsumme und Schema, sortiert Tabellen nach Abhängigkeiten und verändert ohne den Bestätigungscode <code>RESTORE-AHNSEN</code> keine Daten.</p></section>"""
+    return _page("Datensicherung", "sicherung", body)
 
 
-@router.get("/intern/sicherung/download")
+@router.post("/intern/sicherung/automatisch-starten")
+async def backup_run_now(request: Request):
+    admin = _admin(request)
+    if admin["role"] != "superadmin":
+        raise HTTPException(status_code=403)
+    from operations import run_scheduled_backup
+    result = run_scheduled_backup(force=True)
+    audit_event(admin["username"], "Automatische Sicherung manuell getestet", "backup", str(result.get("status") or ""), json.dumps(result, ensure_ascii=False))
+    if result.get("status") != "created":
+        message = "Automatische Sicherung konnte nicht erstellt werden. Bitte Speicherort und Schlüssel prüfen."
+    else:
+        message = f"Automatische Sicherung wurde erfolgreich erstellt und geprüft: {result.get('filename', '')}."
+    return RedirectResponse("/intern/sicherung?hinweis=" + quote(message), status_code=303)
+
+
+@router.post("/intern/sicherung/download")
 async def backup_download(request: Request):
     admin = _admin(request)
     if admin["role"] != "superadmin":
         raise HTTPException(status_code=403)
+    form = await request.form()
+    passphrase = str(form.get("passphrase") or "")
     payload = create_backup()
-    filename = f"ahnsen-hilft-sicherung-{payload['created_at'][:10]}.json"
+    try:
+        raw = encrypt_backup(payload, passphrase)
+    except ValueError as error:
+        return RedirectResponse("/intern/sicherung?hinweis=" + quote(str(error)), status_code=303)
+    filename = f"ahnsen-hilft-sicherung-{payload['created_at'][:10]}.ahnsenbak"
     audit_event(admin["username"], "Gesamtsicherung heruntergeladen", "backup", payload["created_at"], json.dumps({"tables": len(payload["tables"])}, ensure_ascii=False))
-    return Response(content=json.dumps(payload, ensure_ascii=False, indent=2), media_type="application/json", headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"})
+    return Response(content=raw, media_type="application/octet-stream", headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"})
 
 
 @router.post("/intern/sicherung/pruefen")
@@ -58,11 +88,13 @@ async def backup_validate(request: Request):
         raw = await upload.read()
         if len(raw) > 100 * 1024 * 1024:
             raise ValueError("Die Sicherungsdatei ist größer als 100 MB.")
-        result = validate_backup(json.loads(raw.decode("utf-8")))
+        payload, encrypted = load_backup_bytes(raw, str(form.get("passphrase") or ""))
+        result = validate_backup(payload)
+        result["encrypted"] = encrypted
     except Exception as error:
         result = {"valid": False, "error": str(error)[:300], "tables": 0, "rows": 0, "checksum": False}
     audit_event(admin["username"], "Sicherungsdatei geprüft", "backup", "gültig" if result.get("valid") else "ungültig", json.dumps(result, ensure_ascii=False))
-    message = (f"Sicherung gültig: {result['tables']} Tabellen mit {result['rows']} Datensätzen; Prüfsumme stimmt." if result.get("valid") else f"Sicherung ungültig: {result.get('error') or 'Format oder Prüfsumme stimmt nicht.'}")
+    message = (f"Sicherung gültig und {'verschlüsselt' if result.get('encrypted') else 'unverschlüsselt'}: {result['tables']} Tabellen mit {result['rows']} Datensätzen; Prüfsumme stimmt." if result.get("valid") else f"Sicherung ungültig: {result.get('error') or 'Format, Kennwort oder Prüfsumme stimmt nicht.'}")
     return RedirectResponse("/intern/sicherung?hinweis=" + quote(message), status_code=303)
 
 
@@ -91,17 +123,77 @@ async def save_case_workflow(request: Request, ticket: str, background_tasks: Ba
     return RedirectResponse(f"/intern/meldung/{quote(ticket)}", status_code=303)
 
 
+@router.post("/intern/meldung/{ticket}/foto-loeschen")
+async def delete_case_photo(request: Request, ticket: str):
+    admin = _admin(request)
+    db = SessionLocal()
+    try:
+        item = db.query(Meldung).filter(Meldung.ticket == ticket).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Vorgang nicht gefunden")
+        item.foto_base64 = None
+        item.foto_vorhanden = "Nein"
+        item.updated_at = datetime.utcnow()
+        db.commit()
+    finally:
+        db.close()
+    audit_event(admin["username"], "Mängelfoto gelöscht", "meldung", ticket)
+    return RedirectResponse(f"/intern/meldung/{quote(ticket)}", status_code=303)
+
+
 @router.get("/intern/benutzer")
 async def admin_users(request: Request, hinweis: str = ""):
     admin = _admin(request)
     if admin["role"] != "superadmin":
         raise HTTPException(status_code=403, detail="Nur der Superadmin verwaltet Zugänge.")
-    rows = "".join(
-        f"<tr><td><strong>{escape(item.display_name)}</strong><br><small>{escape(item.username)}</small></td><td>{escape(ROLES.get(item.role,item.role))}</td><td>{'Aktiv' if item.active else 'Gesperrt'}</td><td>{'Aktiv' if item.totp_enabled else 'Aus'}</td><td><form method=post action='/intern/benutzer/{item.username}/2fa'><button name=enabled value={'0' if item.totp_enabled else '1'}>{'2FA abschalten' if item.totp_enabled else '2FA einrichten'}</button></form></td></tr>"
-        for item in list_admins()
-    )
+    row_items = []
+    for item in list_admins():
+        two_factor = "Aktiv" if item.totp_enabled else ("Beim nächsten Login erforderlich" if item.role in REQUIRED_2FA_ROLES else "Optional")
+        reset = ""
+        if item.totp_enabled:
+            reset = f"<form method='post' action='/intern/benutzer/{escape(item.username)}/2fa' onsubmit=\"return confirm('2FA wirklich zurücksetzen? Das Konto muss sie beim nächsten Login neu einrichten.')\"><button class='admin-button secondary' name='enabled' value='0'>2FA zurücksetzen</button></form>"
+        active_label = "Sperren" if item.active else "Reaktivieren"
+        active_value = "0" if item.active else "1"
+        active_class = "secondary" if item.active else ""
+        last_login = item.last_login_at.strftime("%d.%m.%Y %H:%M") if getattr(item, "last_login_at", None) else "Noch nie"
+        row_items.append(f"<tr><td><strong>{escape(item.display_name)}</strong><br><small>{escape(item.username)}</small></td><td>{escape(ROLES.get(item.role,item.role))}</td><td><span class='status-chip'>{'Aktiv' if item.active else 'Gesperrt'}</span></td><td>{escape(two_factor)}</td><td>{escape(last_login)}</td><td><div style='display:flex;flex-wrap:wrap;gap:6px'>{reset}<form method='post' action='/intern/benutzer/{escape(item.username)}/aktiv' onsubmit=\"return confirm('Zugang wirklich {active_label.casefold()}?')\"><button class='admin-button {active_class}' name='active' value='{active_value}'>{active_label}</button></form></div></td></tr>")
+    rows = "".join(row_items)
     options = "".join(f"<option value='{escape(key)}'>{escape(label)}</option>" for key,label in ROLES.items())
-    return HTMLResponse(f"""<!doctype html><html lang=de><meta name=viewport content='width=device-width,initial-scale=1'><title>Verwaltungskonten</title><style>body{{font:16px system-ui;max-width:1100px;margin:auto;padding:24px;background:#f7f8f4;color:#17221d}}section{{background:white;padding:22px;border-radius:18px;margin:16px 0}}table{{width:100%;border-collapse:collapse}}td,th{{padding:10px;border-bottom:1px solid #ddd;text-align:left}}form.grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}}input,select,button{{min-height:44px;padding:9px;border:1px solid #bbc9bd;border-radius:10px}}button{{background:#174936;color:white;font-weight:700}}@media(max-width:700px){{form.grid{{grid-template-columns:1fr}}table{{font-size:13px}}}}</style><body><a href='/intern/system'>← System</a><h1>Verwaltungskonten</h1><p>Mehrere persönliche Zugänge mit Rollen und kostenloser Authenticator‑2FA.</p>{f'<p role=status>{escape(hinweis)}</p>' if hinweis else ''}<section><table><thead><tr><th>Konto</th><th>Rolle</th><th>Status</th><th>2FA</th><th>Aktion</th></tr></thead><tbody>{rows}</tbody></table></section><section><h2>Konto anlegen oder ändern</h2><form class=grid method=post><label>Benutzername<input name=username required maxlength=80></label><label>Anzeigename<input name=display_name required maxlength=120></label><label>Rolle<select name=role>{options}</select></label><label>Passwort (bei neuem Konto mindestens 12 Zeichen)<input type=password name=password minlength=12></label><button type=submit>Speichern</button></form></section></body></html>""")
+    permission_labels = {
+        "*": "alle Bereiche", "cases": "Mängel", "content": "Inhalte", "dgh": "DGH",
+        "waste": "Müll", "events": "Termine", "warnings": "Warnungen", "push": "Push",
+        "messages": "Nachrichten", "moderation": "Beteiligung", "politics": "Politik",
+        "reports": "Berichte", "audit": "Audit", "compliance": "Freigabe", "system": "System",
+        "read": "Cockpit", "read_all": "alle fachlichen Bereiche nur lesen",
+    }
+    role_cards = []
+    for key, label in ROLES.items():
+        rights = sorted(ROLE_PERMISSIONS.get(key, set()))
+        readable = ", ".join(permission_labels.get(value, value) for value in rights)
+        requirement = "2FA verpflichtend" if key in REQUIRED_2FA_ROLES else "2FA optional"
+        role_cards.append(f'<article class="admin-card"><h3>{escape(label)}</h3><p>{escape(readable)}</p><small>{escape(requirement)}</small></article>')
+    notice = f'<div class="admin-row" role="status">{escape(hinweis)}</div>' if hinweis else ''
+    body = f"""<section><span class="eyebrow">Sicherer Verwaltungszugang</span><h1>Verwaltungskonten</h1><p>Jede Person erhält einen eigenen Zugang mit passender Rolle. Vollzugriff, Gemeindeverwaltung und Bürgermeister müssen 2FA beim eigenen nächsten Login einrichten; der geheime Schlüssel wird keinem anderen Konto angezeigt.</p></section>{notice}<section class="admin-section"><div class="table-wrap"><table class="admin-table"><thead><tr><th>Konto</th><th>Rolle</th><th>Status</th><th>2FA</th><th>Letzte Anmeldung</th><th>Aktionen</th></tr></thead><tbody>{rows}</tbody></table></div></section><section class="admin-section"><h2>Konto anlegen oder ändern</h2><form class="admin-form" method="post"><div class="admin-grid"><label>Benutzername<input name="username" required maxlength="80"></label><label>Anzeigename<input name="display_name" required maxlength="120"></label><label>Rolle<select name="role">{options}</select></label><label>Passwort <input type="password" name="password" minlength="12"><small>Bei einem neuen Konto mindestens 12 Zeichen; bei Änderungen leer lassen.</small></label></div><button class="admin-button" type="submit">Konto speichern</button></form></section><section class="admin-section"><h2>Rollen- und Rechteübersicht</h2><p>Die Navigation und jeder Serverzugriff verwenden dieselbe zentrale Rechtequelle. „Nur lesen“ kann fachliche Inhalte ansehen, aber weder ändern noch Zugänge, Sicherungen, Audit oder Systemdaten öffnen.</p><div class="admin-grid">{''.join(role_cards)}</div></section>"""
+    return _page("Verwaltungskonten", "benutzer", body)
+
+
+@router.post("/intern/benutzer/{username}/aktiv")
+async def admin_user_active(request: Request, username: str):
+    admin = _admin(request)
+    if admin["role"] != "superadmin":
+        raise HTTPException(status_code=403)
+    form = await request.form()
+    active = str(form.get("active") or "") == "1"
+    try:
+        item = set_admin_active(username, active, actor_username=admin["username"])
+        if not item:
+            message = "Verwaltungskonto wurde nicht gefunden."
+        else:
+            message = "Verwaltungskonto wurde reaktiviert." if active else "Verwaltungskonto wurde gesperrt; bestehende Sitzungen sind beendet."
+            audit_event(admin["username"], "Verwaltungskonto reaktiviert" if active else "Verwaltungskonto gesperrt", "admin_user", username)
+    except ValueError as error:
+        message = str(error)
+    return RedirectResponse("/intern/benutzer?hinweis=" + quote(message), status_code=303)
 
 
 @router.post("/intern/benutzer")
@@ -110,7 +202,9 @@ async def admin_user_save(request: Request):
     if admin["role"] != "superadmin": raise HTTPException(status_code=403)
     form = await request.form()
     try:
-        save_admin(str(form.get("username") or "").strip(), str(form.get("display_name") or "").strip(), str(form.get("role") or "read_only"), str(form.get("password") or ""))
+        target = str(form.get("username") or "").strip()
+        save_admin(target, str(form.get("display_name") or "").strip(), str(form.get("role") or "read_only"), str(form.get("password") or ""))
+        audit_event(admin["username"], "Verwaltungskonto gespeichert", "admin_user", target)
         message = "Verwaltungskonto wurde gespeichert."
     except ValueError as error:
         message = str(error)
@@ -124,35 +218,127 @@ async def admin_user_totp(request: Request, username: str):
     form = await request.form(); enabled = str(form.get("enabled") or "") == "1"
     if not enabled:
         disable_admin_totp(username)
+        audit_event(admin["username"], "Zwei-Faktor-Anmeldung abgeschaltet", "admin_user", username)
         return RedirectResponse("/intern/benutzer?hinweis=" + quote("2FA wurde abgeschaltet; bestehende Sitzungen wurden beendet."), status_code=303)
-    secret = begin_admin_totp(username)
-    if enabled:
-        return HTMLResponse(f"<!doctype html><html lang=de><meta name=viewport content='width=device-width,initial-scale=1'><body style='font:16px system-ui;max-width:680px;margin:auto;padding:28px'><h1>2FA bestätigen</h1><p>Trage diesen Schlüssel in einer kostenlosen Authenticator-App ein:</p><p style='padding:18px;background:#eef5eb;border-radius:12px;font:700 20px monospace;overflow-wrap:anywhere'>{escape(secret)}</p><p>2FA wird erst aktiv, nachdem der erste Code erfolgreich geprüft wurde.</p><form method=post action='/intern/benutzer/{escape(username)}/2fa-bestaetigen'><label>Sechsstelliger Code <input name=code inputmode=numeric pattern='[0-9]{{6}}' required></label><button>Prüfen und aktivieren</button></form><p><a href='/intern/benutzer'>Abbrechen</a></p></body></html>")
+    return RedirectResponse("/intern/benutzer?hinweis=" + quote("2FA richtet jedes Konto aus Sicherheitsgründen selbst ein."), status_code=303)
 
 
-@router.post("/intern/benutzer/{username}/2fa-bestaetigen")
-async def admin_user_totp_confirm(request: Request, username: str):
+@router.get("/intern/2fa/einrichten")
+async def own_totp_setup(request: Request):
     admin = _admin(request)
-    if admin["role"] != "superadmin": raise HTTPException(status_code=403)
-    form = await request.form(); codes = confirm_admin_totp(username, str(form.get("code") or ""))
+    account = get_admin(admin["username"])
+    if not account or not requires_two_factor(account.role):
+        return RedirectResponse("/intern/cockpit", status_code=303)
+    if account.totp_enabled:
+        return RedirectResponse("/intern/cockpit", status_code=303)
+    secret = begin_admin_totp(account.username)
+    body = f"""<section><span class='eyebrow'>Verpflichtende Kontosicherheit</span><h1>2FA jetzt einrichten</h1><p>Dieses Konto besitzt erweiterte Rechte. Hinterlege den Schlüssel in einer kostenlosen Authenticator-App. Der Schlüssel wird nur in deiner eigenen Sitzung angezeigt.</p></section><section class='admin-section'><p style='padding:18px;background:#eef5eb;border-radius:12px;font:700 20px monospace;overflow-wrap:anywhere'>{escape(secret)}</p><ol><li>Authenticator-App öffnen.</li><li>Konto manuell hinzufügen.</li><li>Den Schlüssel eintragen und den sechsstelligen Code bestätigen.</li></ol><form class='admin-form' method='post' action='/intern/2fa/bestaetigen'><label>Sechsstelliger Code<input name='code' inputmode='numeric' autocomplete='one-time-code' pattern='[0-9]{{6}}' required autofocus></label><button class='admin-button'>2FA aktivieren</button></form><p><a href='/logout'>Abmelden</a></p></section>"""
+    return _page("2FA einrichten", "benutzer", body)
+
+
+@router.post("/intern/2fa/bestaetigen")
+async def own_totp_confirm(request: Request):
+    admin = _admin(request)
+    form = await request.form()
+    codes = confirm_admin_totp(admin["username"], str(form.get("code") or ""))
     if not codes:
-        return RedirectResponse("/intern/benutzer?hinweis=" + quote("Der Authenticator-Code war ungültig; 2FA wurde nicht aktiviert."), status_code=303)
+        return RedirectResponse("/intern/2fa/einrichten", status_code=303)
+    account = get_admin(admin["username"])
+    audit_event(admin["username"], "Zwei-Faktor-Anmeldung selbst aktiviert", "admin_user", admin["username"])
     code_html = "".join(f"<li><code>{escape(value)}</code></li>" for value in codes)
-    return HTMLResponse(f"<!doctype html><html lang=de><meta name=viewport content='width=device-width,initial-scale=1'><body style='font:16px system-ui;max-width:680px;margin:auto;padding:28px'><h1>2FA ist aktiv</h1><p>Speichere diese einmalig angezeigten Wiederherstellungscodes sicher. Jeder Code funktioniert nur einmal.</p><ul style='font:700 18px monospace;line-height:1.8'>{code_html}</ul><p><a href='/intern/benutzer'>Ich habe die Codes gesichert</a></p></body></html>")
+    body = f"""<section><span class='eyebrow'>Kontosicherheit</span><h1>2FA ist aktiv</h1><p>Speichere diese einmalig angezeigten Wiederherstellungscodes sicher. Jeder Code funktioniert nur einmal.</p></section><section class='admin-section'><ul style='font:700 18px monospace;line-height:1.8'>{code_html}</ul><form method='post' action='/intern/2fa/abschliessen'><button class='admin-button' type='submit'>Codes sind sicher gespeichert</button></form></section>"""
+    response = _page("2FA ist aktiv", "benutzer", body)
+    response.set_cookie(key=legacy.SESSION_COOKIE, value=legacy._neue_session(account.username, account.role, int(account.session_version or 1)), max_age=legacy.SESSION_MAX_AGE, httponly=True, secure=True, samesite="lax")
+    return response
+
+
+@router.post("/intern/2fa/abschliessen")
+async def own_totp_finish(request: Request):
+    _admin(request)
+    return RedirectResponse("/intern/cockpit", status_code=303)
 
 
 @router.get("/intern/inhalte/versionen")
-async def content_versions(request: Request):
-    _admin(request); db=SessionLocal()
+async def content_versions(request: Request, hinweis: str = ""):
+    admin = _admin(request); db=SessionLocal()
     try: items=db.query(ContentRevision).order_by(ContentRevision.created_at.desc()).limit(100).all()
     finally: db.close()
-    cards="".join(f"<article><small>{escape(x.area)} · {escape(x.object_id)} · Version {x.version}</small><h3>{escape(x.title or 'Ohne Titel')}</h3><b>{escape(x.state)}</b><span>{x.created_at:%d.%m.%Y %H:%M} · {escape(x.actor)}</span></article>" for x in items)
-    return HTMLResponse(f"<!doctype html><html lang=de><meta name=viewport content='width=device-width,initial-scale=1'><style>body{{font:16px system-ui;max-width:900px;margin:auto;padding:24px}}article{{display:grid;gap:6px;padding:16px;margin:10px 0;border:1px solid #d7e0d4;border-radius:14px}}</style><body><a href='/intern/gemeindeseite'>← Inhalte</a><h1>Inhaltsversionen</h1><p>Entwurf, Prüfung, Freigabe und Archiv bleiben nachvollziehbar.</p>{cards or '<p>Noch keine Versionen gespeichert.</p>'}<h2>Version dokumentieren</h2><form method=post><p><input name=area placeholder=Bereich required></p><p><input name=object_id placeholder=Kennung required></p><p><input name=title placeholder=Titel required></p><p><select name=state><option>Entwurf</option><option>Prüfung</option><option>Freigegeben</option><option>Archiviert</option></select></p><p><textarea name=content placeholder=Inhalt></textarea></p><button>Version speichern</button></form></body></html>")
+    previous_payloads = {}
+    card_items = []
+    for item in reversed(items):
+        try: payload = json.loads(item.payload_json or "{}")
+        except Exception: payload = {}
+        prior = previous_payloads.get((item.area, item.object_id), {})
+        changes = []
+        for key in sorted(set(prior) | set(payload)):
+            if str(prior.get(key, "")) != str(payload.get(key, "")):
+                changes.append(f"<li><strong>{escape(str(key))}</strong>: {escape(str(prior.get(key, ''))[:120])} → {escape(str(payload.get(key, ''))[:120])}</li>")
+        previous_payloads[(item.area, item.object_id)] = payload
+        actions = []
+        if item.state == "Prüfung" and item.actor != admin["username"]:
+            actions.append(f"<form method='post' action='/intern/inhalte/versionen/{item.id}/entscheiden'><button class='admin-button' name='decision' value='approve'>Prüfen und freigeben</button><button class='admin-button secondary' name='decision' value='reject'>Ablehnen</button></form>")
+        if item.state == "Freigegeben" and item.area in {"gemeindeseite", "plattform"}:
+            actions.append(f"<form method='post' action='/intern/inhalte/versionen/{item.id}/wiederherstellen' onsubmit=\"return confirm('Diese frühere Version wirklich zur Wiederherstellung vormerken?')\"><button class='admin-button secondary'>Version wiederherstellen</button></form>")
+        review = f" · geprüft von {escape(item.reviewed_by)}" if item.reviewed_by else ""
+        detail = "".join(changes) or "<li>Erste gespeicherte Version oder keine Feldänderung.</li>"
+        card_items.append(f"<article class='admin-row'><small>{escape(item.area)} · {escape(item.object_id)} · Version {item.version}</small><h3>{escape(item.title or 'Ohne Titel')}</h3><span class='status-chip'>{escape(item.state)}</span><p>{item.created_at:%d.%m.%Y %H:%M} · erstellt von {escape(item.actor)}{review}</p><details><summary>Änderungen anzeigen</summary><ul>{detail}</ul></details>{''.join(actions)}</article>")
+    cards = "".join(reversed(card_items))
+    mode = "Vier-Augen-Freigabe aktiv" if content_approval_available(admin["username"]) else "Einzelbetrieb: Veröffentlichungen werden direkt freigegeben, bis ein zweites berechtigtes Konto vorhanden ist."
+    notice = f'<div class="admin-row" role="status">{escape(hinweis)}</div>' if hinweis else ''
+    body=f"""<section><span class="eyebrow">Redaktion</span><h1>Inhaltsversionen</h1><p>Änderungen werden verglichen, geprüft und kontrolliert wiederhergestellt. <strong>{escape(mode)}</strong></p></section>{notice}<section class="admin-section"><div class="admin-list">{cards or '<div class="admin-row">Noch keine Versionen gespeichert.</div>'}</div></section><section class="admin-section"><h2>Redaktionellen Entwurf anlegen</h2><form class="admin-form" method="post"><div class="admin-grid"><label>Bereich<select name="area"><option value="gemeindeseite">Gemeindeseite</option><option value="plattform">Plattform</option></select></label><label>Kennung<input name="object_id" value="standard" required maxlength="120"></label><label>Titel<input name="title" required maxlength="200"></label><label>Status<select name="state"><option>Entwurf</option><option>Prüfung</option></select></label></div><label>Inhalt als JSON-Objekt<textarea name="content" maxlength="20000" placeholder='{{"schluessel":"Wert"}}'></textarea></label><button class="admin-button" type="submit">Version speichern</button></form></section>"""
+    return _page("Inhaltsversionen", "versionen", body)
 
 
 @router.post("/intern/inhalte/versionen")
 async def content_version_save(request: Request):
-    admin=_admin(request); form=await request.form(); save_content_revision(str(form.get("area") or ""),str(form.get("object_id") or ""),str(form.get("state") or "Entwurf"),str(form.get("title") or ""),{"content":str(form.get("content") or "")},admin["display_name"]); return RedirectResponse("/intern/inhalte/versionen",status_code=303)
+    admin = _admin(request); form = await request.form()
+    area = str(form.get("area") or "")
+    if area not in {"gemeindeseite", "plattform"}:
+        return RedirectResponse("/intern/inhalte/versionen?hinweis=" + quote("Unbekannter Inhaltsbereich."), status_code=303)
+    try:
+        payload = json.loads(str(form.get("content") or "{}"))
+        if not isinstance(payload, dict): raise ValueError
+    except Exception:
+        return RedirectResponse("/intern/inhalte/versionen?hinweis=" + quote("Inhalt muss ein gültiges JSON-Objekt sein."), status_code=303)
+    state = "Prüfung" if str(form.get("state") or "") == "Prüfung" else "Entwurf"
+    revision=save_content_revision(area,str(form.get("object_id") or ""),state,str(form.get("title") or ""),payload,admin["username"])
+    audit_event(admin["username"], "Inhaltsversion gespeichert", "content_revision", str(getattr(revision, "id", "")), str(form.get("title") or ""))
+    return RedirectResponse("/intern/inhalte/versionen",status_code=303)
+
+
+@router.post("/intern/inhalte/versionen/{revision_id}/entscheiden")
+async def content_version_decide(request: Request, revision_id: int):
+    admin = _admin(request); form = await request.form()
+    approve = str(form.get("decision") or "") == "approve"
+    try:
+        item = review_content_revision(revision_id, admin["username"], approve=approve)
+        audit_event(admin["username"], "Inhaltsversion freigegeben" if approve else "Inhaltsversion abgelehnt", "content_revision", str(item.id), item.title)
+        message = "Version wurde veröffentlicht." if approve else "Version wurde abgelehnt und archiviert."
+    except ValueError as error:
+        message = str(error)
+    return RedirectResponse("/intern/inhalte/versionen?hinweis=" + quote(message), status_code=303)
+
+
+@router.post("/intern/inhalte/versionen/{revision_id}/wiederherstellen")
+async def content_version_restore(request: Request, revision_id: int):
+    admin = _admin(request)
+    try:
+        item = create_restore_revision(revision_id, admin["username"])
+        if not content_approval_available(admin["username"]):
+            payload = json.loads(item.payload_json or "{}")
+            apply_content_payload(item.area, payload)
+            db = SessionLocal()
+            try:
+                stored = db.query(ContentRevision).filter(ContentRevision.id == item.id).first()
+                stored.state = "Freigegeben"; stored.reviewed_by = admin["username"]; stored.reviewed_at = datetime.utcnow(); stored.applied_at = datetime.utcnow(); db.commit()
+            finally: db.close()
+            message = "Version wurde im Einzelbetrieb wiederhergestellt."
+        else:
+            message = "Wiederherstellung wartet auf Freigabe durch ein zweites Konto."
+        audit_event(admin["username"], "Wiederherstellung angefordert", "content_revision", str(item.id), f"Quelle {revision_id}")
+    except ValueError as error:
+        message = str(error)
+    return RedirectResponse("/intern/inhalte/versionen?hinweis=" + quote(message), status_code=303)
 
 
 @router.get("/profil/datenexport")

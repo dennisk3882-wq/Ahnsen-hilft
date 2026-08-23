@@ -38,7 +38,7 @@ def _json(url: str) -> dict:
         url,
         headers={
             "Accept": "application/json, application/ld+json;q=0.9",
-            "User-Agent": "Ahnsen-hilft/1.0 (+https://ahnsen-hilft.onrender.com)",
+            "User-Agent": "Ahnsen-digital/1.0 (+https://ahnsen-digital.onrender.com)",
         },
         timeout=REQUEST_TIMEOUT,
     )

@@ -218,7 +218,7 @@ def add_archive_document_from_url(
         raise ValueError("Bitte eine gültige öffentliche PDF-Adresse angeben.")
     response = requests.get(
         source_url,
-        headers={"User-Agent": "Ahnsen-hilft/1.0 (+https://ahnsen-hilft.onrender.com)", "Accept": "application/pdf,*/*;q=0.8"},
+        headers={"User-Agent": "Ahnsen-digital/1.0 (+https://ahnsen-digital.onrender.com)", "Accept": "application/pdf,*/*;q=0.8"},
         timeout=20,
         allow_redirects=True,
     )

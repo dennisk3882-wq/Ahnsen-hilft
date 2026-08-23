@@ -1,5 +1,7 @@
 from html import escape
+from fastapi.responses import HTMLResponse
 from platform_runtime import get_platform_snapshot
+from admin_access import current_admin, visible_navigation
 
 
 _ICONS = {
@@ -17,6 +19,7 @@ _ICONS = {
     "nachrichten": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 4z"/><path d="M8 9h8m-8 4h5"/></svg>""",
     "ideen": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4"/><path d="M8.5 15c-1.5-1.1-2.5-2.9-2.5-5a6 6 0 1 1 12 0c0 2.1-1 3.9-2.5 5-.8.6-1.2 1.1-1.4 2h-4.2c-.2-.9-.6-1.4-1.4-2z"/></svg>""",
     "berichte": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5z"/><path d="M8 8h8m-8 4h8m-8 4h5"/></svg>""",
+    "menu": """<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>""",
 }
 
 
@@ -45,43 +48,24 @@ def intern_nav(active=""):
     if active == "start":
         active = "maengel"
 
-    eintraege = [
-        ("cockpit", "/intern/cockpit", "Cockpit"),
-        ("maengel", "/intern/maengel", "Mängel"),
-        ("veranstaltungen", "/intern/veranstaltungen", "Termine"),
-        ("dgh", "/intern/dgh", "DGH"),
-        ("muell", "/intern/muelltermine", "Müllabfuhr"),
-        ("gemeindeseite", "/intern/gemeindeseite", "Inhalte"),
-        ("warnungen", "/intern/warnungen", "Warnlage"),
-        ("push", "/intern/push", "Push"),
-        ("nachrichten", "/intern/nachrichten", "Nachrichten"),
-        ("ideen", "/intern/ideen", "Beteiligung"),
-        ("ideen", "/intern/nachbarschaft", "Nachbarschaft"),
-        ("gemeindeseite", "/intern/politik", "Politik & Rat"),
-        ("berichte", "/intern/berichte", "Berichte"),
-        ("berichte", "/intern/audit", "Audit"),
-        ("gemeindeseite", "/intern/inhalte/versionen", "Versionen"),
-        ("system", "/intern/benutzer", "Zugänge"),
-        ("system", "/intern/sicherung", "Sicherung"),
-        ("system", "/intern/plattform", "Plattform"),
-        ("system", "/intern/freigabe", "Freigabe"),
-        ("system", "/intern/system", "System"),
-    ]
+    admin = current_admin()
+    eintraege = visible_navigation(admin.get("role", "read_only"))
 
     links = []
     mobile_links = []
-    for key, href, label in eintraege:
+    menu_links = []
+    mobile_keys = {"cockpit", "maengel", "dgh", "nachrichten", "warnungen"}
+    for key, icon_name, href, label, _permission in eintraege:
         klasse = " active" if key == active else ""
         current = ' aria-current="page"' if key == active else ""
         links.append(
             f'<a class="internal-nav-link{klasse}" href="{escape(href)}"{current}>'
-            f'<span class="internal-nav-icon">{_icon(key)}</span>'
+            f'<span class="internal-nav-icon">{_icon(icon_name)}</span>'
             f'<span>{escape(label)}</span></a>'
         )
-        mobile_links.append(
-            f'<a class="internal-mobile-link{klasse}" href="{escape(href)}"{current}>'
-            f'<span>{_icon(key)}</span><small>{escape(label)}</small></a>'
-        )
+        menu_links.append(f'<a class="internal-menu-link{klasse}" href="{escape(href)}"{current}><span>{_icon(icon_name)}</span>{escape(label)}</a>')
+        if key in mobile_keys:
+            mobile_links.append(f'<a class="internal-mobile-link{klasse}" href="{escape(href)}"{current}><span>{_icon(icon_name)}</span><small>{escape(label)}</small></a>')
 
     brand_logo = f'<span class="internal-brand-crest"><img src="{escape(cfg["logo_url"])}" alt="" style="width:100%;height:100%;object-fit:contain"></span>' if cfg.get("logo_url") else _crest()
     return f"""
@@ -108,11 +92,13 @@ def intern_nav(active=""):
                     <span>{_icon('logout')}</span><span>Abmelden</span>
                 </button>
             </form>
+            <details class="internal-menu"><summary title="Alle Verwaltungsbereiche">{_icon('menu')}<span>Menü</span></summary><div class="internal-menu-panel">{''.join(menu_links)}</div></details>
         </div>
     </header>
 
     <nav class="internal-mobile-nav" aria-label="Mobile Verwaltungsnavigation">
         {''.join(mobile_links)}
+        <a class="internal-mobile-link" href="#admin-menu" onclick="document.querySelector('.internal-menu').open=true"><span>{_icon('menu')}</span><small>Mehr</small></a>
     </nav>
     """
 
@@ -329,6 +315,15 @@ def intern_nav_css():
         gap:6px !important;
     }
 
+    .internal-menu { position:relative; }
+    .internal-menu summary { min-height:44px; display:flex; align-items:center; gap:7px; padding:9px 12px; border-radius:15px; color:var(--admin-forest); background:#f5f8f2; font-size:13px; font-weight:850; cursor:pointer; list-style:none; }
+    .internal-menu summary::-webkit-details-marker { display:none; }
+    .internal-menu summary svg { width:20px; height:20px; }
+    .internal-menu-panel { position:absolute; top:calc(100% + 10px); right:0; width:min(360px, calc(100vw - 28px)); max-height:min(70vh, 620px); overflow:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:12px; border:1px solid var(--admin-line); border-radius:20px; background:var(--admin-paper); box-shadow:var(--admin-shadow); }
+    .internal-menu-link { min-height:44px; display:flex; align-items:center; gap:9px; padding:9px 11px; border-radius:12px; color:var(--admin-ink); text-decoration:none; font-size:13px; font-weight:800; }
+    .internal-menu-link span { width:20px; height:20px; display:grid; place-items:center; color:var(--admin-forest); }
+    .internal-menu-link:hover, .internal-menu-link.active { color:var(--admin-forest); background:var(--admin-sage-soft); }
+
     .internal-nav-actions form { margin:0 !important; }
 
     .internal-preview-link {
@@ -523,6 +518,7 @@ def intern_nav_css():
     }
 
     input[type="file"] { padding:10px !important; }
+    input[type="checkbox"], input[type="radio"] { width:auto !important; min-height:auto !important; padding:0 !important; }
 
     button,
     .link-button,
@@ -768,9 +764,11 @@ def intern_nav_css():
         .internal-brand-copy small { font-size:9px; }
         .internal-nav-links { display:none !important; }
         .internal-preview-link span:last-child,
-        .internal-logout span:last-child { display:none; }
+        .internal-logout span:last-child,
+        .internal-menu summary span { display:none; }
         .internal-preview-link,
-        .internal-logout { width:42px !important; height:42px !important; padding:0 !important; border-radius:14px !important; }
+        .internal-logout,
+        .internal-menu summary { width:42px !important; height:42px !important; padding:0 !important; justify-content:center; border-radius:14px !important; }
 
         .internal-mobile-nav {
             position:fixed;
@@ -779,7 +777,7 @@ def intern_nav_css():
             right:10px;
             bottom:max(10px, env(safe-area-inset-bottom));
             display:grid;
-            grid-template-columns:repeat(8, minmax(0,1fr));
+            grid-template-columns:repeat(6, minmax(0,1fr));
             gap:4px;
             padding:7px;
             border:1px solid rgba(210,222,208,.92);
@@ -840,3 +838,30 @@ def intern_nav_css():
         .internal-preview-link { display:none !important; }
     }
     """
+
+
+ADMIN_COMPONENT_CSS = """
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.admin-card{padding:18px;border:1px solid var(--admin-line);border-radius:20px;background:var(--admin-paper);box-shadow:var(--admin-shadow-soft)}
+.admin-card h2,.admin-card h3{margin:0 0 8px}.admin-card p{color:var(--admin-muted);line-height:1.5}
+.metric strong{display:block;font-size:34px;color:var(--admin-forest)}.metric span{color:var(--admin-muted);font-size:12px;font-weight:800}
+.admin-section{margin-top:18px;padding:20px;border:1px solid var(--admin-line);border-radius:22px;background:rgba(255,254,250,.95);box-shadow:var(--admin-shadow-soft)}
+.admin-list{display:grid;gap:9px}.admin-row{padding:13px;border:1px solid var(--admin-line);border-radius:15px;background:#fff}
+.admin-row small{color:var(--admin-muted)}.admin-row form{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.admin-form{display:grid;gap:12px}.admin-form input,.admin-form textarea,.admin-form select{width:100%;padding:11px 12px;border:1px solid var(--admin-line);border-radius:12px;background:#fff;font:inherit}
+.admin-form textarea{min-height:110px}.admin-button{border:0;border-radius:12px;padding:10px 14px;background:var(--admin-forest);color:#fff;font-weight:850;cursor:pointer}
+.admin-button.secondary{border:1px solid var(--admin-line);background:#fff;color:var(--admin-forest)}
+.admin-search{display:flex;gap:8px}.admin-search input{flex:1}.admin-table{width:100%;border-collapse:collapse}
+.admin-table th,.admin-table td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--admin-line);vertical-align:top}
+.admin-table th{font-size:11px;text-transform:uppercase;color:var(--admin-muted)}
+.status-chip{display:inline-flex;padding:5px 8px;border-radius:999px;background:#edf3e9;color:var(--admin-forest);font-size:11px;font-weight:850}
+.json-box{white-space:pre-wrap;padding:12px;border-radius:14px;background:#f5f7f1;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+@media(max-width:720px){.admin-table{display:block;overflow:auto}.admin-search{display:grid}}
+"""
+
+
+def admin_page(title: str, active: str, body: str, *, extra_css: str = "", extra_head: str = "") -> HTMLResponse:
+    """Render the single shared shell for every internal administration page."""
+    platform_name = get_platform_snapshot()["platform_name"]
+    html = f"""<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(title)} · {escape(platform_name)} Verwaltung</title>{extra_head}<style>{intern_nav_css()}{ADMIN_COMPONENT_CSS}{extra_css}</style></head><body><div class="container">{intern_nav(active)}{body}</div></body></html>"""
+    return HTMLResponse(html)

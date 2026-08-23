@@ -168,7 +168,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                 <td>{escape(term.name or '-')}<small>{escape(term.telefon or '')}</small></td>
                 <td><span class="dgh-status {status_class}">{escape(status_label)}</span></td>
                 <td>{_status_select(term)}</td>
-                <td><div class="dgh-actions"><a class="secondary" href="{edit_url}">Bearbeiten</a><a href="/dgh/aktiv/{term.id}/{aktiv_neu}">{aktiv_text}</a><a class="danger" href="/dgh/loeschen/{term.id}" onclick="return confirm('DGH-Termin wirklich löschen?')">Löschen</a></div></td>
+                <td><div class="dgh-actions"><a class="secondary" href="{edit_url}">Bearbeiten</a><form method="post" action="/dgh/aktiv/{term.id}/{aktiv_neu}"><button type="submit">{aktiv_text}</button></form><form method="post" action="/dgh/loeschen/{term.id}" onsubmit="return confirm('DGH-Termin wirklich löschen?')"><button class="danger" type="submit">Löschen</button></form></div></td>
             </tr>
             """
         )
@@ -179,7 +179,7 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                 <div class="dgh-mobile-head"><div><small>{escape(term.datum or '-')} · {escape(term.uhrzeit or 'ohne Uhrzeit')}</small><h3>{escape(term.anlass or 'Ohne Anlass')}</h3></div><span class="dgh-status {status_class}">{escape(status_label)}</span></div>
                 <dl><div><dt>Name</dt><dd>{escape(term.name or '-')}</dd></div><div><dt>Telefon</dt><dd>{escape(term.telefon or '-')}</dd></div><div><dt>Kommentar</dt><dd>{escape(term.kommentar or '-')}</dd></div></dl>
                 {_status_select(term)}
-                <div class="dgh-actions"><a class="secondary" href="{edit_url}">Bearbeiten</a><a href="/dgh/aktiv/{term.id}/{aktiv_neu}">{aktiv_text}</a><a class="danger" href="/dgh/loeschen/{term.id}" onclick="return confirm('DGH-Termin wirklich löschen?')">Löschen</a></div>
+                <div class="dgh-actions"><a class="secondary" href="{edit_url}">Bearbeiten</a><form method="post" action="/dgh/aktiv/{term.id}/{aktiv_neu}"><button type="submit">{aktiv_text}</button></form><form method="post" action="/dgh/loeschen/{term.id}" onsubmit="return confirm('DGH-Termin wirklich löschen?')"><button class="danger" type="submit">Löschen</button></form></div>
             </article>
             """
         )

@@ -18,7 +18,7 @@ DEFAULT_URLS = {
 }
 
 
-def push_dashboard_page(categories: dict[str, str], hinweis: str = "", fehler: str = "") -> HTMLResponse:
+def push_dashboard_page(categories: dict[str, str], hinweis: str = "", fehler: str = "", history=None) -> HTMLResponse:
     options = []
     cards = []
     for key, label in categories.items():
@@ -33,6 +33,7 @@ def push_dashboard_page(categories: dict[str, str], hinweis: str = "", fehler: s
         message += f'<div class="message">✓ {escape(hinweis)}</div>'
     if fehler:
         message += f'<div class="message error">⚠ {escape(fehler)}</div>'
+    history_html = "".join(f'<div class="admin-row"><strong>{escape(item.detail)}</strong><br><small>{item.erstellt_am.strftime("%d.%m.%Y %H:%M") if item.erstellt_am else ""} · {escape(item.actor)} · {escape(item.object_id)}</small></div>' for item in (history or [])) or '<div class="admin-row">Noch kein manueller Push-Versand protokolliert.</div>'
 
     html = f"""
     <!doctype html>
@@ -91,6 +92,7 @@ def push_dashboard_page(categories: dict[str, str], hinweis: str = "", fehler: s
             <article><h3>Amtliche Warnungen</h3><p>DWD und Bundeswarnportal werden automatisch überwacht. Verwaltung und Bürger sehen die Warnlage in einer eigenen Zentrale.</p><p><a href="/intern/warnungen">Warnzentrale öffnen →</a></p></article>
           </aside>
         </div>
+        <section class="box" style="margin-top:20px"><h2>Versandverlauf</h2><p class="muted">Dokumentiert Zeitpunkt, Absender, Kategorie und Zielseite der manuellen Rundnachrichten.</p><div class="admin-list">{history_html}</div></section>
       </main>
       <script>
         const category=document.getElementById('push-category');
