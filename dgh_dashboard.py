@@ -79,52 +79,64 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
 
     heute = datetime.today().date()
     kalender = calendar.Calendar(firstweekday=0)
-    kalender_html = []
-
-    for jahr in (heute.year, heute.year + 1):
-        monate = []
-        for monat in range(1, 13):
-            tage = []
-            for woche in kalender.monthdayscalendar(jahr, monat):
-                for nummer in woche:
-                    if nummer == 0:
-                        tage.append('<span class="dgh-day empty"></span>')
-                        continue
-                    aktuelles_datum = date(jahr, monat, nummer)
-                    tag_termine = termine_nach_datum.get(aktuelles_datum, [])
-                    if any(item.status == "Bestätigt" for item in tag_termine):
-                        klasse = "confirmed"
-                    elif any(item.status == "Anfrage" for item in tag_termine):
-                        klasse = "request"
-                    else:
-                        klasse = "free"
-                    if aktuelles_datum == heute:
-                        klasse += " today"
-                    if tag_termine:
-                        inhalt = f'<a href="/intern/dgh?tag={aktuelles_datum.isoformat()}#tag-details">{nummer}</a>'
-                    else:
-                        inhalt = str(nummer)
-                    tage.append(f'<span class="dgh-day {klasse}">{inhalt}</span>')
-
-            monate.append(
-                f"""
-                <article class="dgh-month">
-                    <h4>{MONATSNAMEN[monat]}</h4>
-                    <div class="dgh-weekdays"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div>
-                    <div class="dgh-days">{''.join(tage)}</div>
-                </article>
-                """
-            )
-        kalender_html.append(
-            f'<section class="dgh-year"><div class="dgh-year-title"><h3>{jahr}</h3><span>12 Monate</span></div><div class="dgh-months">{"".join(monate)}</div></section>'
-        )
-
     selected_date = None
     try:
         if tag:
             selected_date = date.fromisoformat(tag)
     except ValueError:
         selected_date = None
+
+    kalender_html = []
+    kalender_labels = []
+    jahr, monat = heute.year, heute.month
+    initial_index = 0
+    if selected_date:
+        selected_offset = (selected_date.year - heute.year) * 12 + selected_date.month - heute.month
+        if 0 <= selected_offset < 12:
+            initial_index = selected_offset
+    for index in range(12):
+        tage = []
+        for woche in kalender.monthdayscalendar(jahr, monat):
+            for nummer in woche:
+                if nummer == 0:
+                    tage.append('<span class="dgh-day empty" aria-hidden="true"></span>')
+                    continue
+                aktuelles_datum = date(jahr, monat, nummer)
+                tag_termine = termine_nach_datum.get(aktuelles_datum, [])
+                if any(item.status == "Bestätigt" for item in tag_termine):
+                    klasse = "confirmed"
+                elif any(item.status == "Anfrage" for item in tag_termine):
+                    klasse = "request"
+                else:
+                    klasse = "free"
+                if aktuelles_datum == heute:
+                    klasse += " today"
+                if aktuelles_datum == selected_date:
+                    klasse += " selected"
+                nummer_html = f'<span class="dgh-day-number">{nummer}</span>'
+                if tag_termine:
+                    tage.append(
+                        f'<a class="dgh-day {klasse}" href="/intern/dgh?tag={aktuelles_datum.isoformat()}#tag-details" '
+                        f'aria-label="{nummer}. {MONATSNAMEN[monat]} {jahr}: Buchungen anzeigen">{nummer_html}<i aria-hidden="true"></i></a>'
+                    )
+                else:
+                    tage.append(f'<span class="dgh-day {klasse}">{nummer_html}<i aria-hidden="true"></i></span>')
+
+        label = f"{MONATSNAMEN[monat]} {jahr}"
+        kalender_labels.append(label)
+        hidden = "" if index == initial_index else " hidden"
+        kalender_html.append(
+            f'<section class="dgh-month-panel" data-dgh-month="{index}" data-label="{label}"{hidden}>'
+            f'<div class="dgh-month-heading"><h3>{label}</h3><span>Belegung DGH Ahnsen</span></div>'
+            '<div class="dgh-weekdays"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div>'
+            f'<div class="dgh-month-grid">{"".join(tage)}</div></section>'
+        )
+        monat += 1
+        if monat > 12:
+            monat = 1
+            jahr += 1
+
+    initial_label = kalender_labels[initial_index]
 
     detail_html = ""
     if selected_date:
@@ -208,30 +220,40 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
             .dgh-kpi {{ padding:18px; border:1px solid var(--admin-line); border-radius:21px; background:var(--admin-paper); box-shadow:var(--admin-shadow-soft); }}
             .dgh-kpi span {{ color:var(--admin-muted); font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }}
             .dgh-kpi strong {{ display:block; margin-top:7px; color:var(--admin-forest); font-family:Georgia,serif; font-size:34px; }}
-            .dgh-calendar-card h2 {{ margin:0; }}
+            .dgh-calendar-card {{ overflow:hidden; padding:0; }}
             .dgh-section-heading {{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:17px; }}
             .dgh-section-heading .admin-eyebrow {{ color:var(--admin-green); margin-bottom:5px; }}
             .dgh-section-heading h2 {{ margin:0; }}
-            .dgh-legend {{ display:flex; flex-wrap:wrap; gap:8px; margin:15px 0 20px; }}
+            .dgh-calendar-top {{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:19px 20px 15px; border-bottom:1px solid var(--admin-line); background:linear-gradient(135deg,#fff,#f5f8f2); }}
+            .dgh-calendar-title h2 {{ margin:5px 0 0; color:var(--admin-forest); font-size:26px; }}
+            .dgh-calendar-title p {{ margin:6px 0 0; color:var(--admin-muted); font-size:12px; }}
+            .dgh-calendar-nav {{ display:flex; align-items:center; gap:7px; }}
+            .dgh-calendar-nav button {{ min-width:42px; height:42px; margin:0 !important; padding:0 12px !important; border:1px solid var(--admin-line) !important; border-radius:13px !important; color:var(--admin-forest) !important; background:#fff !important; font-size:18px !important; font-weight:900 !important; }}
+            .dgh-calendar-nav button:disabled {{ opacity:.35; cursor:not-allowed; }}
+            .dgh-calendar-nav .dgh-today-button {{ width:auto; font-size:12px !important; }}
+            .dgh-legend {{ display:flex; flex-wrap:wrap; gap:8px; margin:0; padding:12px 20px; border-bottom:1px solid var(--admin-line); }}
             .dgh-legend span {{ display:inline-flex; align-items:center; gap:7px; min-height:34px; padding:6px 10px; border-radius:999px; color:#4d5a51; background:#f4f7f1; font-size:12px; font-weight:850; }}
             .dgh-legend i {{ width:12px; height:12px; display:block; border-radius:4px; }}
             .dgh-legend .free {{ background:#dfead9; }} .dgh-legend .request {{ background:#f5cc67; }} .dgh-legend .confirmed {{ background:var(--admin-green); }}
-            .dgh-year + .dgh-year {{ margin-top:24px; }}
-            .dgh-year-title {{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }}
-            .dgh-year-title h3 {{ margin:0; font-size:28px; }}
-            .dgh-year-title span {{ color:var(--admin-muted); font-size:12px; font-weight:800; }}
-            .dgh-months {{ display:grid; grid-template-columns:repeat(4,minmax(190px,1fr)); gap:11px; }}
-            .dgh-month {{ padding:12px; border:1px solid var(--admin-line); border-radius:17px; background:#fffefa; }}
-            .dgh-month h4 {{ margin:0 0 9px; text-align:center; font-size:14px !important; }}
-            .dgh-weekdays,.dgh-days {{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; text-align:center; }}
-            .dgh-weekdays {{ margin-bottom:4px; color:var(--admin-muted); font-size:9px; font-weight:900; }}
-            .dgh-day {{ min-height:29px; display:grid; place-items:center; border:1px solid transparent; border-radius:8px; font-size:10px; font-weight:850; }}
-            .dgh-day a {{ width:100%; height:100%; display:grid; place-items:center; color:inherit; text-decoration:none; }}
-            .dgh-day.free {{ color:#45634f; background:#edf4e9; }}
-            .dgh-day.request {{ color:#805a13; background:#fff0c5; }}
-            .dgh-day.confirmed {{ color:white; background:var(--admin-green); }}
+            .dgh-calendar-body {{ padding:17px 20px 20px; }}
+            .dgh-month-panel[hidden] {{ display:none !important; }}
+            .dgh-month-heading {{ display:flex; align-items:end; justify-content:space-between; gap:12px; margin-bottom:12px; }}
+            .dgh-month-heading h3 {{ margin:0; color:var(--admin-forest); font-size:22px; }}
+            .dgh-month-heading span {{ color:var(--admin-muted); font-size:10px; font-weight:800; }}
+            .dgh-weekdays,.dgh-month-grid {{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; text-align:center; }}
+            .dgh-weekdays {{ margin-bottom:6px; color:var(--admin-muted); font-size:9px; font-weight:900; }}
+            .dgh-weekdays span {{ padding:4px 0; }}
+            .dgh-day {{ min-height:58px; position:relative; display:flex; align-items:flex-start; justify-content:flex-end; padding:7px; border:1px solid #e4e9e2; border-radius:14px; color:#3d4a42; background:#fbfcfa; text-decoration:none; font-weight:900; }}
+            .dgh-day.free {{ color:#45634f; border-color:#d9e7d6; background:#f1f7ee; }}
+            .dgh-day.request {{ color:#805a13; border-color:#ead79d; background:#fff6dc; }}
+            .dgh-day.confirmed {{ color:#1f6544; border-color:#b9d8c3; background:#e4f2e7; }}
             .dgh-day.today {{ box-shadow:inset 0 0 0 2px var(--admin-forest); }}
+            .dgh-day.selected {{ outline:3px solid #f0a928; outline-offset:2px; }}
             .dgh-day.empty {{ background:transparent; }}
+            .dgh-day-number {{ font-size:14px; }}
+            .dgh-day i {{ position:absolute; left:8px; bottom:8px; width:9px; height:9px; border-radius:50%; background:#83ad7d; }}
+            .dgh-day.request i {{ background:#e1aa31; }} .dgh-day.confirmed i {{ background:var(--admin-green); }}
+            .dgh-calendar-note {{ margin:13px 0 0; padding:11px 12px; border-radius:14px; color:var(--admin-muted); background:#f5f8f3; font-size:11px; line-height:1.45; }}
 
             .dgh-detail-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }}
             .dgh-detail-card,.dgh-mobile-card {{ padding:17px; border:1px solid var(--admin-line); border-radius:20px; background:#fffefa; }}
@@ -271,10 +293,9 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
             .dgh-mobile-card + .dgh-mobile-card {{ margin-top:12px; }}
             .dgh-mobile-head small {{ color:var(--admin-green); font-size:11px; font-weight:900; }}
 
-            @media (max-width:1180px) {{ .dgh-months {{ grid-template-columns:repeat(3,minmax(180px,1fr)); }} }}
             @media (max-width:1050px) {{ .dgh-layout {{ grid-template-columns:1fr; }} .dgh-form-card {{ position:static; }} }}
-            @media (max-width:820px) {{ .dgh-kpis {{ grid-template-columns:1fr 1fr; }} .dgh-months {{ grid-template-columns:repeat(2,minmax(150px,1fr)); }} .dgh-table {{ display:none; }} .dgh-mobile-list {{ display:block; }} }}
-            @media (max-width:540px) {{ .dgh-kpis {{ grid-template-columns:1fr; }} .dgh-months {{ grid-template-columns:1fr; }} .dgh-form-grid {{ grid-template-columns:1fr; }} .dgh-field.full {{ grid-column:auto; }} .dgh-detail-card dl div,.dgh-mobile-card dl div {{ grid-template-columns:1fr; gap:3px; }} .dgh-status-form {{ grid-template-columns:1fr; }} }}
+            @media (max-width:820px) {{ .dgh-kpis {{ grid-template-columns:1fr 1fr; }} .dgh-table {{ display:none; }} .dgh-mobile-list {{ display:block; }} }}
+            @media (max-width:540px) {{ .dgh-kpis {{ grid-template-columns:1fr; }} .dgh-calendar-top {{ align-items:flex-start; flex-direction:column; }} .dgh-calendar-nav {{ width:100%; justify-content:space-between; }} .dgh-calendar-nav .dgh-today-button {{ flex:1; }} .dgh-calendar-body {{ padding:14px 11px 17px; }} .dgh-legend {{ padding-left:12px; padding-right:12px; }} .dgh-weekdays,.dgh-month-grid {{ gap:4px; }} .dgh-day {{ min-height:49px; padding:6px; border-radius:11px; }} .dgh-day i {{ left:6px; bottom:6px; width:7px; height:7px; }} .dgh-day-number {{ font-size:12px; }} .dgh-form-grid {{ grid-template-columns:1fr; }} .dgh-field.full {{ grid-column:auto; }} .dgh-detail-card dl div,.dgh-mobile-card dl div {{ grid-template-columns:1fr; gap:3px; }} .dgh-status-form {{ grid-template-columns:1fr; }} }}
         </style>
     </head>
     <body>
@@ -296,10 +317,13 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                 <article class="dgh-kpi"><span>Bestätigte Termine</span><strong>{confirmed}</strong></article>
             </section>
 
-            <section class="box dgh-calendar-card">
-                <div class="dgh-section-heading"><div><span class="admin-eyebrow">Belegungsübersicht</span><h2>Kalender {heute.year}–{heute.year + 1}</h2></div></div>
+            <section class="box dgh-calendar-card" data-dgh-calendar data-initial-month="{initial_index}">
+                <div class="dgh-calendar-top">
+                    <div class="dgh-calendar-title"><span class="admin-eyebrow">Belegungsübersicht</span><h2 data-dgh-month-label aria-live="polite">{initial_label}</h2><p>Ein Monat auf einen Blick. Belegte Tage öffnen direkt die zugehörigen Vorgänge.</p></div>
+                    <div class="dgh-calendar-nav"><button type="button" data-dgh-prev aria-label="Vorheriger Monat">‹</button><button class="dgh-today-button" type="button" data-dgh-today>Heute</button><button type="button" data-dgh-next aria-label="Nächster Monat">›</button></div>
+                </div>
                 <div class="dgh-legend"><span><i class="free"></i>Frei</span><span><i class="request"></i>Anfrage</span><span><i class="confirmed"></i>Bestätigt</span></div>
-                {''.join(kalender_html)}
+                <div class="dgh-calendar-body">{''.join(kalender_html)}<p class="dgh-calendar-note">Der Kalender zeigt – wie auf der öffentlichen DGH-Seite – jeweils einen Monat. Mit den Pfeilen wechselst du durch die kommenden zwölf Monate.</p></div>
             </section>
 
             {detail_html}
@@ -328,6 +352,30 @@ def dgh_dashboard(bearbeiten_id=None, hinweis="", fehler="", tag=""):
                 </section>
             </div>
         </main>
+        <script>
+        (() => {{
+            const root = document.querySelector('[data-dgh-calendar]');
+            if (!root) return;
+            const panels = [...root.querySelectorAll('[data-dgh-month]')];
+            const label = root.querySelector('[data-dgh-month-label]');
+            const previous = root.querySelector('[data-dgh-prev]');
+            const next = root.querySelector('[data-dgh-next]');
+            const todayButton = root.querySelector('[data-dgh-today]');
+            const initial = Number.parseInt(root.dataset.initialMonth || '0', 10) || 0;
+            let index = 0;
+            const show = value => {{
+                index = Math.max(0, Math.min(value, panels.length - 1));
+                panels.forEach((panel, position) => {{ panel.hidden = position !== index; }});
+                if (label) label.textContent = panels[index]?.dataset.label || '';
+                if (previous) previous.disabled = index === 0;
+                if (next) next.disabled = index === panels.length - 1;
+            }};
+            previous?.addEventListener('click', () => show(index - 1));
+            next?.addEventListener('click', () => show(index + 1));
+            todayButton?.addEventListener('click', () => show(0));
+            show(initial);
+        }})();
+        </script>
     </body>
     </html>
     """

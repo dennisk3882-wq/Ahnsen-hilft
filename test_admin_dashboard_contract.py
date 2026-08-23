@@ -135,6 +135,16 @@ class AdminDashboardContractTests(unittest.TestCase):
         self.assertIn("from intern_ui import admin_page as _page", governance)
         self.assertIn("from intern_ui import admin_page", compliance)
 
+    def test_dgh_dashboard_uses_compact_month_navigation(self):
+        dashboard = source("dgh_dashboard.py")
+        self.assertIn("data-dgh-calendar", dashboard)
+        self.assertIn("data-dgh-month-label", dashboard)
+        self.assertIn("data-dgh-prev", dashboard)
+        self.assertIn("data-dgh-next", dashboard)
+        self.assertIn("for index in range(12)", dashboard)
+        self.assertIn("panel.hidden = position !== index", dashboard)
+        self.assertNotIn("dgh-months", dashboard)
+
     def test_cockpit_prioritizes_operations_and_reports_are_printable(self):
         crud = source("community_crud.py")
         dashboard = source("community_dashboard.py")
