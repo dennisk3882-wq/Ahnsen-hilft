@@ -1,5 +1,7 @@
 from html import escape
+from fastapi.responses import HTMLResponse
 from platform_runtime import get_platform_snapshot
+from admin_access import current_admin, visible_navigation
 
 
 _ICONS = {
@@ -46,34 +48,14 @@ def intern_nav(active=""):
     if active == "start":
         active = "maengel"
 
-    eintraege = [
-        ("cockpit", "cockpit", "/intern/cockpit", "Cockpit"),
-        ("maengel", "maengel", "/intern/maengel", "Mängel"),
-        ("veranstaltungen", "veranstaltungen", "/intern/veranstaltungen", "Termine"),
-        ("dgh", "dgh", "/intern/dgh", "DGH"),
-        ("muell", "muell", "/intern/muelltermine", "Müllabfuhr"),
-        ("gemeindeseite", "gemeindeseite", "/intern/gemeindeseite", "Inhalte"),
-        ("warnungen", "warnungen", "/intern/warnungen", "Warnlage"),
-        ("push", "push", "/intern/push", "Push"),
-        ("nachrichten", "nachrichten", "/intern/nachrichten", "Nachrichten"),
-        ("ideen", "ideen", "/intern/ideen", "Beteiligung"),
-        ("nachbarschaft", "ideen", "/intern/nachbarschaft", "Nachbarschaft"),
-        ("politik", "gemeindeseite", "/intern/politik", "Politik & Rat"),
-        ("berichte", "berichte", "/intern/berichte", "Berichte"),
-        ("audit", "berichte", "/intern/audit", "Audit"),
-        ("versionen", "gemeindeseite", "/intern/inhalte/versionen", "Versionen"),
-        ("benutzer", "system", "/intern/benutzer", "Zugänge"),
-        ("sicherung", "system", "/intern/sicherung", "Sicherung"),
-        ("plattform", "system", "/intern/plattform", "Plattform"),
-        ("compliance", "system", "/intern/freigabe", "Freigabe"),
-        ("system", "system", "/intern/system", "System"),
-    ]
+    admin = current_admin()
+    eintraege = visible_navigation(admin.get("role", "read_only"))
 
     links = []
     mobile_links = []
     menu_links = []
     mobile_keys = {"cockpit", "maengel", "dgh", "nachrichten", "warnungen"}
-    for key, icon_name, href, label in eintraege:
+    for key, icon_name, href, label, _permission in eintraege:
         klasse = " active" if key == active else ""
         current = ' aria-current="page"' if key == active else ""
         links.append(
@@ -856,3 +838,30 @@ def intern_nav_css():
         .internal-preview-link { display:none !important; }
     }
     """
+
+
+ADMIN_COMPONENT_CSS = """
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.admin-card{padding:18px;border:1px solid var(--admin-line);border-radius:20px;background:var(--admin-paper);box-shadow:var(--admin-shadow-soft)}
+.admin-card h2,.admin-card h3{margin:0 0 8px}.admin-card p{color:var(--admin-muted);line-height:1.5}
+.metric strong{display:block;font-size:34px;color:var(--admin-forest)}.metric span{color:var(--admin-muted);font-size:12px;font-weight:800}
+.admin-section{margin-top:18px;padding:20px;border:1px solid var(--admin-line);border-radius:22px;background:rgba(255,254,250,.95);box-shadow:var(--admin-shadow-soft)}
+.admin-list{display:grid;gap:9px}.admin-row{padding:13px;border:1px solid var(--admin-line);border-radius:15px;background:#fff}
+.admin-row small{color:var(--admin-muted)}.admin-row form{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.admin-form{display:grid;gap:12px}.admin-form input,.admin-form textarea,.admin-form select{width:100%;padding:11px 12px;border:1px solid var(--admin-line);border-radius:12px;background:#fff;font:inherit}
+.admin-form textarea{min-height:110px}.admin-button{border:0;border-radius:12px;padding:10px 14px;background:var(--admin-forest);color:#fff;font-weight:850;cursor:pointer}
+.admin-button.secondary{border:1px solid var(--admin-line);background:#fff;color:var(--admin-forest)}
+.admin-search{display:flex;gap:8px}.admin-search input{flex:1}.admin-table{width:100%;border-collapse:collapse}
+.admin-table th,.admin-table td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--admin-line);vertical-align:top}
+.admin-table th{font-size:11px;text-transform:uppercase;color:var(--admin-muted)}
+.status-chip{display:inline-flex;padding:5px 8px;border-radius:999px;background:#edf3e9;color:var(--admin-forest);font-size:11px;font-weight:850}
+.json-box{white-space:pre-wrap;padding:12px;border-radius:14px;background:#f5f7f1;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+@media(max-width:720px){.admin-table{display:block;overflow:auto}.admin-search{display:grid}}
+"""
+
+
+def admin_page(title: str, active: str, body: str, *, extra_css: str = "", extra_head: str = "") -> HTMLResponse:
+    """Render the single shared shell for every internal administration page."""
+    platform_name = get_platform_snapshot()["platform_name"]
+    html = f"""<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(title)} · {escape(platform_name)} Verwaltung</title>{extra_head}<style>{intern_nav_css()}{ADMIN_COMPONENT_CSS}{extra_css}</style></head><body><div class="container">{intern_nav(active)}{body}</div></body></html>"""
+    return HTMLResponse(html)

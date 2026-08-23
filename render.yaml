@@ -1,12 +1,20 @@
 services:
   - type: web
-    name: ahnsen-hilft
+    name: ahnsen-digital
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn pwa_main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PWA_SESSION_SECRET
         generateValue: true
+      - key: AUDIT_SIGNING_SECRET
+        generateValue: true
+      - key: AUDIT_RETENTION_DAYS
+        value: "730"
+      - key: BACKUP_ENCRYPTION_KEY
+        generateValue: true
+      - key: BACKUP_RETENTION_DAYS
+        value: "30"
       - key: VAPID_PUBLIC_KEY
         sync: false
       - key: VAPID_PRIVATE_KEY

@@ -53,4 +53,8 @@ class ContentRevision(Base):
     title = Column(String(200), default="", nullable=False)
     payload_json = Column(Text, default="{}", nullable=False)
     actor = Column(String(120), default="Verwaltung", nullable=False)
+    reviewed_by = Column(String(120), default="", nullable=False)
+    reviewed_at = Column(DateTime, nullable=True)
+    applied_at = Column(DateTime, nullable=True)
+    source_revision_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

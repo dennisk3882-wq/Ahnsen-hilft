@@ -17,7 +17,7 @@ from database import Base, SessionLocal, engine
 from pwa_models import PWAUser, PushSubscription
 from push_service import VAPID_SUBJECT, push_configured
 from warning_service import get_warning_stats, init_warning_db, probe_warning_sources
-from operations import SchemaMigration
+from operations import SchemaMigration, scheduled_backup_status
 from governance_models import AdminUser
 
 
@@ -29,7 +29,7 @@ GEOCODER_REVERSE_URL = os.getenv(
 ).strip()
 GEOCODER_USER_AGENT = os.getenv(
     "GEOCODER_USER_AGENT",
-    "Ahnsen-hilft/1.0 (+https://ahnsen-hilft.onrender.com)",
+    "Ahnsen-digital/1.0 (+https://ahnsen-digital.onrender.com)",
 ).strip()
 
 
@@ -526,13 +526,25 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
     add("admin_accounts", "Verwaltungskonten & 2FA", "Sicherheit & Betrieb", check_admin_accounts)
 
     def check_backup_freshness():
+        scheduled = scheduled_backup_status()
+        if scheduled.get("configured") and scheduled.get("latest_mtime"):
+            try:
+                latest = datetime.fromisoformat(str(scheduled["latest_mtime"]).replace("Z", "+00:00")).replace(tzinfo=None)
+                age_days = max(0, (datetime.utcnow() - latest).days)
+                if age_days <= 1:
+                    return "ok", f"Automatische verschlüsselte Sicherung aktuell: {scheduled['latest']}."
+                if age_days <= 2:
+                    return "warn", f"Automatische Sicherung ist {age_days} Tage alt: {scheduled['latest']}."
+                return "error", f"Automatische Sicherung ist bereits {age_days} Tage alt."
+            except ValueError:
+                pass
         db = SessionLocal()
         try:
             item = db.query(AuditLog).filter(AuditLog.action == "Gesamtsicherung heruntergeladen").order_by(AuditLog.erstellt_am.desc()).first()
         finally:
             db.close()
         if not item or not item.erstellt_am:
-            return "warn", "Noch keine heruntergeladene Gesamtsicherung im Audit-Protokoll gefunden."
+            return "warn", "Automatische Sicherung ist nicht konfiguriert und es wurde noch keine manuelle Gesamtsicherung protokolliert."
         age_days = max(0, (datetime.utcnow() - item.erstellt_am).days)
         if age_days > 14:
             return "error", f"Die letzte dokumentierte Gesamtsicherung ist {age_days} Tage alt."

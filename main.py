@@ -75,6 +75,8 @@ from homepage_import import lade_alte_homepage_inhalte
 from veranstaltungen_crud import get_veranstaltung
 from push_service import send_category_notification
 from governance import authenticate_admin, has_permission, init_governance_db, record_admin_login, save_content_revision, verify_admin_second_factor
+from admin_access import required_permission, requires_two_factor, set_current_admin
+from admin_content import content_approval_available
 from operations import get_asset, run_migrations, save_asset
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -171,29 +173,16 @@ def check_dashboard_login(request: Request):
 
     context = _session_context(request)
     path = request.url.path
-    required = "read"
-    for prefix, permission in (
-        ("/intern/benutzer", "admin"), ("/intern/sicherung", "backup"),
-        ("/intern/system", "system"), ("/intern/freigabe", "compliance"),
-        ("/intern/audit", "audit"), ("/intern/berichte", "reports"),
-        ("/intern/politik", "politics"), ("/intern/ideen", "moderation"),
-        ("/intern/cockpit", "read"),
-        ("/intern/maengel", "cases"), ("/status", "cases"), ("/notiz", "cases"),
-        ("/intern/meldung", "cases"),
-        ("/intern/veranstaltungen", "events"), ("/veranstaltungen/", "events"),
-        ("/intern/dgh", "dgh"), ("/dgh/", "dgh"),
-        ("/intern/muelltermine", "waste"), ("/muelltermine/", "waste"),
-        ("/intern/nachbarschaft", "moderation"), ("/intern/warnungen", "warnings"),
-        ("/intern/push", "push"), ("/intern/nachrichten", "messages"),
-        ("/intern/gemeindeseite", "content"), ("/gemeindeseite", "content"),
-        ("/intern/inhalte", "content"), ("/intern/plattform", "content"),
-    ):
-        if path.startswith(prefix):
-            required = permission; break
-    if not has_permission(context["role"], required):
+    set_current_admin(context)
+    if requires_two_factor(context["role"]):
+        from governance import get_admin
+        account = get_admin(context["username"])
+        setup_paths = {"/intern/2fa/einrichten", "/intern/2fa/bestaetigen", "/logout"}
+        if account and not account.totp_enabled and path not in setup_paths:
+            raise HTTPException(status_code=303, headers={"Location": "/intern/2fa/einrichten"})
+    required = required_permission(path)
+    if not has_permission(context["role"], required, method=request.method):
         raise HTTPException(status_code=403, detail="Deine Verwaltungsrolle darf diesen Bereich nur eingeschränkt verwenden.")
-    if context["role"] == "read_only" and request.method not in {"GET", "HEAD"}:
-        raise HTTPException(status_code=403, detail="Dieses Konto besitzt nur Leserechte.")
     request.state.admin = context
     return context
 
@@ -528,7 +517,8 @@ async def login(
 
     record_admin_login(admin.username)
 
-    response = RedirectResponse(url="/", status_code=303)
+    destination = "/intern/2fa/einrichten" if requires_two_factor(admin.role) and not admin.totp_enabled else "/"
+    response = RedirectResponse(url=destination, status_code=303)
     response.set_cookie(
         key=SESSION_COOKIE,
         value=_neue_session(admin.username, admin.role, int(admin.session_version or 1)),
@@ -1094,13 +1084,19 @@ async def gemeindeseite_speichern(
 ):
     form = await request.form()
     values = dict(form)
-    update_gemeinde_einstellungen(values)
-    save_content_revision("gemeindeseite", "standard", "Freigegeben", "Gemeindeseite", values, admin["display_name"])
     from community_crud import audit_event
-    audit_event(admin["username"], "Gemeindeseite gespeichert", "content", "standard")
+    if content_approval_available(admin["username"]):
+        revision = save_content_revision("gemeindeseite", "standard", "Prüfung", "Gemeindeseite", values, admin["username"])
+        audit_event(admin["username"], "Gemeindeseite zur Prüfung eingereicht", "content_revision", str(revision.id))
+        message = "Änderungen wurden gespeichert und warten auf Freigabe durch ein zweites berechtigtes Konto."
+    else:
+        update_gemeinde_einstellungen(values)
+        save_content_revision("gemeindeseite", "standard", "Freigegeben", "Gemeindeseite", values, admin["username"])
+        audit_event(admin["username"], "Gemeindeseite gespeichert (Einzelbetrieb)", "content", "standard")
+        message = "Gemeindeseite wurde gespeichert. Für ein Vier-Augen-Verfahren wird ein zweites Inhaltskonto benötigt."
 
     return RedirectResponse(
-        url="/intern/gemeindeseite?hinweis=Gemeindeseite%20wurde%20gespeichert.",
+        url="/intern/gemeindeseite?hinweis=" + quote(message),
         status_code=303,
     )
 

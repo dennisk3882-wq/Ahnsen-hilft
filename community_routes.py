@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+import csv
+import io
+import json
+from datetime import datetime, timedelta
 from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
@@ -20,6 +23,7 @@ from community_crud import (
     generate_monthly_report,
     get_all_users,
     get_audit_logs,
+    audit_filter_options,
     get_civic_items,
     get_idea,
     get_ideas,
@@ -37,6 +41,7 @@ from community_crud import (
     update_municipality_config,
     update_neighbor_status,
     user_supports_idea,
+    verify_audit_chain,
 )
 from community_dashboard import (
     admin_ideas_page,
@@ -64,6 +69,9 @@ from crud import suche_meldungen
 from dgh_crud import get_alle_dgh_termine
 from gemeinde_crud import set_gemeinde_einstellung
 from platform_runtime import get_platform_snapshot
+from admin_access import can_access
+from admin_content import apply_platform_payload, content_approval_available, normalize_platform_payload
+from governance import save_content_revision
 from ratsinfo_service import get_ratsinfo_snapshot
 from ratsarchive_service import (
     MAX_PDF_BYTES,
@@ -382,29 +390,35 @@ async def admin_cockpit(request: Request):
 
 @router.get("/intern/suche")
 async def admin_global_search(request: Request, q: str = ""):
-    _admin(request)
+    admin = _admin(request)
+    role = admin["role"]
     query = _clean(q, 120)
     results: list[dict] = []
     if len(query) >= 2:
         needle = query.casefold()
-        for item in suche_meldungen(query)[:30]:
-            results.append({"kind": "Mangel", "title": f"{item.ticket} · {item.art}", "detail": f"{item.ort} · {item.status}", "url": f"/intern/meldung/{quote(item.ticket)}"})
-        for user in get_all_users()[:300]:
-            if needle in f"{user.name} {user.email} {user.telefon}".casefold():
-                results.append({"kind": "Bürgerkonto", "title": user.name, "detail": user.email, "url": "/intern/nachrichten"})
-        for row in get_ideas(include_inactive=True):
-            idea = row["idea"]
-            if needle in f"{idea.title} {idea.description} {idea.category}".casefold():
-                results.append({"kind": "Idee", "title": idea.title, "detail": f"{idea.category} · {idea.status}", "url": "/intern/ideen"})
-        for post, _user_item in get_neighbor_posts(admin=True):
-            if needle in f"{post.title} {post.description} {post.category}".casefold():
-                results.append({"kind": "Nachbarschaft", "title": post.title, "detail": f"{post.category} · {post.status}", "url": "/intern/nachbarschaft"})
-        for event in get_aktive_veranstaltungen():
-            if needle in f"{event.titel} {event.beschreibung} {event.ort} {event.datum}".casefold():
-                results.append({"kind": "Veranstaltung", "title": event.titel, "detail": f"{event.datum} · {event.ort}", "url": "/intern/veranstaltungen"})
-        for term in get_alle_dgh_termine():
-            if needle in f"{term.anlass} {term.name} {term.datum} {term.status}".casefold():
-                results.append({"kind": "DGH", "title": term.anlass or "DGH-Termin", "detail": f"{term.datum} · {term.status}", "url": "/intern/dgh"})
+        if can_access(role, "cases"):
+            for item in suche_meldungen(query)[:30]:
+                results.append({"kind": "Mangel", "title": f"{item.ticket} · {item.art}", "detail": f"{item.ort} · {item.status}", "url": f"/intern/meldung/{quote(item.ticket)}"})
+        if can_access(role, "messages"):
+            for user in get_all_users()[:300]:
+                if needle in f"{user.name} {user.email} {user.telefon}".casefold():
+                    results.append({"kind": "Bürgerkonto", "title": user.name, "detail": user.email, "url": "/intern/nachrichten"})
+        if can_access(role, "moderation"):
+            for row in get_ideas(include_inactive=True):
+                idea = row["idea"]
+                if needle in f"{idea.title} {idea.description} {idea.category}".casefold():
+                    results.append({"kind": "Idee", "title": idea.title, "detail": f"{idea.category} · {idea.status}", "url": "/intern/ideen"})
+            for post, _user_item in get_neighbor_posts(admin=True):
+                if needle in f"{post.title} {post.description} {post.category}".casefold():
+                    results.append({"kind": "Nachbarschaft", "title": post.title, "detail": f"{post.category} · {post.status}", "url": "/intern/nachbarschaft"})
+        if can_access(role, "events"):
+            for event in get_aktive_veranstaltungen():
+                if needle in f"{event.titel} {event.beschreibung} {event.ort} {event.datum}".casefold():
+                    results.append({"kind": "Veranstaltung", "title": event.titel, "detail": f"{event.datum} · {event.ort}", "url": "/intern/veranstaltungen"})
+        if can_access(role, "dgh"):
+            for term in get_alle_dgh_termine():
+                if needle in f"{term.anlass} {term.name} {term.datum} {term.status}".casefold():
+                    results.append({"kind": "DGH", "title": term.anlass or "DGH-Termin", "detail": f"{term.datum} · {term.status}", "url": "/intern/dgh"})
     return admin_global_search_page(query, results[:100])
 
 
@@ -633,17 +647,40 @@ async def admin_create_politics(request: Request):
 
 
 @router.get("/intern/audit")
-async def admin_audit(request: Request, q: str = ""):
+async def admin_audit(request: Request, q: str = "", actor: str = "", action: str = "", object_type: str = "", von: str = "", bis: str = ""):
     _admin(request)
     query = _clean(q, 120)
-    return audit_page(get_audit_logs(query), query)
+    clean_actor, clean_action, clean_type = _clean(actor, 120), _clean(action, 120), _clean(object_type, 80)
+    try: date_from = datetime.fromisoformat(von) if von else None
+    except ValueError: date_from = None
+    try: date_to = datetime.fromisoformat(bis) + timedelta(days=1) if bis else None
+    except ValueError: date_to = None
+    filters = {"q": query, "actor": clean_actor, "action": clean_action, "object_type": clean_type, "von": von, "bis": bis}
+    logs = get_audit_logs(query, 500, actor=clean_actor, action=clean_action, object_type=clean_type, date_from=date_from, date_to=date_to)
+    return audit_page(logs, filters, audit_filter_options(), verify_audit_chain())
+
+
+@router.get("/intern/audit/export.csv")
+async def admin_audit_export(request: Request, q: str = "", actor: str = "", action: str = "", object_type: str = "", von: str = "", bis: str = ""):
+    admin = _admin(request)
+    try: date_from = datetime.fromisoformat(von) if von else None
+    except ValueError: date_from = None
+    try: date_to = datetime.fromisoformat(bis) + timedelta(days=1) if bis else None
+    except ValueError: date_to = None
+    logs = get_audit_logs(_clean(q,120), 5000, actor=_clean(actor,120), action=_clean(action,120), object_type=_clean(object_type,80), date_from=date_from, date_to=date_to)
+    output = io.StringIO(); writer = csv.writer(output, delimiter=";")
+    writer.writerow(["Zeit", "Akteur", "Aktion", "Objekttyp", "Objekt-ID", "Detail", "Prüfsumme"])
+    for item in logs:
+        writer.writerow([item.erstellt_am.isoformat() if item.erstellt_am else "", item.actor, item.action, item.object_type, item.object_id, item.detail, item.entry_hash])
+    audit_event(admin["username"], "Audit-Protokoll exportiert", "audit", "csv", f"{len(logs)} Einträge")
+    return Response(output.getvalue().encode("utf-8-sig"), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="ahnsen-audit.csv"', "Cache-Control": "no-store"})
 
 
 @router.get("/intern/berichte")
-async def admin_reports(request: Request, q: str = ""):
+async def admin_reports(request: Request, q: str = "", hinweis: str = ""):
     _admin(request)
     query = _clean(q, 120)
-    return reports_page(get_reports(query), query)
+    return reports_page(get_reports(query), query, message=hinweis)
 
 
 @router.post("/intern/berichte/erstellen")
@@ -651,7 +688,10 @@ async def admin_generate_report(request: Request):
     admin = _admin(request)
     form = await request.form()
     period_key = _clean(form.get("period_key"), 40) or None
-    report = generate_monthly_report(period_key)
+    try:
+        report = generate_monthly_report(period_key)
+    except ValueError as error:
+        return RedirectResponse(url="/intern/berichte?hinweis=" + quote(str(error)), status_code=303)
     audit_event(admin["username"], "Digitalbericht erzeugt", "report", str(report.id), report.title)
     return RedirectResponse(url="/intern/berichte", status_code=303)
 
@@ -665,63 +705,46 @@ async def admin_report_print(request: Request, report_id: int):
     return report_print_page(report)
 
 
+@router.get("/intern/berichte/{report_id}/export.csv")
+async def admin_report_csv(request: Request, report_id: int):
+    admin = _admin(request)
+    report = get_report(report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Bericht nicht gefunden")
+    try:
+        payload = json.loads(report.body or "{}")
+    except Exception:
+        payload = {}
+    output = io.StringIO(); writer = csv.writer(output, delimiter=";")
+    writer.writerow(["Kennzahl", "Wert", "Veränderung zum Vormonat"])
+    comparison = payload.get("comparison") or {}
+    for key, value in payload.items():
+        if key in {"comparison", "generated_at"} or isinstance(value, (dict, list)):
+            continue
+        writer.writerow([key, value, comparison.get(key, "")])
+    audit_event(admin["username"], "Digitalbericht als CSV exportiert", "report", str(report.id), report.period_key)
+    filename = f"digitalbericht-{report.period_key}.csv"
+    return Response(output.getvalue().encode("utf-8-sig"), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"})
+
+
 @router.get("/intern/plattform")
-async def admin_platform(request: Request):
+async def admin_platform(request: Request, hinweis: str = ""):
     _admin(request)
-    return platform_settings_page(get_platform_snapshot())
+    return platform_settings_page(get_platform_snapshot(), message=hinweis)
 
 
 @router.post("/intern/plattform")
 async def admin_platform_save(request: Request):
     admin = _admin(request)
     form = await request.form()
-    values = {field: _clean(form.get(field), limit) for field, limit in (
-        ("platform_name", 120), ("municipality_name", 120), ("claim", 180),
-        ("postal_code", 20), ("primary_color", 20), ("accent_color", 20),
-        ("warning_terms", 500),
-    )}
-    config = update_municipality_config(values)
-    extras = {
-        "plattform_kurzname": _clean(form.get("short_name"), 30),
-        "plattform_beschreibung": _clean(form.get("description"), 300),
-        "standard_sprache": _clean(form.get("default_language"), 10),
-        "plattform_sprachen": _clean(form.get("languages"), 300),
-        "zeitzone": _clean(form.get("timezone"), 80),
-        "plattform_basis_url": _clean(form.get("public_base_url"), 500),
-        "plattform_slug": _clean(form.get("platform_slug"), 80),
-        "pwa_icon_192_url": _clean(form.get("pwa_icon_192_url"), 1000),
-        "pwa_icon_512_url": _clean(form.get("pwa_icon_512_url"), 1000),
-        "apple_touch_icon_url": _clean(form.get("apple_touch_icon_url"), 1000),
-        "ticket_prefix": _clean(form.get("ticket_prefix"), 8),
-        "karten_mittelpunkt_lat": _clean(form.get("map_lat"), 30),
-        "karten_mittelpunkt_lon": _clean(form.get("map_lon"), 30),
-        "karten_zoom": _clean(form.get("map_zoom"), 3),
-        "warnung_ortsname": _clean(form.get("warning_location_name"), 160),
-        "warnung_bereich": _clean(form.get("warning_area_label"), 240),
-        "warnung_suchbegriffe": _clean(form.get("warning_terms"), 500),
-        "bbk_mowas_rss_url": _clean(form.get("bbk_mowas_rss_url"), 1000),
-        "dwd_cap_index_url": _clean(form.get("dwd_cap_index_url"), 1000),
-        "uebersetzung_aktiv": "ja" if _clean(form.get("translation_enabled"), 10) == "ja" else "nein",
-        "uebersetzung_api_url": _clean(form.get("translation_api_url"), 1000),
-        "uebersetzung_fallback_url": _clean(form.get("translation_fallback_url"), 1000),
-        "geschichte_modus": _clean(form.get("history_mode"), 20),
-        "logo_bild_url": _clean(form.get("logo_url"), 1000),
-        "hero_bild_url": _clean(form.get("hero_image_url"), 1000),
-        "kontakt_name": _clean(form.get("contact_name"), 180),
-        "kontakt_adresse": _clean(form.get("contact_address"), 500),
-        "kontakt_email": _clean(form.get("contact_email"), 180),
-        "kontakt_telefon": _clean(form.get("contact_phone"), 80),
-        "externe_website_url": _clean(form.get("website_url"), 1000),
-        "footer_datenschutz_url": _clean(form.get("privacy_url"), 1000),
-        "footer_impressum_url": _clean(form.get("imprint_url"), 1000),
-    }
-    extras.update({
-        "seiten_titel": config.platform_name,
-        "logo_text": config.platform_name,
-        "hauptfarbe": config.primary_color,
-        "akzentfarbe": config.accent_color,
-    })
-    for key, value in extras.items():
-        set_gemeinde_einstellung(key, value)
-    audit_event(admin["username"], "Plattform-Konfiguration geändert", "municipality_config", str(config.id), config.platform_name)
-    return RedirectResponse(url="/intern/plattform?hinweis=" + quote("White-Label-Konfiguration gespeichert."), status_code=303)
+    payload = normalize_platform_payload(dict(form))
+    if content_approval_available(admin["username"]):
+        revision = save_content_revision("plattform", "standard", "Prüfung", payload.get("platform_name") or "Plattform-Konfiguration", payload, admin["username"])
+        audit_event(admin["username"], "Plattform-Konfiguration zur Prüfung eingereicht", "content_revision", str(revision.id), revision.title)
+        message = "Änderungen wurden als Version gespeichert und warten auf Freigabe durch ein zweites berechtigtes Konto."
+    else:
+        config = apply_platform_payload(payload)
+        revision = save_content_revision("plattform", "standard", "Freigegeben", config.platform_name, payload, admin["username"])
+        audit_event(admin["username"], "Plattform-Konfiguration geändert (Einzelbetrieb)", "municipality_config", str(config.id), config.platform_name)
+        message = "White-Label-Konfiguration gespeichert. Für ein Vier-Augen-Verfahren wird ein zweites Inhaltskonto benötigt."
+    return RedirectResponse(url="/intern/plattform?hinweis=" + quote(message), status_code=303)

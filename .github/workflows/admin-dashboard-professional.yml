@@ -20,7 +20,7 @@ jobs:
         run: |
           python -m py_compile \
             main.py pwa_core.py community_routes.py community_dashboard.py neighborhood_enhanced_patch.py \
-            governance.py governance_routes.py intern_ui.py system_diagnostics.py \
+            admin_access.py admin_content.py governance.py governance_routes.py intern_ui.py system_diagnostics.py operations.py background_scheduler.py \
             dashboard.py veranstaltungen_dashboard.py dgh_dashboard.py \
             muelltermine_crud.py muelltermine_dashboard.py
       - name: Run repository contract tests

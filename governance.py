@@ -17,29 +17,7 @@ from database import Base, SessionLocal, engine
 from governance_models import AdminUser, CaseHistory, ContentRevision
 from models import Meldung
 from pwa_crud import hash_password, verify_password
-
-
-ROLES = {
-    "superadmin": "Vollzugriff",
-    "municipality": "Gemeindeverwaltung",
-    "mayor": "Bürgermeister",
-    "public_works": "Bauhof",
-    "fire_service": "Feuerwehr",
-    "event_editor": "Veranstaltungsredaktion",
-    "club_editor": "Vereinsredaktion",
-    "read_only": "Nur lesen",
-}
-
-ROLE_PERMISSIONS = {
-    "superadmin": {"*"},
-    "municipality": {"cases", "content", "dgh", "waste", "events", "clubs", "warnings", "push", "messages", "moderation", "politics", "reports", "audit", "compliance", "system", "read"},
-    "mayor": {"cases", "content", "messages", "moderation", "politics", "reports", "audit", "compliance", "read"},
-    "public_works": {"cases", "read"},
-    "fire_service": {"warnings", "content", "read"},
-    "event_editor": {"events", "content", "read"},
-    "club_editor": {"clubs", "content", "read"},
-    "read_only": {"read"},
-}
+from admin_access import ROLES, ROLE_PERMISSIONS, can_access
 
 
 def init_governance_db() -> None:
@@ -83,9 +61,8 @@ def authenticate_admin(username: str, password: str) -> AdminUser | None:
     return user if user and verify_password(password, user.password_hash) else None
 
 
-def has_permission(role: str, permission: str) -> bool:
-    permissions = ROLE_PERMISSIONS.get(role, set())
-    return "*" in permissions or permission in permissions or (permission == "read" and bool(permissions))
+def has_permission(role: str, permission: str, *, method: str = "GET") -> bool:
+    return can_access(role, permission, method=method)
 
 
 def new_totp_secret() -> str:
@@ -183,6 +160,8 @@ def begin_admin_totp(username: str) -> str:
         item = db.query(AdminUser).filter(AdminUser.username == username).first()
         if not item:
             return ""
+        if item.totp_pending_secret:
+            return item.totp_pending_secret
         item.totp_pending_secret = new_totp_secret()
         item.updated_at = datetime.utcnow(); db.commit(); db.refresh(item)
         return item.totp_pending_secret
@@ -290,7 +269,57 @@ def save_content_revision(area: str, object_id: str, state: str, title: str, pay
     db = SessionLocal()
     try:
         latest = db.query(ContentRevision).filter(ContentRevision.area == area, ContentRevision.object_id == object_id).order_by(ContentRevision.version.desc()).first()
-        item = ContentRevision(area=area[:80], object_id=object_id[:120], version=(latest.version + 1 if latest else 1), state=state if state in {"Entwurf", "Prüfung", "Freigegeben", "Archiviert"} else "Entwurf", title=title[:200], payload_json=json.dumps(payload, ensure_ascii=False), actor=actor[:120])
+        now = datetime.utcnow()
+        selected_state = state if state in {"Entwurf", "Prüfung", "Freigegeben", "Archiviert"} else "Entwurf"
+        item = ContentRevision(area=area[:80], object_id=object_id[:120], version=(latest.version + 1 if latest else 1), state=selected_state, title=title[:200], payload_json=json.dumps(payload, ensure_ascii=False), actor=actor[:120], reviewed_by=actor[:120] if selected_state == "Freigegeben" else "", reviewed_at=now if selected_state == "Freigegeben" else None, applied_at=now if selected_state == "Freigegeben" else None)
         db.add(item); db.commit(); db.refresh(item); return item
+    finally:
+        db.close()
+
+
+def get_content_revision(revision_id: int) -> ContentRevision | None:
+    db = SessionLocal()
+    try:
+        return db.query(ContentRevision).filter(ContentRevision.id == int(revision_id)).first()
+    finally:
+        db.close()
+
+
+def review_content_revision(revision_id: int, reviewer: str, *, approve: bool) -> ContentRevision:
+    db = SessionLocal()
+    try:
+        item = db.query(ContentRevision).filter(ContentRevision.id == int(revision_id)).with_for_update().first()
+        if not item:
+            raise ValueError("Inhaltsversion wurde nicht gefunden.")
+        if item.state != "Prüfung":
+            raise ValueError("Nur Versionen im Status Prüfung können entschieden werden.")
+        if str(item.actor).casefold() == str(reviewer).casefold():
+            raise ValueError("Erstellung und Freigabe müssen durch zwei unterschiedliche Konten erfolgen.")
+        payload = json.loads(item.payload_json or "{}")
+        if approve:
+            from admin_content import apply_content_payload
+            apply_content_payload(item.area, payload)
+            item.state = "Freigegeben"
+            item.applied_at = datetime.utcnow()
+        else:
+            item.state = "Archiviert"
+        item.reviewed_by = reviewer[:120]
+        item.reviewed_at = datetime.utcnow()
+        db.commit(); db.refresh(item); return item
+    finally:
+        db.close()
+
+
+def create_restore_revision(source_id: int, actor: str) -> ContentRevision:
+    source = get_content_revision(source_id)
+    if not source or source.state != "Freigegeben":
+        raise ValueError("Nur eine freigegebene Version kann wiederhergestellt werden.")
+    payload = json.loads(source.payload_json or "{}")
+    item = save_content_revision(source.area, source.object_id, "Prüfung", f"Wiederherstellung: {source.title}", payload, actor)
+    db = SessionLocal()
+    try:
+        stored = db.query(ContentRevision).filter(ContentRevision.id == item.id).first()
+        stored.source_revision_id = source.id
+        db.commit(); db.refresh(stored); return stored
     finally:
         db.close()

@@ -131,6 +131,7 @@ def get_platform_snapshot() -> dict:
         "map_lat": _float(settings.get("karten_mittelpunkt_lat"), 52.258),
         "map_lon": _float(settings.get("karten_mittelpunkt_lon"), 9.099),
         "map_zoom": _int(settings.get("karten_zoom"), 15, 8, 19),
+        "report_sla_days": _int(settings.get("maengel_sla_tage"), 14, 1, 365),
         "warning_terms": warning_terms,
         "warning_location_name": warning_location,
         "warning_area_label": warning_area,

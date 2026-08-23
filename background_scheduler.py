@@ -26,12 +26,18 @@ def _run_forever() -> None:
         started = time.monotonic()
         try:
             run()
+            from operations import run_scheduled_backup
+            from community_crud import ensure_previous_month_report
+            backup = run_scheduled_backup()
+            monthly_report = ensure_previous_month_report()
             record_system_event(
                 "background_scheduler",
                 "ok",
                 "Push-, Warn- und Erinnerungsaufgaben wurden ausgeführt.",
-                {"finished_at": datetime.now(timezone.utc).isoformat()},
+                {"finished_at": datetime.now(timezone.utc).isoformat(), "backup": backup, "monthly_report": monthly_report.period_key},
             )
+            if backup.get("status") == "created":
+                record_system_event("automatic_backup", "ok", "Verschlüsselte automatische Datensicherung erstellt.", backup)
         except Exception as error:
             record_system_event(
                 "background_scheduler",

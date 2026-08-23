@@ -106,6 +106,7 @@ from system_diagnostics import (
     run_system_checks,
 )
 from governance import authenticate_admin, init_governance_db, record_admin_login, verify_admin_second_factor
+from admin_access import requires_two_factor, set_current_admin
 from background_scheduler import start_background_scheduler
 from operations import run_migrations
 from operations import consume_rate_limit
@@ -143,6 +144,7 @@ app = FastAPI(
 
 @app.middleware("http")
 async def browser_security(request: Request, call_next):
+    set_current_admin(None)
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = str(request.headers.get("origin") or "")
         fetch_site = str(request.headers.get("sec-fetch-site") or "").casefold()
@@ -852,7 +854,8 @@ async def administration_login_submit(request: Request):
         response.status_code = 401
         return response
     record_admin_login(admin.username)
-    response = RedirectResponse(url="/intern/cockpit", status_code=303)
+    destination = "/intern/2fa/einrichten" if requires_two_factor(admin.role) and not admin.totp_enabled else "/intern/cockpit"
+    response = RedirectResponse(url=destination, status_code=303)
     response.set_cookie(
         key=legacy.SESSION_COOKIE,
         value=legacy._neue_session(admin.username, admin.role, int(admin.session_version or 1)),

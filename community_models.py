@@ -114,6 +114,8 @@ class AuditLog(Base):
     object_type = Column(String(80), default="", nullable=False)
     object_id = Column(String(120), default="", nullable=False)
     detail = Column(Text, default="", nullable=False)
+    previous_hash = Column(String(64), default="", nullable=False)
+    entry_hash = Column(String(64), default="", nullable=False, index=True)
     erstellt_am = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 

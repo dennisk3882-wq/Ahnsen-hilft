@@ -6,7 +6,7 @@ from html import escape
 
 from fastapi.responses import HTMLResponse
 
-from community_dashboard import _page as admin_page
+from intern_ui import admin_page
 from platform_runtime import get_platform_snapshot
 from pwa_ui import page
 

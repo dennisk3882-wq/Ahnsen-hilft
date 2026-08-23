@@ -7,4 +7,5 @@ sqlalchemy
 python-multipart
 Pillow
 pypdf
+cryptography
 pywebpush==2.3.0
