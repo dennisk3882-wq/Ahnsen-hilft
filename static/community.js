@@ -319,12 +319,18 @@
   const setupLanguage = async () => {
     const select = document.getElementById('platform-language');
     if (!select) return;
+    const visibleCode = document.getElementById('platform-language-code');
+    const syncVisibleCode = () => {
+      if (visibleCode) visibleCode.textContent = String(select.value || 'de').toUpperCase();
+    };
     [...select.options].forEach(option => { if (!SUPPORTED_LANGUAGES.has(option.value)) option.remove(); });
     const saved = languageFromStorage();
     select.value = [...select.options].some(option => option.value === saved) ? saved : 'de';
     state.language = select.value || 'de';
+    syncVisibleCode();
     select.addEventListener('change', () => {
       state.language = SUPPORTED_LANGUAGES.has(select.value) ? select.value : 'de';
+      syncVisibleCode();
       saveLanguage(state.language);
       translateDocument();
     });
