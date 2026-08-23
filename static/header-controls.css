@@ -1,0 +1,89 @@
+.topbar-community-actions {
+  min-width: 0;
+}
+
+.language-picker {
+  position: relative;
+  flex: 0 0 74px;
+  width: 74px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  overflow: hidden;
+  border: 1px solid #c9d5c8;
+  border-radius: 13px;
+  background: #fff;
+  color: var(--forest);
+  box-shadow: 0 2px 8px rgba(23, 73, 54, .04);
+  cursor: pointer;
+}
+
+.language-picker-code {
+  display: block;
+  min-width: 24px;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: .04em;
+  text-align: center;
+}
+
+.language-picker-chevron {
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.language-picker select {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: inherit !important;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.language-picker:hover {
+  border-color: #aebfaf;
+  background: #fbfdf9;
+}
+
+.language-picker:focus-within {
+  outline: 3px solid #f0a928;
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .topbar-community-actions {
+    gap: 5px;
+  }
+
+  .topbar .language-picker {
+    flex-basis: 64px;
+    width: 64px;
+    height: 40px;
+    gap: 7px;
+    border-radius: 12px;
+  }
+
+  .language-picker-code {
+    min-width: 22px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar .language-picker {
+    flex-basis: 60px;
+    width: 60px;
+  }
+}
