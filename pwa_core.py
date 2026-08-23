@@ -1132,6 +1132,11 @@ async def accessibility_css():
     return FileResponse(STATIC_DIR / "accessibility.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
 
 
+@app.get("/header-controls.css")
+async def header_controls_css():
+    return FileResponse(STATIC_DIR / "header-controls.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
+
 @app.get("/compliance.css")
 async def compliance_css():
     return FileResponse(STATIC_DIR / "compliance.css", media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
@@ -1190,7 +1195,7 @@ async def manifest():
 async def service_worker():
     cfg = get_platform_snapshot()
     default_payload = json.dumps({"title": cfg["platform_name"], "body": "Es gibt eine neue Information.", "url": "/profil", "tag": "citizen-platform"}, ensure_ascii=False)
-    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=4', '/warning.css?v=1', '/accessibility.css?v=3', '/accessibility.js?v=2', '/pwa.js?v=1', '/community.js?v=4', '/pwa/icon-192.png']
+    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=5', '/warning.css?v=1', '/accessibility.css?v=3', '/header-controls.css?v=1', '/accessibility.js?v=2', '/pwa.js?v=1', '/community.js?v=5', '/pwa/icon-192.png']
     hero = str(cfg.get("hero_image_url") or "")
     if hero.startswith("/"):
         core_assets.append(hero)

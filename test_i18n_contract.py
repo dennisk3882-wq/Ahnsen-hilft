@@ -45,10 +45,20 @@ class TranslationContractTests(unittest.TestCase):
     def test_pwa_uses_the_new_translation_assets(self):
         page = (ROOT / "pwa_ui.py").read_text(encoding="utf-8")
         worker = (ROOT / "pwa_core.py").read_text(encoding="utf-8")
-        self.assertIn('/community.js?v=4', page)
-        self.assertIn('/community.css?v=4', page)
-        self.assertIn('/community.js?v=4', worker)
+        self.assertIn('/community.js?v=5', page)
+        self.assertIn('/community.css?v=5', page)
+        self.assertIn('/community.js?v=5', worker)
         self.assertIn("citizen-platform-pwa-v5-i18n", worker)
+
+    def test_language_control_keeps_a_fixed_visible_code_on_mobile(self):
+        page = (ROOT / "pwa_ui.py").read_text(encoding="utf-8")
+        styles = (ROOT / "static" / "header-controls.css").read_text(encoding="utf-8")
+        client = (ROOT / "static" / "community.js").read_text(encoding="utf-8")
+        self.assertIn('id="platform-language-code"', page)
+        self.assertIn("syncVisibleCode", client)
+        self.assertIn(".language-picker-code", styles)
+        self.assertIn("position: absolute !important", styles)
+        self.assertIn('/header-controls.css?v=1', page)
 
 
 if __name__ == "__main__":
