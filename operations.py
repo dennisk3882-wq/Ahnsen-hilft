@@ -55,11 +55,18 @@ def _columns(table: str) -> set[str]:
     return {item["name"] for item in inspector.get_columns(table)}
 
 
-def _add_column(table: str, name: str, sql_type: str) -> None:
-    if name in _columns(table):
-        return
+def _add_column(table: str, name: str, sql_type: str) -> bool:
+    columns = _columns(table)
+    # Individual smoke tests and staged deployments may initialise only a
+    # subset of the model modules. A migration for a not-yet-created table
+    # must therefore wait for the next run instead of aborting startup.
+    if not columns:
+        return False
+    if name in columns:
+        return True
     with engine.begin() as connection:
         connection.exec_driver_sql(f'ALTER TABLE "{table}" ADD COLUMN "{name}" {sql_type}')
+    return True
 
 
 def run_migrations() -> None:
@@ -81,8 +88,8 @@ def run_migrations() -> None:
     db = SessionLocal()
     try:
         for version, description, table, column, sql_type in steps:
-            _add_column(table, column, sql_type)
-            if not db.query(SchemaMigration).filter(SchemaMigration.version == version).first():
+            applied = _add_column(table, column, sql_type)
+            if applied and not db.query(SchemaMigration).filter(SchemaMigration.version == version).first():
                 db.add(SchemaMigration(version=version, description=description))
         db.commit()
     finally:
