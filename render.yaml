@@ -4,13 +4,15 @@ services:
     runtime: node
     region: frankfurt
     plan: starter
-    buildCommand: cat _deploy/PantryPilot-Production.zip.part* > /tmp/pantrypilot.zip && npx --yes extract-zip /tmp/pantrypilot.zip . && cd pantrypilot-production && npm install --omit=dev
+    buildCommand: cat _deploy/PantryPilot-Production.zip.part* > /tmp/pantrypilot.zip && unzip -q -o /tmp/pantrypilot.zip -d . && cd pantrypilot-production && npm install --omit=dev
     startCommand: cd pantrypilot-production && npm start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22.22.0"
       - key: DATA_DIR
         value: /var/data
       - key: OPENAI_MODEL
