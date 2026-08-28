@@ -1,0 +1,19 @@
+{
+  "name": "Finanzplan – Haushaltsplan",
+  "short_name": "Finanzplan",
+  "description": "Private Haushalts- und Finanzplanung mit Budgets, Prognosen, Verträgen, Sparzielen und Vermögensübersicht.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0b1e47",
+  "icons": [
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ],
+  "shortcuts": [
+    {"name":"Neue Buchung","short_name":"Buchung","url":"./?action=add"},
+    {"name":"Budgets","short_name":"Budgets","url":"./?view=budgets"},
+    {"name":"Finanzkalender","short_name":"Kalender","url":"./?view=calendar"}
+  ]
+}
