@@ -1,5 +1,5 @@
 const CACHE='finanzplan-v1.0.0';
-const CORE=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon.svg'];
+const CORE=['./','./index.html','./styles.css','./app-core.js','./app-dashboard.js','./app-transactions.js','./app-recurring.js','./app-budgetwealth.js','./app-contractsgoals.js','./app-analytics.js','./app-moreui.js','./app-modal.js','./app-forms-a.js','./app-forms-b1.js','./app-forms-b2.js','./app-tools-small.js','./app-files-a.js','./app-files-b.js','./app-export.js','./app-security.js','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r;}).catch(()=>caches.match('./index.html'))));});
