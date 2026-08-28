@@ -1,23 +1,27 @@
 services:
   - type: web
-    name: ahnsen-digital
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn pwa_main:app --host 0.0.0.0 --port $PORT
+    name: pantrypilot
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: cat _deploy/PantryPilot-Production.zip.part* > /tmp/pantrypilot.zip && npx --yes extract-zip /tmp/pantrypilot.zip . && cd pantrypilot-production && npm install --omit=dev
+    startCommand: cd pantrypilot-production && npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
     envVars:
-      - key: PWA_SESSION_SECRET
-        generateValue: true
-      - key: AUDIT_SIGNING_SECRET
-        generateValue: true
-      - key: AUDIT_RETENTION_DAYS
-        value: "730"
-      - key: BACKUP_ENCRYPTION_KEY
-        generateValue: true
-      - key: BACKUP_RETENTION_DAYS
-        value: "30"
-      - key: VAPID_PUBLIC_KEY
-        sync: false
-      - key: VAPID_PRIVATE_KEY
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: OPENAI_MODEL
+        value: gpt-5.6-luna
+      - key: OPENAI_API_KEY
         sync: false
       - key: VAPID_SUBJECT
-        value: mailto:gemeinde@ahnsen.de
+        value: mailto:pantrypilot@example.com
+      - key: ALLOW_NEW_HOUSEHOLDS
+        value: "false"
+    disk:
+      name: pantrypilot-data
+      mountPath: /var/data
+      sizeGB: 1
