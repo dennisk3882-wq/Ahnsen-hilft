@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: finanzplan-pwa
+    runtime: static
+    branch: finanzplan
+    rootDir: finanzplan
+    staticPublishPath: .
+    buildCommand: echo "Finanzplan PWA - no build step"
+    pullRequestPreviewsEnabled: true
