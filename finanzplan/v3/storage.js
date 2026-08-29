@@ -1,8 +1,8 @@
 const DB_NAME='finanzplan-data-v3';
 const DB_VERSION=1;
 const LEGACY_STORE='finanzplan:data:v1';
-const COLLECTIONS=['members','accounts','categories','transactions','recurring','budgets','goals','reserves','contracts','insurances','debts','projects','monthClosures','documents','notifications','trash','audit','merchantRules','reconciliations','subscriptionSuggestions'];
-const KV_KEYS=['household','integrations','settings','assistantLog','sync'];
+const COLLECTIONS=['members','accounts','categories','transactions','recurring','budgets','goals','reserves','contracts','insurances','debts','projects','monthClosures','documents','notifications','trash','audit','merchantRules','reconciliations'];
+const KV_KEYS=['household','integrations','settings','assistantLog','sync','subscriptionSuggestions'];
 
 let dbPromise;
 function req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
@@ -43,7 +43,7 @@ export async function saveState(state){
   const db=await openStateDB(),names=['meta','kv',...COLLECTIONS],tx=db.transaction(names,'readwrite');
   tx.objectStore('meta').put({key:'state',version:state.version||'3.0.0',schemaVersion:state.schemaVersion||3,createdAt:state.createdAt||new Date().toISOString(),updatedAt:state.updatedAt||new Date().toISOString()});
   const kv=tx.objectStore('kv');kv.clear();for(const key of KV_KEYS)if(state[key]!==undefined)kv.put({key,value:clone(state[key])});
-  for(const name of COLLECTIONS){const s=tx.objectStore(name);s.clear();for(const row of state[name]||[])s.put(clone(row))}
+  for(const name of COLLECTIONS){const s=tx.objectStore(name);s.clear();let i=0;for(const raw of state[name]||[]){const row=clone(raw);if(!row.id)row.id=`${name}:${i++}:${Date.now()}`;s.put(row)}}
   await txDone(tx);
 }
 
