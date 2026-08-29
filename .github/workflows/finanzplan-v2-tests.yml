@@ -1,0 +1,25 @@
+name: Finanzplan v2 tests
+
+on:
+  push:
+    branches: [finanzplan, finanzplan-v2-audit]
+    paths:
+      - 'finanzplan/**'
+      - '.github/workflows/finanzplan-v2-tests.yml'
+  pull_request:
+    paths:
+      - 'finanzplan/**'
+
+jobs:
+  finance-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check pure finance library
+        run: node --check finanzplan/finance-lib.js
+      - name: Run finance regression tests
+        run: node --test finanzplan/tests/finance-lib.test.js
