@@ -6,4 +6,21 @@
   ].map(([n,name,status,note])=>({n,name,status,note}))};
 
   const baseRenderMore=renderMore;renderMore=function(){baseRenderMore();const root=$('#view-more');if(!$('#v3ArchitectureStatus',root))root.insertAdjacentHTML('beforeend',`<article id="v3ArchitectureStatus" class="card" style="margin-top:16px"><div class="card-title-row"><div><h2>Finanzplan V3</h2><p>Cent-Ledger · IndexedDB · binäres Vollbackup · gehärteter Offline-Cache · Cross-Browser-Tests</p></div><span class="tag green">3.0.0</span></div></article>`)};
+
+  // Later compatibility layers may recreate these visual switches without their original
+  // accessible name. V3 restores an explicit control name and state after every settings render.
+  const v3SettingsA11yBase=renderSettings;
+  renderSettings=function(){
+    v3SettingsA11yBase();
+    const root=$('#view-settings');
+    $$('button.switch[data-setting]',root).forEach(button=>{
+      const setting=button.dataset.setting||'';
+      const key=setting.startsWith('widget:')?setting.slice(7):'';
+      const rowTitle=button.closest('.setting-row')?.querySelector('b')?.textContent?.trim();
+      const label=key&&typeof widgetLabel==='function'?widgetLabel(key):(rowTitle||'Einstellung');
+      button.setAttribute('aria-label',`${label} ${button.classList.contains('on')?'deaktivieren':'aktivieren'}`);
+      button.setAttribute('aria-pressed',button.classList.contains('on')?'true':'false');
+      if(!button.title)button.title=label;
+    });
+  };
 })();
