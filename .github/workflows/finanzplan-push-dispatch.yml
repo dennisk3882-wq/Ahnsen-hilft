@@ -1,0 +1,27 @@
+name: Finanzplan push dispatcher
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch due Finanzplan notifications
+        env:
+          API_URL: ${{ vars.FINANZPLAN_API_URL }}
+          CRON_SECRET: ${{ secrets.FINANZPLAN_CRON_SECRET }}
+        run: |
+          set -e
+          if [ -z "$CRON_SECRET" ]; then
+            echo "FINANZPLAN_CRON_SECRET is not configured; dispatcher is intentionally inactive."
+            exit 0
+          fi
+          URL="${API_URL:-https://finanzplan-api.onrender.com}"
+          curl --retry 4 --retry-delay 10 --max-time 90 -fsS \
+            -X POST "$URL/api/push/dispatch" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H 'Content-Type: application/json' \
+            -d '{}'
