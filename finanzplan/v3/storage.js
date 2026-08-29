@@ -1,0 +1,76 @@
+const DB_NAME='finanzplan-data-v3';
+const DB_VERSION=1;
+const LEGACY_STORE='finanzplan:data:v1';
+const COLLECTIONS=['members','accounts','categories','transactions','recurring','budgets','goals','reserves','contracts','insurances','debts','projects','monthClosures','documents','notifications','trash','audit','merchantRules','reconciliations','subscriptionSuggestions'];
+const KV_KEYS=['household','integrations','settings','assistantLog','sync'];
+
+let dbPromise;
+function req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted'))})}
+function clone(v){return v==null?v:JSON.parse(JSON.stringify(v))}
+
+export function openStateDB(){
+  if(dbPromise)return dbPromise;
+  dbPromise=new Promise((resolve,reject)=>{
+    const r=indexedDB.open(DB_NAME,DB_VERSION);
+    r.onupgradeneeded=()=>{
+      const db=r.result;
+      if(!db.objectStoreNames.contains('meta'))db.createObjectStore('meta',{keyPath:'key'});
+      if(!db.objectStoreNames.contains('kv'))db.createObjectStore('kv',{keyPath:'key'});
+      if(!db.objectStoreNames.contains('history')){const s=db.createObjectStore('history',{keyPath:'id'});s.createIndex('kind','kind');s.createIndex('at','at')}
+      for(const name of COLLECTIONS)if(!db.objectStoreNames.contains(name))db.createObjectStore(name,{keyPath:'id'});
+    };
+    r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+  });
+  return dbPromise;
+}
+
+export async function loadState(){
+  const db=await openStateDB();
+  const names=['meta','kv',...COLLECTIONS],tx=db.transaction(names,'readonly');
+  const meta=await req(tx.objectStore('meta').get('state'));
+  if(!meta){await txDone(tx);return null}
+  const kvRows=await req(tx.objectStore('kv').getAll());
+  const out={version:meta.version||'3.0.0',schemaVersion:meta.schemaVersion||3,createdAt:meta.createdAt,updatedAt:meta.updatedAt};
+  for(const row of kvRows)out[row.key]=row.value;
+  for(const name of COLLECTIONS)out[name]=await req(tx.objectStore(name).getAll());
+  await txDone(tx);
+  return out;
+}
+
+export async function saveState(state){
+  if(!state)return;
+  const db=await openStateDB(),names=['meta','kv',...COLLECTIONS],tx=db.transaction(names,'readwrite');
+  tx.objectStore('meta').put({key:'state',version:state.version||'3.0.0',schemaVersion:state.schemaVersion||3,createdAt:state.createdAt||new Date().toISOString(),updatedAt:state.updatedAt||new Date().toISOString()});
+  const kv=tx.objectStore('kv');kv.clear();for(const key of KV_KEYS)if(state[key]!==undefined)kv.put({key,value:clone(state[key])});
+  for(const name of COLLECTIONS){const s=tx.objectStore(name);s.clear();for(const row of state[name]||[])s.put(clone(row))}
+  await txDone(tx);
+}
+
+export async function clearState(){
+  const db=await openStateDB(),names=['meta','kv',...COLLECTIONS,'history'],tx=db.transaction(names,'readwrite');
+  for(const n of names)tx.objectStore(n).clear();await txDone(tx);
+}
+
+export async function saveHistory(kind,label,state,max=10){
+  const db=await openStateDB(),id=`${kind}:${Date.now()}:${Math.random().toString(36).slice(2,8)}`,tx=db.transaction('history','readwrite'),s=tx.objectStore('history');
+  s.put({id,kind,label:label||'',at:new Date().toISOString(),data:clone(state)});await txDone(tx);
+  const rows=await listHistory(kind);for(const row of rows.slice(max))await deleteHistory(row.id);return id;
+}
+export async function listHistory(kind){
+  const db=await openStateDB(),tx=db.transaction('history','readonly'),rows=await req(tx.objectStore('history').index('kind').getAll(kind));await txDone(tx);return rows.sort((a,b)=>b.at.localeCompare(a.at));
+}
+export async function deleteHistory(id){const db=await openStateDB(),tx=db.transaction('history','readwrite');tx.objectStore('history').delete(id);await txDone(tx)}
+
+export async function loadOrMigrate(){
+  const existing=await loadState();if(existing)return {state:existing,migrated:false};
+  let legacy=null;try{legacy=JSON.parse(localStorage.getItem(LEGACY_STORE)||'null')}catch(_){legacy=null}
+  if(legacy?.version){await saveState(legacy);return {state:legacy,migrated:true}}
+  return {state:null,migrated:false};
+}
+
+export async function estimate(){
+  const e=await navigator.storage?.estimate?.();return {usage:e?.usage||0,quota:e?.quota||0,persisted:await navigator.storage?.persisted?.()||false};
+}
+
+export const V3Storage={openStateDB,loadState,saveState,clearState,saveHistory,listHistory,deleteHistory,loadOrMigrate,estimate,DB_NAME};
