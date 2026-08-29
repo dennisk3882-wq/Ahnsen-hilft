@@ -16,26 +16,32 @@ try{
   await setup.locator('[name="balance"]').fill('1000');
   await setup.locator('button.primary-button').click();
   await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:5000});
-  await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzAI&&window.FinanzCloud&&window.FinanzStatementImport);
+  await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzAI&&window.FinanzCloud&&window.FinanzStatementImport&&window.FinanzPush);
 
   const base=await page.evaluate(()=>({
     version:data.version,
     cloudUrl:data.integrations?.cloud?.url,
     key:data.integrations?.cloud?.publishableKey,
+    backend:data.integrations?.backendUrl,
     api:Object.keys(FinanzPremium),
     ai:FinanzAI.localExplain('Wie viel kann ich frei ausgeben?'),
     qif:FinanzStatementImport.parseQIF('!Type:Bank\nD29.08.2026\nT-12,34\nPTest Händler\nMTest\nNabc\n^'),
     ofx:FinanzStatementImport.parseOFX('<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20260829<TRNAMT>-5.50<NAME>Shop<FITID>x1</STMTTRN></BANKTRANLIST></OFX>'),
+    mt940:FinanzStatementImport.parseMT940(':20:START\n:61:260829D12,34NTRFNONREF\n:86:Test Händler'),
+    camt:FinanzStatementImport.parseCAMT('<?xml version="1.0"?><Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08"><BkToCstmrStmt><Stmt><Ntry><Amt Ccy="EUR">7.89</Amt><CdtDbtInd>DBIT</CdtDbtInd><BookgDt><Dt>2026-08-29</Dt></BookgDt><NtryDtls><TxDtls><RmtInf><Ustrd>CAMT Test</Ustrd></RmtInf><Refs><AcctSvcrRef>camt1</AcctSvcrRef></Refs></TxDtls></NtryDtls></Ntry></Stmt></BkToCstmrStmt></Document>'),
     auto:FinanzPremium.autopilot(),
     year:FinanzPremium.annualCompare(new Date().getFullYear())
   }));
   assert.equal(base.version,'3.1.0');
   assert.match(base.cloudUrl,/^https:\/\/[^/]+\.supabase\.co$/);
   assert.match(base.key,/^sb_publishable_/);
+  assert.match(base.backend,/^https:\/\/[^/]+\.supabase\.co\/functions\/v1\/finanzplan-api$/);
   assert.ok(base.api.includes('uncertaintyForecast')&&base.api.includes('anomalies')&&base.api.includes('generateMonthlyReport'));
   assert.ok(base.ai.length>20);
   assert.equal(base.qif.length,1);assert.equal(Math.round(base.qif[0].signedAmount*100),-1234);
   assert.equal(base.ofx.length,1);assert.equal(Math.round(base.ofx[0].signedAmount*100),-550);
+  assert.equal(base.mt940.length,1);assert.equal(Math.round(base.mt940[0].signedAmount*100),-1234);
+  assert.equal(base.camt.length,1);assert.equal(Math.round(base.camt[0].signedAmount*100),-789);
   assert.ok(Number.isFinite(base.auto.forecast.monthEnd.base));
   assert.ok(Number.isFinite(base.year.current.expense));
 
@@ -55,7 +61,6 @@ try{
   const storage=await page.evaluate(async()=>{await FinanzV3.flush();const state=await window.__finanzplanStorage.loadState();return {version:state.version,assets:state.assets?.length||0,plain:localStorage.getItem('finanzplan:data:v1')}});
   assert.equal(storage.version,'3.1.0');assert.equal(storage.assets,1);assert.equal(storage.plain,null);
 
-  // V3.1 must stay offline-capable even though cloud configuration is present but disabled.
   await page.waitForFunction(async()=>!!(await navigator.serviceWorker.ready));
   await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0');
   const offline=await page.evaluate(()=>({version:data.version,asset:data.assets?.[0]?.name,cloudEnabled:!!data.integrations?.cloud?.enabled}));
