@@ -2,7 +2,7 @@ name: Finanzplan v2 tests
 
 on:
   push:
-    branches: [finanzplan, finanzplan-v2-audit]
+    branches: [finanzplan, finanzplan-v2-audit, finanzplan-v2-2-hardening]
     paths:
       - 'finanzplan/**'
       - '.github/workflows/finanzplan-v2-tests.yml'
@@ -25,12 +25,13 @@ jobs:
           find finanzplan -maxdepth 1 -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
           node --check finanzplan/tests/finance-lib.test.js
           node --check finanzplan/tests/smoke.mjs
+          node --check finanzplan/tests/hardening-smoke.mjs
       - name: Run finance regression tests
         run: node --test finanzplan/tests/finance-lib.test.js
 
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,5 +48,7 @@ jobs:
           for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 0.5; done
           cat /tmp/finanzplan-http.log
           exit 1
-      - name: Run real browser finance flow
+      - name: Run baseline browser finance flow
         run: node finanzplan/tests/smoke.mjs
+      - name: Run hardening browser finance flow
+        run: node finanzplan/tests/hardening-smoke.mjs
