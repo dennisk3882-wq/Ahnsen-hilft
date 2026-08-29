@@ -26,12 +26,13 @@ jobs:
           node --check finanzplan/tests/finance-lib.test.js
           node --check finanzplan/tests/smoke.mjs
           node --check finanzplan/tests/hardening-smoke.mjs
+          node --check finanzplan/tests/hardening-extra.mjs
       - name: Run finance regression tests
         run: node --test finanzplan/tests/finance-lib.test.js
 
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,3 +53,5 @@ jobs:
         run: node finanzplan/tests/smoke.mjs
       - name: Run hardening browser finance flow
         run: node finanzplan/tests/hardening-smoke.mjs
+      - name: Run extra v2.2 edge flow
+        run: node finanzplan/tests/hardening-extra.mjs
