@@ -31,6 +31,6 @@ try{
   // Scale test: 10k transactions must persist and reload from IndexedDB without LocalStorage data.
   const scale=await page.evaluate(async()=>{const a=data.accounts[0].id,m=data.members[0].id,d=localISO(now);for(let i=0;i<10000;i++)data.transactions.push({id:`scale_${i}`,date:d,title:`Scale ${i}`,amount:1,type:'expense',categoryId:'c_other',accountId:a,memberId:m,status:'paid'});saveData('Scale test');await FinanzV3.flush();return{count:data.transactions.length,plain:localStorage.getItem('finanzplan:data:v1')}});
   assert.ok(scale.count>=10001);assert.equal(scale.plain,null);
-  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.0.0'&&data.transactions.some(t=>t.id==='scale_9999'),null,{timeout:20000});assert.ok(await page.evaluate(()=>data.transactions.length)>=10001);
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.1.0'&&data.transactions.some(t=>t.id==='scale_9999'),null,{timeout:20000});assert.ok(await page.evaluate(()=>data.transactions.length)>=10001);
   if(errors.length)throw new Error(errors.join('\n'));console.log('V3 storage/backup/scale: OK');
 }finally{await browser.close()}
