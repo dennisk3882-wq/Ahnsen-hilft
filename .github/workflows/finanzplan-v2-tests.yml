@@ -24,5 +24,28 @@ jobs:
           set -e
           find finanzplan -maxdepth 1 -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
           node --check finanzplan/tests/finance-lib.test.js
+          node --check finanzplan/tests/smoke.mjs
       - name: Run finance regression tests
         run: node --test finanzplan/tests/finance-lib.test.js
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start static Finanzplan server
+        run: |
+          python3 -m http.server 8080 --directory finanzplan > /tmp/finanzplan-http.log 2>&1 &
+          echo $! > /tmp/finanzplan-http.pid
+          for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 0.5; done
+          cat /tmp/finanzplan-http.log
+          exit 1
+      - name: Run real browser finance flow
+        run: node finanzplan/tests/smoke.mjs
