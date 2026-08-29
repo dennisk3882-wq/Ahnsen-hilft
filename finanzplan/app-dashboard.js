@@ -39,7 +39,7 @@ function insights(){
   return out.slice(0,4);
 }
 function renderDashboard(){
-  const root=$('#view-dashboard'),s=monthSummary(),hist=history(7),breakdown=categoryBreakdown(),budgetTotal=data.budgets.reduce((x,b)=>x+num(b.amount),0),budgetSpent=data.budgets.reduce((x,b)=>x+categorySpend(b.categoryId),0);const score=financeScore();
+  const root=$('#view-dashboard'),s=monthSummary(),hist=history(7),breakdown=categoryBreakdown(),budgetTotal=data.budgets.reduce((x,b)=>x+num(b.amount),0),budgetSpent=data.budgets.reduce((x,b)=>x+categorySpend(b.categoryId),0);const score=financeScore(),projection=statisticalProjection();
   root.innerHTML=`
     <div class="metrics-grid">
       ${metric('Einnahmen',money(s.income),'positive',`${money(s.plannedIncome)} noch geplant`,'↑',hist.map(x=>x.income))}
@@ -52,7 +52,7 @@ function renderDashboard(){
       <div class="forecast-item"><small>Heute auf Konten</small><strong class="money">${money(accountTotal())}</strong></div>
       <div class="forecast-item"><small>Noch erwartete Einnahmen</small><strong class="positive money">+${money(s.plannedIncome)}</strong></div>
       <div class="forecast-item"><small>Noch erwartete Ausgaben</small><strong class="negative money">-${money(s.plannedExpense)}</strong></div>
-      <div class="forecast-item"><small>Prognose Monatsende</small><strong class="${s.forecast>=0?'positive':'negative'} money">${money(s.forecast)}</strong></div>
+      <div class="forecast-item"><small>Prognose Monatsende</small><strong class="${projection.projectedBalance>=0?'positive':'negative'} money">${money(projection.projectedBalance)}</strong><small>inkl. Ausgabentempo</small></div>
     </div>
     <div class="grid dashboard-main" style="margin-top:16px">
       <article class="card chart-card"><div class="card-title-row"><div><h2>Einnahmen & Ausgaben</h2><p>Entwicklung der letzten Monate</p></div><div class="chart-legend"><span><i class="dot green"></i>Einnahmen</span><span><i class="dot red"></i>Ausgaben</span></div></div>${lineChart(hist)}</article>
