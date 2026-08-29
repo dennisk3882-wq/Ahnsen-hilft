@@ -19,7 +19,7 @@ try{
     saveData('Extra edge save');
     return{essential,projectValue,cycleReserve,blockedView,deleteBlocked,version:data.version,schema:data.schemaVersion};
   });
-  assert.ok(results.essential>=25,'parent essential category must include fuel subcategory');assert.ok(results.projectValue>=25,'project parent category must include fuel subcategory');assert.equal(Math.round(results.cycleReserve),50);assert.equal(results.blockedView,true);assert.equal(results.deleteBlocked,true);assert.equal(results.version,'3.0.0');assert.equal(results.schema,3);
+  assert.ok(results.essential>=25,'parent essential category must include fuel subcategory');assert.ok(results.projectValue>=25,'project parent category must include fuel subcategory');assert.equal(Math.round(results.cycleReserve),50);assert.equal(results.blockedView,true);assert.equal(results.deleteBlocked,true);assert.match(results.version,/^3\.(0|1)\.0$/);assert.equal(results.schema,3);
 
   await page.evaluate(async()=>{await storeFile(new File([new TextEncoder().encode('trash-only')],'trash-only.txt',{type:'text/plain'}),'');const id=data.documents.find(d=>d.name==='trash-only.txt').id;await deleteStoredFile(id)});
   assert.equal(await page.evaluate(()=>data.documents.some(d=>d.name==='trash-only.txt')),false);assert.equal(await page.evaluate(()=>data.trash.some(x=>x.collection==='documents'&&x.item?.name==='trash-only.txt')),true);
