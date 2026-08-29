@@ -20,7 +20,7 @@ try{
     const catName=id=>(data.categories||[]).find(c=>c.id===id)?.name||'';
     const classify=(title,type='expense',merchant='')=>{
       const r=FinanzCategoryIntelligence.categorizeTransaction({title,merchant,type});
-      return {name:catName(r.categoryId),source:r.source,confidence:r.confidence,merchant:r.merchant};
+      return {name:catName(r.categoryId),categoryId:r.categoryId,source:r.source,reason:r.reason,confidence:r.confidence,merchant:r.merchant};
     };
     const checks={
       edeka:classify('Edeka Bolinger'),
@@ -36,6 +36,8 @@ try{
       unknown:classify('Martina Koch'),
       income:classify('Axians IT-Infrastructure','income')
     };
+    const rulesBefore=(data.merchantRules||[]).map(r=>({pattern:r.pattern,merchant:r.merchant,categoryId:r.categoryId,learned:r.learned,confidence:r.confidence}));
+    const categories=(data.categories||[]).map(c=>({id:c.id,name:c.name}));
     const ids=Object.fromEntries(data.categories.map(c=>[c.name,c.id]));
     data.merchantRules=[{id:'bad',pattern:'EDEKA',merchant:'EDEKA',categoryId:ids.Kleidung,active:true,learned:true,confidence:.99,hits:5}];
     const learnedProtected=classify('EDEKA BOLINGER');
@@ -48,7 +50,7 @@ try{
     ];
     const changed=FinanzCategoryIntelligence.reclassifyImportedTransactions({onlySuspicious:true});
     const repaired=Object.fromEntries(data.transactions.map(t=>[t.id,catName(t.categoryId)]));
-    return {checks,learnedProtected,changed,repaired};
+    return {checks,rulesBefore,categories,learnedProtected,changed,repaired};
   });
   assert.equal(result.checks.edeka.name,'Lebensmittel');
   assert.equal(result.checks.penny.name,'Lebensmittel');
@@ -60,7 +62,7 @@ try{
   assert.equal(result.checks.bahn.name,'Mobilität');
   assert.equal(result.checks.clothes.name,'Kleidung');
   assert.equal(result.checks.amazon.name,'Sonstiges');
-  assert.equal(result.checks.unknown.name,'Sonstiges');
+  assert.equal(result.checks.unknown.name,'Sonstiges',`unknown=${JSON.stringify(result.checks.unknown)} rules=${JSON.stringify(result.rulesBefore)} categories=${JSON.stringify(result.categories)}`);
   assert.equal(result.checks.income.name,'Weitere Einnahmen');
   assert.equal(result.learnedProtected.name,'Lebensmittel','wrong learned EDEKA rule must not override knowledge');
   assert.ok(result.changed>=5);
