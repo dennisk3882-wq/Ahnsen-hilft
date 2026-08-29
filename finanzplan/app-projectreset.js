@@ -6,12 +6,51 @@ function emptyProjectData(preservePreferences=true){
   if(previousSettings)fresh.settings={...fresh.settings,...previousSettings};fresh.settings={...fresh.settings,onboardingComplete:true,autoLockMinutes:fresh.settings.autoLockMinutes||5,trashDays:fresh.settings.trashDays||30};return fresh;
 }
 function createPreResetSnapshot(){try{if(data.settings?.vault){const encrypted=localStorage.getItem(VAULT_KEY);if(encrypted){const key='finanzplan:vault-snapshots:v2',snaps=safeJSON(localStorage.getItem(key))||[];snaps.unshift({at:new Date().toISOString(),payload:encrypted,label:'Sicherung vor Neustart'});localStorage.setItem(key,JSON.stringify(snaps.slice(0,10)))}return}const snaps=safeJSON(localStorage.getItem(SNAP_KEY))||[];snaps.unshift({at:new Date().toISOString(),data:JSON.stringify(data),label:'Sicherung vor Neustart'});localStorage.setItem(SNAP_KEY,JSON.stringify(snaps.slice(0,10)))}catch(_){}}
-async function clearProjectDocuments(){try{if(typeof dbPromise!=='undefined'&&dbPromise){const db=await dbPromise;db.close();dbPromise=null}if(!('indexedDB'in window))return;await new Promise(resolve=>{const req=indexedDB.deleteDatabase('finanzplan-files');req.onsuccess=resolve;req.onerror=resolve;req.onblocked=resolve})}catch(_){}}
+async function clearProjectDocuments(){
+  try{
+    if(typeof dbPromise!=='undefined'&&dbPromise){
+      const db=await Promise.race([Promise.resolve(dbPromise).catch(()=>null),new Promise(resolve=>setTimeout(()=>resolve(null),750))]);
+      try{db?.close?.()}catch(_){}
+      try{dbPromise=null}catch(_){}
+    }
+    if(!('indexedDB'in window))return;
+    await Promise.race([
+      new Promise(resolve=>{try{const req=indexedDB.deleteDatabase('finanzplan-files');req.onsuccess=resolve;req.onerror=resolve;req.onblocked=resolve}catch(_){resolve()}}),
+      new Promise(resolve=>setTimeout(resolve,1200))
+    ]);
+  }catch(e){console.warn('Lokale Beleg-Datenbank konnte beim Neustart nicht vollständig bereinigt werden',e)}
+}
 function isOriginalDemoDataset(){const titles=new Set((data.transactions||[]).map(t=>t.title));return titles.has('REWE Supermarkt')&&titles.has('Tankstelle')&&titles.has('Netflix')&&(data.recurring||[]).some(r=>r.title==='Gehalt'&&num(r.amount)===2950)&&(data.accounts||[]).some(a=>a.name==='Tagesgeld')}
 function openNewProjectWizard(firstRun=false){
   const demo=isOriginalDemoDataset(),intro=firstRun?'Du startest jetzt mit einem leeren Finanzplan. Alle Angaben sind optional.':demo?'Die aktuell sichtbaren Werte sind Beispieldaten. Du kannst sie jetzt vollständig entfernen und mit deinen eigenen Finanzen starten.':'Damit entfernst du die aktuell aktiven Konten, Buchungen, Budgets, Verträge, Ziele und Planungen. Vorher wird automatisch ein Sicherungspunkt erstellt.';
-  openModal(firstRun?'Finanzplan einrichten':'Neuen Haushalt starten',intro,`<form id="newProjectForm">${demo?'<div class="insight"><div class="insight-icon">i</div><div><b>Beispieldaten erkannt</b><p>Gehalt, REWE, Netflix, Tankstelle und die angezeigten Kontostände stammen nur aus der Demo.</p></div></div>':''}<div class="form-grid" style="margin-top:14px"><div class="field full"><label>Name des Haushalts / Projekts</label><input name="household" class="input" value="${escapeHTML(firstRun?'Mein Haushalt':data.household?.name||'Mein Haushalt')}"></div><div class="field"><label>Erstes Konto (optional)</label><input name="accountName" class="input" placeholder="z. B. Girokonto"></div><div class="field"><label>Kontostand zum Start</label><input name="balance" type="number" step="0.01" class="input" placeholder="0,00"></div><div class="field"><label>Stichtag</label><input name="openingDate" type="date" class="input" value="${localISO(now)}"></div><div class="field"><label>Monatliches Gehalt (optional)</label><input name="salary" type="number" step="0.01" min="0" class="input" placeholder="0,00"></div><div class="field"><label>Üblicher Gehaltstag</label><input name="salaryDay" type="number" min="1" max="31" class="input" value="1"></div></div><div class="insight"><div class="insight-icon">✓</div><div><b>Auch komplett leer möglich</b><p>Lass Konto und Gehalt leer. Die Standard-Kategorien bleiben vorhanden.</p></div></div><div class="modal-actions"><button type="button" class="secondary-button" data-cancel>${firstRun?'Später':'Abbrechen'}</button><button class="primary-button">${firstRun?'Eigenen Finanzplan starten':demo?'Demo löschen & starten':'Daten zurücksetzen & starten'}</button></div></form>`,()=>{
-    const form=$('#newProjectForm');form.onsubmit=async e=>{e.preventDefault();if(!firstRun&&!demo&&!confirm('Wirklich einen neuen Haushalt starten?'))return;if(!firstRun)createPreResetSnapshot();const fd=new FormData(form),fresh=emptyProjectData(true);fresh.household.name=formVal(fd,'household')||'Mein Haushalt';const accountName=formVal(fd,'accountName'),balance=num(formVal(fd,'balance')),openingDate=FinanceLib.normalizeDate(formVal(fd,'openingDate'))||localISO(now),salary=num(formVal(fd,'salary')),salaryDay=clamp(num(formVal(fd,'salaryDay'))||1,1,31);if(accountName||balance||salary){const acc={id:uid('acc'),name:accountName||'Girokonto',type:'checking',openingBalance:balance,openingDate,includeNetWorth:true,spendable:true};fresh.accounts.push(acc);if(salary>0)fresh.recurring.push({id:uid('rec'),title:'Gehalt',amount:salary,type:'income',categoryId:'c_income_salary',accountId:acc.id,memberId:'m1',frequency:'monthly',day:salaryDay,start:localISO(new Date(now.getFullYear(),now.getMonth(),Math.max(now.getDate(),Math.min(salaryDay,daysInMonth(now))))),end:'',active:true,estimate:false})}await clearProjectDocuments();data=fresh;migrateV2Data();selectedMonth=monthStart(now);currentView='dashboard';generateRecurringForMonth(selectedMonth);closeModal();saveData('Neuer Finanzplan eingerichtet')};$('[data-cancel]',form).onclick=closeModal;
+  openModal(firstRun?'Finanzplan einrichten':'Neuen Haushalt starten',intro,`<form id="newProjectForm" novalidate>${demo?'<div class="insight"><div class="insight-icon">i</div><div><b>Beispieldaten erkannt</b><p>Gehalt, REWE, Netflix, Tankstelle und die angezeigten Kontostände stammen nur aus der Demo.</p></div></div>':''}<div class="form-grid" style="margin-top:14px"><div class="field full"><label>Name des Haushalts / Projekts</label><input name="household" class="input" value="${escapeHTML(firstRun?'Mein Haushalt':data.household?.name||'Mein Haushalt')}"></div><div class="field"><label>Erstes Konto (optional)</label><input name="accountName" class="input" placeholder="z. B. Girokonto"></div><div class="field"><label>Kontostand zum Start</label><input name="balance" type="number" step="0.01" class="input" placeholder="0,00"></div><div class="field"><label>Stichtag</label><input name="openingDate" type="date" class="input" value="${localISO(now)}"></div><div class="field"><label>Monatliches Gehalt (optional)</label><input name="salary" type="number" step="0.01" min="0" class="input" placeholder="0,00"></div><div class="field"><label>Üblicher Gehaltstag</label><input name="salaryDay" type="number" min="1" max="31" class="input" value="1"></div></div><div class="insight"><div class="insight-icon">✓</div><div><b>Auch komplett leer möglich</b><p>Lass Konto und Gehalt leer. Die Standard-Kategorien bleiben vorhanden.</p></div></div><div class="modal-actions"><button type="button" class="secondary-button" data-cancel>${firstRun?'Später':'Abbrechen'}</button><button id="newProjectSubmit" type="submit" class="primary-button">${firstRun?'Eigenen Finanzplan starten':demo?'Demo löschen & starten':'Daten zurücksetzen & starten'}</button></div></form>`,()=>{
+    const form=$('#newProjectForm'),submit=$('#newProjectSubmit',form),submitLabel=submit?.textContent||'Starten';
+    form.onsubmit=async e=>{
+      e.preventDefault();
+      if(submit?.disabled)return;
+      if(!firstRun&&!demo&&!confirm('Wirklich einen neuen Haushalt starten?'))return;
+      if(submit){submit.disabled=true;submit.textContent='Wird eingerichtet …'}
+      try{
+        if(!firstRun)createPreResetSnapshot();
+        const fd=new FormData(form),fresh=emptyProjectData(true);
+        fresh.household.name=formVal(fd,'household')||'Mein Haushalt';
+        const accountName=formVal(fd,'accountName'),balance=num(formVal(fd,'balance')),openingDate=FinanceLib.normalizeDate(formVal(fd,'openingDate'))||localISO(now),salary=num(formVal(fd,'salary')),salaryDay=clamp(num(formVal(fd,'salaryDay'))||1,1,31);
+        if(accountName||balance||salary){
+          const acc={id:uid('acc'),name:accountName||'Girokonto',type:'checking',openingBalance:balance,openingDate,includeNetWorth:true,spendable:true};fresh.accounts.push(acc);
+          if(salary>0)fresh.recurring.push({id:uid('rec'),title:'Gehalt',amount:salary,type:'income',categoryId:'c_income_salary',accountId:acc.id,memberId:'m1',frequency:'monthly',day:salaryDay,start:localISO(new Date(now.getFullYear(),now.getMonth(),Math.max(now.getDate(),Math.min(salaryDay,daysInMonth(now))))),end:'',active:true,estimate:false})
+        }
+        await clearProjectDocuments();
+        data=fresh;migrateV2Data();selectedMonth=monthStart(now);currentView='dashboard';generateRecurringForMonth(selectedMonth);
+        saveData('Neuer Finanzplan eingerichtet');
+        if(window.FinanzV3?.flush)await Promise.race([window.FinanzV3.flush(),new Promise(resolve=>setTimeout(resolve,2500))]);
+        closeModal();
+      }catch(err){
+        console.error('Neuen Haushalt einrichten fehlgeschlagen',err);
+        toast(`Haushalt konnte nicht eingerichtet werden: ${err?.message||err}`,'error');
+        if(submit){submit.disabled=false;submit.textContent=submitLabel}
+      }
+    };
+    $('[data-cancel]',form).onclick=closeModal;
   });
 }
 function injectProjectResetControls(){const moreRoot=$('#view-more'),grid=$('.more-grid',moreRoot);if(grid&&!$('#newProjectTile',moreRoot)){grid.insertAdjacentHTML('beforeend','<button id="newProjectTile" class="more-tile"><span>✦</span><b>Neuen Haushalt starten</b><small>Beispieldaten entfernen oder komplett neu beginnen</small></button>');$('#newProjectTile',moreRoot).onclick=()=>openNewProjectWizard(false)}const settingsRoot=$('#view-settings');if(settingsRoot&&!$('#newProjectSettingsCard',settingsRoot)){settingsRoot.insertAdjacentHTML('beforeend','<article id="newProjectSettingsCard" class="card" style="margin-top:16px"><div class="card-title-row"><div><h2>Daten & Neustart</h2><p>Für einen neuen Haushalt oder zum Entfernen der Beispieldaten.</p></div></div><div class="setting-row"><div><b>Neuen Haushalt starten</b><small style="display:block;color:var(--muted)">Setzt aktive Finanzdaten zurück; Standard-Kategorien bleiben erhalten.</small></div><button id="startNewProject" class="danger-button">Neu starten</button></div></article>');$('#startNewProject',settingsRoot).onclick=()=>openNewProjectWizard(false)}}
