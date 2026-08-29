@@ -72,6 +72,8 @@ jobs:
         run: node finanzplan/tests/v31-premium.mjs
       - name: Run V3.2 intelligence, E2EE and offline flow
         run: node finanzplan/tests/v32-intelligence.mjs
+      - name: Run demo reset and household setup flow
+        run: node finanzplan/tests/v32-project-reset.mjs
 
   live-render-smoke:
     if: github.ref == 'refs/heads/finanzplan'
