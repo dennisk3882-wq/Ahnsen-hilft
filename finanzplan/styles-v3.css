@@ -1,0 +1,6 @@
+.pwa-install-button{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}.pwa-install-button::after{content:'';position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:12px;height:2px;border-radius:2px;background:currentColor;opacity:.85}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:3px solid color-mix(in srgb,var(--primary,#3565ff) 72%,white);outline-offset:3px}
+.skip-link{position:fixed;left:12px;top:-80px;z-index:99999;padding:10px 14px;border-radius:10px;background:var(--panel,#fff);color:var(--text,#0b1e47);box-shadow:var(--shadow);font-weight:700}.skip-link:focus{top:12px}
+@media(max-width:720px){.top-actions .pwa-install-button{width:44px;height:44px}.top-actions{gap:7px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}.spark svg,.line-chart{animation:none!important}}
+@media(forced-colors:active){.card,.metric-card,.forecast-banner,.modal,.mobile-nav{border:1px solid CanvasText}.progress-fill{forced-color-adjust:auto}.dot{border:1px solid CanvasText}}
