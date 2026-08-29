@@ -1,0 +1,8 @@
+{
+  "appId": "de.finanzplan.private",
+  "appName": "Finanzplan",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
