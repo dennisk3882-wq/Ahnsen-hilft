@@ -11,54 +11,6 @@ const originalRenderDashboard=renderDashboard;renderDashboard=function(){origina
 function fixRecurringGeneration(d=selectedMonth){let changed=false;for(const r of data.recurring){for(const date of recurrenceDatesInMonth(r,d)){const rk=`${r.id}:${date}`;if(data.transactions.some(t=>t.recurringKey===rk))continue;const existing=data.transactions.find(t=>t.date===date&&t.title.toLowerCase()===String(r.title).toLowerCase()&&t.type===r.type);if(existing){existing.recurringKey=rk;changed=true;continue}data.transactions.push({id:uid('tx'),recurringKey:rk,date,title:r.title,amount:num(r.amount),type:r.type,categoryId:r.categoryId,accountId:r.accountId,memberId:r.memberId,status:'planned',estimated:!!r.estimate,note:'Automatisch aus Planung',tags:['regelmäßig']});changed=true}}if(changed)localStorage.setItem(STORE_KEY,JSON.stringify(data))}
 generateRecurringForMonth=fixRecurringGeneration;
 
-function standardCategories(){return [
-  {id:'c_income_salary',name:'Gehalt',kind:'income',parent:null,color:'#18b979'},
-  {id:'c_income_other',name:'Weitere Einnahmen',kind:'income',parent:null,color:'#45c49b'},
-  {id:'c_home',name:'Wohnen',kind:'expense',parent:null,color:categoryColors[0]},
-  {id:'c_food',name:'Lebensmittel',kind:'expense',parent:null,color:categoryColors[1]},
-  {id:'c_mob',name:'Mobilität',kind:'expense',parent:null,color:categoryColors[2]},
-  {id:'c_leisure',name:'Freizeit',kind:'expense',parent:null,color:categoryColors[3]},
-  {id:'c_subs',name:'Abos & Verträge',kind:'expense',parent:null,color:categoryColors[4]},
-  {id:'c_kids',name:'Kinder',kind:'expense',parent:null,color:categoryColors[5]},
-  {id:'c_ins',name:'Versicherungen',kind:'expense',parent:null,color:categoryColors[6]},
-  {id:'c_health',name:'Gesundheit',kind:'expense',parent:null,color:categoryColors[8]},
-  {id:'c_clothes',name:'Kleidung',kind:'expense',parent:null,color:categoryColors[9]},
-  {id:'c_debt',name:'Kredite',kind:'expense',parent:null,color:categoryColors[10]},
-  {id:'c_other',name:'Sonstiges',kind:'expense',parent:null,color:categoryColors[7]},
-  {id:'c_fuel',name:'Tanken',kind:'expense',parent:'c_mob',color:'#814df3'},
-  {id:'c_restaurant',name:'Restaurant',kind:'expense',parent:'c_leisure',color:'#f4a126'}
-]}
-function isLikelyDemoData(){const titles=new Set((data.transactions||[]).map(t=>t.title));return titles.has('REWE Supermarkt')&&titles.has('Tankstelle')&&titles.has('Netflix')&&(data.recurring||[]).some(r=>r.title==='Gehalt'&&num(r.amount)===2950)&&(data.accounts||[]).some(a=>a.name==='Tagesgeld')}
-function createBlankHousehold(name='Mein Haushalt',accountName='Girokonto',openingBalance=0){const oldSettings=data?.settings||{};return {
-  version:APP_VERSION,createdAt:new Date().toISOString(),
-  household:{name:name||'Mein Haushalt',currency:'EUR',locale:'de-DE'},
-  members:[{id:'m1',name:'Ich',role:'admin',active:true}],
-  accounts:[{id:'a1',name:accountName||'Girokonto',type:'checking',balance:num(openingBalance),baseBalance:num(openingBalance),includeNetWorth:true}],
-  categories:standardCategories(),transactions:[],recurring:[],budgets:[],goals:[],reserves:[],contracts:[],insurances:[],debts:[],projects:[],monthClosures:[],documents:[],notifications:[],
-  integrations:{bank:{provider:'',connected:false,lastSync:null},ai:{provider:'local',apiKeyConfigured:false},push:{enabled:false}},
-  settings:{theme:oldSettings.theme||'light',privacy:!!oldSettings.privacy,notifications:!!oldSettings.notifications,pinHash:oldSettings.pinHash||'',vault:false,dashboardWidgets:oldSettings.dashboardWidgets||['metrics','forecast','trend','transactions','categories','budgets','insights'],autoSnapshots:oldSettings.autoSnapshots!==false},
-  assistantLog:[{role:'bot',text:'Willkommen in deinem neuen Finanzplan. Lege zuerst deine regelmäßigen Einnahmen, Fixkosten und Budgets an – danach berechne ich deine Prognosen automatisch.'}]
-}}
-async function clearLocalDocuments(){try{if(typeof dbPromise!=='undefined'&&dbPromise){const db=await dbPromise;db.close();dbPromise=null}if('indexedDB'in window)await new Promise(resolve=>{const req=indexedDB.deleteDatabase('finanzplan-files');req.onsuccess=()=>resolve();req.onerror=()=>resolve();req.onblocked=()=>resolve()})}catch{}}
-function openNewHouseholdModal(options={}){const firstRun=!!options.firstRun,demo=isLikelyDemoData();openModal(firstRun?'Finanzplan einrichten':'Neuen Haushalt starten',firstRun?'Starte mit deinen eigenen Daten – ohne Beispielbuchungen.':'Alle bisherigen Finanzdaten dieses Browsers werden durch einen leeren Haushalt ersetzt.',`<form id="newHouseholdForm">
-  ${demo?'<div class="insight"><div class="insight-icon">i</div><div><b>Aktuell sind Beispieldaten geladen</b><p>Gehalt, REWE, Netflix, Tankstelle usw. sind nur Demonstrationswerte und können vollständig entfernt werden.</p></div></div>':''}
-  <div class="form-grid" style="margin-top:14px">
-    <div class="field full"><label>Name des Haushalts</label><input name="householdName" class="input" value="Mein Haushalt" required></div>
-    <div class="field"><label>Erstes Konto</label><input name="accountName" class="input" value="Girokonto" required></div>
-    <div class="field"><label>Aktueller Kontostand</label><input name="openingBalance" type="number" step="0.01" class="input" value="0"></div>
-    ${firstRun?'':`<div class="field full"><label>Zur Sicherheit „START“ eingeben</label><input name="confirmText" class="input" placeholder="START" autocomplete="off" required><small>Damit verhindern wir versehentliches Löschen deiner echten Finanzdaten.</small></div>`}
-  </div>
-  <div class="insight"><div class="insight-icon">✓</div><div><b>Was bleibt vorhanden?</b><p>Standardkategorien, dein Design/Dark-Mode und ein eventuell gesetzter App-PIN. Buchungen, Fixkosten, Budgets, Verträge, Ziele, Schulden, Dokumente und Demo-Daten werden entfernt.</p></div></div>
-  <div class="modal-actions">
-    ${firstRun?'':'<button type="button" id="backupBeforeReset" class="secondary-button">Backup herunterladen</button>'}
-    <button type="button" class="secondary-button" data-cancel>${firstRun?'Später':'Abbrechen'}</button>
-    <button class="primary-button">${firstRun?'Eigenen Finanzplan starten':'Leeren Haushalt erstellen'}</button>
-  </div>
-</form>`,()=>{const f=$('#newHouseholdForm');$('#backupBeforeReset')?.addEventListener('click',exportJSON);$('[data-cancel]',f).onclick=closeModal;f.onsubmit=async e=>{e.preventDefault();const fd=new FormData(f);if(!firstRun&&formVal(fd,'confirmText').toUpperCase()!=='START')return toast('Bitte START zur Bestätigung eingeben','error');const fresh=createBlankHousehold(formVal(fd,'householdName'),formVal(fd,'accountName'),num(formVal(fd,'openingBalance')));await clearLocalDocuments();localStorage.removeItem(SNAP_KEY);data=fresh;selectedMonth=monthStart(now);currentView='dashboard';localStorage.setItem(STORE_KEY,JSON.stringify(data));closeModal();renderAll();toast('Dein leerer Finanzplan ist bereit','success')}})}
-
-const renderDashboardBeforeDemoBanner=renderDashboard;renderDashboard=function(){renderDashboardBeforeDemoBanner();if(!isLikelyDemoData())return;const root=$('#view-dashboard');root.insertAdjacentHTML('afterbegin',`<article id="demoDataBanner" class="neo-banner" style="margin-bottom:16px"><h2>Beispieldaten aktiv</h2><p>Die angezeigten Einnahmen, Ausgaben, Konten und Verträge sind nur Demo-Werte. Starte jetzt deinen eigenen leeren Haushaltsplan.</p><div class="action-row"><button id="startOwnHousehold" class="primary-button">Eigene Finanzen starten</button><button id="keepDemoForNow" class="secondary-button">Demo vorerst behalten</button></div></article>`);$('#startOwnHousehold',root).onclick=()=>openNewHouseholdModal();$('#keepDemoForNow',root).onclick=()=>$('#demoDataBanner',root)?.remove()}
-const renderSettingsBeforeReset=renderSettings;renderSettings=function(){renderSettingsBeforeReset();const root=$('#view-settings');root.insertAdjacentHTML('beforeend',`<article class="card" style="margin-top:16px"><div class="card-title-row"><div><h2>Daten & Neustart</h2><p>Mit einem komplett leeren Haushalt neu beginnen</p></div></div><div class="setting-row"><div><b>Neuen Haushalt starten</b><small style="display:block;color:var(--muted)">Entfernt Buchungen, Fixkosten, Budgets, Verträge, Ziele, Schulden und Dokumente. Standardkategorien bleiben.</small></div><button id="startFreshHousehold" class="danger-button">Neu starten</button></div></article>`);$('#startFreshHousehold',root).onclick=()=>openNewHouseholdModal()}
-
 $('#modalClose').onclick=closeModal;$('#modalBackdrop').addEventListener('click',e=>{if(e.target===$('#modalBackdrop')&&!$('#modalClose').classList.contains('hidden'))closeModal()});
 $('#quickAddTop').onclick=()=>openTransactionModal();$('#quickAddMobile').onclick=()=>openTransactionModal();
 $('#privacyToggle').onclick=()=>{data.settings.privacy=!data.settings.privacy;saveData('Privatmodus geändert')};$('#themeToggle').onclick=()=>{data.settings.theme=data.settings.theme==='dark'?'light':'dark';saveData('Darstellung geändert')};
@@ -69,5 +21,5 @@ $('#receiptImport').onchange=async e=>{const f=e.target.files?.[0];if(f)await st
 $('#fileImport').onchange=async e=>{const f=e.target.files?.[0];if(f)await handleImportFile(f);e.target.value='';e.target.dataset.mode=''};
 
 function handleQuery(){const p=new URLSearchParams(location.search);const v=p.get('view');if(v&&$(`#view-${v}`))currentView=v;if(p.get('action')==='add')setTimeout(()=>openTransactionModal(),200)}
-async function init(){const firstRun=!localStorage.getItem(STORE_KEY);handleQuery();if(!firstRun)generateRecurringForMonth(selectedMonth);renderAll();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});setTimeout(evaluateNotifications,1200);await showLockIfNeeded();if(firstRun)setTimeout(()=>openNewHouseholdModal({firstRun:true}),150)}
+async function init(){handleQuery();generateRecurringForMonth(selectedMonth);renderAll();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});setTimeout(evaluateNotifications,1200);await showLockIfNeeded()}
 init();
