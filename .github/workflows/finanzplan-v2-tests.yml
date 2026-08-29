@@ -76,6 +76,8 @@ jobs:
         run: node finanzplan/tests/v32-project-reset.mjs
       - name: Run N26 automatic local-account flow
         run: node finanzplan/tests/v32-n26-auto-account.mjs
+      - name: Run smart merchant categorization flow
+        run: node finanzplan/tests/v32-smart-categories.mjs
 
   live-render-smoke:
     if: github.ref == 'refs/heads/finanzplan'
