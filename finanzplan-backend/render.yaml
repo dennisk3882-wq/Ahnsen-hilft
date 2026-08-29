@@ -13,8 +13,10 @@ services:
       - key: APP_ORIGIN
         value: https://finanzplan-pwa.onrender.com
       - key: SUPABASE_URL
-        sync: false
+        value: https://yhsuuoexxjejboqbrvuk.supabase.co
       - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ALLOWED_EMAILS
         sync: false
       - key: ENABLE_BANKING_APP_ID
         sync: false
