@@ -16,7 +16,7 @@ function updateNav(){
   const [t,s]=titles[currentView]||titles.dashboard;$('#pageTitle').textContent=t;$('#pageSubtitle').textContent=s;
 }
 function metric(label,value,cls,note,icon='•',spark=[]){
-  const pts=spark.length?spark:[0,1,0,2,1,2];const min=Math.min(...pts),max=Math.max(...pts);const coords=pts.map((v,i)=>`${(i/(pts.length-1))*100},${24-((v-min)/(max-min||1))*20}`).join(' ');
+  const raw=spark.length?spark:[0,1,0,2,1,2],pts=raw.length===1?[raw[0],raw[0]]:raw;const min=Math.min(...pts),max=Math.max(...pts);const coords=pts.map((v,i)=>`${(i/(pts.length-1))*100},${24-((v-min)/(max-min||1))*20}`).join(' ');
   return `<article class="metric-card"><div class="metric-head"><span class="metric-label">${label}</span><span class="metric-icon">${icon}</span></div><strong class="metric-value money ${cls}">${value}</strong><div class="spark"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="${coords}" fill="none" stroke="currentColor" stroke-width="1.8" vector-effect="non-scaling-stroke" class="${cls}"/></svg></div><small class="metric-note">${note}</small></article>`;
 }
 function history(n=6){const out=[];for(let i=n-1;i>=0;i--){const d=monthStart(addMonths(selectedMonth,-i)),s=monthSummary(d);out.push({d,income:s.income,expense:s.expense,balance:s.balance})}return out}
