@@ -17,8 +17,8 @@ async function run(browserType,name,viewport){
     await setup.locator('[name="balance"]').fill('1000');
     await setup.locator('button.primary-button').click();
     await page.locator('#modalBackdrop').waitFor({state:'hidden'});
-    await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.1.0');
-    assert.equal(await page.evaluate(()=>data.version),'3.1.0');
+    await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.2.0');
+    assert.equal(await page.evaluate(()=>data.version),'3.2.0');
     assert.equal(await page.evaluate(()=>data.schemaVersion),3);
     assert.equal(await page.evaluate(()=>localStorage.getItem('finanzplan:data:v1')),null);
     assert.equal(await page.evaluate(async()=>!!(await window.__finanzplanStorage.loadState())),true);
@@ -36,7 +36,7 @@ async function run(browserType,name,viewport){
     assert.equal(await page.evaluate(()=>Math.round(monthSummary().expense*100)),30);
 
     await page.reload({waitUntil:'domcontentloaded'});
-    await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.1.0'&&data.transactions.some(t=>t.id==='cent20'),null,{timeout:12000});
+    await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.2.0'&&data.transactions.some(t=>t.id==='cent20'),null,{timeout:12000});
     assert.equal(await page.evaluate(()=>localStorage.getItem('finanzplan:data:v1')),null);
     assert.equal(await page.evaluate(()=>Math.round(monthSummary().expense*100)),30);
     assert.equal(await page.evaluate(()=>FinanzDiagnostics.runDiagnostics().then(x=>x.indexedDb)),true);
