@@ -2,7 +2,7 @@ name: Finanzplan v3 tests
 
 on:
   push:
-    branches: [finanzplan, finanzplan-v2-audit, finanzplan-v2-2-hardening, finanzplan-v3-hardening, finanzplan-v3-1-premium]
+    branches: [finanzplan, finanzplan-v2-audit, finanzplan-v2-2-hardening, finanzplan-v3-hardening, finanzplan-v3-1-premium, finanzplan-v3-2-intelligence]
     paths:
       - 'finanzplan/**'
       - 'finanzplan-backend/**'
@@ -30,7 +30,7 @@ jobs:
 
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 38
+    timeout-minutes: 42
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,8 +61,10 @@ jobs:
         run: node finanzplan/tests/v3-migration-install.mjs
       - name: Run accessibility and offline flow
         run: node finanzplan/tests/v3-quality.mjs
-      - name: Run V3.1 premium/offline flow
+      - name: Run V3.1 premium regression flow
         run: node finanzplan/tests/v31-premium.mjs
+      - name: Run V3.2 intelligence, E2EE and offline flow
+        run: node finanzplan/tests/v32-intelligence.mjs
 
   live-render-smoke:
     if: github.ref == 'refs/heads/finanzplan'
@@ -72,14 +74,14 @@ jobs:
     env:
       LIVE_URL: https://finanzplan-pwa.onrender.com
     steps:
-      - name: Wait for Render V3.1 deployment
+      - name: Wait for Render V3.2 deployment
         run: |
           set -e
           for i in {1..36}; do
-            if curl -fsS "$LIVE_URL/sw.js?check=$RANDOM" | grep -q "finanzplan-v3.1.0"; then exit 0; fi
+            if curl -fsS "$LIVE_URL/sw.js?check=$RANDOM" | grep -q "finanzplan-v3.2.0"; then exit 0; fi
             sleep 10
           done
-          echo "Render did not expose Finanzplan V3.1 in time"
+          echo "Render did not expose Finanzplan V3.2 in time"
           exit 1
       - name: Verify live security headers
         run: |
