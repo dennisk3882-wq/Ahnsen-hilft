@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: finanzplan-api
+    runtime: node
+    plan: free
+    branch: finanzplan
+    rootDir: finanzplan-backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ORIGIN
+        value: https://finanzplan-pwa.onrender.com
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ENABLE_BANKING_APP_ID
+        sync: false
+      - key: ENABLE_BANKING_PRIVATE_KEY
+        sync: false
+      - key: STATE_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.6-luna
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
