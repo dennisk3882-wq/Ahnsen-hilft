@@ -5,7 +5,7 @@
   const clone=v=>JSON.parse(JSON.stringify(v));
   const stripLegacy=()=>{try{localStorage.removeItem(PLAIN_KEY);localStorage.removeItem(OLD_SNAP);localStorage.removeItem(OLD_UNDO)}catch(_){}};
   const queuePersist=state=>{const copy=clone(state);persistQueue=persistQueue.catch(()=>{}).then(()=>storage.saveState(copy));return persistQueue};
-  const baseSave=saveData,baseOpenBackup=openBackup,baseEnableVault=typeof enableVault==='function'?enableVault:null,baseDisableVault=typeof disableVault==='function'?disableVault:null,baseUnlockVault=typeof unlockVault==='function'?unlockVault:null;
+  const baseSave=saveData,baseUndo=undoLastChange,baseOpenBackup=openBackup,baseEnableVault=typeof enableVault==='function'?enableVault:null,baseDisableVault=typeof disableVault==='function'?disableVault:null,baseUnlockVault=typeof unlockVault==='function'?unlockVault:null;
 
   function stampV3(){data.version=V3_VERSION;data.schemaVersion=V3_SCHEMA;syncMoneyFieldsV3?.();return data}
   function pushUndoV3(label){const previous=window.__v3LastPersistedState;if(!previous||data.settings?.vault)return;storage.saveHistory('undo',label||'Änderung',previous,12).catch(()=>{})}
@@ -13,13 +13,14 @@
   globalThis.pushUndoFromPersisted=pushUndoV3;globalThis.autoSnapshot=autoSnapshotV3;
 
   saveData=function(reason='Änderung gespeichert'){
-    pushUndoV3(reason);stampV3();const result=baseSave(reason);stampV3();
+    // The wrapped V2 save calls the now-overridden pushUndoFromPersisted exactly once.
+    stampV3();const result=baseSave(reason);stampV3();
     if(data.settings?.vault){storage.clearState().catch(()=>{});stripLegacy()}else{queuePersist(data).then(()=>{window.__v3LastPersistedState=clone(data);stripLegacy()}).catch(e=>console.error('IndexedDB save failed',e))}
     renderAll();return result
   };
 
   undoLastChange=function(){
-    if(data.settings?.vault)return globalThis.v2PlainUndo?.()||false;
+    if(data.settings?.vault)return baseUndo();
     storage.listHistory('undo').then(async rows=>{const row=rows[0];if(!row){toast('Keine Änderung zum Rückgängigmachen vorhanden','error');return}data=clone(row.data);migrateV2Data();stampV3();await storage.deleteHistory(row.id);await storage.saveState(data);window.__v3LastPersistedState=clone(data);renderAll();toast(`Rückgängig: ${row.label||'letzte Änderung'}`,'success')}).catch(e=>toast(e.message,'error'));return true
   };
 
@@ -37,7 +38,7 @@
   function checkDayRollover(){const today=localISO(new Date());if(bootDay&&today!==bootDay){location.reload();return true}return false}
   function scheduleMidnightReload(){const d=new Date(),next=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1,0,0,2);setTimeout(()=>location.reload(),Math.max(1000,next-d))}
 
-  window.finanzplanV3Start=async function({bootState,migrated}={}){
+  window.finanzplanV3Start=async function({migrated}={}){
     bootDay=localISO(new Date());stampV3();
     if(data.settings?.vault){await storage.clearState().catch(()=>{})}else{await storage.saveState(data);window.__v3LastPersistedState=clone(data);stripLegacy()}
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkDayRollover()},{passive:true});window.addEventListener('focus',checkDayRollover,{passive:true});window.addEventListener('pageshow',checkDayRollover,{passive:true});scheduleMidnightReload();
