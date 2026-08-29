@@ -70,4 +70,4 @@ Die vier orange markierten Bereiche sind technisch vorbereitet, können aber nic
 - Sync-Tokens werden nur sitzungsweise gehalten; ETag/If-Match schützt vor stillem Überschreiben einer geänderten Serverdatei.
 - Service Worker enthält einen standardisierten Web-Push-Empfänger.
 - Render-Blueprint enthält CSP, HSTS, Clickjacking-, MIME- und Referrer-Schutz; zusätzlich existiert eine Browser-CSP als Fallback.
-- PWA besitzt eine separate maskierbare Icon-Variante und einen versionierten Offline-Cache (`finanzplan-v2.2.2`).
+- PWA besitzt eine separate maskierbare Icon-Variante und einen versionierten Offline-Cache (`finanzplan-v2.2.3`).
