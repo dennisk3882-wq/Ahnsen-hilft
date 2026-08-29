@@ -1,12 +1,13 @@
 'use strict';
 function renderAll(){
+  ensureAccountBases();
   document.body.classList.toggle('dark',data.settings.theme==='dark');
   document.body.classList.toggle('privacy',!!data.settings.privacy);
   $('#monthLabel').textContent=fmtMonth(selectedMonth);
   renderSidebarAccounts();renderDashboard();renderTransactions();renderPlanning();renderBudgets();renderWealth();renderContracts();renderGoals();renderCalendar();renderStats();renderAssistant();renderMore();renderSettings();updateNav();
 }
 function renderSidebarAccounts(){
-  $('#sidebarAccounts').innerHTML=data.accounts.slice(0,5).map(a=>`<div class="side-account"><b>${escapeHTML(a.name)}</b><span class="money">${money(a.balance)}</span></div>`).join('');
+  $('#sidebarAccounts').innerHTML=data.accounts.slice(0,5).map(a=>`<div class="side-account"><b>${escapeHTML(a.name)}</b><span class="money">${money(accountBalance(a))}</span></div>`).join('');
 }
 function updateNav(){
   $$('.nav-item,[data-view].profile-card,.mobile-nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===currentView));
@@ -45,7 +46,7 @@ function renderDashboard(){
       ${metric('Ausgaben',money(s.expense),'negative',`${money(s.plannedExpense)} noch geplant`,'↓',hist.map(x=>x.expense))}
       ${metric('Saldo',money(s.balance),s.balance>=0?'neutral':'negative',`${pct(savingsRate())} Sparquote`,'◉',hist.map(x=>x.balance))}
       ${metric('Monatsbudget',money(budgetTotal),'',`${pct(budgetTotal?budgetSpent/budgetTotal*100:0)} verwendet`,'▣',hist.map(x=>x.expense))}
-      ${metric('Nettovermögen',money(netWorth()),netWorth()>=0?'positive':'negative',`Finanz-Score ${score}/100`,'◇',hist.map((x,i)=>netWorth()+i*100))}
+      ${metric('Nettovermögen',money(netWorth()),netWorth()>=0?'positive':'negative',`Finanz-Score ${score}/100`,'◇',netWorthHistory().map(x=>x.value))}
     </div>
     <div class="forecast-banner">
       <div class="forecast-item"><small>Heute auf Konten</small><strong class="money">${money(accountTotal())}</strong></div>
