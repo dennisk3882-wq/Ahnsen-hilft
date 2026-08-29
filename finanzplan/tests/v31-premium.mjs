@@ -16,13 +16,16 @@ try{
   await setup.locator('[name="balance"]').fill('1000');
   await setup.locator('button.primary-button').click();
   await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:5000});
-  await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzAI&&window.FinanzCloud&&window.FinanzStatementImport&&window.FinanzPush);
+  await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzAI&&window.FinanzCloud&&window.FinanzStatementImport&&window.FinanzPush&&window.FinanzPasskey&&window.FinanzV31Status);
 
   const base=await page.evaluate(()=>({
     version:data.version,
     cloudUrl:data.integrations?.cloud?.url,
     key:data.integrations?.cloud?.publishableKey,
     backend:data.integrations?.backendUrl,
+    status:window.FinanzV31Status,
+    matrix:featureMatrix().filter(x=>[18,32,38,44].includes(x.n)).map(x=>({n:x.n,status:x.status})),
+    passkeyType:typeof FinanzPasskey.unlock,
     api:Object.keys(FinanzPremium),
     ai:FinanzAI.localExplain('Wie viel kann ich frei ausgeben?'),
     qif:FinanzStatementImport.parseQIF('!Type:Bank\nD29.08.2026\nT-12,34\nPTest Händler\nMTest\nNabc\n^'),
@@ -36,6 +39,12 @@ try{
   assert.match(base.cloudUrl,/^https:\/\/[^/]+\.supabase\.co$/);
   assert.match(base.key,/^sb_publishable_/);
   assert.match(base.backend,/^https:\/\/[^/]+\.supabase\.co\/functions\/v1\/finanzplan-api$/);
+  assert.deepEqual(base.status,{version:'3.1.0',complete:43,partial:2,missing:0});
+  assert.equal(base.matrix.find(x=>x.n===18)?.status,'complete');
+  assert.equal(base.matrix.find(x=>x.n===32)?.status,'complete');
+  assert.equal(base.matrix.find(x=>x.n===38)?.status,'partial');
+  assert.equal(base.matrix.find(x=>x.n===44)?.status,'partial');
+  assert.equal(base.passkeyType,'function');
   assert.ok(base.api.includes('uncertaintyForecast')&&base.api.includes('anomalies')&&base.api.includes('generateMonthlyReport'));
   assert.ok(base.ai.length>20);
   assert.equal(base.qif.length,1);assert.equal(Math.round(base.qif[0].signedAmount*100),-1234);
@@ -62,9 +71,9 @@ try{
   assert.equal(storage.version,'3.1.0');assert.equal(storage.assets,1);assert.equal(storage.plain,null);
 
   await page.waitForFunction(async()=>!!(await navigator.serviceWorker.ready));
-  await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0');
-  const offline=await page.evaluate(()=>({version:data.version,asset:data.assets?.[0]?.name,cloudEnabled:!!data.integrations?.cloud?.enabled}));
-  assert.equal(offline.version,'3.1.0');assert.equal(offline.asset,'Test Asset');assert.equal(offline.cloudEnabled,false);
+  await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzV31Status?.complete===43);
+  const offline=await page.evaluate(()=>({version:data.version,asset:data.assets?.[0]?.name,cloudEnabled:!!data.integrations?.cloud?.enabled,status:FinanzV31Status.complete}));
+  assert.equal(offline.version,'3.1.0');assert.equal(offline.asset,'Test Asset');assert.equal(offline.cloudEnabled,false);assert.equal(offline.status,43);
 
   if(errors.length)throw new Error(errors.join('\n'));
   console.log('Finanzplan V3.1 premium smoke: OK');
