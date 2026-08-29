@@ -123,6 +123,17 @@ function defaultData(){
 }
 
 let data=loadData();
+function txAccountImpact(t,accountId){
+  if((t.status||'paid')!=='paid')return 0;const a=num(t.amount);
+  if(t.type==='income'&&t.accountId===accountId)return a;
+  if(t.type==='expense'&&t.accountId===accountId)return -a;
+  if(t.type==='transfer'){if(t.accountId===accountId)return -a;if(t.targetAccountId===accountId)return a}
+  return 0;
+}
+function ledgerImpact(accountId){return data.transactions.reduce((s,t)=>s+txAccountImpact(t,accountId),0)}
+function ensureAccountBases(){for(const a of data.accounts){if(!Number.isFinite(Number(a.baseBalance)))a.baseBalance=num(a.balance)-ledgerImpact(a.id)}}
+function accountBalance(aOrId){const a=typeof aOrId==='string'?data.accounts.find(x=>x.id===aOrId):aOrId;if(!a)return 0;return num(a.baseBalance)+ledgerImpact(a.id)}
+ensureAccountBases();
 let selectedMonth=monthStart(now);
 let currentView='dashboard';
 let txFilters={q:'',type:'all',category:'all',status:'all'};
@@ -154,17 +165,20 @@ function recurringDueInMonth(r,d){
   const diff=(ms.getFullYear()-start.getFullYear())*12+(ms.getMonth()-start.getMonth());const interval=num(r.interval)||({quarterly:3,semiannual:6,annual:12}[r.frequency]||1);return diff>=0&&diff%interval===0;
 }
 function recurringDate(r,d){return localISO(new Date(d.getFullYear(),d.getMonth(),clamp(num(r.day)||1,1,daysInMonth(d))))}
+function recurrenceDatesInMonth(r,d){
+  if(!r.active)return [];const ms=monthStart(d),me=monthEnd(d),start=parseDate(r.start||localISO(now)),end=r.end?parseDate(r.end):null;if(start>me||(end&&end<ms))return [];
+  if(r.frequency==='weekly'||r.frequency==='biweekly'){const step=r.frequency==='weekly'?7:14,dayMs=86400000;let cur=new Date(start);if(cur<ms){const delta=Math.floor((ms-cur)/dayMs),jumps=Math.floor(delta/step);cur.setDate(cur.getDate()+jumps*step);while(cur<ms)cur.setDate(cur.getDate()+step)}const out=[];while(cur<=me&&(!end||cur<=end)){out.push(localISO(cur));cur=new Date(cur);cur.setDate(cur.getDate()+step)}return out}
+  return recurringDueInMonth(r,d)?[recurringDate(r,d)]:[];
+}
 function generateRecurringForMonth(d=selectedMonth){
-  let changed=false;for(const r of data.recurring){if(!recurringDueInMonth(r,d))continue;const rk=`${r.id}:${monthKey(d)}`;if(data.transactions.some(t=>t.recurringKey===rk))continue;
-    data.transactions.push({id:uid('tx'),recurringKey:rk,date:recurringDate(r,d),title:r.title,amount:num(r.amount),type:r.type,categoryId:r.categoryId,accountId:r.accountId,memberId:r.memberId,status:parseDate(recurringDate(r,d))<=now?'planned':'planned',estimated:!!r.estimate,note:'Automatisch aus Planung',tags:['regelmäßig']});changed=true;
-  }if(changed)localStorage.setItem(STORE_KEY,JSON.stringify(data));
+  let changed=false;for(const r of data.recurring){for(const date of recurrenceDatesInMonth(r,d)){const rk=`${r.id}:${date}`;if(data.transactions.some(t=>t.recurringKey===rk))continue;const existing=data.transactions.find(t=>t.date===date&&t.title.toLowerCase()===String(r.title).toLowerCase()&&t.type===r.type);if(existing){existing.recurringKey=rk;changed=true;continue}data.transactions.push({id:uid('tx'),recurringKey:rk,date,title:r.title,amount:num(r.amount),type:r.type,categoryId:r.categoryId,accountId:r.accountId,memberId:r.memberId,status:'planned',estimated:!!r.estimate,note:'Automatisch aus Planung',tags:['regelmäßig']});changed=true}}if(changed)localStorage.setItem(STORE_KEY,JSON.stringify(data));
 }
 function monthSummary(d=selectedMonth){
   const tx=txForMonth(d);const paid=tx.filter(t=>(t.status||'paid')==='paid');const income=sumTx(paid,'income');const expense=sumTx(paid,'expense');const plannedIncome=sumTx(tx,'income',['planned']);const plannedExpense=sumTx(tx,'expense',['planned']);
   const totalExpectedIncome=income+plannedIncome,totalExpectedExpense=expense+plannedExpense;
   return {tx,paid,income,expense,balance:income-expense,plannedIncome,plannedExpense,totalExpectedIncome,totalExpectedExpense,forecast:totalExpectedIncome-totalExpectedExpense};
 }
-function netWorth(){return data.accounts.filter(a=>a.includeNetWorth!==false).reduce((s,a)=>s+num(a.balance),0)-data.debts.reduce((s,d)=>s+num(d.balance),0)}
+function netWorth(){return data.accounts.filter(a=>a.includeNetWorth!==false).reduce((s,a)=>s+accountBalance(a),0)-data.debts.reduce((s,d)=>s+num(d.balance),0)}
 function fixedMonthly(){return data.recurring.filter(r=>r.active&&r.type==='expense').reduce((s,r)=>s+monthlyEquivalent(r),0)}
 function savingsRate(d=selectedMonth){const s=monthSummary(d);return s.income?clamp((s.balance/s.income)*100,-999,100):0}
 function financeScore(){
@@ -172,5 +186,8 @@ function financeScore(){
 }
 function categorySpend(catId,d=selectedMonth){const ids=descendants(catId);return txForMonth(d).filter(t=>t.type==='expense'&&(t.status||'paid')==='paid'&&ids.includes(t.categoryId)).reduce((s,t)=>s+num(t.amount),0)}
 function categoryBreakdown(d=selectedMonth){const top=data.categories.filter(c=>c.kind==='expense'&&!c.parent);const all=top.map(c=>({cat:c,value:categorySpend(c.id,d)})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value);return all}
-function accountTotal(){return data.accounts.reduce((s,a)=>s+num(a.balance),0)}
+function accountTotal(){return data.accounts.reduce((s,a)=>s+accountBalance(a),0)}
+function netWorthHistory(){const rows=data.monthClosures.filter(c=>Number.isFinite(Number(c.netWorth))).map(c=>({month:c.month,value:num(c.netWorth)})).sort((a,b)=>a.month.localeCompare(b.month));const k=monthKey(selectedMonth);if(!rows.some(x=>x.month===k))rows.push({month:k,value:netWorth()});return rows.slice(-12)}
+function statisticalProjection(d=selectedMonth){const s=monthSummary(d),dim=daysInMonth(d),current=monthKey(d)===monthKey(now),elapsed=current?Math.max(1,now.getDate()):dim,pace=s.expense/elapsed*dim;const prev=[];for(let i=1;i<=3;i++){const v=monthSummary(addMonths(d,-i)).expense;if(v>0)prev.push(v)}const avg=prev.length?prev.reduce((a,b)=>a+b,0)/prev.length:pace;const projectedExpense=current?Math.max(s.totalExpectedExpense,pace*.65+avg*.35):s.expense;return {projectedExpense,projectedBalance:s.totalExpectedIncome-projectedExpense,pace,average:avg}}
+function projectSpend(p){const start=parseDate(p.start),end=parseDate(p.end),tag=String(p.tag||p.name||'').toLowerCase(),cats=new Set(p.categoryIds||[]);const matched=data.transactions.filter(t=>t.type==='expense'&&(t.status||'paid')==='paid').filter(t=>{const d=parseDate(t.date);if(d<start||d>end)return false;const tags=(t.tags||[]).map(x=>String(x).toLowerCase());return (tag&&tags.includes(tag))||(cats.size&&cats.has(t.categoryId))}).reduce((s,t)=>s+num(t.amount),0);return num(p.spent)+matched}
 function daysRemaining(){if(monthKey(selectedMonth)!==monthKey(now))return daysInMonth(selectedMonth);return Math.max(0,daysInMonth(now)-now.getDate())}
