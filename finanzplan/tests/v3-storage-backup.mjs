@@ -17,7 +17,6 @@ try{
   const backup=await page.evaluate(async()=>{const r=await FinanzBackupV3.buildV3BackupBlob('secret33');return new Uint8Array(await r.blob.arrayBuffer())});
   assert.ok(backup.length>100);
 
-  // Destroy current structured state and document store, then restore solely from the binary backup.
   const restored=await page.evaluate(async bytes=>{
     await window.__finanzplanStorage.clearState();
     const db=await openFileDB();await new Promise(resolve=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').clear();tx.oncomplete=resolve;tx.onerror=resolve});
@@ -28,9 +27,8 @@ try{
   },Array.from(backup));
   assert.equal(restored.hasTx,true);assert.ok(restored.docs.includes('beleg-v3.txt'));assert.equal(Math.round(restored.balance*100),148766);
 
-  // Scale test: 10k transactions must persist and reload from IndexedDB without LocalStorage data.
   const scale=await page.evaluate(async()=>{const a=data.accounts[0].id,m=data.members[0].id,d=localISO(now);for(let i=0;i<10000;i++)data.transactions.push({id:`scale_${i}`,date:d,title:`Scale ${i}`,amount:1,type:'expense',categoryId:'c_other',accountId:a,memberId:m,status:'paid'});saveData('Scale test');await FinanzV3.flush();return{count:data.transactions.length,plain:localStorage.getItem('finanzplan:data:v1')}});
   assert.ok(scale.count>=10001);assert.equal(scale.plain,null);
-  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.1.0'&&data.transactions.some(t=>t.id==='scale_9999'),null,{timeout:20000});assert.ok(await page.evaluate(()=>data.transactions.length)>=10001);
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>globalThis.FinanzV3?.version==='3.2.0'&&data.transactions.some(t=>t.id==='scale_9999'),null,{timeout:20000});assert.ok(await page.evaluate(()=>data.transactions.length)>=10001);
   if(errors.length)throw new Error(errors.join('\n'));console.log('V3 storage/backup/scale: OK');
 }finally{await browser.close()}
