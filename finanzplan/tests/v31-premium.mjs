@@ -16,7 +16,7 @@ try{
   await setup.locator('[name="balance"]').fill('1000');
   await setup.locator('button.primary-button').click();
   await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:5000});
-  await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzAI&&window.FinanzCloud&&window.FinanzStatementImport&&window.FinanzPush&&window.FinanzPasskey&&window.FinanzV31Status);
+  await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzAI&&window.FinanzCloud&&window.FinanzStatementImport&&window.FinanzPush&&window.FinanzPasskey&&window.FinanzV31Status&&window.FinanzV32?.version==='3.2.0');
 
   const base=await page.evaluate(()=>({
     version:data.version,
@@ -35,7 +35,7 @@ try{
     auto:FinanzPremium.autopilot(),
     year:FinanzPremium.annualCompare(new Date().getFullYear())
   }));
-  assert.equal(base.version,'3.1.0');
+  assert.equal(base.version,'3.2.0');
   assert.match(base.cloudUrl,/^https:\/\/[^/]+\.supabase\.co$/);
   assert.match(base.key,/^sb_publishable_/);
   assert.match(base.backend,/^https:\/\/[^/]+\.supabase\.co\/functions\/v1\/finanzplan-api$/);
@@ -68,13 +68,13 @@ try{
   assert.match(report.id,/^report:/);assert.ok(Number.isFinite(report.income));assert.ok(Number.isFinite(report.netWorth));
 
   const storage=await page.evaluate(async()=>{await FinanzV3.flush();const state=await window.__finanzplanStorage.loadState();return {version:state.version,assets:state.assets?.length||0,plain:localStorage.getItem('finanzplan:data:v1')}});
-  assert.equal(storage.version,'3.1.0');assert.equal(storage.assets,1);assert.equal(storage.plain,null);
+  assert.equal(storage.version,'3.2.0');assert.equal(storage.assets,1);assert.equal(storage.plain,null);
 
   await page.waitForFunction(async()=>!!(await navigator.serviceWorker.ready));
-  await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzV31Status?.complete===43);
+  await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.FinanzPremium?.VERSION==='3.1.0'&&window.FinanzV31Status?.complete===43&&window.FinanzV32?.version==='3.2.0');
   const offline=await page.evaluate(()=>({version:data.version,asset:data.assets?.[0]?.name,cloudEnabled:!!data.integrations?.cloud?.enabled,status:FinanzV31Status.complete}));
-  assert.equal(offline.version,'3.1.0');assert.equal(offline.asset,'Test Asset');assert.equal(offline.cloudEnabled,false);assert.equal(offline.status,43);
+  assert.equal(offline.version,'3.2.0');assert.equal(offline.asset,'Test Asset');assert.equal(offline.cloudEnabled,false);assert.equal(offline.status,43);
 
   if(errors.length)throw new Error(errors.join('\n'));
-  console.log('Finanzplan V3.1 premium smoke: OK');
+  console.log('Finanzplan V3.1 regression on V3.2: OK');
 } finally {await browser.close()}
