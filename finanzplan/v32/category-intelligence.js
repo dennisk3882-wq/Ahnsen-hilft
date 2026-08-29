@@ -42,6 +42,7 @@
     for(const [needle,name] of aliases)if(n.includes(norm(needle)))return name;
     return canonical(raw);
   }
+  function merchantKey(raw){return norm(merchantAlias(raw)).replace(/\s+/g,' ').trim()}
   function matches(pattern,text){
     const p=norm(pattern),t=` ${norm(text)} `;
     if(!p)return false;
@@ -54,10 +55,16 @@
       const p=norm(r.pattern||r.merchant||'');return p&&(n.includes(p)||p.includes(n));
     })||null;
   }
-  function learnedRule(text){
-    const n=norm(text);
+  function learnedRule(merchant){
+    const key=merchantKey(merchant);
+    if(!key||key==='unbekannt')return null;
     return (data.merchantRules||[]).filter(r=>r.active!==false&&r.learned&&r.categoryId&&Number(r.confidence||0)>=.8).sort((a,b)=>Number(b.confidence||0)-Number(a.confidence||0)).find(r=>{
-      const p=norm(r.pattern||r.merchant||'');return p&&(n.includes(p)||p.includes(n));
+      const ruleKey=merchantKey(r.merchant||r.pattern||'');
+      if(!ruleKey||ruleKey.length<3)return false;
+      // Learned rules are intentionally conservative: an old category is reused only
+      // for the same canonical merchant. Arbitrary substring/reverse-substring matches
+      // caused unrelated N26 payees to inherit categories such as "Kleidung".
+      return ruleKey===key;
     })||null;
   }
   function classifyKnowledge(text,type='expense'){
@@ -78,7 +85,7 @@
     if(manual)return {categoryId:manual.categoryId,merchant:manual.merchant||merchant,confidence:1,reason:'manual-rule',source:'manual'};
     const smart=classifyKnowledge(searchable,type);
     if(smart.confidence>=.84)return {...smart,merchant,source:'smart'};
-    const learned=learnedRule(searchable);
+    const learned=learnedRule(merchant);
     if(learned)return {categoryId:learned.categoryId,merchant:learned.merchant||merchant,confidence:Number(learned.confidence||.8),reason:'learned-rule',source:'learned'};
     return {...smart,merchant,source:'fallback'};
   }
