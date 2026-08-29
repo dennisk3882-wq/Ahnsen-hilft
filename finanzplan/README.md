@@ -1,6 +1,6 @@
-# Finanzplan PWA V3.1
+# Finanzplan PWA V3.2
 
-Local-first Haushalts- und Finanz-PWA. Der vollständige Finanzkern bleibt offlinefähig; strukturierte Daten liegen primär in IndexedDB. Optional erweitert die bereits eingerichtete Supabase-Schicht die PWA um echte Benutzerkonten, Multiuser-Sync, Belege und Hintergrund-Push.
+Local-first Haushalts- und Finanz-PWA. Der komplette Finanzkern bleibt offlinefähig; strukturierte Daten liegen primär in IndexedDB. Supabase erweitert die PWA optional um echte Benutzerkonten, Multiuser-Sync, Belege, Hintergrund-Push, Monitoring sowie die sichere Backend-Schicht für Banking und optionale Cloud-KI.
 
 ## Lokaler Finanzkern
 
@@ -16,113 +16,122 @@ Local-first Haushalts- und Finanz-PWA. Der vollständige Finanzkern bleibt offli
 - CSV/XLS/XLSX/XML, QIF, OFX, MT940 und CAMT.053 Import mit Duplikaterkennung
 - CSV/XLS/PDF/JSON-Export und verschlüsseltes `.fplan`-Vollbackup inklusive Belegen
 - Papierkorb, Undo, IndexedDB-Snapshots und Reset-Schutz
-- optionaler AES-256-GCM-Tresor, PBKDF2, Memory-Lock, PIN, WebAuthn und PRF-Cold-Start-Passkey wo vom Gerät unterstützt
+- AES-256-GCM-Tresor, PBKDF2, Memory-Lock, PIN, WebAuthn und PRF-Cold-Start-Passkey wo vom Gerät unterstützt
 - Dark Mode, Privatmodus, installierbare PWA, native/maskierbare Icons und Offline-Cache
 
-## V3.1 Premium-Ausbau
+## V3.2 – die zehn Automation-&-Intelligence-Ausbaupunkte
 
-1. **Finanz-Autopilot** – Safe-to-Spend, Verpflichtungen, Auffälligkeiten und priorisierte Maßnahmen.
-2. **Prognoseband** – konservatives, Basis- und optimistisches Monatsende.
-3. **Anomalien/Dubletten** – ungewöhnliche Beträge und mögliche Doppelbuchungen.
-4. **Vertragsprüfung** – Kündigungsfristen und laufende Kosten priorisiert.
-5. **Automatischer Monatsbericht** – Kennzahlen, Kategorien, Veränderungen und Nettovermögen historisiert.
-6. **Jahresvergleich** – Vorjahr und optional inflationsbereinigte Betrachtung.
-7. **Bankdateiformate** – QIF, OFX, MT940 und CAMT.053 zusätzlich zu CSV/XLSX.
-8. **Portfolio/Vermögenswerte** – Immobilien, Wertpapiere, Fahrzeuge, Edelmetalle und sonstige Werte mit Historie.
-9. **Passkey-Härtung** – PRF-basierter Cold-Start-Unlock des Tresorschlüssels auf kompatiblen Geräten.
-10. **Qualitätssicherung** – Chromium/WebKit, Offline, Migration, IndexedDB, Backup/Restore, 10k-Buchungen, Accessibility und Premium-Regression.
+1. **N26 Live-Banking** – providerneutraler Banking-Hub und komplette N26/Enable-Banking-Bridge. Software fertig; persönlicher Enable-Banking-Zugang und einmaliger N26-Consent bleiben externe Voraussetzungen.
+2. **Händler & Kategorien** – Händlernormalisierung plus lernende Kategorisierung mit Konfidenzwert aus bestätigten historischen Buchungen.
+3. **Automatische Vertragserkennung** – wiederkehrende, ausreichend stabile Abbuchungen werden als Vertragskandidaten erkannt.
+4. **Kündigungsassistent** – Kündigungstext, PDF, vorbereitete E-Mail, Versandstatus und Nachweis-/Dokumentenablage.
+5. **KI-Finanzassistent** – deutlich erweiterter kostenloser lokaler Analyst; Geräte-KI bei Browserunterstützung; optionale Cloud-KI über die sichere Backend-Schicht.
+6. **Cloud-E2EE** – Finanzdatensätze und Belegdateien können clientseitig mit einer Haushalts-Passphrase Ende-zu-Ende verschlüsselt werden. Supabase erhält dann nur Ciphertext.
+7. **Produktionsmonitoring** – sanitizierte Runtime-, Sync- und Banking-Ereignisse; Admin-/Owner-Sicht über RLS.
+8. **UX & Onboarding** – zentrales V3.2-Einrichtungscenter für Banking, E2EE, Push, KI, Monitoring und den Status aller zehn Ausbaupunkte.
+9. **Audit-Härtung** – automatisierte Security-, Browser-, Offline-, Accessibility-, Migrations-, Backup- und Massendatentests plus Supabase Security/Performance Advisor. Ein echter externer Penetrationstest und manueller WCAG-2.2-AA-Screenreader-Test bleiben externe Freigaben.
+10. **Weitere Banken & Native Readiness** – Banking-Provider sind von der Finanzengine entkoppelt; ein Capacitor-Wrapper ist für spätere Android/iOS-Verteilung vorbereitet. Weitere reale Banken und Store-Veröffentlichung benötigen Provider-/Store-Zugänge.
 
-## Multiuser – Supabase
+## Multiuser & Ende-zu-Ende-Verschlüsselung
 
-Die produktive Supabase-Infrastruktur ist eingerichtet:
+Die Supabase-Infrastruktur enthält:
 
 - Supabase Auth
 - Haushalte und Rollen `owner`, `admin`, `adult`, `limited`
 - Einladungen
 - Row Level Security
-- datensatzweiser Sync statt Ganzdaten-Overwrite
+- datensatzweisen Sync statt Ganzdaten-Overwrite
 - optimistische Versionsprüfung und Konfliktbehandlung
-- bidirektionaler Beleg-Sync
-- privater Storage-Bucket `finance-documents` (20 MB je Datei)
+- bidirektionalen Beleg-Sync
+- privaten Storage-Bucket `finance-documents` mit 20 MB je Datei
+- optionale clientseitige E2EE für strukturierte Cloud-Daten und Cloud-Belege
 
-Der Supabase Security Advisor meldet im gehärteten Zustand keine Security-Lints. Die öffentliche Projekt-URL und der Publishable Key dürfen im Client stehen; Service-Role-/Bank-/KI-Geheimnisse werden nicht in die PWA geschrieben.
+Die E2EE-Passphrase wird nicht an Supabase übertragen. Ohne Passphrase können verschlüsselte Cloud-Daten auf einem neuen Gerät bewusst nicht entschlüsselt werden. Ohne Cloud-Login arbeitet Finanzplan weiterhin vollständig lokal.
 
-Ohne Cloud-Login arbeitet Finanzplan weiterhin vollständig lokal.
+## Händlerlernen, Verträge und Kündigung
+
+V3.2 normalisiert typische Händlerbezeichnungen und kann aus mehreren bestätigten Buchungen eine Kategoriezuordnung lernen. Wiederkehrende Ausgaben werden anhand von Buchungsabständen und stabilen Beträgen als mögliche Verträge erkannt. Ein erkannter Kandidat wird nicht blind aktiviert, sondern kann bewusst übernommen werden.
+
+Für aktive Verträge kann Finanzplan ein Kündigungsschreiben erzeugen, als PDF speichern, eine vorausgefüllte E-Mail öffnen und später einen Kündigungs-/Versandnachweis als Dokument hinterlegen.
 
 ## Server-Push
 
-Push ist serverseitig eingerichtet und benötigt keinen separaten Render-Web-Service:
+Push läuft über Supabase und benötigt keinen zweiten Render-Web-Service:
 
 - Web-Push-Empfänger im Service Worker
 - PushManager-Subscription in der PWA
 - serverseitige Subscription-Speicherung
-- Supabase Edge Function `finanzplan-api`
-- separater Edge-Dispatcher `finanzplan-push-dispatch`
-- aktiver Supabase-Cron alle 5 Minuten
+- JWT-geschützte Benutzer-API `finanzplan-api`
+- separater Dispatcher `finanzplan-push-dispatch`
+- interner Supabase-Cron alle 5 Minuten
 - Erinnerungen für geplante Zahlungen, Budgets und Kündigungsfristen
 
-Die Dispatcher-Funktion wurde serverseitig mit HTTP 200 getestet. Ein echtes Handy erhält Nachrichten, nachdem der Benutzer sich in der PWA bei Cloud anmeldet und Push einmal aktiviert.
+V3.2 hat den Dispatcher zusätzlich gehärtet: Er akzeptiert keine anonymen Aufrufe mehr. Ein Aufruf ohne internen Dispatch-Token liefert HTTP 401, der interne Cron-Pfad HTTP 200. Private VAPID-/Dispatch-Schlüssel stehen nicht im Edge-Function-Quelltext.
 
 ## N26 / PSD2
 
-Die N26-Anbindung ist technisch bis zur Provider-Aktivierung implementiert:
+Die N26-Anbindung ist softwareseitig vollständig bis zur externen Provider-Aktivierung vorbereitet:
 
 - Enable-Banking-Consent-Start
-- manipulationsgeschützter Callback-State
+- HMAC-geschützter, zeitlich begrenzter Callback-State
 - Session-Aufbau
 - Kontoliste
 - Saldo
 - paginierter Transaktionsabruf
 - N26→Finanzplan-Mapping
-- Duplikatprüfung und Händlerregeln
+- Duplikatprüfung
+- Händlernormalisierung und lernende Kategorisierung
+- anschließende Vertragserkennung
 - optionaler Kontenabgleich
 
-Der Client verwendet die Supabase Edge API. **Nicht im Repository vorhanden und noch extern erforderlich:** persönliche Enable-Banking-Anwendungs-ID und privater Schlüssel. Danach muss N26 einmal über den offiziellen Consent-Flow freigegeben werden. Das N26-Passwort wird nicht in Finanzplan gespeichert.
+Banking-Secrets liegen ausschließlich serverseitig. Das N26-Passwort wird nicht in Finanzplan gespeichert. Noch erforderlich sind ein persönlicher Enable-Banking-App-Zugang/Private-Key und danach einmal der offizielle N26-Consent.
 
 ## KI
 
-Drei Ebenen:
+Drei Ebenen bleiben bewusst getrennt:
 
-- **Lokaler deterministischer Analyst:** immer verfügbar, offline, 0 € API-Kosten.
-- **Geräte-KI:** wird genutzt, wenn der Browser eine lokale `LanguageModel`-API anbietet; sonst Fallback auf den lokalen Analysten.
-- **Cloud-KI:** optional über `finanzplan-api`; die Finanzengine berechnet die Zahlen, das Modell erklärt nur einen aggregierten Kontext. Dafür ist ein externer API-Key erforderlich.
+- **Lokaler deterministischer Analyst:** immer verfügbar, offline und ohne API-Kosten. V3.2 beantwortet zusätzlich Spar-, Monatsvergleich-, Vertrags-, Anomalie- und Prognosefragen.
+- **Geräte-KI:** wird benutzt, wenn der Browser eine lokale `LanguageModel`-API bereitstellt; sonst automatischer Fallback.
+- **Cloud-KI:** optional über `finanzplan-api`. Die Finanzengine berechnet die autoritativen Zahlen; das Modell erklärt nur den aggregierten Kontext. Dafür ist ein externer Modell/API-Key nötig.
 
-Cloud-KI ist optional; ohne API-Key bleibt Finanzplan vollständig benutzbar.
+## Produktionsmonitoring
 
-## Supabase Edge API
+V3.2 protokolliert technische Ereignisse wie Runtime-Fehler, fehlgeschlagene Cloud-Synchronisierung oder Banking-Fehler. Vor einer optionalen Serverübertragung werden E-Mail-Adressen, lange Nummern und geldbetragähnliche Werte aus Meldungen entfernt. Owner/Admin können Cloud-Diagnoseereignisse lesen; normale Haushaltsmitglieder können keine fremden Monitoringdaten abrufen.
 
-Die aktuell produktiv angelegten Funktionen sind:
+## Supabase-Härtung
 
-- `finanzplan-api` – JWT-geschützte Benutzer-API für Banking, KI und Push
-- `finanzplan-push-dispatch` – idempotenter Dispatcher, der nur bereits serverseitig fällige Push-Jobs versendet
+- Security Advisor: keine Security-Lints im gehärteten V3.2-Zustand
+- RLS-Policies verwenden statementweit gecachte Auth-Werte statt unnötiger Auth-Auswertung pro Zeile
+- doppelte permissive Policies für Einladungen/Mitglieder wurden zusammengeführt
+- fehlende Foreign-Key-Indizes wurden ergänzt
+- Server-Secrets liegen in `private.runtime_secrets`; `anon` und `authenticated` haben keinen Zugriff
+- VAPID-Private-Key, Banking-State-HMAC und Push-Dispatch-Token sind nicht im Repository
+- verbleibende Performance-Advisor-Hinweise betreffen lediglich frisch angelegte, erwartungsgemäß noch unbenutzte Indizes
 
-Die PWA ist auf die Supabase Edge API vorkonfiguriert; eine Backend-URL muss nicht manuell eingetragen werden.
+## Native Readiness
 
-`finanzplan-backend/` bleibt als alternative Node/Express-Implementierung und Referenz für Self-Hosting/Render erhalten, ist für die jetzige private Supabase-Installation aber nicht erforderlich.
+`finanzplan/native/` enthält eine Capacitor-Konfiguration als Vorbereitung für eine spätere Android-/iOS-Hülle. Die PWA bleibt die gemeinsame Fachlogik; native Distribution soll keine zweite Finanzengine erzeugen. Echte Store-Releases erfordern externe Entwicklerkonten, Signaturen/Provisioning und Store-Prüfungen.
 
 ## Tests
 
-GitHub Actions prüft:
+GitHub Actions prüft unter anderem:
 
 - Syntax aller Finanzplan- und Backend-JavaScript-/MJS-Module
 - Finanz-Regressionslogik
 - Baseline- und Accounting-Härtungsflows
-- Unterkategorien, Rollen, Rücklagen, relationales Restore und Beleg-Papierkorb
 - Chromium Desktop und WebKit Mobile
 - IndexedDB-Persistenz, Backup/Restore und 10.000 zusätzliche Buchungen
 - V2→V3-Migration und installierten PWA-Modus
 - Accessibility-/Offline-Smoke
-- V3.1-Autopilot, Asset-Nettovermögen, Monatsbericht
+- V3.1-Premiumregression
 - QIF, OFX, MT940 und CAMT.053
-- Supabase-Public- und Edge-Backend-Konfiguration
-
-## Lokal starten
-
-```bash
-python3 -m http.server 8080 --directory finanzplan
-```
-
-Dann `http://localhost:8080/` öffnen.
+- V3.2-Händlerlernen und automatische Vertragserkennung
+- Kündigungslogik
+- E2EE-Kryptografie
+- Monitoring-Sanitisierung
+- providerneutralen Banking-Hub
+- erweiterten lokalen KI-Analysten
+- V3.2-Offlinestart
 
 ## Produktiv
 
@@ -131,15 +140,15 @@ Statische PWA auf Render:
 - Branch `finanzplan`
 - Root `finanzplan`
 - Publish `.`
-- Security-/Cache-Header sind im produktiven Render-Service gesetzt und live getestet.
+- Security-/Cache-Header werden im Live-Smoke geprüft
 
-Supabase übernimmt Multiuser, Storage und Hintergrund-Push.
+Supabase übernimmt Multiuser, Storage, Monitoring, Push und die sichere Banking-/KI-Backend-Schicht.
 
 ## Noch externe Aktivierung nötig
 
-Nur zwei optionale Online-Bereiche benötigen noch Zugangsdaten eines Drittanbieters:
+Nur zwei Online-Funktionen benötigen weiterhin Zugangsdaten eines Drittanbieters:
 
 1. **N26 Auto-Sync:** Enable-Banking-App-ID + privater Schlüssel und danach einmaliger N26-Consent.
-2. **Generative Cloud-KI:** optionaler Modell/API-Key; ohne ihn bleibt der lokale Analyst aktiv.
+2. **Generative Cloud-KI:** optionaler Modell/API-Key; ohne ihn bleibt der erweiterte lokale Analyst aktiv.
 
-Damit fehlen auf Software-/Infrastrukturseite keine weiteren lokalen Premium-Module; die beiden Punkte sind externe Provider-Freigaben.
+Für eine spätere öffentliche Vermarktung kommen zusätzlich externe Freigabeschritte hinzu: professioneller Penetrationstest, vollständiger manueller WCAG-/Screenreader-Audit, Store-Developer-Konten und bei weiteren Banken entsprechende Providerfreigaben.
