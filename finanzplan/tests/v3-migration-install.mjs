@@ -11,7 +11,10 @@ try{
   assert.equal(await page.evaluate(()=>data.version),'3.0.0');assert.equal(await page.evaluate(()=>data.schemaVersion),3);assert.equal(await page.evaluate(()=>data.transactions.find(t=>t.id==='legacy_tx').amountCents),2222);assert.equal(await page.evaluate(()=>localStorage.getItem('finanzplan:data:v1')),null);assert.equal(await page.evaluate(async()=>!!(await window.__finanzplanStorage.loadState()).transactions.find(t=>t.id==='legacy_tx')),true);
   await context.close();
 
-  // Installed/standalone mode must hide the website install icon.
-  const installed=await browser.newContext({viewport:{width:390,height:844},locale:'de-DE'});await installed.addInitScript(()=>{try{Object.defineProperty(navigator,'standalone',{configurable:true,value:true})}catch(_){}});const app=await installed.newPage();await app.goto('http://127.0.0.1:8080/',{waitUntil:'domcontentloaded'});await app.waitForSelector('#installPwaButton',{timeout:12000});assert.equal(await app.locator('#installPwaButton').isVisible(),false);assert.equal(await app.evaluate(()=>FinanzPWA.isStandalone()),true);await installed.close();
+  // Normal website mode must show the install icon in the top bar.
+  const website=await browser.newContext({viewport:{width:1280,height:900},locale:'de-DE'});const web=await website.newPage();await web.goto('http://127.0.0.1:8080/',{waitUntil:'domcontentloaded'});await web.locator('#installPwaButton').waitFor({state:'attached',timeout:12000});assert.equal(await web.locator('#installPwaButton').isVisible(),true);assert.equal(await web.evaluate(()=>FinanzPWA.isStandalone()),false);await website.close();
+
+  // Installed/standalone mode must keep the element available to the runtime but hide it from the UI.
+  const installed=await browser.newContext({viewport:{width:390,height:844},locale:'de-DE'});await installed.addInitScript(()=>{try{Object.defineProperty(navigator,'standalone',{configurable:true,value:true})}catch(_){}});const app=await installed.newPage();await app.goto('http://127.0.0.1:8080/',{waitUntil:'domcontentloaded'});await app.locator('#installPwaButton').waitFor({state:'attached',timeout:12000});assert.equal(await app.locator('#installPwaButton').isVisible(),false);assert.equal(await app.evaluate(()=>FinanzPWA.isStandalone()),true);await installed.close();
   console.log('V3 migration/install mode: OK');
 }finally{await browser.close()}
