@@ -9,7 +9,7 @@
     ['edeka','EDEKA'],['penny','PENNY'],['rewe','REWE'],['aldi','ALDI'],['lidl','Lidl'],['netto','Netto'],['kaufland','Kaufland'],['marktkauf','Marktkauf'],['nahkauf','nahkauf'],['tegut','tegut'],['famila','famila'],['combi','Combi'],
     ['vodafone','Vodafone'],['telekom','Telekom'],['telefonica','O2'],['o2','O2'],['1und1','1&1'],['1&1','1&1'],
     ['mcdonald','McDonald’s'],['burger king','Burger King'],['lieferando','Lieferando'],['dominos','Domino’s'],['subway','Subway'],['starbucks','Starbucks'],
-    ['aral','Aral'],['shell','Shell'],['esso','Esso'],['totalenergies','TotalEnergies'],['total ','TotalEnergies'],['hem','HEM'],['avia','AVIA'],
+    ['aral','Aral'],['shell','Shell'],['esso','Esso'],['totalenergies','TotalEnergies'],['total','TotalEnergies'],['hem','HEM'],['avia','AVIA'],
     ['dm drogerie','dm'],['rossmann','Rossmann'],['mueller drogerie','Müller'],
     ['amazon','Amazon'],['zalando','Zalando'],['about you','ABOUT YOU'],['h&m','H&M'],['hm.com','H&M'],['c&a','C&A'],['new yorker','New Yorker'],['takko','Takko'],['kik','KiK'],
     ['netflix','Netflix'],['spotify','Spotify'],['disney','Disney+'],['sky','Sky'],['dazn','DAZN'],['youtube','YouTube'],
@@ -18,18 +18,18 @@
 
   const rules=[
     {id:'c_food',names:['lebensmittel'],confidence:.99,patterns:['edeka','penny','rewe','aldi','lidl','netto','kaufland','marktkauf','nahkauf','tegut','famila','combi','supermarkt','lebensmittelmarkt','getraenkemarkt','getränkemarkt']},
-    {id:'c_restaurant',names:['restaurant'],confidence:.98,patterns:['restaurant','bistro','gasthaus','gaststaette','gaststätte','pizzeria','trattoria','steakhouse','imbiss','mcdonald','burger king','kfc','subway','domino','lieferando','wolt','starbucks','cafe ','café ','baeckerei','bäckerei']},
-    {id:'c_subs',names:['abos & vertraege','abos & verträge','abos','vertraege','verträge'],confidence:.98,patterns:['vodafone','telekom','telefonica',' o2 ','1und1','1&1','netflix','spotify','disney','dazn','sky deutschland','youtube premium','amazon prime','apple.com/bill','google storage','dropbox','adobe','microsoft 365']},
+    {id:'c_restaurant',names:['restaurant'],confidence:.98,patterns:['restaurant','bistro','gasthaus','gaststaette','gaststätte','pizzeria','trattoria','steakhouse','imbiss','mcdonald','burger king','kfc','subway','domino','lieferando','wolt','starbucks','cafe','café','baeckerei','bäckerei']},
+    {id:'c_subs',names:['abos & vertraege','abos & verträge','abos','vertraege','verträge'],confidence:.98,patterns:['vodafone','telekom','telefonica','o2','1und1','1&1','netflix','spotify','disney','dazn','sky deutschland','youtube premium','amazon prime','apple.com/bill','google storage','dropbox','adobe','microsoft 365']},
     {id:'c_health',names:['gesundheit'],confidence:.98,patterns:['praxis','arzt','aerzte','ärzte','zahnarzt','apotheke','physio','physiotherapie','klinik','krankenhaus','sanitaetshaus','sanitätshaus','labor','orthopaed','orthopäd','therapiezentrum']},
     {id:'c_fuel',names:['tanken'],confidence:.99,patterns:['aral','shell','esso','jet tank','totalenergies','total station','hem tank','avia','tankstelle','autohof']},
     {id:'c_mob',names:['mobilitaet','mobilität'],confidence:.94,patterns:['deutsche bahn','db vertrieb','flixbus','uber','bolt','parkhaus','parking','parkster','easypark','verkehrsbetrieb','bus ticket','bahn ticket']},
     {id:'c_home',names:['wohnen'],confidence:.94,patterns:['stadtwerke','e.on','eon energie','vattenfall','enercity','strom','gasabschlag','wasserverband','miete','hausrate','nebenkosten','grundsteuer','rundfunkbeitrag']},
     {id:'c_ins',names:['versicherungen'],confidence:.97,patterns:['allianz','huk','huk24','axa','r+v','ruv','vhv','devk','ergo versicherung','signal iduna','versicherung','versicherungsbeitrag']},
     {id:'c_clothes',names:['kleidung'],confidence:.97,patterns:['zalando','about you','h&m','hm.com','c&a','new yorker','takko','kik textil','peek & cloppenburg','peek und cloppenburg','snipes','deichmann','breuninger']},
-    {id:'c_kids',names:['kinder'],confidence:.94,patterns:['kindergarten','kita','kinderkrippe','hort ','schulessen','schulverein','tonies','mytoys','babyone']},
+    {id:'c_kids',names:['kinder'],confidence:.94,patterns:['kindergarten','kita','kinderkrippe','hort','schulessen','schulverein','tonies','mytoys','babyone']},
     {id:'c_debt',names:['kredite'],confidence:.93,patterns:['darlehensrate','kreditrate','kredittilgung','baufinanzierung','ratenkredit']},
-    {id:'c_leisure',names:['freizeit'],confidence:.9,patterns:['kino','cinema','bowling','freizeitpark','zoo ','museum','ticketmaster','eventim','steamgames','playstation network','nintendo eshop']},
-    {id:'c_other',names:['sonstiges'],confidence:.78,patterns:['amazon','paypal','dm drogerie','rossmann','mueller drogerie','müller drogerie','ikea','obi ','hornbach','bauhaus']}
+    {id:'c_leisure',names:['freizeit'],confidence:.9,patterns:['kino','cinema','bowling','freizeitpark','zoo','museum','ticketmaster','eventim','steamgames','playstation network','nintendo eshop']},
+    {id:'c_other',names:['sonstiges'],confidence:.78,patterns:['amazon','paypal','dm drogerie','rossmann','mueller drogerie','müller drogerie','ikea','obi','hornbach','bauhaus']}
   ];
 
   function categoryId(id,names=[]){
@@ -37,18 +37,18 @@
     const wanted=names.map(norm);
     return (data.categories||[]).find(c=>wanted.includes(norm(c.name)))?.id||'';
   }
+  function phrase(raw){return norm(raw).replace(/\s+/g,' ').trim()}
+  function containsPhrase(text,needle){
+    const t=phrase(text),p=phrase(needle);
+    return !!p&&!!t&&(` ${t} `).includes(` ${p} `);
+  }
   function merchantAlias(raw){
-    const n=norm(raw);
-    for(const [needle,name] of aliases)if(n.includes(norm(needle)))return name;
+    const n=phrase(raw);
+    for(const [needle,name] of aliases)if(containsPhrase(n,needle))return name;
     return canonical(raw);
   }
-  function merchantKey(raw){return norm(merchantAlias(raw)).replace(/\s+/g,' ').trim()}
-  function matches(pattern,text){
-    const p=norm(pattern),t=` ${norm(text)} `;
-    if(!p)return false;
-    if(p.trim().length<=2)return t.includes(` ${p.trim()} `);
-    return t.includes(p);
-  }
+  function merchantKey(raw){return phrase(merchantAlias(raw))}
+  function matches(pattern,text){return containsPhrase(text,pattern)}
   function manualRule(text){
     const n=norm(text);
     return (data.merchantRules||[]).filter(r=>r.active!==false&&!r.learned&&r.categoryId).sort((a,b)=>String(b.pattern||'').length-String(a.pattern||'').length).find(r=>{
@@ -61,9 +61,6 @@
     return (data.merchantRules||[]).filter(r=>r.active!==false&&r.learned&&r.categoryId&&Number(r.confidence||0)>=.8).sort((a,b)=>Number(b.confidence||0)-Number(a.confidence||0)).find(r=>{
       const ruleKey=merchantKey(r.merchant||r.pattern||'');
       if(!ruleKey||ruleKey.length<3)return false;
-      // Learned rules are intentionally conservative: an old category is reused only
-      // for the same canonical merchant. Arbitrary substring/reverse-substring matches
-      // caused unrelated N26 payees to inherit categories such as "Kleidung".
       return ruleKey===key;
     })||null;
   }
@@ -93,7 +90,7 @@
   window.applyMerchantRule=function(title,draft={}){
     const raw=`${title||''} ${draft.merchant||''} ${draft.note||''} ${draft.remittance||''}`;
     const manual=manualRule(raw);
-    let base=typeof baseApply==='function'?baseApply(title,draft):{...draft};
+    const base=typeof baseApply==='function'?baseApply(title,draft):{...draft};
     if(manual)return {...base,categoryId:manual.categoryId,accountId:manual.accountId||base.accountId,merchant:manual.merchant||base.merchant||merchantAlias(title),categorySource:'manual',categoryConfidence:1};
     const smart=categorizeTransaction({title,merchant:draft.merchant,note:draft.note,remittance:draft.remittance,type:draft.type});
     return {...base,categoryId:smart.categoryId||base.categoryId,merchant:smart.merchant||base.merchant||merchantAlias(title),categorySource:smart.source,categoryConfidence:smart.confidence,categoryReason:smart.reason};
