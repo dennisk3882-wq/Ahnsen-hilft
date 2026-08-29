@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./styles-v2.css" />
   <link rel="stylesheet" href="./styles-v3.css" />
+  <link rel="stylesheet" href="./styles-v31.css" />
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Direkt zum Inhalt</a>
@@ -27,7 +28,7 @@
     <nav class="mobile-nav" aria-label="Mobile Navigation"><button class="active" data-view="dashboard"><span>⌂</span><small>Übersicht</small></button><button data-view="transactions"><span>⇄</span><small>Buchungen</small></button><button id="quickAddMobile" class="mobile-plus" aria-label="Neue Buchung">＋</button><button data-view="budgets"><span>◫</span><small>Budgets</small></button><button data-view="more"><span>•••</span><small>Mehr</small></button></nav>
   </div>
   <div id="modalBackdrop" class="modal-backdrop hidden" role="presentation"><div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><div><h2 id="modalTitle">Dialog</h2><p id="modalHint"></p></div><button id="modalClose" class="icon-button" aria-label="Dialog schließen">×</button></div><div id="modalBody"></div></div></div>
-  <div id="toastHost" class="toast-host" aria-live="polite"></div><input id="fileImport" class="hidden" type="file" accept=".csv,.json,.fplan,.xls,.xlsx,.xml" aria-label="Datei importieren" /><input id="receiptImport" class="hidden" type="file" accept="image/*,.pdf" aria-label="Beleg auswählen" /><template id="metricTemplate"><article class="metric-card"><div class="metric-head"><span class="metric-label"></span><span class="metric-icon"></span></div><strong class="metric-value money"></strong><div class="spark"></div><small class="metric-note"></small></article></template>
+  <div id="toastHost" class="toast-host" aria-live="polite"></div><input id="fileImport" class="hidden" type="file" accept=".csv,.json,.fplan,.xls,.xlsx,.xml,.qif,.ofx,.qfx,.mt940,.sta,.camt" aria-label="Datei importieren" /><input id="receiptImport" class="hidden" type="file" accept="image/*,.pdf" aria-label="Beleg auswählen" /><template id="metricTemplate"><article class="metric-card"><div class="metric-head"><span class="metric-label"></span><span class="metric-icon"></span></div><strong class="metric-value money"></strong><div class="spark"></div><small class="metric-note"></small></article></template>
   <script type="module" src="./v3/bootstrap.js"></script>
 </body>
 </html>
