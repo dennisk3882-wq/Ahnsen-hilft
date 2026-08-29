@@ -25,6 +25,13 @@ jobs:
         run: |
           set -e
           find finanzplan finanzplan-backend -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | sort -z | xargs -0 -n1 node --check
+      - name: Guard against committed server secrets
+        run: |
+          set -e
+          if grep -RInE "const[[:space:]]+VAPID_PRIVATE[[:space:]]*=|STATE_SECRET[^;]*\|\||insert[[:space:]]+into[[:space:]]+private\.runtime_secrets" finanzplan-backend/supabase; then
+            echo "A server secret or insecure secret fallback appears to be committed."
+            exit 1
+          fi
       - name: Run finance regression tests
         run: node --test finanzplan/tests/finance-lib.test.js
 
