@@ -30,8 +30,16 @@ try{
   await form.locator('[name="accountName"]').fill('');
   await form.locator('[name="balance"]').fill('1');
   await form.locator('[name="salary"]').fill('0');
-  await form.locator('button.primary-button').click();
-  await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:12000});
+
+  // Android/Chromium can leave an IndexedDB delete request pending. The reset must
+  // still finish instead of leaving the submit button apparently dead forever.
+  await page.evaluate(()=>{
+    try{Object.defineProperty(indexedDB,'deleteDatabase',{configurable:true,value:()=>({onsuccess:null,onerror:null,onblocked:null})})}catch{}
+  });
+  const started=Date.now();
+  await form.locator('#newProjectSubmit').click();
+  await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:8000});
+  assert.ok(Date.now()-started<7000,'household reset must not hang on IndexedDB cleanup');
   await page.waitForFunction(()=>data?.household?.name==='Dennis'&&data.transactions?.length===0);
   const state=await page.evaluate(()=>({
     household:data.household.name,
