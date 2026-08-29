@@ -33,6 +33,7 @@ async function stateRead(s:string){const [p,sig]=String(s||'').split('.');if(!p|
 async function currentUser(req:Request){const auth=req.headers.get('Authorization')||'';const client=createClient(SUPABASE_URL,ANON,{global:{headers:{Authorization:auth}},auth:{persistSession:false}});const {data,error}=await client.auth.getUser();if(error||!data.user)throw new Error('Nicht angemeldet');return data.user}
 async function member(userId:string,householdId:string){const {data}=await admin.from('household_members').select('role').eq('household_id',householdId).eq('user_id',userId).maybeSingle();if(!data)throw new Error('Kein Zugriff auf diesen Haushalt');return data.role}
 function normBank(t:any){const rawAmount=Number(t.transaction_amount?.amount??t.amount??0),indicator=String(t.credit_debit_indicator??t.creditDebitIndicator??'').toUpperCase(),direction=indicator==='DBIT'?'debit':indicator==='CRDT'?'credit':rawAmount<0?'debit':'credit',btc=t.bank_transaction_code,title=Array.isArray(t.remittance_information)&&t.remittance_information[0]?String(t.remittance_information[0]):String(btc?.description||btc?.code||t.creditor?.name||t.debtor?.name||'N26 Umsatz');return{id:String(t.entry_reference||t.transaction_id||t.reference||crypto.randomUUID()),date:String(t.booking_date||t.transaction_date||t.value_date||t.date||'').slice(0,10),amount:Math.abs(rawAmount),direction,merchant:t.creditor?.name||t.debtor?.name||t.merchant_name||'',title,remittance:Array.isArray(t.remittance_information)?t.remittance_information.join(' · '):String(t.remittance_information||''),reference:String(t.entry_reference||t.transaction_id||t.reference_number||'')}}
+function preferredN26Account(accounts:any[]){return accounts.find(a=>/current account|giro|checking/i.test(String(a?.product||''))&&!/space/i.test(String(a?.product||'')))||accounts.find(a=>!/space/i.test(String(a?.product||'')))||accounts[0]}
 
 Deno.serve(async(req)=>{
   const origin=req.headers.get('Origin');
@@ -63,11 +64,11 @@ Deno.serve(async(req)=>{
     if(path==='/api/banking/n26/sync'){
       const hid=url.searchParams.get('householdId')||'',days=Math.max(1,Math.min(730,Number(url.searchParams.get('days')||180)));await member(user.id,hid);
       const {data:s}=await admin.from('bank_sessions').select('*').eq('user_id',user.id).eq('household_id',hid).eq('provider','enablebanking').maybeSingle();if(!s)throw new Error('N26 ist noch nicht verbunden');
-      const accounts=Array.isArray(s.accounts)?s.accounts:[],aid=accounts[0]?.uid||accounts[0]?.account_id||accounts[0]?.id;if(!aid)throw new Error('Kein N26 Konto in der PSD2-Session');
+      const accounts=Array.isArray(s.accounts)?s.accounts:[],account=preferredN26Account(accounts),aid=account?.uid||account?.account_id||account?.id;if(!aid)throw new Error('Kein N26 Girokonto in der PSD2-Session');
       const from=new Date(Date.now()-days*86400_000).toISOString().slice(0,10),to=new Date().toISOString().slice(0,10);let txs:any[]=[],cont='';
       for(let i=0;i<20;i++){const q=new URLSearchParams({date_from:from,date_to:to,strategy:'longest'});if(cont)q.set('continuation_key',cont);const j=await eb(`/accounts/${encodeURIComponent(aid)}/transactions?${q}`);txs.push(...(j.transactions||[]));cont=j.continuation_key||'';if(!cont)break}
       const bal=await eb(`/accounts/${encodeURIComponent(aid)}/balances`),balances=bal.balances||bal||[],preferred=balances.find((x:any)=>/CLAV|CLBD|closing|interimAvailable|expected/i.test(String(x.balance_type||x.type||'')))||balances[0],balance=Number(preferred?.balance_amount?.amount??preferred?.amount??NaN);
-      return json({transactions:txs.map(normBank),balance:Number.isFinite(balance)?balance:null,account:accounts[0]},200,origin);
+      return json({transactions:txs.map(normBank),balance:Number.isFinite(balance)?balance:null,account},200,origin);
     }
 
     if(path==='/api/ai/analyze'&&req.method==='POST'){
