@@ -1,0 +1,45 @@
+'use strict';
+
+// Bestehende, noch nicht verknüpfte Vertragsdaten einmalig an die zentrale Planung anbinden.
+const linkedSyncBase=syncLinkedRecurring;syncLinkedRecurring=function(source,kind='contract'){const key=kind==='insurance'?'insuranceId':'contractId';let r=data.recurring.find(x=>x[key]===source.id);if(!r){r=data.recurring.find(x=>!x.contractId&&!x.insuranceId&&FinanceLib.similarity(x.title,source.name)>.82&&Math.abs(num(x.amount)-num(source.amount))<.02&&x.type==='expense');if(r)r[key]=source.id}return linkedSyncBase(source,kind)};
+for(const c of data.contracts.filter(c=>c.active!==false))syncLinkedRecurring(c,'contract');for(const i of data.insurances)syncLinkedRecurring(i,'insurance');for(const d of data.debts)linkDebtRecurring(d);
+
+// Änderungshistorie zusätzlich zum Undo-Stack.
+const auditedSaveData=saveData;saveData=function(reason='Änderung gespeichert'){data.audit=data.audit||[];if(reason)data.audit.unshift({id:uid('audit'),at:new Date().toISOString(),reason});data.audit=data.audit.slice(0,100);return auditedSaveData(reason)};
+
+// Zielkonten zeigen immer ihren tatsächlichen aktuellen Kontostand.
+const postRenderGoals=renderGoals;renderGoals=function(){for(const g of data.goals)if(g.accountId)g.current=Math.max(0,accountBalance(g.accountId));postRenderGoals()};
+
+// Kreditdarstellung verwendet die dynamisch berechnete Restschuld, ohne den historischen Anker zu überschreiben.
+const postRenderWealth=renderWealth;renderWealth=function(){const old=data.debts.map(d=>({d,balance:d.balance}));for(const x of old)x.d.balance=debtBalanceAtDate(x.d);postRenderWealth();for(const x of old)x.d.balance=x.balance};
+
+// Soll/Ist-Vergleich in der Planung ergänzen.
+const postRenderPlanning=renderPlanning;renderPlanning=function(){postRenderPlanning();const root=$('#view-planning');if($('#planVsActual',root))return;const rows=data.recurring.filter(r=>r.active&&r.type==='expense').map(r=>{const expected=exactRecurrenceDates(r,localISO(monthStart(selectedMonth)),localISO(monthEnd(selectedMonth))).length*num(r.amount),actual=txForMonth().filter(t=>t.recurringId===r.id&&t.type==='expense'&&(t.status||'paid')==='paid').reduce((s,t)=>s+num(t.amount),0);return {r,expected,actual,diff:actual-expected}}).filter(x=>x.expected||x.actual);root.insertAdjacentHTML('beforeend',`<article id="planVsActual" class="card" style="margin-top:16px"><div class="card-title-row"><div><h2>Soll vs. Ist</h2><p>Geplante regelmäßige Kosten gegenüber tatsächlich bezahlten Beträgen</p></div></div>${rows.length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>Posten</th><th>Soll</th><th>Ist</th><th>Abweichung</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHTML(x.r.title)}</td><td class="money">${money(x.expected)}</td><td class="money">${money(x.actual)}</td><td class="money ${x.diff>0?'negative':x.diff<0?'positive':''}">${money(x.diff)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Noch keine Soll-/Ist-Daten.</div>'}</article>`) };
+
+// Erweiterter lokaler Assistent.
+function assistantAnswer(q){const l=FinanceLib.normalizeText(q),s=monthSummary(),m=safeToSpendMetrics(),stress=stressAnalysis(),breakdown=categoryBreakdown();if(l.includes('frei')||l.includes('verfugbar')||l.includes('verfügbar'))return `Nach den aktuell geplanten Zahlungen und deinen zweckgebundenen Rücklagen sind ungefähr ${money(m.safe)} frei verfügbar. Bis Monatsende entspricht das etwa ${money(m.perDay)} pro Tag.`;if(l.includes('tagesbudget'))return `Dein aktuelles Tagesbudget bis Monatsende liegt bei rund ${money(m.perDay)} für ${m.days} verbleibende Tage.`;if(l.includes('notgroschen')||l.includes('reichweite'))return `Deine freie Liquidität deckt die geschätzten essenziellen Monatskosten derzeit für etwa ${Number.isFinite(stress.runway)?stress.runway.toFixed(1):'unbegrenzt viele'} Monate.`;if(l.includes('fixkosten'))return `Deine regelmäßigen Fixkosten entsprechen durchschnittlich ${money(fixedMonthly())} pro Monat.`;if(l.includes('grosste')||l.includes('größte')||l.includes('teuer')){const b=breakdown[0];return b?`Der größte Ausgabenbereich ist ${b.cat.name} mit netto ${money(b.value)} in ${fmtMonth(selectedMonth)}.`:'Es liegen dafür noch keine ausreichenden Daten vor.'}if(l.includes('prognose')||l.includes('monatsende')){const p=statisticalProjection();return `Die statistische Monatsprognose liegt bei ${money(p.projectedBalance)} Rest. Erwartete Ausgaben: etwa ${money(p.projectedExpense)}.`}if(l.includes('preis')||l.includes('teurer')){const p=detectPriceChanges()[0];return p?`${p.title} ist zuletzt auf ${money(p.current)} gestiegen; das sind rund ${pct(p.change)} mehr als der vorherige Durchschnitt.`:'Aktuell erkenne ich keine deutliche Preissteigerung in wiederkehrenden Zahlungen.'}if(l.includes('abo')){const a=detectSubscriptionSuggestions();return a.length?`Ich erkenne ${a.length} mögliche noch nicht als Vertrag hinterlegte Abos. Öffne unter Mehr die Abo-Erkennung.`:'Aktuell gibt es keine neuen Abo-Kandidaten.'}if(l.includes('vermogen')||l.includes('vermögen'))return `Dein berechnetes Nettovermögen beträgt ${money(netWorth())}.`;if(l.includes('auto')||l.includes('mobil'))return `Für Mobilität wurden in diesem Monat netto ${money(categorySpend('c_mob'))} erfasst.`;return `Ich kann u. a. Safe-to-Spend, Tagesbudget, Fixkosten, Preissteigerungen, Abos, Prognose, Vermögen, Mobilität und finanzielle Reichweite aus deinen lokalen Daten erklären.`}
+
+// PDF-Bericht an die neue Prognose anpassen.
+function exportPDF(){const s=monthSummary(),p=statisticalProjection(),m=safeToSpendMetrics(),b=categoryBreakdown(),lines=[`Finanzplan - Monatsbericht ${fmtMonth(selectedMonth)}`,`Erstellt: ${new Date().toLocaleString('de-DE')}`,'',`Einnahmen: ${money(s.income)}`,`Ausgaben netto: ${money(s.expense)}`,`Rueckerstattungen: ${money(s.refunds||0)}`,`Saldo: ${money(s.balance)}`,`Statistische Prognose Monatsende: ${money(p.projectedBalance)}`,`Frei verfuegbar heute: ${money(m.safe)}`,`Tagesbudget: ${money(m.perDay)}`,`Fixkosten pro Monat: ${money(fixedMonthly())}`,`Nettovermoegen: ${money(netWorth())}`,`Finanz-Score: ${financeScore()}/100`,'','Ausgaben nach Kategorie:',...b.map(x=>`${x.cat.name}: ${money(x.value)}`),'','Hinweise:',...insights().map(x=>`- ${x.t}: ${x.p}`)];download(`finanzplan-monatsbericht-${monthKey(selectedMonth)}.pdf`,makeSimplePDF(lines),'application/pdf');toast('PDF-Bericht exportiert','success')}
+
+// Restore eines Tresor-Backups auf einem neuen Gerät darf nicht in einen unentsperrbaren Zustand geraten.
+const secureRestoreFullBundle=restoreFullBundle;restoreFullBundle=async function(bundle){const activeKey=!!window.__vaultKey;if(!activeKey&&bundle?.data?.settings?.vault){bundle=JSON.parse(JSON.stringify(bundle));bundle.data.settings.vault=false}await secureRestoreFullBundle(bundle);if(!data.settings.vault)localStorage.setItem(STORE_KEY,JSON.stringify(data))};
+
+// Sichere Schlüsselrotation ohne asynchrone IndexedDB-Transaktion während await.
+rotateVaultKey=async function(newPin){if(!window.__vaultKey)throw new Error('Tresor ist gesperrt');const oldKey=window.__vaultKey,plainFiles=await getAllStoredFilesDecrypted(oldKey),salt=crypto.getRandomValues(new Uint8Array(16)),key=await deriveVaultKey(newPin,salt),converted=[];for(const r of plainFiles)converted.push(await encryptFileRecord(r,key));const db=await openFileDB();await new Promise((resolve,reject)=>{const tr=db.transaction('files','readwrite'),store=tr.objectStore('files');store.clear();for(const r of converted)store.put(r);tr.oncomplete=resolve;tr.onerror=()=>reject(tr.error)});window.__vaultKey=key;window.__vaultSalt=salt;data.settings.pinHash=await hashText(newPin);await persistVault()};
+
+// Zweckbindung nur dann abziehen, wenn sie in einem spendablen Konto steckt oder nicht an ein Konto gebunden ist.
+earmarkedTotal=function(){const reserves=data.reserves.reduce((s,r)=>s+reserveCurrent(r),0),goals=data.goals.reduce((s,g)=>{if(!g.accountId)return s+Math.max(0,num(g.current));const a=data.accounts.find(x=>x.id===g.accountId);return s+(a?.spendable!==false?Math.max(0,accountBalance(a)):0)},0);return reserves+goals};
+
+// Schnellerfassung auf Desktop und Mobil.
+$('#quickAddTop').onclick=openQuickAdd;$('#quickAddMobile').onclick=openQuickAdd;
+
+// PWA-Dateifilter erweitern.
+$('#fileImport').setAttribute('accept','.csv,.json,.fplan,.xls,.xlsx,.xml');
+
+// Alte Papierkorb-Belegblobs nach Ablauf physisch entfernen.
+async function purgeExpiredDocumentBlobs(){const days=num(data.settings.trashDays)||30,limit=Date.now()-days*86400000,expired=(data.trash||[]).filter(x=>x.collection==='documents'&&new Date(x.deletedAt).getTime()<=limit);if(!expired.length)return;try{const db=await openFileDB();await new Promise(resolve=>{const tr=db.transaction('files','readwrite'),store=tr.objectStore('files');expired.forEach(x=>store.delete(x.item.id));tr.oncomplete=resolve;tr.onerror=resolve})}catch(_){}data.trash=data.trash.filter(x=>!expired.some(e=>e.id===x.id))}
+purgeExpiredDocumentBlobs();
+
+// Erst jetzt starten, nachdem sämtliche v2-Overrides und der Reset-Assistent geladen wurden.
+init();
