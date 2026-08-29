@@ -1,8 +1,8 @@
-name: Finanzplan v2 tests
+name: Finanzplan v3 tests
 
 on:
   push:
-    branches: [finanzplan, finanzplan-v2-audit, finanzplan-v2-2-hardening]
+    branches: [finanzplan, finanzplan-v2-audit, finanzplan-v2-2-hardening, finanzplan-v3-hardening]
     paths:
       - 'finanzplan/**'
       - '.github/workflows/finanzplan-v2-tests.yml'
@@ -13,7 +13,7 @@ on:
 jobs:
   finance-engine:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,36 +22,63 @@ jobs:
       - name: Syntax check every Finanzplan JavaScript module
         run: |
           set -e
-          find finanzplan -maxdepth 1 -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
-          node --check finanzplan/tests/finance-lib.test.js
-          node --check finanzplan/tests/smoke.mjs
-          node --check finanzplan/tests/hardening-smoke.mjs
-          node --check finanzplan/tests/hardening-extra.mjs
+          find finanzplan -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | sort -z | xargs -0 -n1 node --check
       - name: Run finance regression tests
         run: node --test finanzplan/tests/finance-lib.test.js
 
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 28
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Playwright Chromium
+      - name: Install Playwright browsers
         run: |
           npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
       - name: Start static Finanzplan server
         run: |
           python3 -m http.server 8080 --directory finanzplan > /tmp/finanzplan-http.log 2>&1 &
           echo $! > /tmp/finanzplan-http.pid
-          for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 0.5; done
+          for i in {1..30}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 0.5; done
           cat /tmp/finanzplan-http.log
           exit 1
       - name: Run baseline browser finance flow
         run: node finanzplan/tests/smoke.mjs
       - name: Run hardening browser finance flow
         run: node finanzplan/tests/hardening-smoke.mjs
-      - name: Run extra v2.2 edge flow
+      - name: Run extra V3 edge flow
         run: node finanzplan/tests/hardening-extra.mjs
+      - name: Run Chromium desktop and WebKit mobile flow
+        run: node finanzplan/tests/v3-cross-browser.mjs
+      - name: Run V3 IndexedDB backup and scale flow
+        run: node finanzplan/tests/v3-storage-backup.mjs
+
+  live-render-smoke:
+    if: github.ref == 'refs/heads/finanzplan'
+    needs: [finance-engine, browser-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      LIVE_URL: https://finanzplan-pwa.onrender.com
+    steps:
+      - name: Wait for Render V3 deployment
+        run: |
+          set -e
+          for i in {1..36}; do
+            if curl -fsS "$LIVE_URL/sw.js?check=$RANDOM" | grep -q "finanzplan-v3.0.0"; then exit 0; fi
+            sleep 10
+          done
+          echo "Render did not expose Finanzplan V3 in time"
+          exit 1
+      - name: Verify live security headers
+        run: |
+          set -e
+          headers="$(curl -fsSI "$LIVE_URL/")"
+          echo "$headers"
+          echo "$headers" | grep -qi '^content-security-policy:'
+          echo "$headers" | grep -qi '^x-content-type-options:.*nosniff'
+          echo "$headers" | grep -qi '^referrer-policy:.*no-referrer'
+          echo "$headers" | grep -qi '^strict-transport-security:'
