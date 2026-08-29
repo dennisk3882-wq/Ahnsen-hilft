@@ -28,7 +28,7 @@ jobs:
 
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 28
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,6 +55,8 @@ jobs:
         run: node finanzplan/tests/v3-cross-browser.mjs
       - name: Run V3 IndexedDB backup and scale flow
         run: node finanzplan/tests/v3-storage-backup.mjs
+      - name: Run V2 migration and installed-PWA flow
+        run: node finanzplan/tests/v3-migration-install.mjs
 
   live-render-smoke:
     if: github.ref == 'refs/heads/finanzplan'
