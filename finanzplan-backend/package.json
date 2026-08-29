@@ -1,0 +1,17 @@
+{
+  "name": "finanzplan-api",
+  "version": "3.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {"node": ">=22"},
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "web-push": "^3.6.7"
+  }
+}
