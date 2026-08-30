@@ -80,6 +80,8 @@ jobs:
         run: node finanzplan/tests/v32-smart-categories.mjs
       - name: Run MCC categorization and N26 enrichment flow
         run: node finanzplan/tests/v32-mcc-intelligence.mjs
+      - name: Run merchant branding flow
+        run: node finanzplan/tests/v32-merchant-branding.mjs
 
   live-render-smoke:
     if: github.ref == 'refs/heads/finanzplan'
@@ -89,7 +91,7 @@ jobs:
     env:
       LIVE_URL: https://finanzplan-pwa.onrender.com
     steps:
-      - name: Wait for exact Render categorization release
+      - name: Wait for exact Render merchant branding release
         run: |
           set -e
           for i in {1..36}; do
@@ -97,17 +99,19 @@ jobs:
             learning="$(curl -fsS "$LIVE_URL/v32/category-learning.js?check=$RANDOM" || true)"
             banking="$(curl -fsS "$LIVE_URL/v31/banking.js?check=$RANDOM" || true)"
             categories="$(curl -fsS "$LIVE_URL/v32/category-intelligence.js?check=$RANDOM" || true)"
-            if echo "$sw" | grep -q "finanzplan-v3.2.0-mcc7" \
+            branding="$(curl -fsS "$LIVE_URL/v32/merchant-brand.js?check=$RANDOM" || true)"
+            if echo "$sw" | grep -q "finanzplan-v3.2.0-brand1" \
               && echo "$learning" | grep -q "CASH_CATEGORY_NAME='Bargeldabhebung'" \
-              && echo "$learning" | grep -q "'pmnt'" \
               && echo "$banking" | grep -q "bankCodeDescription" \
-              && echo "$banking" | grep -q "tx.fingerprint" \
-              && echo "$categories" | grep -q "merchantProfiles"; then
+              && echo "$categories" | grep -q "merchantProfiles" \
+              && echo "$branding" | grep -q "window.FinanzBrand" \
+              && echo "$branding" | grep -q "cdn.brandfetch.io" \
+              && echo "$branding" | grep -q "topMerchants"; then
               exit 0
             fi
             sleep 10
           done
-          echo "Render did not expose the exact MCC7/stable-cash release in time"
+          echo "Render did not expose the exact merchant branding release in time"
           exit 1
       - name: Verify live security headers
         run: |
@@ -115,6 +119,8 @@ jobs:
           headers="$(curl -fsSI "$LIVE_URL/")"
           echo "$headers"
           echo "$headers" | grep -qi '^content-security-policy:'
+          echo "$headers" | grep -qi '^content-security-policy:.*connect-src[^;]*https:'
+          echo "$headers" | grep -qi '^content-security-policy:.*img-src[^;]*blob:'
           echo "$headers" | grep -qi '^x-content-type-options:.*nosniff'
           echo "$headers" | grep -qi '^referrer-policy:.*no-referrer'
           echo "$headers" | grep -qi '^strict-transport-security:'
