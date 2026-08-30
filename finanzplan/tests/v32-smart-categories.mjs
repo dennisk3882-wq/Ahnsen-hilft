@@ -25,6 +25,8 @@ try{
     const checks={
       edeka:classify('Edeka Bolinger'),
       penny:classify('PENNY Markt 1234'),
+      pennyCash:classify('PMNT','expense','PENNY','Bargeldauszahlung an der Kasse'),
+      cash:classify('Bargeldabhebung Geldautomat'),
       restaurant:classify('Restaurant Labyrinth I'),
       bistro:classify('LE BISTRO'),
       vodafone:classify('Vodafone GmbH'),
@@ -81,17 +83,27 @@ try{
     const ambiguous=FinanzCategoryLearning.rememberCorrection(amazonCorrection,ids.Freizeit,{reclassify:true});
     const amazonUserRule=data.merchantRules.find(r=>r.userCorrection===true&&FinanzCategoryLearning.merchantFor({merchant:r.merchant||r.pattern})==='Amazon');
 
+    // PMNT is a generic bank/payment label, not a stable merchant identity. A user can correct
+    // the cash withdrawal, but the correction must never turn every future PMNT into cash.
+    const pmntCorrection={id:'pmnt-cash',date:'2026-08-20',title:'PMNT',merchant:'PMNT',sourceMerchant:'PMNT',amount:50,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
+    const pmnt=FinanzCategoryLearning.rememberCorrection(pmntCorrection,ids.Bargeldabhebung,{reclassify:true});
+    const pmntUserRule=data.merchantRules.find(r=>r.userCorrection===true&&String(r.merchant||r.pattern||'').toUpperCase()==='PMNT');
+
     return {
       checks,learnedProtected,changed,repaired,
       importedUnknown:catName(importedUnknown.categoryId),importedEdeka:catName(importedEdeka.categoryId),
-      manualOverride:manualOverride.name,otherId:other?.id,
+      manualOverride:manualOverride.name,otherId:other?.id,cashId:ids.Bargeldabhebung,
       learned:{beforeCategory:beforeLearning.name,saved:learned.saved,sourceCategory:catName(correctionSource.categoryId),sourceLocked:correctionSource.categoryLocked,siblingCategory:catName(correctionSibling.categoryId),futureCategory:learnedFuture.name,futureSource:learnedFuture.source,ruleCategory:catName(userRule?.categoryId),ruleConfidence:userRule?.confidence},
-      ambiguous:{saved:ambiguous.saved,reason:ambiguous.reason,locked:amazonCorrection.categoryLocked,category:catName(amazonCorrection.categoryId),hasGlobalRule:!!amazonUserRule}
+      ambiguous:{saved:ambiguous.saved,reason:ambiguous.reason,locked:amazonCorrection.categoryLocked,category:catName(amazonCorrection.categoryId),hasGlobalRule:!!amazonUserRule},
+      pmnt:{saved:pmnt.saved,reason:pmnt.reason,locked:pmntCorrection.categoryLocked,category:catName(pmntCorrection.categoryId),hasGlobalRule:!!pmntUserRule}
     };
   });
 
   assert.equal(result.checks.edeka.name,'Lebensmittel');
   assert.equal(result.checks.penny.name,'Lebensmittel');
+  assert.equal(result.checks.pennyCash.name,'Bargeldabhebung');
+  assert.equal(result.checks.cash.name,'Bargeldabhebung');
+  assert.ok(result.cashId,'Bargeldabhebung must exist as a selectable category');
   assert.equal(result.checks.restaurant.name,'Restaurant');
   assert.equal(result.checks.bistro.name,'Restaurant');
   assert.equal(result.checks.vodafone.name,'Abos & Verträge');
@@ -127,6 +139,11 @@ try{
   assert.equal(result.ambiguous.locked,true,'manual Amazon correction must still remain locked for that transaction');
   assert.equal(result.ambiguous.category,'Freizeit');
   assert.equal(result.ambiguous.hasGlobalRule,false);
+  assert.equal(result.pmnt.saved,false,'PMNT must not become a global merchant rule');
+  assert.equal(result.pmnt.reason,'ambiguous-merchant');
+  assert.equal(result.pmnt.locked,true,'manual PMNT cash correction must survive future syncs');
+  assert.equal(result.pmnt.category,'Bargeldabhebung');
+  assert.equal(result.pmnt.hasGlobalRule,false);
   if(errors.length)throw new Error(errors.join('\n'));
   console.log('Finanzplan V3.2 smart categorization smoke: OK');
 } finally {await browser.close()}
