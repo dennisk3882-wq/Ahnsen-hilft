@@ -22,14 +22,27 @@
     const name=type==='income'?'weitere einnahmen':'sonstiges';
     return data.categories?.find(c=>c.id===id)?.id||data.categories?.find(c=>FinanceLib.normalizeText(c.name)===name)?.id||'';
   }
+  function normalizedMcc(value){return globalThis.FinanzCategoryIntelligence?.normalizeMcc?.(value)||String(value||'').replace(/\D/g,'').slice(0,4)}
   function txFromBank(t){
-    const amount=Math.abs(num(t.amount)),type=t.direction==='credit'?'income':'expense',accountId=conf().localAccountId||data.accounts?.[0]?.id||'',title=t.merchant||t.title||t.remittance||'N26 Umsatz',note=t.remittance||t.reference||'';
-    const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title,merchant:t.merchant,note,remittance:t.remittance,reference:t.reference,type})||null;
-    const draft=applyMerchantRule(title,{categoryId:smart?.categoryId||safeFallbackCategory(type),accountId,type,merchant:t.merchant||'',note,remittance:t.remittance||'',reference:t.reference||''});
+    const amount=Math.abs(num(t.amount)),type=t.direction==='credit'?'income':'expense',accountId=conf().localAccountId||data.accounts?.[0]?.id||'',title=t.merchant||t.title||t.remittance||'N26 Umsatz',note=t.remittance||t.reference||'',mcc=normalizedMcc(t.mcc);
+    const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title,merchant:t.merchant,note,remittance:t.remittance,reference:t.reference,type,mcc})||null;
+    const draft=applyMerchantRule(title,{categoryId:smart?.categoryId||safeFallbackCategory(type),accountId,type,merchant:t.merchant||'',note,remittance:t.remittance||'',reference:t.reference||'',mcc});
     const merchant=draft.merchant||smart?.merchant||globalThis.FinanzIntelligence?.canonicalMerchant?.(t.merchant||title)||t.merchant||'';
     const categoryId=data.categories.find(c=>c.id===draft.categoryId)?.id||safeFallbackCategory(type);
-    const tx={id:uid('tx'),date:FinanceLib.normalizeDate(t.date)||localISO(new Date()),title,merchant,sourceMerchant:t.merchant||'',amount,type,categoryId,accountId:draft.accountId||accountId,memberId:data.members?.[0]?.id||'',status:'paid',note,tags:['n26'],source:'n26',externalId:t.id||t.reference||'',categorySource:draft.categorySource||smart?.source||'fallback',categoryConfidence:Number(draft.categoryConfidence??smart?.confidence??0),categoryReason:draft.categoryReason||smart?.reason||''};tx.fingerprint=transactionFingerprint(tx);return tx
+    const tx={id:uid('tx'),date:FinanceLib.normalizeDate(t.date)||localISO(new Date()),title,merchant,sourceMerchant:t.merchant||'',amount,type,categoryId,accountId:draft.accountId||accountId,memberId:data.members?.[0]?.id||'',status:'paid',note,tags:['n26'],source:'n26',externalId:t.id||t.reference||'',mcc,categorySource:draft.categorySource||smart?.source||'fallback',categoryConfidence:Number(draft.categoryConfidence??smart?.confidence??0),categoryReason:draft.categoryReason||smart?.reason||''};tx.fingerprint=transactionFingerprint(tx);return tx
   }
-  async function sync({days=180,reconcile=true}={}){const householdId=data.integrations?.cloud?.householdId||'';if(!householdId)throw new Error('Kein Cloud-Haushalt gewählt');const qs=new URLSearchParams({days:String(Math.max(1,Math.min(730,days))),householdId}),j=await req(`/api/banking/n26/sync?${qs}`),bankRows=j.transactions||[];ensureLocalAccount(bankRows);const rows=bankRows.map(txFromBank);let added=0;for(const tx of rows){if((tx.externalId&&data.transactions.some(x=>x.externalId===tx.externalId))||isDuplicateTransaction(tx))continue;data.transactions.push(tx);added++}globalThis.FinanzCategoryIntelligence?.reclassifyImportedTransactions?.({onlySuspicious:true});if(reconcile&&Number.isFinite(Number(j.balance))&&typeof reconcileAccount==='function'){try{reconcileAccount(conf().localAccountId,Number(j.balance),localISO(new Date()),'N26 PSD2-Abgleich',false)}catch(e){console.warn(e)}}conf().lastSync=new Date().toISOString();conf().lastBalance=j.balance;detectSubscriptionSuggestions?.();saveData(`N26: ${added} neue Buchungen synchronisiert`);return {added,total:rows.length,balance:j.balance}}
-  window.FinanzN26={conf,status,start,handleCallback,sync,txFromBank,ensureLocalAccount,req};
+  function enrichExisting(existing,incoming){
+    let changed=false;
+    if(incoming.mcc&&existing.mcc!==incoming.mcc){existing.mcc=incoming.mcc;changed=true}
+    if(incoming.sourceMerchant&&!existing.sourceMerchant){existing.sourceMerchant=incoming.sourceMerchant;changed=true}
+    if(existing.categoryLocked===true||existing.categorySource==='manual')return changed;
+    const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title:existing.title,merchant:existing.sourceMerchant||existing.merchant,note:existing.note,remittance:existing.remittance,reference:existing.reference,type:existing.type,mcc:existing.mcc});
+    if(!smart?.categoryId)return changed;
+    if(smart.source==='mcc'||Number(smart.confidence||0)>=.84){
+      if(existing.categoryId!==smart.categoryId||existing.categorySource!==smart.source||existing.merchant!==smart.merchant){existing.categoryId=smart.categoryId;existing.categorySource=smart.source;existing.categoryConfidence=Number(smart.confidence||0);existing.categoryReason=smart.reason||'';existing.merchant=smart.merchant||existing.merchant;changed=true}
+    }
+    return changed;
+  }
+  async function sync({days=180,reconcile=true}={}){const householdId=data.integrations?.cloud?.householdId||'';if(!householdId)throw new Error('Kein Cloud-Haushalt gewählt');const qs=new URLSearchParams({days:String(Math.max(1,Math.min(730,days))),householdId}),j=await req(`/api/banking/n26/sync?${qs}`),bankRows=j.transactions||[];ensureLocalAccount(bankRows);const rows=bankRows.map(txFromBank);let added=0,updated=0;for(const tx of rows){const existing=tx.externalId?data.transactions.find(x=>x.source==='n26'&&x.externalId===tx.externalId):null;if(existing){if(enrichExisting(existing,tx))updated++;continue}if(isDuplicateTransaction(tx))continue;data.transactions.push(tx);added++}globalThis.FinanzCategoryIntelligence?.reclassifyImportedTransactions?.({onlySuspicious:true});if(reconcile&&Number.isFinite(Number(j.balance))&&typeof reconcileAccount==='function'){try{reconcileAccount(conf().localAccountId,Number(j.balance),localISO(new Date()),'N26 PSD2-Abgleich',false)}catch(e){console.warn(e)}}conf().lastSync=new Date().toISOString();conf().lastBalance=j.balance;detectSubscriptionSuggestions?.();saveData(`N26: ${added} neue, ${updated} aktualisierte Buchungen synchronisiert`);return {added,updated,total:rows.length,balance:j.balance}}
+  window.FinanzN26={conf,status,start,handleCallback,sync,txFromBank,ensureLocalAccount,enrichExisting,req};
 })();
