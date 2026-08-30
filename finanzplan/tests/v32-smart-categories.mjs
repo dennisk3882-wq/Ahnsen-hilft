@@ -76,11 +76,17 @@ try{
     const learnedFuture=classify('Buchholz Genusswelt');
     const userRule=data.merchantRules.find(r=>r.userCorrection===true&&r.categoryId===ids.Restaurant);
 
+    // Marketplaces/payment processors must not receive a global category rule from one purchase.
+    const amazonCorrection={id:'ambiguous-amazon',date:'2026-08-29',title:'Amazon',merchant:'Amazon',sourceMerchant:'Amazon',amount:21,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
+    const ambiguous=FinanzCategoryLearning.rememberCorrection(amazonCorrection,ids.Freizeit,{reclassify:true});
+    const amazonUserRule=data.merchantRules.find(r=>r.userCorrection===true&&FinanzCategoryLearning.merchantFor({merchant:r.merchant||r.pattern})==='Amazon');
+
     return {
       checks,learnedProtected,changed,repaired,
       importedUnknown:catName(importedUnknown.categoryId),importedEdeka:catName(importedEdeka.categoryId),
       manualOverride:manualOverride.name,otherId:other?.id,
-      learned:{beforeCategory:beforeLearning.name,saved:learned.saved,sourceCategory:catName(correctionSource.categoryId),sourceLocked:correctionSource.categoryLocked,siblingCategory:catName(correctionSibling.categoryId),futureCategory:learnedFuture.name,futureSource:learnedFuture.source,ruleCategory:catName(userRule?.categoryId),ruleConfidence:userRule?.confidence}
+      learned:{beforeCategory:beforeLearning.name,saved:learned.saved,sourceCategory:catName(correctionSource.categoryId),sourceLocked:correctionSource.categoryLocked,siblingCategory:catName(correctionSibling.categoryId),futureCategory:learnedFuture.name,futureSource:learnedFuture.source,ruleCategory:catName(userRule?.categoryId),ruleConfidence:userRule?.confidence},
+      ambiguous:{saved:ambiguous.saved,reason:ambiguous.reason,locked:amazonCorrection.categoryLocked,category:catName(amazonCorrection.categoryId),hasGlobalRule:!!amazonUserRule}
     };
   });
 
@@ -116,6 +122,11 @@ try{
   assert.equal(result.learned.futureSource,'manual');
   assert.equal(result.learned.ruleCategory,'Restaurant');
   assert.equal(result.learned.ruleConfidence,1);
+  assert.equal(result.ambiguous.saved,false,'Amazon must not be learned globally from one transaction');
+  assert.equal(result.ambiguous.reason,'ambiguous-merchant');
+  assert.equal(result.ambiguous.locked,true,'manual Amazon correction must still remain locked for that transaction');
+  assert.equal(result.ambiguous.category,'Freizeit');
+  assert.equal(result.ambiguous.hasGlobalRule,false);
   if(errors.length)throw new Error(errors.join('\n'));
   console.log('Finanzplan V3.2 smart categorization smoke: OK');
 } finally {await browser.close()}
