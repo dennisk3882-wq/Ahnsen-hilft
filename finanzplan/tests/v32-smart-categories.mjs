@@ -9,7 +9,7 @@ page.on('pageerror',e=>errors.push(`pageerror: ${e.message}`));
 page.on('console',m=>{if(m.type()==='error')errors.push(`console: ${m.text()}`)});
 try{
   await page.goto('http://127.0.0.1:8080/',{waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>window.FinanzCategoryIntelligence&&window.FinanzN26&&window.FinanzV32?.version==='3.2.0'&&window.__finanzplanV32Ready===true,{timeout:12000});
+  await page.waitForFunction(()=>window.FinanzCategoryIntelligence&&window.FinanzCategoryLearning&&window.FinanzN26&&window.FinanzV32?.version==='3.2.0'&&window.__finanzplanV32Ready===true,{timeout:12000});
   const first=page.locator('#newProjectForm');
   if(await first.isVisible().catch(()=>false)){
     await first.locator('[name="household"]').fill('SmartCat Test');
@@ -65,7 +65,20 @@ try{
     data.merchantRules.push({id:'manual-x',pattern:'Unbekannter Händler XYZ',merchant:'Mein Spezialfall',categoryId:ids.Freizeit,active:true,learned:false});
     const manualOverride=classify('Unbekannter Händler XYZ');
 
-    return {checks,learnedProtected,changed,repaired,importedUnknown:catName(importedUnknown.categoryId),importedEdeka:catName(importedEdeka.categoryId),manualOverride:manualOverride.name,otherId:other?.id};
+    // A user's correction must become a durable merchant rule and repair matching bank rows.
+    const correctionSource={id:'learn-src',date:'2026-08-29',title:'Cafe Musterhaus',merchant:'Cafe Musterhaus',sourceMerchant:'Cafe Musterhaus',amount:8,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
+    const correctionSibling={id:'learn-sibling',date:'2026-08-28',title:'Cafe Musterhaus',merchant:'Cafe Musterhaus',sourceMerchant:'Cafe Musterhaus',amount:6,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
+    data.transactions.push(correctionSource,correctionSibling);
+    const learned=FinanzCategoryLearning.rememberCorrection(correctionSource,ids.Restaurant,{reclassify:true});
+    const learnedFuture=classify('Cafe Musterhaus');
+    const userRule=data.merchantRules.find(r=>r.userCorrection===true&&r.categoryId===ids.Restaurant);
+
+    return {
+      checks,learnedProtected,changed,repaired,
+      importedUnknown:catName(importedUnknown.categoryId),importedEdeka:catName(importedEdeka.categoryId),
+      manualOverride:manualOverride.name,otherId:other?.id,
+      learned:{saved:learned.saved,sourceCategory:catName(correctionSource.categoryId),sourceLocked:correctionSource.categoryLocked,siblingCategory:catName(correctionSibling.categoryId),futureCategory:learnedFuture.name,futureSource:learnedFuture.source,ruleCategory:catName(userRule?.categoryId),ruleConfidence:userRule?.confidence}
+    };
   });
 
   assert.equal(result.checks.edeka.name,'Lebensmittel');
@@ -91,6 +104,14 @@ try{
   assert.equal(result.importedUnknown,'Sonstiges','unknown N26 expense must never use the first expense category');
   assert.equal(result.importedEdeka,'Lebensmittel');
   assert.equal(result.manualOverride,'Freizeit','explicit manual rule must override automatic classification');
+  assert.equal(result.learned.saved,true);
+  assert.equal(result.learned.sourceCategory,'Restaurant');
+  assert.equal(result.learned.sourceLocked,true);
+  assert.equal(result.learned.siblingCategory,'Restaurant','matching imported rows should be repaired immediately');
+  assert.equal(result.learned.futureCategory,'Restaurant','future same-merchant rows should use the learned user correction');
+  assert.equal(result.learned.futureSource,'manual');
+  assert.equal(result.learned.ruleCategory,'Restaurant');
+  assert.equal(result.learned.ruleConfidence,1);
   if(errors.length)throw new Error(errors.join('\n'));
   console.log('Finanzplan V3.2 smart categorization smoke: OK');
 } finally {await browser.close()}
