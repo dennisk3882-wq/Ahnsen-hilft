@@ -39,6 +39,12 @@ try{
       {id:'b2',date:localISO(selectedMonth),title:'EDEKA BOLINGER',merchant:'EDEKA',amount:20,type:'expense',categoryId:ids.Lebensmittel||'c_food',accountId:data.accounts[0]?.id||'',status:'paid'},
       {id:'b3',date:localISO(selectedMonth),title:'Netflix',merchant:'Netflix',amount:17.99,type:'expense',categoryId:ids['Abos & Verträge']||'c_subs',accountId:data.accounts[0]?.id||'',status:'paid'}
     ];
+    data.contracts=[
+      {id:'bc1',name:'Netflix Standard',provider:'Netflix',amount:17.99,frequency:'monthly',categoryId:'c_subs',nextDate:localISO(now),start:localISO(now),end:'',noticeDays:30,type:'contract',active:true}
+    ];
+    data.insurances=[
+      {id:'bi1',name:'Privathaftpflicht',provider:'Allianz',amount:96,frequency:'annual',nextDate:localISO(now),policyNo:'',noticeDays:90}
+    ];
     const top=FinanzBrand.topMerchants(selectedMonth,5);
     renderDashboard();renderTransactions();renderStats();renderContracts();renderSettings();
     await FinanzBrand.hydrate(document);
@@ -49,6 +55,7 @@ try{
       transactionSvgs:document.querySelectorAll('#view-transactions .merchant-logo svg').length,
       statsLogos:document.querySelectorAll('#view-stats .merchant-logo').length,
       contractLogos:document.querySelectorAll('#view-contracts .merchant-logo').length,
+      contractSvgs:document.querySelectorAll('#view-contracts .merchant-logo svg').length,
       settingsCard:!!document.querySelector('#merchantBrandSettings'),
       settingsText:document.querySelector('#merchantBrandSettings')?.textContent||''
     };
@@ -75,7 +82,8 @@ try{
   assert.ok(result.ui.transactionLogos>=3);
   assert.ok(result.ui.transactionSvgs>=3);
   assert.ok(result.ui.statsLogos>=2);
-  assert.ok(result.ui.contractLogos>=1);
+  assert.ok(result.ui.contractLogos>=2);
+  assert.ok(result.ui.contractSvgs>=2);
   assert.equal(result.ui.settingsCard,true);
   assert.match(result.ui.settingsText,/Keine Einrichtung nötig/);
   assert.equal(result.version,'16.29.0');
