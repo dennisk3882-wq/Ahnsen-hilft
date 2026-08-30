@@ -9,13 +9,13 @@ page.on('pageerror',e=>errors.push(`pageerror: ${e.message}`));
 page.on('console',m=>{if(m.type()==='error')errors.push(`console: ${m.text()}`)});
 try{
   await page.goto('http://127.0.0.1:8080/',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.FinanzCategoryIntelligence&&window.FinanzV32?.version==='3.2.0'&&window.__finanzplanV32Ready===true,{timeout:12000});
   const first=page.locator('#newProjectForm');
   if(await first.isVisible().catch(()=>false)){
     await first.locator('[name="household"]').fill('SmartCat Test');
     await first.locator('button.primary-button').click();
     await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:12000});
   }
-  await page.waitForFunction(()=>window.FinanzCategoryIntelligence&&window.FinanzV32?.version==='3.2.0',{timeout:12000});
   const result=await page.evaluate(()=>{
     const catName=id=>(data.categories||[]).find(c=>c.id===id)?.name||'';
     const classify=(title,type='expense',merchant='')=>{
