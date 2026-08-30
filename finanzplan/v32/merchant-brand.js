@@ -10,7 +10,9 @@
     ['McDonald’s','mcdonalds.com',['mcdonald']],['Burger King','burgerking.de',['burger king']],['KFC','kfc.de',['kfc']],['Lieferando','lieferando.de',['lieferando']],['Wolt','wolt.com',['wolt']],['Starbucks','starbucks.de',['starbucks']],
     ['Deutsche Bahn','bahn.de',['deutsche bahn','db vertrieb']],['Uber','uber.com',['uber']],['Bolt','bolt.eu',['bolt']],
     ['PayPal','paypal.com',['paypal']],['Klarna','klarna.com',['klarna']],['Apple','apple.com',['apple com bill','apple']],['Google','google.com',['google']],
-    ['dm','dm.de',['dm drogerie']],['Rossmann','rossmann.de',['rossmann']],['IKEA','ikea.com',['ikea']],['OBI','obi.de',['obi']],['Hornbach','hornbach.de',['hornbach']],['BAUHAUS','bauhaus.info',['bauhaus']]
+    ['dm','dm.de',['dm drogerie']],['Rossmann','rossmann.de',['rossmann']],['IKEA','ikea.com',['ikea']],['OBI','obi.de',['obi']],['Hornbach','hornbach.de',['hornbach']],['BAUHAUS','bauhaus.info',['bauhaus']],
+    ['Allianz','allianz.de',['allianz']],['HUK-COBURG','huk.de',['huk coburg','huk24','huk']],['AXA','axa.de',['axa']],['VHV','vhv.de',['vhv']],['DEVK','devk.de',['devk']],['ERGO','ergo.de',['ergo']],['R+V','ruv.de',['r+v','ruv']],['SIGNAL IDUNA','signal-iduna.de',['signal iduna']],['ARAG','arag.de',['arag']],
+    ['E.ON','eon.de',['e.on','eon energie','eon']],['Vattenfall','vattenfall.de',['vattenfall']],['enercity','enercity.de',['enercity']],['EWE','ewe.de',['ewe']],['AOK','aok.de',['aok']],['ADAC','adac.de',['adac']]
   ].map(([name,domain,aliases])=>({name,domain,aliases}));
   const cashWords=['bargeldabhebung','bargeld abhebung','bargeldauszahlung','geldautomat','cash withdrawal','cashback','cash out','atm withdrawal','atm cash'];
   const cfg=()=>{data.integrations=data.integrations||{};return data.integrations.brandfetch=data.integrations.brandfetch||{clientId:'',enabled:true}};
