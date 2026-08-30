@@ -2,7 +2,40 @@
 (function(){
   const norm=s=>FinanceLib.normalizeText(String(s||''));
   const words=s=>norm(s).replace(/[^a-z0-9äöüß&]+/gi,' ').replace(/\s+/g,' ').trim();
-  const ambiguousMerchants=['amazon','paypal','klarna','ebay','sumup','stripe','adyen','mollie','apple com bill','google pay','google payments'];
+  const CASH_CATEGORY_ID='c_cash';
+  const CASH_CATEGORY_NAME='Bargeldabhebung';
+  const ambiguousMerchants=['amazon','paypal','klarna','ebay','sumup','stripe','adyen','mollie','apple com bill','google pay','google payments','pmnt','payment','card payment','kartenzahlung','pos payment','n26 payment'];
+  const cashPatterns=['bargeldabhebung','bargeld abhebung','bargeldauszahlung','barabhebung','bar abhebung','geldautomat','atm withdrawal','atm cash','cash withdrawal','cashwithdrawal','cash out','cashout','cash dispenser','cash machine','withdrawal'];
+
+  function ensureCashCategory(){
+    data.categories=Array.isArray(data.categories)?data.categories:[];
+    const existing=data.categories.find(c=>c.id===CASH_CATEGORY_ID)||data.categories.find(c=>['bargeldabhebung','bargeld abgehoben'].includes(words(c.name)));
+    if(existing)return existing.id;
+    data.categories.push({id:CASH_CATEGORY_ID,name:CASH_CATEGORY_NAME,kind:'expense',parent:null,color:'#64748b'});
+    return CASH_CATEGORY_ID;
+  }
+  function cashCategoryId(){return ensureCashCategory()}
+  function detectCashWithdrawal(input={}){
+    if(input.type==='income')return '';
+    const raw=[input.merchant,input.title,input.note,input.remittance,input.reference,input.bankCode,input.bankCodeDescription,input.transactionType,input.transactionSubType,input.additionalInfo].filter(Boolean).join(' ');
+    const n=words(raw);
+    return cashPatterns.find(p=>n.includes(words(p)))||((` ${n} `).includes(' atm ')?'atm':'');
+  }
+
+  const categoryApi=globalThis.FinanzCategoryIntelligence;
+  const baseCategorize=categoryApi?.categorizeTransaction?.bind(categoryApi);
+  if(categoryApi&&baseCategorize&&!categoryApi.__cashWithdrawalPatched){
+    categoryApi.categorizeTransaction=function(input={}){
+      const evidence=detectCashWithdrawal(input);
+      if(evidence){
+        const categoryId=cashCategoryId();
+        const merchant=categoryApi.merchantAlias?.(input.merchant||input.title||'')||String(input.merchant||input.title||'Bargeldabhebung');
+        return {categoryId,merchant,confidence:.995,reason:`cash-withdrawal:${evidence}`,source:'cash',mcc:categoryApi.normalizeMcc?.(input.mcc)||''};
+      }
+      return baseCategorize(input);
+    };
+    categoryApi.__cashWithdrawalPatched=true;
+  }
 
   function merchantFor(tx={}){
     const raw=tx.sourceMerchant||tx.merchant||tx.title||'';
@@ -28,7 +61,7 @@
 
     const merchant=merchantFor(tx),key=keyFor(merchant);
     // The individual correction must always survive a future bank sync, even when the merchant
-    // is unknown or a multi-purpose marketplace/payment processor that should not be learned globally.
+    // is unknown, generic or a multi-purpose marketplace/payment processor that should not be learned globally.
     lockTransaction(tx,categoryId);
     if(!key||key==='unbekannt')return {saved:false,locked:true,merchant,categoryId,reason:'unknown-merchant'};
     if(isAmbiguousMerchant(merchant))return {saved:false,locked:true,merchant,categoryId,reason:'ambiguous-merchant'};
@@ -57,6 +90,7 @@
   const baseOpen=window.openTransactionModal;
   if(typeof baseOpen==='function'){
     window.openTransactionModal=function(t=null,preset={}){
+      ensureCashCategory();
       const originalCategory=t?.categoryId||'';
       const imported=!!t&&(t.source==='n26'||t.source==='bank'||(t.tags||[]).includes('n26'));
       const result=baseOpen(t,preset);
@@ -71,7 +105,7 @@
           const learned=rememberCorrection(t,chosen,{reclassify:imported});
           saveData(learned.saved?`Kategorie für ${learned.merchant} dauerhaft gelernt`:'Kategorie manuell gespeichert');
           if(learned.saved)toast(`Künftige Buchungen von ${learned.merchant} werden automatisch so kategorisiert.`,'success');
-          else if(learned.reason==='ambiguous-merchant')toast(`${learned.merchant}: Nur diese Buchung wurde fest korrigiert, weil der Anbieter viele unterschiedliche Käufe bündelt.`,'success');
+          else if(learned.reason==='ambiguous-merchant')toast(`${learned.merchant}: Nur diese Buchung wurde fest korrigiert, weil keine eindeutige dauerhafte Händlerzuordnung möglich ist.`,'success');
         }
         return out;
       };
@@ -79,5 +113,6 @@
     };
   }
 
-  window.FinanzCategoryLearning={rememberCorrection,forgetCorrection,merchantFor,isAmbiguousMerchant};
+  ensureCashCategory();
+  window.FinanzCategoryLearning={rememberCorrection,forgetCorrection,merchantFor,isAmbiguousMerchant,ensureCashCategory,cashCategoryId,detectCashWithdrawal};
 })();
