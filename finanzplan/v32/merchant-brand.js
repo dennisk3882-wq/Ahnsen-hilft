@@ -67,7 +67,20 @@
   function topMerchants(month=selectedMonth,limit=8){
     const grouped=new Map();for(const t of txForMonth(month)){if(t.type!=='expense')continue;const b=brandFor(t),k=key(b.name);const row=grouped.get(k)||{name:b.name,value:0,count:0,sample:t};row.value+=num(t.amount);row.count++;grouped.set(k,row)}return [...grouped.values()].sort((a,b)=>b.value-a.value).slice(0,limit)
   }
+  function dashboardMerchantCard(){
+    const rows=topMerchants(selectedMonth,5);if(!rows.length)return '';
+    return `<article id="dashboardTopMerchants" class="card"><div class="card-title-row"><div><h2>Top-Händler</h2><p>Deine größten Händlerausgaben im laufenden Monat</p></div><button class="mini-btn" data-go="stats">Details</button></div><div class="merchant-ranking">${rows.map((x,i)=>`<div class="merchant-rank-row"><span class="merchant-rank-no">${i+1}</span>${logoHTML(x.sample,{size:34})}<div class="merchant-rank-name"><b>${escapeHTML(x.name)}</b><small>${x.count} Buchung${x.count===1?'':'en'}</small></div><div class="merchant-rank-value"><b class="money">${money(x.value)}</b><small>Ausgaben</small></div></div>`).join('')}</div></article>`;
+  }
+  const baseDashboard=window.renderDashboard;
+  if(typeof baseDashboard==='function')window.renderDashboard=function(){
+    baseDashboard();
+    const root=$('#view-dashboard');if(!root)return;
+    const existing=$('#dashboardTopMerchants',root);if(existing)existing.remove();
+    const card=dashboardMerchantCard();if(card){const lower=$('.dashboard-lower',root);if(lower)lower.insertAdjacentHTML('beforeend',card);else root.insertAdjacentHTML('beforeend',card)}
+    $$('[data-go="stats"]',root).forEach(b=>b.onclick=()=>navigate('stats'));
+    hydrate(root).catch(()=>{});
+  };
   const baseSettings=window.renderSettings;
   if(typeof baseSettings==='function')window.renderSettings=function(){baseSettings();const root=$('#view-settings');if(!root||$('#merchantBrandSettings',root))return;root.insertAdjacentHTML('beforeend',`<article id="merchantBrandSettings" class="card" style="margin-top:16px"><div class="card-title-row"><div><h2>Händlerlogos</h2><p>Erkannte Marken werden automatisch in Buchungen, Dashboard, Verträgen und Analysen dargestellt.</p></div><span class="tag green">Aktiv</span></div><div class="setting-row"><div><b>Merchant Brand Engine</b><small style="display:block;color:var(--muted)">Keine Einrichtung nötig · SVG-Markenbibliothek mit sicherem Initialen-Fallback</small></div><span class="tag green">Zero-Config</span></div></article>`)};
-  window.FinanzBrand={brandFor,merchantName,logoHTML,iconUrl,fetchIcon,setLogo,hydrate,topMerchants,registry,version:SIMPLE_ICONS_VERSION};
+  window.FinanzBrand={brandFor,merchantName,logoHTML,iconUrl,fetchIcon,setLogo,hydrate,topMerchants,dashboardMerchantCard,registry,version:SIMPLE_ICONS_VERSION};
 })();
