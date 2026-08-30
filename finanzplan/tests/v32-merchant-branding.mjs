@@ -7,13 +7,13 @@ const page=await context.newPage();
 const errors=[];
 page.on('pageerror',e=>errors.push(`pageerror: ${e.message}`));
 page.on('console',m=>{if(m.type()==='error')errors.push(`console: ${m.text()}`)});
-const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
+const svg='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#111"/><circle cx="8" cy="8" r="4" fill="#fff"/></svg>';
 await page.route('https://api.brandfetch.io/**',async route=>{
   const u=route.request().url();
   if(u.includes('Buchholz%20Genusswelt'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{name:'Buchholz Genusswelt',domain:'genusswelt.example'}])});
   return route.fulfill({status:200,contentType:'application/json',body:'[]'});
 });
-await page.route('https://cdn.brandfetch.io/**',route=>route.fulfill({status:200,contentType:'image/png',body:png}));
+await page.route('https://cdn.brandfetch.io/**',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:svg}));
 try{
   await page.goto('http://127.0.0.1:8080/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.FinanzBrand&&window.FinanzCategoryIntelligence&&window.__finanzplanV32Ready===true,{timeout:12000});
@@ -35,7 +35,7 @@ try{
     host.innerHTML=FinanzBrand.logoHTML({title:'EDEKA BOLINGER'},{size:40})+FinanzBrand.logoHTML({title:'Buchholz Genusswelt'},{size:40})+FinanzBrand.logoHTML({title:'Bargeldabhebung',categoryId:'c_cash'},{size:40});
     document.body.appendChild(host);
     await FinanzBrand.hydrate(host);
-    await new Promise(r=>setTimeout(r,50));
+    await new Promise(r=>setTimeout(r,100));
     const nodes=[...host.querySelectorAll('.merchant-logo')];
     const edekaImg=!!nodes[0]?.querySelector('img');
     const learned=FinanzBrand.brandFor({title:'Buchholz Genusswelt'});
