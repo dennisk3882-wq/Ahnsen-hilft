@@ -76,6 +76,8 @@ jobs:
         run: node finanzplan/tests/v32-project-reset.mjs
       - name: Run N26 automatic local-account flow
         run: node finanzplan/tests/v32-n26-auto-account.mjs
+      - name: Run N26 duplicate reconciliation flow
+        run: node finanzplan/tests/v32-n26-dedupe.mjs
       - name: Run smart merchant categorization flow
         run: node finanzplan/tests/v32-smart-categories.mjs
       - name: Run MCC categorization and N26 enrichment flow
@@ -91,7 +93,7 @@ jobs:
     env:
       LIVE_URL: https://finanzplan-pwa.onrender.com
     steps:
-      - name: Wait for exact Render fallback-safe branding release
+      - name: Wait for exact Render N26 dedupe release
         run: |
           set -e
           for i in {1..36}; do
@@ -102,9 +104,12 @@ jobs:
             branding="$(curl -fsS "$LIVE_URL/v32/merchant-brand.js?check=$RANDOM" || true)"
             hydration="$(curl -fsS "$LIVE_URL/v32/merchant-brand-hydration.js?check=$RANDOM" || true)"
             final_branding="$(curl -fsS "$LIVE_URL/v32/merchant-brand-final.js?check=$RANDOM" || true)"
-            if echo "$sw" | grep -q "finanzplan-v3.2.0-brand5" \
+            if echo "$sw" | grep -q "finanzplan-v3.2.0-dedupe1" \
               && echo "$learning" | grep -q "CASH_CATEGORY_NAME='Bargeldabhebung'" \
               && echo "$banking" | grep -q "bankCodeDescription" \
+              && echo "$banking" | grep -q "sameN26Signature" \
+              && echo "$banking" | grep -q "cleanupN26Duplicates" \
+              && echo "$banking" | grep -q "reconcileSyncedRows" \
               && echo "$categories" | grep -q "merchantProfiles" \
               && echo "$branding" | grep -q "window.FinanzBrand" \
               && echo "$branding" | grep -q "SIMPLE_ICONS_VERSION='16.29.0'" \
@@ -120,7 +125,7 @@ jobs:
             fi
             sleep 10
           done
-          echo "Render did not expose the exact fallback-safe merchant branding release in time"
+          echo "Render did not expose the exact N26 dedupe release in time"
           exit 1
       - name: Verify live security headers
         run: |
