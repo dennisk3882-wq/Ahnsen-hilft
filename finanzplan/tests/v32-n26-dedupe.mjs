@@ -47,7 +47,7 @@ try{
   assert.equal(result.afterRepair[0].externalId,'stable-current-id');
   assert.equal(result.afterRepair[0].categorySource,'manual','manual categorization from the duplicate must survive the merge');
   assert.equal(result.afterRepair[0].locked,true);
-  assert.notMatch(result.afterRepair[0].fingerprint,/stale-fingerprint/);
+  assert.doesNotMatch(result.afterRepair[0].fingerprint,/stale-fingerprint/);
 
   assert.equal(result.firstSync.added,2,'two genuinely separate identical N26 bookings must both be imported');
   assert.equal(result.firstSync.removed,0);
