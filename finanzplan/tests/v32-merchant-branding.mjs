@@ -48,6 +48,10 @@ try{
     const top=FinanzBrand.topMerchants(selectedMonth,5);
     renderDashboard();renderTransactions();renderStats();renderContracts();renderSettings();
     await FinanzBrand.hydrate(document);
+    const contractButton=document.querySelector('[data-edit-contract="bc1"]');
+    const insuranceButton=document.querySelector('[data-edit-insurance="bi1"]');
+    const contractRow=contractButton?.closest('.list-row');
+    const insuranceRow=insuranceButton?.closest('.list-row');
     const ui={
       dashboardLogos:document.querySelectorAll('#view-dashboard .merchant-logo').length,
       dashboardSvgs:document.querySelectorAll('#view-dashboard .merchant-logo svg').length,
@@ -55,7 +59,10 @@ try{
       transactionSvgs:document.querySelectorAll('#view-transactions .merchant-logo svg').length,
       statsLogos:document.querySelectorAll('#view-stats .merchant-logo').length,
       contractLogos:document.querySelectorAll('#view-contracts .merchant-logo').length,
-      contractSvgs:document.querySelectorAll('#view-contracts .merchant-logo svg').length,
+      netflixContractLogo:!!contractRow?.querySelector('.merchant-logo'),
+      netflixContractSvg:!!contractRow?.querySelector('.merchant-logo svg path'),
+      insuranceBrandSlot:!!insuranceRow?.querySelector('.merchant-logo'),
+      insuranceHasVisual:!!insuranceRow?.querySelector('.merchant-logo svg, .merchant-logo-fallback, .merchant-logo-system'),
       settingsCard:!!document.querySelector('#merchantBrandSettings'),
       settingsText:document.querySelector('#merchantBrandSettings')?.textContent||''
     };
@@ -83,7 +90,10 @@ try{
   assert.ok(result.ui.transactionSvgs>=3);
   assert.ok(result.ui.statsLogos>=2);
   assert.ok(result.ui.contractLogos>=2);
-  assert.ok(result.ui.contractSvgs>=2);
+  assert.equal(result.ui.netflixContractLogo,true);
+  assert.equal(result.ui.netflixContractSvg,true,'known contract provider must use an inline SVG logo');
+  assert.equal(result.ui.insuranceBrandSlot,true);
+  assert.equal(result.ui.insuranceHasVisual,true,'insurer must retain a safe branded/fallback visual even when no official icon is available');
   assert.equal(result.ui.settingsCard,true);
   assert.match(result.ui.settingsText,/Keine Einrichtung nötig/);
   assert.equal(result.version,'16.29.0');
