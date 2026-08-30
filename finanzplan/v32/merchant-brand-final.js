@@ -1,6 +1,13 @@
 'use strict';
 (function(){
   function brand(){return globalThis.FinanzBrand}
+  function disableUnavailableBrands(){
+    for(const name of ['Allianz']){
+      const entry=brand()?.registry?.find(x=>x.name===name);
+      if(entry)entry.slug='';
+    }
+  }
+  disableUnavailableBrands();
   function hydrate(root){const p=brand()?.hydrate?.(root);if(p?.catch)p.catch(()=>{})}
   function decorateTransactionRows(root){
     if(!root)return;
@@ -36,5 +43,5 @@
   if(typeof statsBase==='function')window.renderStats=function(){statsBase();const root=$('#view-stats');ensureStatsBranding(root);hydrate(root)};
   const contractsBase=window.renderContracts;
   if(typeof contractsBase==='function')window.renderContracts=function(){contractsBase();const root=$('#view-contracts');decorateContractRows(root);hydrate(root)};
-  window.FinanzBrandFinal={decorateTransactionRows,decorateContractRows,ensureStatsBranding,version:'1.0.0'};
+  window.FinanzBrandFinal={decorateTransactionRows,decorateContractRows,ensureStatsBranding,disableUnavailableBrands,version:'1.0.1'};
 })();
