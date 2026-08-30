@@ -5,6 +5,7 @@ function renderAll(){
   document.body.classList.toggle('privacy',!!data.settings.privacy);
   $('#monthLabel').textContent=fmtMonth(selectedMonth);
   renderSidebarAccounts();renderDashboard();renderTransactions();renderPlanning();renderBudgets();renderWealth();renderContracts();renderGoals();renderCalendar();renderStats();renderAssistant();renderMore();renderSettings();updateNav();
+  setTimeout(()=>globalThis.FinanzBrand?.hydrate?.(document),0);
 }
 function renderSidebarAccounts(){
   $('#sidebarAccounts').innerHTML=data.accounts.slice(0,5).map(a=>`<div class="side-account"><b>${escapeHTML(a.name)}</b><span class="money">${money(accountBalance(a))}</span></div>`).join('');
@@ -65,5 +66,5 @@ function renderDashboard(){
     </div>`;
   $$('[data-go]',root).forEach(b=>b.onclick=()=>navigate(b.dataset.go));
 }
-function renderTxList(arr){return arr.length?arr.map(t=>`<div class="list-row"><div class="list-icon">${t.type==='income'?'↗':t.type==='transfer'?'⇄':'↙'}</div><div><strong>${escapeHTML(t.title)}</strong><small>${fmtDate(t.date)} · ${escapeHTML(getCat(t.categoryId).name)} · ${escapeHTML(t.status||'paid')}</small></div><div class="list-amount money ${t.type==='income'?'positive':t.type==='expense'?'negative':''}">${t.type==='income'?'+':t.type==='expense'?'-':''}${money(t.amount)}</div></div>`).join(''):`<div class="empty">Keine Buchungen vorhanden.</div>`}
-function renderBudgetProgress(b){const spent=categorySpend(b.categoryId),r=b.amount?spent/b.amount*100:0;return `<div class="progress-block"><div class="progress-head"><span><b>${escapeHTML(b.name)}</b><small> ${money(spent)} / ${money(b.amount)}</small></span><b class="${r>=100?'negative':r>=b.warning?'warn':''}">${pct(r)}</b></div><div class="progress-track"><div class="progress-fill" style="width:${clamp(r,0,100)}%"></div></div></div>`}
+function renderTxList(arr){return arr.length?arr.map(t=>`<div class="list-row"><div class="list-icon merchant-list-icon">${globalThis.FinanzBrand?.logoHTML?.(t,{size:38})||(t.type==='income'?'↗':t.type==='transfer'?'⇄':'↙')}</div><div><strong>${escapeHTML(t.title)}</strong><small>${fmtDate(t.date)} · ${escapeHTML(getCat(t.categoryId).name)} · ${escapeHTML(t.status||'paid')}</small></div><div class="list-amount money ${t.type==='income'?'positive':t.type==='expense'?'negative':''}">${t.type==='income'?'+':t.type==='expense'?'-':''}${money(t.amount)}</div></div>`).join(''):`<div class="empty">Keine Buchungen vorhanden.</div>`}
+function renderBudgetProgress(b){const spent=categorySpend(b.categoryId),r=b.amount?spent/b.amount*100:0;return `<div class="progress-block"><div class="progress-head"><span><b>${escapeHTML(b.name)}</b><small> ${money(spent)} / ${money(b.amount)}</small></span><b class="${r>=100?'negative':r>=b.warning?'warn':''}">${pct(r)}</b></div><div class="progress-track"><div class="progress-fill" style="width:${clamp(r,0,100)}%"></div></div>`}
