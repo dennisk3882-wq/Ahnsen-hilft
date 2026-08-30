@@ -28,18 +28,61 @@
     const draft=applyMerchantRule(title,{categoryId:smart?.categoryId||safeFallbackCategory(type),accountId,type,merchant:t.merchant||'',note,remittance:t.remittance||'',reference:t.reference||'',mcc,bankCode,bankSubCode,bankCodeDescription});
     const merchant=draft.merchant||smart?.merchant||globalThis.FinanzIntelligence?.canonicalMerchant?.(t.merchant||title)||t.merchant||'';
     const categoryId=data.categories.find(c=>c.id===draft.categoryId)?.id||safeFallbackCategory(type);
-    const tx={id:uid('tx'),date:FinanceLib.normalizeDate(t.date)||localISO(new Date()),title,merchant,sourceMerchant:t.merchant||'',amount,type,categoryId,accountId:draft.accountId||accountId,memberId:data.members?.[0]?.id||'',status:'paid',note,tags:['n26'],source:'n26',externalId:t.id||t.reference||'',mcc,bankCode,bankSubCode,bankCodeDescription,categorySource:draft.categorySource||smart?.source||'fallback',categoryConfidence:Number(draft.categoryConfidence??smart?.confidence??0),categoryReason:draft.categoryReason||smart?.reason||''};tx.fingerprint=transactionFingerprint(tx);return tx
+    const tx={id:uid('tx'),date:FinanceLib.normalizeDate(t.date)||localISO(new Date()),title,merchant,sourceMerchant:t.merchant||'',amount,type,categoryId,accountId:draft.accountId||accountId,memberId:data.members?.[0]?.id||'',status:'paid',note,tags:['n26'],source:'n26',externalId:t.id||t.reference||'',bankReference:t.reference||'',mcc,bankCode,bankSubCode,bankCodeDescription,categorySource:draft.categorySource||smart?.source||'fallback',categoryConfidence:Number(draft.categoryConfidence??smart?.confidence??0),categoryReason:draft.categoryReason||smart?.reason||''};tx.fingerprint=transactionFingerprint(tx);return tx
   }
   function enrichExisting(existing,fresh){
     let changed=false;
-    for(const key of ['mcc','sourceMerchant','bankCode','bankSubCode','bankCodeDescription']){if(fresh[key]&&existing[key]!==fresh[key]){existing[key]=fresh[key];changed=true}}
+    for(const key of ['mcc','sourceMerchant','bankReference','bankCode','bankSubCode','bankCodeDescription']){if(fresh[key]&&existing[key]!==fresh[key]){existing[key]=fresh[key];changed=true}}
     if(!existing.note&&fresh.note){existing.note=fresh.note;changed=true}
     if(existing.categorySource!=='manual'&&existing.categoryLocked!==true){
-      const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title:existing.title||fresh.title,merchant:existing.sourceMerchant||fresh.sourceMerchant||existing.merchant,note:existing.note||fresh.note,remittance:existing.note||fresh.note,reference:existing.externalId||fresh.externalId,type:existing.type||fresh.type,mcc:existing.mcc||fresh.mcc,bankCode:existing.bankCode||fresh.bankCode,bankSubCode:existing.bankSubCode||fresh.bankSubCode,bankCodeDescription:existing.bankCodeDescription||fresh.bankCodeDescription});
+      const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title:existing.title||fresh.title,merchant:existing.sourceMerchant||fresh.sourceMerchant||existing.merchant,note:existing.note||fresh.note,remittance:existing.note||fresh.note,reference:existing.bankReference||fresh.bankReference||existing.externalId||fresh.externalId,type:existing.type||fresh.type,mcc:existing.mcc||fresh.mcc,bankCode:existing.bankCode||fresh.bankCode,bankSubCode:existing.bankSubCode||fresh.bankSubCode,bankCodeDescription:existing.bankCodeDescription||fresh.bankCodeDescription});
       if(smart?.categoryId&&(existing.categoryId!==smart.categoryId||existing.merchant!==smart.merchant||existing.categorySource!==smart.source||Number(existing.categoryConfidence||0)!==Number(smart.confidence||0))){existing.categoryId=smart.categoryId;existing.merchant=smart.merchant||existing.merchant;existing.categorySource=smart.source;existing.categoryConfidence=smart.confidence;existing.categoryReason=smart.reason;changed=true}
     }
+    const freshFingerprint=transactionFingerprint(existing);if(existing.fingerprint!==freshFingerprint){existing.fingerprint=freshFingerprint;changed=true}
     return changed;
   }
-  async function sync({days=180,reconcile=true}={}){const householdId=data.integrations?.cloud?.householdId||'';if(!householdId)throw new Error('Kein Cloud-Haushalt gewählt');const qs=new URLSearchParams({days:String(Math.max(1,Math.min(730,days))),householdId}),j=await req(`/api/banking/n26/sync?${qs}`),bankRows=j.transactions||[];ensureLocalAccount(bankRows);const rows=bankRows.map(txFromBank);let added=0,enriched=0;for(const tx of rows){let existing=tx.externalId?data.transactions.find(x=>x.externalId===tx.externalId):null;if(!existing&&tx.fingerprint)existing=data.transactions.find(x=>(x.source==='n26'||(x.tags||[]).includes('n26'))&&(x.fingerprint||transactionFingerprint(x))===tx.fingerprint);if(existing){let touched=false;if(tx.externalId&&existing.externalId!==tx.externalId){existing.externalId=tx.externalId;touched=true}if(enrichExisting(existing,tx))touched=true;if(touched)enriched++;continue}if(isDuplicateTransaction(tx))continue;data.transactions.push(tx);added++}const recategorized=globalThis.FinanzCategoryIntelligence?.reclassifyImportedTransactions?.({onlySuspicious:false})||0;if(reconcile&&Number.isFinite(Number(j.balance))&&typeof reconcileAccount==='function'){try{reconcileAccount(conf().localAccountId,Number(j.balance),localISO(new Date()),'N26 PSD2-Abgleich',false)}catch(e){console.warn(e)}}conf().lastSync=new Date().toISOString();conf().lastBalance=j.balance;detectSubscriptionSuggestions?.();saveData(`N26: ${added} neu, ${enriched} mit Bankdaten angereichert, ${recategorized} neu kategorisiert`);return {added,enriched,recategorized,total:rows.length,balance:j.balance}}
-  window.FinanzN26={conf,status,start,handleCallback,sync,txFromBank,ensureLocalAccount,enrichExisting,req};
+  function isN26Transaction(t){return !!t&&(t.source==='n26'||(t.tags||[]).includes('n26'))}
+  function merchantIdentity(t){
+    const raw=t?.sourceMerchant||t?.merchant||t?.title||'';
+    const canonical=globalThis.FinanzCategoryIntelligence?.merchantAlias?.(raw)||globalThis.FinanzIntelligence?.canonicalMerchant?.(raw)||raw;
+    return FinanceLib.normalizeText(canonical);
+  }
+  function n26Signature(t){
+    const date=FinanceLib.normalizeDate(t?.date)||'',cents=Math.round(Math.abs(num(t?.amount))*100),type=t?.type||(t?.direction==='credit'?'income':'expense'),accountId=t?.accountId||conf().localAccountId||'';
+    return [date,cents,type,merchantIdentity(t),accountId].join('|');
+  }
+  function sameN26Signature(a,b){return !!a&&!!b&&n26Signature(a)===n26Signature(b)}
+  function repairN26Fingerprints(){let changed=0;for(const t of data.transactions||[]){if(!isN26Transaction(t))continue;const fp=transactionFingerprint(t);if(t.fingerprint!==fp){t.fingerprint=fp;changed++}}return changed}
+  function candidateScore(t){return (t.categorySource==='manual'||t.categoryLocked===true?100:0)+(t.externalId?10:0)+(t.bankReference?6:0)+(t.sourceMerchant?4:0)+(t.bankCode?2:0)+(t.mcc?1:0)}
+  function mergeDuplicateDetails(keep,extra){
+    let changed=false;
+    if(extra.categorySource==='manual'||extra.categoryLocked===true){if(extra.categoryId&&keep.categoryId!==extra.categoryId){keep.categoryId=extra.categoryId;changed=true}if(keep.categorySource!=='manual'){keep.categorySource='manual';changed=true}if(keep.categoryLocked!==true){keep.categoryLocked=true;changed=true}keep.categoryConfidence=1;keep.categoryReason=extra.categoryReason||'manual'}
+    if(Array.isArray(extra.splits)&&extra.splits.length&&!(Array.isArray(keep.splits)&&keep.splits.length)){keep.splits=JSON.parse(JSON.stringify(extra.splits));changed=true}
+    if(!keep.note&&extra.note){keep.note=extra.note;changed=true}
+    const tags=[...new Set([...(keep.tags||[]),...(extra.tags||[]),'n26'])];if(JSON.stringify(tags)!==JSON.stringify(keep.tags||[])){keep.tags=tags;changed=true}
+    for(const d of data.documents||[])if(d.txId===extra.id){d.txId=keep.id;changed=true}
+    const fp=transactionFingerprint(keep);if(keep.fingerprint!==fp){keep.fingerprint=fp;changed=true}
+    return changed;
+  }
+  function mergeSyncedRows(rows=[]){
+    const local=(data.transactions||[]).filter(isN26Transaction),used=new Set();let added=0,enriched=0;
+    for(const tx of rows){tx.fingerprint=transactionFingerprint(tx);let existing=tx.externalId?local.find(x=>!used.has(x.id)&&x.externalId===tx.externalId):null;
+      if(!existing){const candidates=local.filter(x=>!used.has(x.id)&&sameN26Signature(x,tx)).sort((a,b)=>candidateScore(b)-candidateScore(a));existing=candidates[0]||null}
+      if(existing){used.add(existing.id);let touched=false;if(tx.externalId&&existing.externalId!==tx.externalId){existing.externalId=tx.externalId;touched=true}if(tx.bankReference&&existing.bankReference!==tx.bankReference){existing.bankReference=tx.bankReference;touched=true}if(enrichExisting(existing,tx))touched=true;if(touched)enriched++;continue}
+      const nonBankDuplicate=(data.transactions||[]).find(x=>!isN26Transaction(x)&&transactionFingerprint(x)===tx.fingerprint);if(nonBankDuplicate)continue;
+      data.transactions.push(tx);local.push(tx);used.add(tx.id);added++;
+    }
+    return {added,enriched,used};
+  }
+  function cleanupN26Duplicates(rows=[],used=new Set()){
+    const local=(data.transactions||[]).filter(isN26Transaction),removeIds=new Set();let mergedManual=0;
+    for(const extra of local){if(used.has(extra.id))continue;const remoteMatch=rows.some(r=>sameN26Signature(extra,r));if(!remoteMatch)continue;const keep=local.filter(k=>used.has(k.id)&&sameN26Signature(k,extra)).sort((a,b)=>candidateScore(b)-candidateScore(a))[0];if(!keep)continue;if(mergeDuplicateDetails(keep,extra))mergedManual++;removeIds.add(extra.id)}
+    if(removeIds.size)data.transactions=data.transactions.filter(t=>!removeIds.has(t.id));
+    return {removed:removeIds.size,mergedManual};
+  }
+  function reconcileSyncedRows(rows=[]){
+    const repaired=repairN26Fingerprints(),merged=mergeSyncedRows(rows),cleaned=cleanupN26Duplicates(rows,merged.used);return {added:merged.added,enriched:merged.enriched,removed:cleaned.removed,mergedManual:cleaned.mergedManual,repaired,used:merged.used};
+  }
+  async function sync({days=180,reconcile=true}={}){const householdId=data.integrations?.cloud?.householdId||'';if(!householdId)throw new Error('Kein Cloud-Haushalt gewählt');const qs=new URLSearchParams({days:String(Math.max(1,Math.min(730,days))),householdId}),j=await req(`/api/banking/n26/sync?${qs}`),bankRows=j.transactions||[];ensureLocalAccount(bankRows);const rows=bankRows.map(txFromBank),merged=reconcileSyncedRows(rows),recategorized=globalThis.FinanzCategoryIntelligence?.reclassifyImportedTransactions?.({onlySuspicious:false})||0,repairedAfter=repairN26Fingerprints();if(reconcile&&Number.isFinite(Number(j.balance))&&typeof reconcileAccount==='function'){try{reconcileAccount(conf().localAccountId,Number(j.balance),localISO(new Date()),'N26 PSD2-Abgleich',false)}catch(e){console.warn(e)}}conf().lastSync=new Date().toISOString();conf().lastBalance=j.balance;detectSubscriptionSuggestions?.();saveData(`N26: ${merged.added} neu, ${merged.enriched} angereichert, ${merged.removed} Dublette${merged.removed===1?'':'n'} bereinigt, ${recategorized} neu kategorisiert`);return {added:merged.added,enriched:merged.enriched,removed:merged.removed,repaired:merged.repaired+repairedAfter,recategorized,total:rows.length,balance:j.balance}}
+  window.FinanzN26={conf,status,start,handleCallback,sync,txFromBank,ensureLocalAccount,enrichExisting,req,isN26Transaction,n26Signature,sameN26Signature,repairN26Fingerprints,mergeSyncedRows,cleanupN26Duplicates,reconcileSyncedRows};
 })();
