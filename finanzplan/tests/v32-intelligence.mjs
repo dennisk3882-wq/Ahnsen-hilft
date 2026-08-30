@@ -16,7 +16,7 @@ try{
   await setup.locator('[name="balance"]').fill('1500');
   await setup.locator('button.primary-button').click();
   await page.locator('#modalBackdrop').waitFor({state:'hidden'});
-  await page.waitForFunction(()=>window.FinanzV32?.version==='3.2.0'&&window.FinanzIntelligence&&window.FinanzE2EE&&window.FinanzMonitoring&&window.FinanzBankingHub&&window.FinanzAIPlus);
+  await page.waitForFunction(()=>window.FinanzV32?.version==='3.2.0'&&window.FinanzIntelligence&&window.FinanzE2EE&&window.FinanzMonitoring&&window.FinanzBankingHub&&window.FinanzAIPlus&&window.FinanzMCC);
   assert.equal(await page.evaluate(()=>data.version),'3.2.0');
   assert.equal(await page.evaluate(()=>FinanzV3.version),'3.2.0');
 
@@ -38,6 +38,40 @@ try{
   assert.equal(intel.contract,'Spotify');
   assert.match(intel.letter,/hiermit kündige ich/i);
 
+  const categoryIntel=await page.evaluate(()=>{
+    const classify=(merchant,mcc='')=>FinanzCategoryIntelligence.categorizeTransaction({title:merchant,merchant,type:'expense',mcc});
+    const bank=(merchant,mcc)=>FinanzN26.txFromBank({id:`test-${mcc}-${merchant}`,date:localISO(new Date()),amount:12.34,direction:'debit',merchant,mcc});
+    return {
+      edeka:classify('Edeka Bolinger').categoryId,
+      penny:classify('PENNY MARKT').categoryId,
+      labyrinth:classify('Restaurant Labyrinth I').categoryId,
+      vodafone:classify('Vodafone GmbH').categoryId,
+      groceryMcc:classify('Unbekannter Händler','5411'),
+      restaurantMcc:classify('Unbekannter Händler','5812'),
+      telecomMcc:classify('Unbekannter Händler','4814'),
+      fuelMcc:classify('Unbekannter Händler','5541'),
+      healthMcc:classify('Unbekannter Händler','8011'),
+      clothesMcc:classify('Unbekannter Händler','5651'),
+      bankFood:bank('Kartenzahlung Händler','5411'),
+      bankRestaurant:bank('Kartenzahlung Händler','5812')
+    };
+  });
+  assert.equal(categoryIntel.edeka,'c_food');
+  assert.equal(categoryIntel.penny,'c_food');
+  assert.equal(categoryIntel.labyrinth,'c_restaurant');
+  assert.equal(categoryIntel.vodafone,'c_subs');
+  assert.equal(categoryIntel.groceryMcc.categoryId,'c_food');
+  assert.equal(categoryIntel.groceryMcc.source,'mcc');
+  assert.equal(categoryIntel.restaurantMcc.categoryId,'c_restaurant');
+  assert.equal(categoryIntel.telecomMcc.categoryId,'c_subs');
+  assert.equal(categoryIntel.fuelMcc.categoryId,'c_fuel');
+  assert.equal(categoryIntel.healthMcc.categoryId,'c_health');
+  assert.equal(categoryIntel.clothesMcc.categoryId,'c_clothes');
+  assert.equal(categoryIntel.bankFood.categoryId,'c_food');
+  assert.equal(categoryIntel.bankFood.mcc,'5411');
+  assert.equal(categoryIntel.bankFood.categorySource,'mcc');
+  assert.equal(categoryIntel.bankRestaurant.categoryId,'c_restaurant');
+
   const cryptoTest=await page.evaluate(async()=>{
     const salt=crypto.getRandomValues(new Uint8Array(16)),k=await FinanzE2EE.derive('sehr-lange-test-passphrase',salt),iv=crypto.getRandomValues(new Uint8Array(12)),plain=new TextEncoder().encode('e2ee-ok'),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,plain),back=await crypto.subtle.decrypt({name:'AES-GCM',iv},k,cipher);return new TextDecoder().decode(back)
   });
@@ -56,6 +90,7 @@ try{
   assert.match(await page.locator('#v32SetupCard').textContent(),/Automation & Intelligence/);
   const sw=await page.evaluate(async()=>await (await fetch('./sw.js')).text());
   assert.match(sw,/finanzplan-v3\.2\.0/);
+  assert.match(sw,/mcc-intelligence\.js/);
   await page.evaluate(async()=>await FinanzV3.flush());
   const stored=await page.evaluate(async()=>await window.__finanzplanStorage.loadState());
   assert.equal(stored.version,'3.2.0');
@@ -63,8 +98,8 @@ try{
   await page.waitForFunction(async()=>!!(await navigator.serviceWorker.ready));
   await context.setOffline(true);
   await page.reload({waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>window.FinanzV32?.version==='3.2.0'&&data.contracts?.some(c=>c.provider==='Spotify'),null,{timeout:12000});
+  await page.waitForFunction(()=>window.FinanzV32?.version==='3.2.0'&&window.FinanzMCC&&data.contracts?.some(c=>c.provider==='Spotify'),null,{timeout:12000});
   assert.equal(await page.evaluate(()=>data.version),'3.2.0');
   if(errors.length)throw new Error(errors.join('\n'));
-  console.log('Finanzplan V3.2 intelligence/offline smoke: OK');
+  console.log('Finanzplan V3.2 intelligence/MCC/offline smoke: OK');
 } finally {await browser.close()}
