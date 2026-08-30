@@ -66,18 +66,21 @@ try{
     const manualOverride=classify('Unbekannter Händler XYZ');
 
     // A user's correction must become a durable merchant rule and repair matching bank rows.
-    const correctionSource={id:'learn-src',date:'2026-08-29',title:'Cafe Musterhaus',merchant:'Cafe Musterhaus',sourceMerchant:'Cafe Musterhaus',amount:8,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
-    const correctionSibling={id:'learn-sibling',date:'2026-08-28',title:'Cafe Musterhaus',merchant:'Cafe Musterhaus',sourceMerchant:'Cafe Musterhaus',amount:6,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
+    // This merchant is intentionally unknown to all built-in keyword/MCC rules so only the
+    // persisted user correction can make future transactions Restaurant.
+    const correctionSource={id:'learn-src',date:'2026-08-29',title:'Buchholz Genusswelt',merchant:'Buchholz Genusswelt',sourceMerchant:'Buchholz Genusswelt',amount:8,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
+    const correctionSibling={id:'learn-sibling',date:'2026-08-28',title:'Buchholz Genusswelt',merchant:'Buchholz Genusswelt',sourceMerchant:'Buchholz Genusswelt',amount:6,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']};
+    const beforeLearning=classify('Buchholz Genusswelt');
     data.transactions.push(correctionSource,correctionSibling);
     const learned=FinanzCategoryLearning.rememberCorrection(correctionSource,ids.Restaurant,{reclassify:true});
-    const learnedFuture=classify('Cafe Musterhaus');
+    const learnedFuture=classify('Buchholz Genusswelt');
     const userRule=data.merchantRules.find(r=>r.userCorrection===true&&r.categoryId===ids.Restaurant);
 
     return {
       checks,learnedProtected,changed,repaired,
       importedUnknown:catName(importedUnknown.categoryId),importedEdeka:catName(importedEdeka.categoryId),
       manualOverride:manualOverride.name,otherId:other?.id,
-      learned:{saved:learned.saved,sourceCategory:catName(correctionSource.categoryId),sourceLocked:correctionSource.categoryLocked,siblingCategory:catName(correctionSibling.categoryId),futureCategory:learnedFuture.name,futureSource:learnedFuture.source,ruleCategory:catName(userRule?.categoryId),ruleConfidence:userRule?.confidence}
+      learned:{beforeCategory:beforeLearning.name,saved:learned.saved,sourceCategory:catName(correctionSource.categoryId),sourceLocked:correctionSource.categoryLocked,siblingCategory:catName(correctionSibling.categoryId),futureCategory:learnedFuture.name,futureSource:learnedFuture.source,ruleCategory:catName(userRule?.categoryId),ruleConfidence:userRule?.confidence}
     };
   });
 
@@ -104,6 +107,7 @@ try{
   assert.equal(result.importedUnknown,'Sonstiges','unknown N26 expense must never use the first expense category');
   assert.equal(result.importedEdeka,'Lebensmittel');
   assert.equal(result.manualOverride,'Freizeit','explicit manual rule must override automatic classification');
+  assert.equal(result.learned.beforeCategory,'Sonstiges','test merchant must be unknown before the user correction');
   assert.equal(result.learned.saved,true);
   assert.equal(result.learned.sourceCategory,'Restaurant');
   assert.equal(result.learned.sourceLocked,true);
