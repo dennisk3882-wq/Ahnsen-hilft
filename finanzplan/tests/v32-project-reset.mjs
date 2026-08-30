@@ -9,12 +9,12 @@ page.on('pageerror',e=>errors.push(`pageerror: ${e.message}`));
 page.on('console',m=>{if(m.type()==='error')errors.push(`console: ${m.text()}`)});
 try{
   await page.goto('http://127.0.0.1:8080/',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.FinanzV32?.version==='3.2.0'&&window.__finanzplanV32Ready===true,{timeout:12000});
   const first=page.locator('#newProjectForm');
   await first.waitFor({state:'visible',timeout:12000});
   await first.locator('[name="household"]').fill('Initial');
   await first.locator('button.primary-button').click();
   await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:12000});
-  await page.waitForFunction(()=>window.FinanzV32?.version==='3.2.0');
 
   await page.evaluate(async()=>{
     data=defaultData();
@@ -40,7 +40,7 @@ try{
   await form.locator('#newProjectSubmit').click();
   await page.locator('#modalBackdrop').waitFor({state:'hidden',timeout:8000});
   assert.ok(Date.now()-started<7000,'household reset must not hang on IndexedDB cleanup');
-  await page.waitForFunction(()=>data?.household?.name==='Dennis'&&data.transactions?.length===0);
+  await page.waitForFunction(()=>data?.household?.name==='Dennis'&&data.transactions?.length===0,{timeout:12000});
   const state=await page.evaluate(()=>({
     household:data.household.name,
     accounts:data.accounts.map(a=>({name:a.name,openingBalance:a.openingBalance})),
