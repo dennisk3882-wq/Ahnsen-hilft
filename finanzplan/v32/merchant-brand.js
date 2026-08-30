@@ -33,7 +33,7 @@
     return {name:local?.name||preset?.name||name,domain,kind:domain?'brand':'fallback',source:local?'learned':preset?'registry':domain?'domain':'fallback'};
   }
   function initials(name){const p=String(name||'?').trim().split(/\s+/).filter(Boolean);return (p.length>1?p[0][0]+p[1][0]:p[0]?.slice(0,2)||'?').toUpperCase()}
-  function logoUrl(domain,size=64){const id=String(cfg().clientId||'').trim();return domain&&id?`https://cdn.brandfetch.io/domain/${encodeURIComponent(domain)}?c=${encodeURIComponent(id)}&w=${Math.max(32,Math.min(256,size))}&h=${Math.max(32,Math.min(256,size))}`:''}
+  function logoUrl(domain,size=64){const id=String(cfg().clientId||'').trim(),px=Math.max(32,Math.min(256,Math.round(size)));return domain&&id?`https://cdn.brandfetch.io/domain/${encodeURIComponent(domain)}/w/${px}/h/${px}/fallback/lettermark/type/icon?c=${encodeURIComponent(id)}`:''}
   function logoHTML(input={},opts={}){
     const b=brandFor(input),size=Number(opts.size||38),cls=opts.className||'';
     if(b.kind==='cash')return `<span class="merchant-logo merchant-logo-system ${cls}" style="--merchant-logo-size:${size}px" aria-label="Bargeldabhebung">€</span>`;
