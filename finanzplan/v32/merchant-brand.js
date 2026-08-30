@@ -16,6 +16,7 @@
   const cfg=()=>{data.integrations=data.integrations||{};return data.integrations.brandfetch=data.integrations.brandfetch||{clientId:'',enabled:true}};
   const map=()=>data.merchantBrands=data.merchantBrands||{};
   const key=s=>norm(s).toLowerCase();
+  let persistTimer=0;
   function merchantName(input={}){
     if(typeof input==='string')input={title:input};
     const raw=input.sourceMerchant||input.merchant||input.provider||input.title||input.name||'';
@@ -36,31 +37,40 @@
   function logoHTML(input={},opts={}){
     const b=brandFor(input),size=Number(opts.size||38),cls=opts.className||'';
     if(b.kind==='cash')return `<span class="merchant-logo merchant-logo-system ${cls}" style="--merchant-logo-size:${size}px" aria-label="Bargeldabhebung">€</span>`;
-    const url=logoUrl(b.domain,size*2),label=escapeHTML(b.name);
-    if(url)return `<span class="merchant-logo ${cls}" style="--merchant-logo-size:${size}px" data-brand-merchant="${escapeHTML(merchantName(input))}" data-brand-domain="${escapeHTML(b.domain)}"><img src="${escapeHTML(url)}" alt="${label} Logo" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.classList.add('merchant-logo-fallback');this.parentElement.textContent='${escapeHTML(initials(b.name))}'"></span>`;
-    return `<span class="merchant-logo merchant-logo-fallback ${cls}" style="--merchant-logo-size:${size}px" data-brand-merchant="${escapeHTML(merchantName(input))}">${escapeHTML(initials(b.name))}</span>`;
+    return `<span class="merchant-logo merchant-logo-fallback ${cls}" style="--merchant-logo-size:${size}px" data-brand-merchant="${escapeHTML(merchantName(input))}"${b.domain?` data-brand-domain="${escapeHTML(b.domain)}"`:''}>${escapeHTML(initials(b.name))}</span>`;
   }
+  function queuePersist(){clearTimeout(persistTimer);persistTimer=setTimeout(()=>{if(typeof saveData==='function')saveData('')},500)}
   async function searchBrand(name){
     const id=String(cfg().clientId||'').trim();if(!id||!cfg().enabled||!name||saved(name)||known(name))return saved(name)||known(name);
     try{
-      const r=await fetch(`https://api.brandfetch.io/v2/search/${encodeURIComponent(name)}?c=${encodeURIComponent(id)}`,{headers:{Accept:'application/json'}});if(!r.ok)return null;
+      const r=await fetch(`https://api.brandfetch.io/v2/search/${encodeURIComponent(name)}?c=${encodeURIComponent(id)}`,{headers:{Accept:'application/json'},cache:'no-store'});if(!r.ok)return null;
       const rows=await r.json();const hit=(Array.isArray(rows)?rows:[]).find(x=>x?.domain);if(!hit?.domain)return null;
-      map()[key(name)]={name:hit.name||name,domain:hit.domain,updatedAt:new Date().toISOString()};
-      if(typeof saveData==='function')saveData('');return map()[key(name)];
+      map()[key(name)]={name:hit.name||name,domain:hit.domain,updatedAt:new Date().toISOString()};queuePersist();return map()[key(name)];
     }catch{return null}
   }
+  async function setLogo(node,brand){
+    const url=logoUrl(brand.domain,96);if(!url||node.dataset.brandLoading==='1'||node.querySelector('img'))return false;
+    node.dataset.brandLoading='1';
+    try{
+      const r=await fetch(url,{cache:'no-store',headers:{Accept:'image/avif,image/webp,image/png,image/*,*/*;q=0.8'}});if(!r.ok)throw new Error('logo');
+      const blob=await r.blob();if(!blob.type.startsWith('image/'))throw new Error('not-image');
+      const objectUrl=URL.createObjectURL(blob),img=document.createElement('img');img.alt=`${brand.name} Logo`;img.decoding='async';img.loading='lazy';img.src=objectUrl;
+      img.onload=()=>URL.revokeObjectURL(objectUrl);img.onerror=()=>{URL.revokeObjectURL(objectUrl);img.remove()};
+      node.textContent='';node.classList.remove('merchant-logo-fallback');node.appendChild(img);node.dataset.brandReady='1';return true;
+    }catch{return false}finally{delete node.dataset.brandLoading}
+  }
   async function hydrate(root=document){
-    const nodes=[...root.querySelectorAll?.('[data-brand-merchant]')||[]],todo=[...new Set(nodes.map(n=>n.dataset.brandMerchant).filter(Boolean))];
+    const nodes=[...(root.querySelectorAll?.('[data-brand-merchant]')||[])],todo=[...new Set(nodes.map(n=>n.dataset.brandMerchant).filter(Boolean))];
     await Promise.all(todo.map(searchBrand));
-    for(const node of nodes){const b=brandFor(node.dataset.brandMerchant),url=logoUrl(b.domain,80);if(!url||node.querySelector('img'))continue;node.classList.remove('merchant-logo-fallback');node.textContent='';const img=document.createElement('img');img.src=url;img.alt=`${b.name} Logo`;img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();node.classList.add('merchant-logo-fallback');node.textContent=initials(b.name)};node.appendChild(img)}
+    await Promise.all(nodes.map(async node=>{if(node.dataset.brandReady==='1')return;const b=brandFor(node.dataset.brandMerchant);if(!b.domain)return;node.dataset.brandDomain=b.domain;await setLogo(node,b)}));
   }
   function topMerchants(month=selectedMonth,limit=8){
     const grouped=new Map();for(const t of txForMonth(month)){if(t.type!=='expense')continue;const b=brandFor(t),k=key(b.name);const row=grouped.get(k)||{name:b.name,value:0,count:0,sample:t};row.value+=num(t.amount);row.count++;grouped.set(k,row)}return [...grouped.values()].sort((a,b)=>b.value-a.value).slice(0,limit)
   }
   function openSettings(){
-    const c=cfg();openModal('Händlerlogos','Brandfetch liefert die offiziellen Markenlogos. Die kostenlose Client-ID darf öffentlich im Browser verwendet werden.',`<form id="brandfetchForm"><div class="field"><label>Brandfetch Client-ID</label><input class="input" name="clientId" value="${escapeHTML(c.clientId||'')}" placeholder="Client-ID einfügen" autocomplete="off"><small>Ohne Client-ID bleiben sichere Initialen-/System-Fallbacks aktiv. Bekannte Händlerdomains sind bereits hinterlegt.</small></div><label class="check-row"><input type="checkbox" name="enabled" ${c.enabled!==false?'checked':''}> Automatische Markensuche aktivieren</label><div class="modal-actions"><button type="button" class="secondary-button" data-cancel>Abbrechen</button><button class="primary-button">Speichern</button></div></form>`,()=>{const f=$('#brandfetchForm');$('[data-cancel]').onclick=closeModal;f.onsubmit=e=>{e.preventDefault();const fd=new FormData(f);c.clientId=String(fd.get('clientId')||'').trim();c.enabled=fd.get('enabled')==='on';closeModal();saveData('Händlerlogo-Einstellungen gespeichert');setTimeout(()=>hydrate(document),0)}})
+    const c=cfg();openModal('Händlerlogos','Brandfetch liefert die offiziellen Markenlogos. Die kostenlose Client-ID darf öffentlich im Browser verwendet werden.',`<form id="brandfetchForm"><div class="field"><label>Brandfetch Client-ID</label><input class="input" name="clientId" value="${escapeHTML(c.clientId||'')}" placeholder="Client-ID einfügen" autocomplete="off"><small>Die PWA speichert nur Händler→Domain-Zuordnungen. Logobilder selbst werden nicht dauerhaft gespeichert.</small></div><label class="check-row"><input type="checkbox" name="enabled" ${c.enabled!==false?'checked':''}> Automatische Markensuche aktivieren</label><div class="modal-actions"><button type="button" class="secondary-button" data-cancel>Abbrechen</button><button class="primary-button">Speichern</button></div></form>`,()=>{const f=$('#brandfetchForm');$('[data-cancel]').onclick=closeModal;f.onsubmit=e=>{e.preventDefault();const fd=new FormData(f);c.clientId=String(fd.get('clientId')||'').trim();c.enabled=fd.get('enabled')==='on';closeModal();saveData('Händlerlogo-Einstellungen gespeichert');setTimeout(()=>hydrate(document),0)}})
   }
   const baseSettings=window.renderSettings;
   if(typeof baseSettings==='function')window.renderSettings=function(){baseSettings();const root=$('#view-settings');if(!root||$('#merchantBrandSettings',root))return;const c=cfg();root.insertAdjacentHTML('beforeend',`<article id="merchantBrandSettings" class="card" style="margin-top:16px"><div class="card-title-row"><div><h2>Händlerlogos</h2><p>Marken automatisch erkennen und in Buchungen, Dashboard, Verträgen und Analysen anzeigen</p></div><span class="tag ${c.clientId?'green':'amber'}">${c.clientId?'Aktiv':'Fallback'}</span></div><div class="setting-row"><div><b>Brandfetch Logo Engine</b><small style="display:block;color:var(--muted)">${c.clientId?'Offizielle Logos + automatische Markensuche':'Noch keine Client-ID · Initialen und System-Symbole aktiv'}</small></div><button id="merchantBrandSetup" class="secondary-button">Einrichten</button></div></article>`);$('#merchantBrandSetup',root).onclick=openSettings};
-  window.FinanzBrand={cfg,brandFor,merchantName,logoHTML,logoUrl,hydrate,searchBrand,topMerchants,openSettings,registry};
+  window.FinanzBrand={cfg,brandFor,merchantName,logoHTML,logoUrl,hydrate,searchBrand,setLogo,topMerchants,openSettings,registry};
 })();
