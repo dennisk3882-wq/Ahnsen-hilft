@@ -78,6 +78,8 @@ jobs:
         run: node finanzplan/tests/v32-n26-auto-account.mjs
       - name: Run smart merchant categorization flow
         run: node finanzplan/tests/v32-smart-categories.mjs
+      - name: Run MCC categorization and N26 enrichment flow
+        run: node finanzplan/tests/v32-mcc-intelligence.mjs
 
   live-render-smoke:
     if: github.ref == 'refs/heads/finanzplan'

@@ -33,6 +33,21 @@
     {id:'c_other',names:['sonstiges'],confidence:.79,patterns:['amazon','paypal','dm drogerie','rossmann','mueller drogerie','müller drogerie','ikea','obi','hornbach','bauhaus']}
   ];
 
+  const mccRules=[
+    {id:'c_food',names:['lebensmittel'],confidence:.995,label:'Lebensmittel',codes:['5411','5422','5441','5451','5462','5499']},
+    {id:'c_restaurant',names:['restaurant'],confidence:.995,label:'Restaurant/Gastronomie',codes:['5811','5812','5813','5814']},
+    {id:'c_subs',names:['abos & vertraege','abos & verträge','abos','vertraege','verträge'],confidence:.99,label:'Telekommunikation',codes:['4812','4814','4816','4899']},
+    {id:'c_health',names:['gesundheit'],confidence:.995,label:'Gesundheit',codes:['5912','8011','8021','8031','8041','8042','8043','8049','8050','8062','8071','8099']},
+    {id:'c_fuel',names:['tanken'],confidence:.995,label:'Tankstelle/Kraftstoff',codes:['5541','5542','5983']},
+    {id:'c_mob',names:['mobilitaet','mobilität'],confidence:.985,label:'Mobilität',codes:['4111','4112','4121','4131','4215','4784','4789','7512','7523']},
+    {id:'c_home',names:['wohnen'],confidence:.97,label:'Wohnen/Versorger',codes:['4900','5200','5211','5231','5251','5261','5712','5713','5714','5718','5719']},
+    {id:'c_ins',names:['versicherungen'],confidence:.995,label:'Versicherung',codes:['6300','6381','6399']},
+    {id:'c_clothes',names:['kleidung'],confidence:.995,label:'Kleidung/Schuhe',codes:['5611','5621','5631','5641','5651','5655','5661','5681','5691','5697','5698','5699']},
+    {id:'c_kids',names:['kinder'],confidence:.96,label:'Spielwaren/Kinder',codes:['5945']},
+    {id:'c_leisure',names:['freizeit'],confidence:.97,label:'Freizeit/Unterhaltung',codes:['7832','7841','7911','7922','7929','7932','7933','7941','7991','7992','7993','7994','7996','7997','7998','7999']},
+    {id:'c_other',names:['sonstiges'],confidence:.76,label:'Allgemeiner Handel',codes:['5310','5311','5331','5399','5999']}
+  ];
+
   function categoryId(id,names=[]){
     if((data.categories||[]).some(c=>c.id===id))return id;
     const wanted=names.map(words);
@@ -63,6 +78,14 @@
     const key=merchantKey(merchant);if(!key||key==='unbekannt')return null;
     return (data.merchantRules||[]).filter(r=>r.active!==false&&r.learned&&r.categoryId&&Number(r.confidence||0)>=.8).sort((a,b)=>Number(b.confidence||0)-Number(a.confidence||0)).find(r=>merchantKey(r.merchant||r.pattern||'')===key)||null;
   }
+  function normalizeMcc(raw){const m=String(raw??'').replace(/\D/g,'').slice(0,4);return m.length===4?m:''}
+  function classifyMcc(raw,type='expense'){
+    if(type==='income')return null;
+    const mcc=normalizeMcc(raw);if(!mcc)return null;
+    const rule=mccRules.find(r=>r.codes.includes(mcc));if(!rule)return null;
+    const id=categoryId(rule.id,rule.names);if(!id)return null;
+    return {categoryId:id,confidence:rule.confidence,reason:`mcc:${mcc}:${rule.label}`,source:'mcc',mcc};
+  }
   function classifyKnowledge(text,type='expense'){
     const n=words(text);
     if(type==='income'){
@@ -72,18 +95,26 @@
     for(const rule of rules){if(rule.patterns.some(p=>contains(n,p))){const id=categoryId(rule.id,rule.names);if(id)return {categoryId:id,confidence:rule.confidence,reason:`knowledge:${rule.id}`}}}
     return {categoryId:fallbackCategory('expense'),confidence:.55,reason:'expense-fallback'};
   }
+  function chooseSmart(knowledge,mcc){
+    if(!mcc)return knowledge;
+    if(!knowledge?.categoryId)return mcc;
+    if(mcc.categoryId===knowledge.categoryId)return {...mcc,confidence:Math.min(.999,Math.max(mcc.confidence,knowledge.confidence)+.002),reason:`${mcc.reason}+${knowledge.reason}`,source:'mcc+smart'};
+    if(knowledge.reason==='expense-fallback')return mcc;
+    if(mcc.confidence>=knowledge.confidence+.003)return mcc;
+    return knowledge;
+  }
   function categorizeTransaction(input={}){
     const type=input.type==='income'?'income':'expense';
     const raw=[input.merchant,input.title,input.note,input.remittance,input.reference].filter(Boolean).join(' ');
     const merchant=merchantAlias(input.merchant||input.title||raw);
     const searchable=`${merchant} ${raw}`;
     const manual=manualRule(searchable);
-    if(manual)return {categoryId:manual.categoryId||fallbackCategory(type),merchant:manual.merchant||merchant,confidence:1,reason:'manual-rule',source:'manual'};
-    const smart=classifyKnowledge(searchable,type);
-    if(smart.confidence>=.84)return {...smart,merchant,source:'smart'};
+    if(manual)return {categoryId:manual.categoryId||fallbackCategory(type),merchant:manual.merchant||merchant,confidence:1,reason:'manual-rule',source:'manual',mcc:normalizeMcc(input.mcc)};
+    const knowledge=classifyKnowledge(searchable,type),mcc=classifyMcc(input.mcc,type),smart=chooseSmart(knowledge,mcc);
+    if(smart?.confidence>=.84)return {...smart,merchant,source:smart.source||'smart',mcc:normalizeMcc(input.mcc)};
     const learned=learnedRule(merchant);
-    if(learned)return {categoryId:learned.categoryId||fallbackCategory(type),merchant:learned.merchant||merchant,confidence:Number(learned.confidence||.8),reason:'learned-rule',source:'learned'};
-    return {...smart,categoryId:smart.categoryId||fallbackCategory(type),merchant,source:'fallback'};
+    if(learned)return {categoryId:learned.categoryId||fallbackCategory(type),merchant:learned.merchant||merchant,confidence:Number(learned.confidence||.8),reason:'learned-rule',source:'learned',mcc:normalizeMcc(input.mcc)};
+    return {...smart,categoryId:smart?.categoryId||fallbackCategory(type),merchant,source:smart?.source||'fallback',mcc:normalizeMcc(input.mcc)};
   }
 
   window.applyMerchantRule=function(title,draft={}){
@@ -91,7 +122,7 @@
     const manual=manualRule(raw);
     const base=typeof baseApply==='function'?baseApply(title,draft):{...draft};
     if(manual)return {...base,categoryId:manual.categoryId||fallbackCategory(draft.type),accountId:manual.accountId||base.accountId,merchant:manual.merchant||base.merchant||merchantAlias(title),categorySource:'manual',categoryConfidence:1,categoryReason:'manual-rule'};
-    const smart=categorizeTransaction({title,merchant:draft.merchant,note:draft.note,remittance:draft.remittance,reference:draft.reference,type:draft.type});
+    const smart=categorizeTransaction({title,merchant:draft.merchant,note:draft.note,remittance:draft.remittance,reference:draft.reference,type:draft.type,mcc:draft.mcc});
     return {...base,categoryId:smart.categoryId||fallbackCategory(draft.type),merchant:smart.merchant||base.merchant||merchantAlias(title),categorySource:smart.source,categoryConfidence:smart.confidence,categoryReason:smart.reason};
   };
 
@@ -112,13 +143,13 @@
       if(!imported||t.categorySource==='manual'||t.categoryLocked===true)continue;
       const current=(data.categories||[]).find(c=>c.id===t.categoryId);
       const currentName=words(current?.name||'');
-      const suspicious=!t.categoryId||currentName==='kleidung'||currentName==='sonstiges'||t.categorySource==='fallback'||t.categorySource==='smart'||!t.categorySource;
+      const suspicious=!t.categoryId||currentName==='kleidung'||currentName==='sonstiges'||t.categorySource==='fallback'||t.categorySource==='smart'||t.categorySource==='mcc'||t.categorySource==='mcc+smart'||!t.categorySource;
       if(onlySuspicious&&!suspicious)continue;
-      const smart=categorizeTransaction({title:t.title,merchant:t.sourceMerchant||t.merchant,note:t.note,remittance:t.remittance,reference:t.reference,type:t.type});
+      const smart=categorizeTransaction({title:t.title,merchant:t.sourceMerchant||t.merchant,note:t.note,remittance:t.remittance,reference:t.reference,type:t.type,mcc:t.mcc});
       const target=smart.categoryId||fallbackCategory(t.type);
       if(!target)continue;
       if(smart.confidence>=.84||(suspicious&&smart.confidence>=.55)){
-        if(t.categoryId!==target||t.merchant!==smart.merchant||t.categorySource!==smart.source){t.categoryId=target;t.merchant=smart.merchant||t.merchant;t.categorySource=smart.source;t.categoryConfidence=smart.confidence;t.categoryReason=smart.reason;changed++}
+        if(t.categoryId!==target||t.merchant!==smart.merchant||t.categorySource!==smart.source||Number(t.categoryConfidence||0)!==Number(smart.confidence||0)){t.categoryId=target;t.merchant=smart.merchant||t.merchant;t.categorySource=smart.source;t.categoryConfidence=smart.confidence;t.categoryReason=smart.reason;changed++}
       }
     }
     return changed;
@@ -131,7 +162,7 @@
     return {...(base||{}),recategorized,repaired};
   }
 
-  const api={categorizeTransaction,classifyKnowledge,merchantAlias,reclassifyImportedTransactions,repairLearnedRules,postImport,fallbackCategory};
+  const api={categorizeTransaction,classifyKnowledge,classifyMcc,normalizeMcc,merchantAlias,reclassifyImportedTransactions,repairLearnedRules,postImport,fallbackCategory};
   window.FinanzCategoryIntelligence=api;
   if(window.FinanzIntelligence)window.FinanzIntelligence.postImport=postImport;
 })();
