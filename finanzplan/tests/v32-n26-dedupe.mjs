@@ -14,8 +14,10 @@ try{
   }
   await page.waitForFunction(()=>window.FinanzN26&&window.FinanzCategoryIntelligence&&window.__finanzplanV32Ready===true,{timeout:12000});
   const result=await page.evaluate(()=>{
-    const account=data.accounts[0];
-    data.integrations.n26.localAccountId=account.id;
+    data.accounts=data.accounts||[];
+    const account=data.accounts[0]||{id:'acc-n26-dedupe-test',name:'N26 Girokonto',type:'checking',openingBalance:0,openingDate:'2026-08-01',includeNetWorth:true,spendable:true,source:'n26'};
+    if(!data.accounts.length)data.accounts.push(account);
+    data.integrations=data.integrations||{};data.integrations.n26=data.integrations.n26||{};data.integrations.n26.localAccountId=account.id;
     data.documents=[];
     data.transactions=[];
     const raw={date:'2026-08-04',merchant:'Penny Am Steinzeichen',amount:12.69,direction:'debit',remittance:'Kartenzahlung PENNY'};
