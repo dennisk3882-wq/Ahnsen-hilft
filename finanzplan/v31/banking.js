@@ -23,19 +23,19 @@
     return data.categories?.find(c=>c.id===id)?.id||data.categories?.find(c=>FinanceLib.normalizeText(c.name)===name)?.id||'';
   }
   function txFromBank(t){
-    const amount=Math.abs(num(t.amount)),type=t.direction==='credit'?'income':'expense',accountId=conf().localAccountId||data.accounts?.[0]?.id||'',title=t.merchant||t.title||t.remittance||'N26 Umsatz',note=t.remittance||t.reference||'',mcc=globalThis.FinanzCategoryIntelligence?.normalizeMcc?.(t.mcc)||String(t.mcc||'');
-    const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title,merchant:t.merchant,note,remittance:t.remittance,reference:t.reference,type,mcc})||null;
-    const draft=applyMerchantRule(title,{categoryId:smart?.categoryId||safeFallbackCategory(type),accountId,type,merchant:t.merchant||'',note,remittance:t.remittance||'',reference:t.reference||'',mcc});
+    const amount=Math.abs(num(t.amount)),type=t.direction==='credit'?'income':'expense',accountId=conf().localAccountId||data.accounts?.[0]?.id||'',title=t.merchant||t.title||t.remittance||t.bankCodeDescription||'N26 Umsatz',note=t.remittance||t.reference||'',mcc=globalThis.FinanzCategoryIntelligence?.normalizeMcc?.(t.mcc)||String(t.mcc||''),bankCode=String(t.bankCode||''),bankSubCode=String(t.bankSubCode||''),bankCodeDescription=String(t.bankCodeDescription||'');
+    const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title,merchant:t.merchant,note,remittance:t.remittance,reference:t.reference,type,mcc,bankCode,bankSubCode,bankCodeDescription})||null;
+    const draft=applyMerchantRule(title,{categoryId:smart?.categoryId||safeFallbackCategory(type),accountId,type,merchant:t.merchant||'',note,remittance:t.remittance||'',reference:t.reference||'',mcc,bankCode,bankSubCode,bankCodeDescription});
     const merchant=draft.merchant||smart?.merchant||globalThis.FinanzIntelligence?.canonicalMerchant?.(t.merchant||title)||t.merchant||'';
     const categoryId=data.categories.find(c=>c.id===draft.categoryId)?.id||safeFallbackCategory(type);
-    const tx={id:uid('tx'),date:FinanceLib.normalizeDate(t.date)||localISO(new Date()),title,merchant,sourceMerchant:t.merchant||'',amount,type,categoryId,accountId:draft.accountId||accountId,memberId:data.members?.[0]?.id||'',status:'paid',note,tags:['n26'],source:'n26',externalId:t.id||t.reference||'',mcc,categorySource:draft.categorySource||smart?.source||'fallback',categoryConfidence:Number(draft.categoryConfidence??smart?.confidence??0),categoryReason:draft.categoryReason||smart?.reason||''};tx.fingerprint=transactionFingerprint(tx);return tx
+    const tx={id:uid('tx'),date:FinanceLib.normalizeDate(t.date)||localISO(new Date()),title,merchant,sourceMerchant:t.merchant||'',amount,type,categoryId,accountId:draft.accountId||accountId,memberId:data.members?.[0]?.id||'',status:'paid',note,tags:['n26'],source:'n26',externalId:t.id||t.reference||'',mcc,bankCode,bankSubCode,bankCodeDescription,categorySource:draft.categorySource||smart?.source||'fallback',categoryConfidence:Number(draft.categoryConfidence??smart?.confidence??0),categoryReason:draft.categoryReason||smart?.reason||''};tx.fingerprint=transactionFingerprint(tx);return tx
   }
   function enrichExisting(existing,fresh){
     let changed=false;
-    for(const key of ['mcc','sourceMerchant']){if(fresh[key]&&existing[key]!==fresh[key]){existing[key]=fresh[key];changed=true}}
+    for(const key of ['mcc','sourceMerchant','bankCode','bankSubCode','bankCodeDescription']){if(fresh[key]&&existing[key]!==fresh[key]){existing[key]=fresh[key];changed=true}}
     if(!existing.note&&fresh.note){existing.note=fresh.note;changed=true}
     if(existing.categorySource!=='manual'&&existing.categoryLocked!==true){
-      const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title:existing.title||fresh.title,merchant:existing.sourceMerchant||fresh.sourceMerchant||existing.merchant,note:existing.note||fresh.note,remittance:existing.note||fresh.note,reference:existing.externalId||fresh.externalId,type:existing.type||fresh.type,mcc:existing.mcc||fresh.mcc});
+      const smart=globalThis.FinanzCategoryIntelligence?.categorizeTransaction?.({title:existing.title||fresh.title,merchant:existing.sourceMerchant||fresh.sourceMerchant||existing.merchant,note:existing.note||fresh.note,remittance:existing.note||fresh.note,reference:existing.externalId||fresh.externalId,type:existing.type||fresh.type,mcc:existing.mcc||fresh.mcc,bankCode:existing.bankCode||fresh.bankCode,bankSubCode:existing.bankSubCode||fresh.bankSubCode,bankCodeDescription:existing.bankCodeDescription||fresh.bankCodeDescription});
       if(smart?.categoryId&&(existing.categoryId!==smart.categoryId||existing.merchant!==smart.merchant||existing.categorySource!==smart.source||Number(existing.categoryConfidence||0)!==Number(smart.confidence||0))){existing.categoryId=smart.categoryId;existing.merchant=smart.merchant||existing.merchant;existing.categorySource=smart.source;existing.categoryConfidence=smart.confidence;existing.categoryReason=smart.reason;changed=true}
     }
     return changed;
