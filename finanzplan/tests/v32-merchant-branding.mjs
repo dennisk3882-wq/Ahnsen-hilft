@@ -20,19 +20,23 @@ try{
   }
   const result=await page.evaluate(async()=>{
     const knownEdeka=FinanzBrand.brandFor({title:'EDEKA BOLINGER'});
+    const knownECenter=FinanzBrand.brandFor({title:'E-CENTER BÜCKEBURG'});
+    const knownECenterCompact=FinanzBrand.brandFor({title:'ECENTER HAMELN'});
+    const genericEC=FinanzBrand.brandFor({title:'EC Zahlung 4711'});
     const knownNetflix=FinanzBrand.brandFor({title:'NETFLIX.COM'});
     const cash=FinanzBrand.brandFor({title:'PMNT',note:'Bargeldauszahlung an der Kasse',categoryId:'c_cash'});
     const unknown=FinanzBrand.brandFor({title:'Buchholz Genusswelt'});
     const fallbackHtml=FinanzBrand.logoHTML({title:'Buchholz Genusswelt'},{size:40});
     const knownUrl=FinanzBrand.iconUrl(knownEdeka.slug);
     const host=document.createElement('div');
-    host.innerHTML=FinanzBrand.logoHTML({title:'EDEKA BOLINGER'},{size:40})+FinanzBrand.logoHTML({title:'Buchholz Genusswelt'},{size:40})+FinanzBrand.logoHTML({title:'Bargeldabhebung',categoryId:'c_cash'},{size:40});
+    host.innerHTML=FinanzBrand.logoHTML({title:'EDEKA BOLINGER'},{size:40})+FinanzBrand.logoHTML({title:'E-CENTER BÜCKEBURG'},{size:40})+FinanzBrand.logoHTML({title:'Buchholz Genusswelt'},{size:40})+FinanzBrand.logoHTML({title:'Bargeldabhebung',categoryId:'c_cash'},{size:40});
     document.body.appendChild(host);
     await FinanzBrand.hydrate(host);
     const nodes=[...host.querySelectorAll('.merchant-logo')];
     const edekaSvg=!!nodes[0]?.querySelector('svg path');
-    const unknownSvg=!!nodes[1]?.querySelector('svg');
-    const cashText=nodes[2]?.textContent;
+    const eCenterSvg=!!nodes[1]?.querySelector('svg path');
+    const unknownSvg=!!nodes[2]?.querySelector('svg');
+    const cashText=nodes[3]?.textContent;
     const ids=Object.fromEntries(data.categories.map(c=>[c.name,c.id]));
     data.transactions=[
       {id:'b1',date:localISO(selectedMonth),title:'EDEKA BOLINGER',merchant:'EDEKA',amount:50,type:'expense',categoryId:ids.Lebensmittel||'c_food',accountId:data.accounts[0]?.id||'',status:'paid'},
@@ -67,10 +71,15 @@ try{
       settingsText:document.querySelector('#merchantBrandSettings')?.textContent||''
     };
     host.remove();
-    return {knownEdeka,knownNetflix,cash,unknown,fallbackHtml,knownUrl,edekaSvg,unknownSvg,cashText,top:top.map(x=>({name:x.name,value:x.value,count:x.count})),ui,version:FinanzBrand.version};
+    return {knownEdeka,knownECenter,knownECenterCompact,genericEC,knownNetflix,cash,unknown,fallbackHtml,knownUrl,edekaSvg,eCenterSvg,unknownSvg,cashText,top:top.map(x=>({name:x.name,value:x.value,count:x.count})),ui,version:FinanzBrand.version};
   });
   assert.equal(result.knownEdeka.name,'EDEKA');
   assert.equal(result.knownEdeka.slug,'edeka');
+  assert.equal(result.knownECenter.name,'EDEKA');
+  assert.equal(result.knownECenter.slug,'edeka');
+  assert.equal(result.knownECenterCompact.name,'EDEKA');
+  assert.equal(result.knownECenterCompact.slug,'edeka');
+  assert.equal(result.genericEC.kind,'fallback','generic EC must not receive EDEKA branding');
   assert.equal(result.knownNetflix.name,'Netflix');
   assert.equal(result.knownNetflix.slug,'netflix');
   assert.equal(result.cash.kind,'cash');
@@ -79,6 +88,7 @@ try{
   assert.match(result.fallbackHtml,/merchant-logo-fallback/);
   assert.match(result.knownUrl,/cdn\.jsdelivr\.net\/npm\/simple-icons@16\.29\.0\/icons\/edeka\.svg/);
   assert.equal(result.edekaSvg,true,'known merchant must hydrate into a sanitized inline SVG logo');
+  assert.equal(result.eCenterSvg,true,'E-Center must hydrate with the EDEKA logo');
   assert.equal(result.unknownSvg,false,'unknown local merchant must retain safe initials fallback');
   assert.equal(result.cashText,'€');
   assert.equal(result.top[0].name,'EDEKA');
