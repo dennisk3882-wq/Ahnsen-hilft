@@ -119,7 +119,7 @@ jobs:
             hub="$(curl -fsS "$LIVE_URL/v32/banking-hub.js?check=$RANDOM" || true)"
             bootstrap="$(curl -fsS "$LIVE_URL/v3/bootstrap.js?check=$RANDOM" || true)"
             authcss="$(curl -fsS "$LIVE_URL/styles-auth.css?check=$RANDOM" || true)"
-            if echo "$sw" | grep -q "finanzplan-v3.2.0-multiuser1" \
+            if echo "$sw" | grep -q "finanzplan-v3.2.0-multiuser2" \
               && echo "$learning" | grep -q "CASH_CATEGORY_NAME='Bargeldabhebung'" \
               && echo "$banking" | grep -q "bankCodeDescription" \
               && echo "$banking" | grep -q "sameN26Signature" \
@@ -143,7 +143,8 @@ jobs:
               && echo "$sparkasse" | grep -q "/api/banking/institutions" \
               && echo "$hub" | grep -q "id:'sparkasse'" \
               && echo "$authgate" | grep -q "window.FinanzAuthGate" \
-              && echo "$authgate" | grep -q "requireSession" \
+              && echo "$authgate" | grep -q "openInvite" \
+              && echo "$authgate" | grep -q "version:'1.0.1'" \
               && echo "$bootstrap" | grep -q "FinanzAuthGate.requireSession" \
               && echo "$authcss" | grep -q "auth-gate-card"; then
               exit 0
