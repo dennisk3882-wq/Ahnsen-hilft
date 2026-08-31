@@ -24,6 +24,10 @@ try{
     };
     const checks={
       edeka:classify('Edeka Bolinger'),
+      eCenterSpace:classify('E center Schaumburg'),
+      eCenterHyphen:classify('E-CENTER Bückeburg'),
+      eCenterCompact:classify('ECENTER HAMELN'),
+      ecOnly:classify('EC Zahlung 4711'),
       penny:classify('PENNY Markt 1234'),
       pennyCash:classify('PMNT','expense','PENNY','Bargeldauszahlung an der Kasse'),
       cash:classify('Bargeldabhebung Geldautomat'),
@@ -51,7 +55,8 @@ try{
       {id:'n3',date:'2026-08-29',title:'Restaurant Labyrinth I',merchant:'Restaurant Labyrinth I',sourceMerchant:'Restaurant Labyrinth I',amount:55,type:'expense',categoryId:ids.Kleidung,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']},
       {id:'n4',date:'2026-08-29',title:'Praxis Ahmet Cetindere',merchant:'Praxis Ahmet Cetindere',sourceMerchant:'Praxis Ahmet Cetindere',amount:25,type:'expense',categoryId:ids.Kleidung,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']},
       {id:'n5',date:'2026-08-29',title:'Martina Koch',merchant:'Martina Koch',sourceMerchant:'Martina Koch',amount:20,type:'expense',categoryId:ids.Kleidung,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']},
-      {id:'n6',date:'2026-08-29',title:'PENNY Markt',merchant:'PENNY',sourceMerchant:'PENNY Markt',amount:18,type:'expense',categoryId:ids.Kleidung,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']}
+      {id:'n6',date:'2026-08-29',title:'PENNY Markt',merchant:'PENNY',sourceMerchant:'PENNY Markt',amount:18,type:'expense',categoryId:ids.Kleidung,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26']},
+      {id:'n7',date:'2026-08-31',title:'E-CENTER BÜCKEBURG',merchant:'E-CENTER BÜCKEBURG',sourceMerchant:'E-CENTER BÜCKEBURG',amount:37.45,type:'expense',categoryId:ids.Sonstiges,accountId:data.accounts[0]?.id||'',status:'paid',source:'n26',tags:['n26'],categorySource:'fallback'}
     ];
     const changed=FinanzCategoryIntelligence.reclassifyImportedTransactions({onlySuspicious:true});
     const repaired=Object.fromEntries(data.transactions.map(t=>[t.id,catName(t.categoryId)]));
@@ -62,6 +67,7 @@ try{
     data.categories=[clothes,...data.categories.filter(c=>c!==clothes)];
     const importedUnknown=FinanzN26.txFromBank({id:'bank-x',date:'2026-08-29',amount:9.99,direction:'debit',merchant:'Unbekannter Händler XYZ',title:'Unbekannter Händler XYZ'});
     const importedEdeka=FinanzN26.txFromBank({id:'bank-y',date:'2026-08-29',amount:19.99,direction:'debit',merchant:'EDEKA BOLINGER',title:'EDEKA BOLINGER'});
+    const importedECenter=FinanzN26.txFromBank({id:'bank-z',date:'2026-08-31',amount:31.25,direction:'debit',merchant:'E CENTER SCHAUMBURG',title:'E CENTER SCHAUMBURG'});
 
     // Explicit manual rules remain highest priority.
     data.merchantRules.push({id:'manual-x',pattern:'Unbekannter Händler XYZ',merchant:'Mein Spezialfall',categoryId:ids.Freizeit,active:true,learned:false});
@@ -91,7 +97,7 @@ try{
 
     return {
       checks,learnedProtected,changed,repaired,
-      importedUnknown:catName(importedUnknown.categoryId),importedEdeka:catName(importedEdeka.categoryId),
+      importedUnknown:catName(importedUnknown.categoryId),importedEdeka:catName(importedEdeka.categoryId),importedECenter:{category:catName(importedECenter.categoryId),merchant:importedECenter.merchant},
       manualOverride:manualOverride.name,otherId:other?.id,cashId:ids.Bargeldabhebung,
       learned:{beforeCategory:beforeLearning.name,saved:learned.saved,sourceCategory:catName(correctionSource.categoryId),sourceLocked:correctionSource.categoryLocked,siblingCategory:catName(correctionSibling.categoryId),futureCategory:learnedFuture.name,futureSource:learnedFuture.source,ruleCategory:catName(userRule?.categoryId),ruleConfidence:userRule?.confidence},
       ambiguous:{saved:ambiguous.saved,reason:ambiguous.reason,locked:amazonCorrection.categoryLocked,category:catName(amazonCorrection.categoryId),hasGlobalRule:!!amazonUserRule},
@@ -100,6 +106,13 @@ try{
   });
 
   assert.equal(result.checks.edeka.name,'Lebensmittel');
+  assert.equal(result.checks.eCenterSpace.name,'Lebensmittel');
+  assert.equal(result.checks.eCenterSpace.merchant,'EDEKA');
+  assert.equal(result.checks.eCenterHyphen.name,'Lebensmittel');
+  assert.equal(result.checks.eCenterHyphen.merchant,'EDEKA');
+  assert.equal(result.checks.eCenterCompact.name,'Lebensmittel');
+  assert.equal(result.checks.eCenterCompact.merchant,'EDEKA');
+  assert.equal(result.checks.ecOnly.name,'Sonstiges','generic EC must not be treated as EDEKA');
   assert.equal(result.checks.penny.name,'Lebensmittel');
   assert.equal(result.checks.pennyCash.name,'Bargeldabhebung');
   assert.equal(result.checks.cash.name,'Bargeldabhebung');
@@ -115,15 +128,18 @@ try{
   assert.equal(result.checks.unknown.name,'Sonstiges');
   assert.equal(result.checks.income.name,'Weitere Einnahmen');
   assert.equal(result.learnedProtected.name,'Lebensmittel','poisoned learned EDEKA rule must not override deterministic knowledge');
-  assert.ok(result.changed>=6);
+  assert.ok(result.changed>=7);
   assert.equal(result.repaired.n1,'Lebensmittel');
   assert.equal(result.repaired.n2,'Abos & Verträge');
   assert.equal(result.repaired.n3,'Restaurant');
   assert.equal(result.repaired.n4,'Gesundheit');
   assert.equal(result.repaired.n5,'Sonstiges');
   assert.equal(result.repaired.n6,'Lebensmittel');
+  assert.equal(result.repaired.n7,'Lebensmittel','existing N26 E-Center fallback must repair on startup');
   assert.equal(result.importedUnknown,'Sonstiges','unknown N26 expense must never use the first expense category');
   assert.equal(result.importedEdeka,'Lebensmittel');
+  assert.equal(result.importedECenter.category,'Lebensmittel');
+  assert.equal(result.importedECenter.merchant,'EDEKA');
   assert.equal(result.manualOverride,'Freizeit','explicit manual rule must override automatic classification');
   assert.equal(result.learned.beforeCategory,'Sonstiges','test merchant must be unknown before the user correction');
   assert.equal(result.learned.saved,true);
