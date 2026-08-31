@@ -3,7 +3,7 @@
   const SIMPLE_ICONS_VERSION='16.29.0';
   const norm=s=>FinanceLib.normalizeText(String(s||'')).replace(/[^a-z0-9äöüß&. -]+/gi,' ').replace(/\s+/g,' ').trim();
   const registry=[
-    ['EDEKA','edeka',['edeka']],['PENNY','penny',['penny']],['REWE','rewe',['rewe']],['ALDI','aldi',['aldi']],['Lidl','lidl',['lidl']],['Kaufland','kaufland',['kaufland']],
+    ['EDEKA','edeka',['edeka','e center','e-center','ecenter']],['PENNY','penny',['penny']],['REWE','rewe',['rewe']],['ALDI','aldi',['aldi']],['Lidl','lidl',['lidl']],['Kaufland','kaufland',['kaufland']],
     ['Netflix','netflix',['netflix']],['Spotify','spotify',['spotify']],['Disney+','disneyplus',['disney']],['DAZN','dazn',['dazn']],['YouTube','youtube',['youtube']],
     ['Vodafone','vodafone',['vodafone']],['Telekom','deutschetelekom',['telekom','deutsche telekom']],['O2','o2',['telefonica','o2']],['1&1','1and1',['1&1','1und1']],
     ['Amazon','amazon',['amazon']],['Zalando','zalando',['zalando']],['ABOUT YOU','aboutdotyou',['about you']],['H&M','hm',['h&m']],['Deichmann','deichmann',['deichmann']],
