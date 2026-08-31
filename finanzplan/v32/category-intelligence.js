@@ -7,7 +7,7 @@
   const canonical=raw=>window.FinanzIntelligence?.canonicalMerchant?.(raw)||String(raw||'').trim()||'Unbekannt';
 
   const aliases=[
-    ['edeka','EDEKA'],['penny','PENNY'],['rewe','REWE'],['aldi','ALDI'],['lidl','Lidl'],['netto','Netto'],['kaufland','Kaufland'],['marktkauf','Marktkauf'],['norma','NORMA'],['nahkauf','nahkauf'],['tegut','tegut'],['famila','famila'],['combi','Combi'],['globus','Globus'],['hit markt','HIT'],
+    ['e center','EDEKA'],['ecenter','EDEKA'],['edeka','EDEKA'],['penny','PENNY'],['rewe','REWE'],['aldi','ALDI'],['lidl','Lidl'],['netto','Netto'],['kaufland','Kaufland'],['marktkauf','Marktkauf'],['norma','NORMA'],['nahkauf','nahkauf'],['tegut','tegut'],['famila','famila'],['combi','Combi'],['globus','Globus'],['hit markt','HIT'],
     ['labyrinth','Labyrinth'],['mcdonald','McDonald’s'],['burger king','Burger King'],['kfc','KFC'],['lieferando','Lieferando'],['wolt','Wolt'],['dominos','Domino’s'],['subway','Subway'],['starbucks','Starbucks'],
     ['vodafone','Vodafone'],['deutsche telekom','Telekom'],['telekom','Telekom'],['telefonica','O2'],['o2','O2'],['1und1','1&1'],['1&1','1&1'],['congstar','congstar'],['freenet','freenet'],['mobilcom','mobilcom-debitel'],
     ['aral','Aral'],['shell','Shell'],['esso','Esso'],['totalenergies','TotalEnergies'],['hem','HEM'],['avia','AVIA'],['jet','JET'],
@@ -21,7 +21,7 @@
   // but may be missing, generic, stale or represent a sub-purchase rather than the merchant itself.
   // Only explicitly allowed MCC categories may override a trusted merchant profile.
   const merchantProfiles=[
-    {id:'c_food',names:['lebensmittel'],confidence:.998,patterns:['edeka','penny','rewe','aldi','lidl','netto','kaufland','marktkauf','norma','nahkauf','tegut','famila','combi','globus','hit markt']},
+    {id:'c_food',names:['lebensmittel'],confidence:.998,patterns:['e center','ecenter','edeka','penny','rewe','aldi','lidl','netto','kaufland','marktkauf','norma','nahkauf','tegut','famila','combi','globus','hit markt']},
     {id:'c_restaurant',names:['restaurant'],confidence:.997,patterns:['labyrinth','mcdonald','burger king','kfc','subway','domino','lieferando','wolt','starbucks']},
     {id:'c_subs',names:['abos & vertraege','abos & verträge','abos','vertraege','verträge'],confidence:.997,patterns:['vodafone','deutsche telekom','telekom','telefonica','o2','1und1','1&1','congstar','freenet','mobilcom','netflix','spotify','disney','dazn','sky deutschland','youtube premium','amazon prime','adobe','microsoft 365']},
     {id:'c_fuel',names:['tanken'],confidence:.997,patterns:['aral','shell','esso','jet tank','jet station','totalenergies','total station','hem tank','avia'],mccOverrides:['c_food','c_restaurant']},
