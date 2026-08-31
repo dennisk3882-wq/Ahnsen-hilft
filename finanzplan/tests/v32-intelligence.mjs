@@ -22,7 +22,10 @@ try{
 
   const intel=await page.evaluate(()=>{
     const a=data.accounts[0].id,m=data.members[0].id,cat=data.categories.find(c=>c.id==='c_subs')?.id||data.categories.find(c=>c.kind==='expense')?.id;
-    for(let i=2;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);d.setDate(12);data.transactions.push({id:`spotify_${i}`,date:FinanceLib.iso(d),title:`SPOTIFY AB ${1000+i}`,merchant:'Spotify AB',amount:10.99,type:'expense',categoryId:cat,accountId:a,memberId:m,status:'paid'})}
+    // Set the safe day before changing the month. On dates such as 31 August,
+    // setMonth() first would overflow June (which has no 31st) into July and
+    // accidentally create duplicate test months.
+    for(let i=2;i>=0;i--){const d=new Date();d.setDate(12);d.setMonth(d.getMonth()-i);data.transactions.push({id:`spotify_${i}`,date:FinanceLib.iso(d),title:`SPOTIFY AB ${1000+i}`,merchant:'Spotify AB',amount:10.99,type:'expense',categoryId:cat,accountId:a,memberId:m,status:'paid'})}
     const learned=FinanzIntelligence.learnFromHistory();
     const merchant=FinanzIntelligence.canonicalMerchant('Kartenzahlung SPOTIFY AB 123456');
     const draft=applyMerchantRule('SPOTIFY AB 99999',{categoryId:'',accountId:a});
