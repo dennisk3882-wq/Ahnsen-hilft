@@ -6,7 +6,6 @@ const SUPABASE_URL=Deno.env.get('SUPABASE_URL')!;
 const ANON=Deno.env.get('SUPABASE_ANON_KEY')!;
 const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const APP_ORIGIN='https://finanzplan-pwa.onrender.com';
-// Public key only. VAPID private key and banking-state HMAC secret are server-side.
 const VAPID_PUBLIC='BLzgC1_mThT-PDptuY-42_gajqos7Xezgd0CkdF77eRA4gEu5Xhn7WVw1EqQHMho-s-OxzY3EXQiAYOb5AU4h-k';
 const admin=createClient(SUPABASE_URL,SERVICE,{auth:{persistSession:false}});
 let cachedVapidPrivate='',cachedStateSecret='',pushConfigured=false;
@@ -32,44 +31,36 @@ async function stateMake(o:any){const payload=b64urlText(JSON.stringify({...o,ex
 async function stateRead(s:string){const [p,sig]=String(s||'').split('.');if(!p||!sig||await hmac(p)!==sig)throw new Error('Ungültiger Bank-State');const pad='='.repeat((4-p.length%4)%4),obj=JSON.parse(atob((p+pad).replaceAll('-','+').replaceAll('_','/')));if(obj.exp<Date.now())throw new Error('Bank-State abgelaufen');return obj}
 async function currentUser(req:Request){const auth=req.headers.get('Authorization')||'';const client=createClient(SUPABASE_URL,ANON,{global:{headers:{Authorization:auth}},auth:{persistSession:false}});const {data,error}=await client.auth.getUser();if(error||!data.user)throw new Error('Nicht angemeldet');return data.user}
 async function member(userId:string,householdId:string){const {data}=await admin.from('household_members').select('role').eq('household_id',householdId).eq('user_id',userId).maybeSingle();if(!data)throw new Error('Kein Zugriff auf diesen Haushalt');return data.role}
-function normBank(t:any){const rawAmount=Number(t.transaction_amount?.amount??t.amount??0),indicator=String(t.credit_debit_indicator??t.creditDebitIndicator??'').toUpperCase(),direction=indicator==='DBIT'?'debit':indicator==='CRDT'?'credit':rawAmount<0?'debit':'credit',btc=t.bank_transaction_code,title=Array.isArray(t.remittance_information)&&t.remittance_information[0]?String(t.remittance_information[0]):String(btc?.description||btc?.code||t.creditor?.name||t.debtor?.name||'N26 Umsatz'),mcc=String(t.merchant_category_code??t.merchantCategoryCode??'').replace(/\D/g,'').slice(0,4);return{id:String(t.entry_reference||t.transaction_id||t.reference||crypto.randomUUID()),date:String(t.booking_date||t.transaction_date||t.value_date||t.date||'').slice(0,10),amount:Math.abs(rawAmount),direction,merchant:t.creditor?.name||t.debtor?.name||t.merchant_name||'',title,remittance:Array.isArray(t.remittance_information)?t.remittance_information.join(' · '):String(t.remittance_information||''),reference:String(t.entry_reference||t.transaction_id||t.reference_number||''),mcc}}
-function preferredN26Account(accounts:any[]){return accounts.find(a=>/current account|giro|checking/i.test(String(a?.product||''))&&!/space/i.test(String(a?.product||'')))||accounts.find(a=>!/space/i.test(String(a?.product||'')))||accounts[0]}
+function bankCodeParts(t:any){const btc=t.bank_transaction_code||t.bankTransactionCode||{};return {bankCode:String(btc.code||''),bankSubCode:String(btc.sub_code||btc.subCode||''),bankCodeDescription:String(btc.description||'')}}
+function normBank(t:any,bankName='Bank'){const rawAmount=Number(t.transaction_amount?.amount??t.amount??0),indicator=String(t.credit_debit_indicator??t.creditDebitIndicator??'').toUpperCase(),direction=indicator==='DBIT'?'debit':indicator==='CRDT'?'credit':rawAmount<0?'debit':'credit',btc=t.bank_transaction_code||{},merchant=direction==='debit'?(t.creditor?.name||t.merchant_name||t.debtor?.name||''):(t.debtor?.name||t.merchant_name||t.creditor?.name||''),title=Array.isArray(t.remittance_information)&&t.remittance_information[0]?String(t.remittance_information[0]):String(btc?.description||btc?.code||merchant||`${bankName} Umsatz`),mcc=String(t.merchant_category_code??t.merchantCategoryCode??'').replace(/\D/g,'').slice(0,4),codes=bankCodeParts(t);return{id:String(t.entry_reference||t.reference_number||t.transaction_id||t.reference||crypto.randomUUID()),date:String(t.booking_date||t.transaction_date||t.value_date||t.date||'').slice(0,10),amount:Math.abs(rawAmount),direction,merchant,title,remittance:Array.isArray(t.remittance_information)?t.remittance_information.join(' · '):String(t.remittance_information||''),reference:String(t.entry_reference||t.reference_number||t.transaction_id||t.reference||''),mcc,...codes}}
+function preferredAccount(accounts:any[]){return accounts.find(a=>/current account|giro|checking|zahlungskonto/i.test(String(a?.product||a?.name||''))&&!/space|savings|tagesgeld/i.test(String(a?.product||a?.name||'')))||accounts.find(a=>!/space|savings|tagesgeld/i.test(String(a?.product||a?.name||'')))||accounts[0]}
+function normText(v:any){return String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+async function institutionsDE(){const list=await eb('/aspsps?country=DE');return Array.isArray(list?.aspsps)?list.aspsps:Array.isArray(list)?list:[]}
+function institutionView(x:any){return {name:String(x?.name||x?.id||'Unbekannte Bank'),id:String(x?.id||''),country:String(x?.country||'DE'),bic:String(x?.bic||'')}}
+function filterInstitutions(arr:any[],query:string){const q=normText(query);if(!q)return arr.slice(0,30);const tokens=q.split(' ').filter(Boolean);return arr.filter(x=>{const hay=normText(`${x?.name||''} ${x?.id||''} ${x?.bic||''}`);return tokens.every(t=>hay.includes(t))}).slice(0,30)}
+async function chooseInstitution(query:string,exactName=''){const arr=await institutionsDE();if(exactName){const n=normText(exactName),exact=arr.find(x=>normText(x?.name)===n||normText(x?.id)===n);if(exact)return {chosen:exact,matches:[exact]}}const matches=filterInstitutions(arr,query);return {chosen:matches.length===1?matches[0]:null,matches}}
+async function beginBankAuth(user:any,b:any){const hid=String(b.householdId||'');await member(user.id,hid);const query=String(b.bankQuery||b.aspspName||'').trim(),exact=String(b.aspspName||'').trim(),{chosen,matches}=await chooseInstitution(query,exact);if(!chosen)return {needsSelection:true,institutions:matches.map(institutionView)};const bankName=String(chosen.name||chosen.id||query||'Bank'),state=await stateMake({userId:user.id,householdId:hid,redirectUrl:String(b.redirectUrl||''),bankName}),valid=new Date(Date.now()+90*86400_000).toISOString();const auth=await eb('/auth',{method:'POST',body:JSON.stringify({access:{valid_until:valid,balances:true,transactions:true},aspsp:{name:bankName,country:'DE'},state,redirect_url:String(b.redirectUrl||''),psu_id:String(b.psuId||user.id)})});return {url:auth.url||auth.authorization_url,state,bank:institutionView(chosen),needsSelection:false}}
+async function exchangeBank(user:any,b:any){const st=await stateRead(b.state);if(st.userId!==user.id)throw new Error('Bank-State gehört zu anderem Benutzer');await member(user.id,st.householdId);const sess=await eb('/sessions',{method:'POST',body:JSON.stringify({code:b.code})}),sid=sess.session_id||sess.id;if(!sid)throw new Error('Keine Enable-Banking Session erhalten');const accounts=sess.accounts||[],bankName=String(st.bankName||'Bank');await admin.from('bank_sessions').upsert({user_id:user.id,household_id:st.householdId,provider:'enablebanking',bank:bankName,session_id:sid,accounts,authorized_at:new Date().toISOString(),valid_until:sess.valid_until||sess.access?.valid_until||null,updated_at:new Date().toISOString()},{onConflict:'user_id,household_id,provider,bank'});return {accounts,bank:bankName,validUntil:sess.valid_until||sess.access?.valid_until||null}}
+async function bankConnections(userId:string,householdId:string){await member(userId,householdId);const {data,error}=await admin.from('bank_sessions').select('bank,provider,accounts,authorized_at,valid_until,updated_at').eq('user_id',userId).eq('household_id',householdId).order('authorized_at',{ascending:true});if(error)throw error;return (data||[]).map((s:any)=>({bank:s.bank,provider:s.provider,accountCount:Array.isArray(s.accounts)?s.accounts.length:0,authorizedAt:s.authorized_at,validUntil:s.valid_until,updatedAt:s.updated_at}))}
+async function syncBank(user:any,householdId:string,bankName:string,days:number){await member(user.id,householdId);let q=admin.from('bank_sessions').select('*').eq('user_id',user.id).eq('household_id',householdId).eq('provider','enablebanking');if(bankName)q=q.eq('bank',bankName);const {data,error}=await q;if(error)throw error;const sessions=data||[];if(!sessions.length)throw new Error(bankName?`${bankName} ist noch nicht verbunden`:'Noch keine Bank verbunden');if(sessions.length>1&&!bankName)throw new Error('Bitte eine Bank für die Synchronisierung auswählen');const s=sessions[0],accounts=Array.isArray(s.accounts)?s.accounts:[],account=preferredAccount(accounts),aid=account?.uid||account?.account_id||account?.id;if(!aid)throw new Error(`Kein Giro-/Zahlungskonto für ${s.bank} in der PSD2-Session`);const from=new Date(Date.now()-days*86400_000).toISOString().slice(0,10),to=new Date().toISOString().slice(0,10);let txs:any[]=[],cont='';for(let i=0;i<20;i++){const qp=new URLSearchParams({date_from:from,date_to:to,strategy:'longest'});if(cont)qp.set('continuation_key',cont);const j=await eb(`/accounts/${encodeURIComponent(aid)}/transactions?${qp}`);txs.push(...(j.transactions||[]));cont=j.continuation_key||'';if(!cont)break}const bal=await eb(`/accounts/${encodeURIComponent(aid)}/balances`),balances=bal.balances||bal||[],preferred=balances.find((x:any)=>/CLAV|CLBD|closing|interimAvailable|expected/i.test(String(x.balance_type||x.type||'')))||balances[0],balance=Number(preferred?.balance_amount?.amount??preferred?.amount??NaN);return {transactions:txs.map(t=>normBank(t,String(s.bank||'Bank'))),balance:Number.isFinite(balance)?balance:null,account,bank:s.bank}}
 
 Deno.serve(async(req)=>{
   const origin=req.headers.get('Origin');
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(origin)});
   try{
     const user=await currentUser(req),url=new URL(req.url),marker='/finanzplan-api',path=url.pathname.includes(marker)?url.pathname.slice(url.pathname.indexOf(marker)+marker.length)||'/':url.pathname;
+    const bankingConfigured=!!(Deno.env.get('ENABLE_BANKING_APP_ID')&&Deno.env.get('ENABLE_BANKING_PRIVATE_KEY'));
+    if(path==='/health')return json({ok:true,service:'finanzplan-api',bankingConfigured,aiConfigured:!!Deno.env.get('OPENAI_API_KEY'),pushConfigured:true,secretsExternalized:true,multiBank:true},200,origin);
+    if(path==='/api/banking/status')return json({provider:'Enable Banking',configured:bankingConfigured,supported:['N26','Sparkasse','weitere PSD2-Banken'],multiBank:true},200,origin);
+    if(path==='/api/banking/institutions'&&req.method==='GET'){const query=url.searchParams.get('query')||'',arr=filterInstitutions(await institutionsDE(),query);return json({institutions:arr.map(institutionView)},200,origin)}
+    if(path==='/api/banking/connections'&&req.method==='GET'){const hid=url.searchParams.get('householdId')||'';return json({connections:await bankConnections(user.id,hid)},200,origin)}
+    if(path==='/api/banking/start'&&req.method==='POST'){const r=await beginBankAuth(user,await req.json());return json(r,200,origin)}
+    if(path==='/api/banking/exchange'&&req.method==='POST')return json(await exchangeBank(user,await req.json()),200,origin);
+    if(path==='/api/banking/sync'&&req.method==='GET'){const hid=url.searchParams.get('householdId')||'',bank=url.searchParams.get('bank')||'',days=Math.max(1,Math.min(730,Number(url.searchParams.get('days')||180)));return json(await syncBank(user,hid,bank,days),200,origin)}
 
-    if(path==='/health')return json({ok:true,service:'finanzplan-api',bankingConfigured:!!(Deno.env.get('ENABLE_BANKING_APP_ID')&&Deno.env.get('ENABLE_BANKING_PRIVATE_KEY')),aiConfigured:!!Deno.env.get('OPENAI_API_KEY'),pushConfigured:true,secretsExternalized:true},200,origin);
-    if(path==='/api/banking/status')return json({provider:'Enable Banking',bank:'N26',configured:!!(Deno.env.get('ENABLE_BANKING_APP_ID')&&Deno.env.get('ENABLE_BANKING_PRIVATE_KEY'))},200,origin);
-
-    if(path==='/api/banking/n26/start'&&req.method==='POST'){
-      const b=await req.json(),hid=String(b.householdId||'');await member(user.id,hid);
-      const list=await eb('/aspsps?country=DE'),arr=list.aspsps||list||[],n26=arr.find((x:any)=>/n26/i.test(`${x.name||''} ${x.id||''}`));
-      if(!n26)throw new Error('N26 DE wurde beim PSD2-Provider nicht gefunden');
-      const state=await stateMake({userId:user.id,householdId:hid,redirectUrl:String(b.redirectUrl||''),aspspName:n26.name||'N26'}),valid=new Date(Date.now()+90*86400_000).toISOString();
-      const auth=await eb('/auth',{method:'POST',body:JSON.stringify({access:{valid_until:valid,balances:true,transactions:true},aspsp:{name:n26.name,country:'DE'},state,redirect_url:String(b.redirectUrl||''),psu_id:String(b.psuId||user.id)})});
-      return json({url:auth.url||auth.authorization_url,state},200,origin);
-    }
-
-    if(path==='/api/banking/n26/exchange'&&req.method==='POST'){
-      const b=await req.json(),st=await stateRead(b.state);if(st.userId!==user.id)throw new Error('Bank-State gehört zu anderem Benutzer');await member(user.id,st.householdId);
-      const sess=await eb('/sessions',{method:'POST',body:JSON.stringify({code:b.code})}),sid=sess.session_id||sess.id;if(!sid)throw new Error('Keine Enable-Banking Session erhalten');
-      const accounts=sess.accounts||[];
-      await admin.from('bank_sessions').upsert({user_id:user.id,household_id:st.householdId,provider:'enablebanking',bank:'N26',session_id:sid,accounts,authorized_at:new Date().toISOString(),valid_until:sess.valid_until||sess.access?.valid_until||null,updated_at:new Date().toISOString()},{onConflict:'user_id,household_id,provider'});
-      return json({accounts},200,origin);
-    }
-
-    if(path==='/api/banking/n26/sync'){
-      const hid=url.searchParams.get('householdId')||'',days=Math.max(1,Math.min(730,Number(url.searchParams.get('days')||180)));await member(user.id,hid);
-      const {data:s}=await admin.from('bank_sessions').select('*').eq('user_id',user.id).eq('household_id',hid).eq('provider','enablebanking').maybeSingle();if(!s)throw new Error('N26 ist noch nicht verbunden');
-      const accounts=Array.isArray(s.accounts)?s.accounts:[],account=preferredN26Account(accounts),aid=account?.uid||account?.account_id||account?.id;if(!aid)throw new Error('Kein N26 Girokonto in der PSD2-Session');
-      const from=new Date(Date.now()-days*86400_000).toISOString().slice(0,10),to=new Date().toISOString().slice(0,10);let txs:any[]=[],cont='';
-      for(let i=0;i<20;i++){const q=new URLSearchParams({date_from:from,date_to:to,strategy:'longest'});if(cont)q.set('continuation_key',cont);const j=await eb(`/accounts/${encodeURIComponent(aid)}/transactions?${q}`);txs.push(...(j.transactions||[]));cont=j.continuation_key||'';if(!cont)break}
-      const bal=await eb(`/accounts/${encodeURIComponent(aid)}/balances`),balances=bal.balances||bal||[],preferred=balances.find((x:any)=>/CLAV|CLBD|closing|interimAvailable|expected/i.test(String(x.balance_type||x.type||'')))||balances[0],balance=Number(preferred?.balance_amount?.amount??preferred?.amount??NaN);
-      return json({transactions:txs.map(normBank),balance:Number.isFinite(balance)?balance:null,account},200,origin);
-    }
+    if(path==='/api/banking/n26/start'&&req.method==='POST'){const b=await req.json();b.bankQuery='N26';const {chosen}=await chooseInstitution('N26','');if(!chosen)throw new Error('N26 DE wurde beim PSD2-Provider nicht gefunden');b.aspspName=chosen.name;return json(await beginBankAuth(user,b),200,origin)}
+    if(path==='/api/banking/n26/exchange'&&req.method==='POST')return json(await exchangeBank(user,await req.json()),200,origin);
+    if(path==='/api/banking/n26/sync'&&req.method==='GET'){const hid=url.searchParams.get('householdId')||'',days=Math.max(1,Math.min(730,Number(url.searchParams.get('days')||180)));return json(await syncBank(user,hid,'N26',days),200,origin)}
 
     if(path==='/api/ai/analyze'&&req.method==='POST'){
       const key=Deno.env.get('OPENAI_API_KEY');if(!key)throw new Error('Cloud-KI ist nicht konfiguriert; lokaler KI-Modus bleibt verfügbar');
@@ -79,18 +70,9 @@ Deno.serve(async(req)=>{
       const text=j.output_text||j.output?.flatMap((x:any)=>x.content||[]).map((x:any)=>x.text||'').join('')||'';
       return json({text},200,origin);
     }
-
     if(path==='/api/push/public-key')return json({publicKey:VAPID_PUBLIC},200,origin);
-    if(path==='/api/push/subscribe'&&req.method==='POST'){
-      const b=await req.json(),hid=String(b.householdId||'');await member(user.id,hid);const sub=b.subscription;if(!sub?.endpoint)throw new Error('Push-Subscription fehlt');
-      await admin.from('push_subscriptions').upsert({user_id:user.id,household_id:hid,endpoint:sub.endpoint,subscription:sub,device_name:String(b.deviceName||''),updated_at:new Date().toISOString()},{onConflict:'endpoint'});
-      return json({ok:true},200,origin);
-    }
-    if(path==='/api/push/test'&&req.method==='POST'){
-      await ensurePush();const b=await req.json().catch(()=>({})),hid=String(b.householdId||'');if(hid)await member(user.id,hid);let q=admin.from('push_subscriptions').select('*').eq('user_id',user.id);if(hid)q=q.eq('household_id',hid);const {data:subs}=await q;let sent=0;
-      for(const s of subs||[]){try{await webpush.sendNotification(s.subscription,JSON.stringify({title:'Finanzplan',body:'Server-Push funktioniert.',tag:'finanzplan-test',url:APP_ORIGIN+'/'}));sent++}catch(e:any){if(e?.statusCode===404||e?.statusCode===410)await admin.from('push_subscriptions').delete().eq('id',s.id)}}
-      return json({sent},200,origin);
-    }
+    if(path==='/api/push/subscribe'&&req.method==='POST'){const b=await req.json(),hid=String(b.householdId||'');await member(user.id,hid);const sub=b.subscription;if(!sub?.endpoint)throw new Error('Push-Subscription fehlt');await admin.from('push_subscriptions').upsert({user_id:user.id,household_id:hid,endpoint:sub.endpoint,subscription:sub,device_name:String(b.deviceName||''),updated_at:new Date().toISOString()},{onConflict:'endpoint'});return json({ok:true},200,origin)}
+    if(path==='/api/push/test'&&req.method==='POST'){await ensurePush();const b=await req.json().catch(()=>({})),hid=String(b.householdId||'');if(hid)await member(user.id,hid);let q=admin.from('push_subscriptions').select('*').eq('user_id',user.id);if(hid)q=q.eq('household_id',hid);const {data:subs}=await q;let sent=0;for(const s of subs||[]){try{await webpush.sendNotification(s.subscription,JSON.stringify({title:'Finanzplan',body:'Server-Push funktioniert.',tag:'finanzplan-test',url:APP_ORIGIN+'/'}));sent++}catch(e:any){if(e?.statusCode===404||e?.statusCode===410)await admin.from('push_subscriptions').delete().eq('id',s.id)}}return json({sent},200,origin)}
     return json({error:'Not found'},404,origin);
   }catch(e){console.error(e);return json({error:e instanceof Error?e.message:String(e)},400,origin)}
 });
