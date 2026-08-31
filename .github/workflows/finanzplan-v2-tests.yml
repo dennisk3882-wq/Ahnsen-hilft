@@ -93,7 +93,7 @@ jobs:
     env:
       LIVE_URL: https://finanzplan-pwa.onrender.com
     steps:
-      - name: Wait for exact Render N26 dedupe release
+      - name: Wait for exact Render E center release
         run: |
           set -e
           for i in {1..36}; do
@@ -104,14 +104,17 @@ jobs:
             branding="$(curl -fsS "$LIVE_URL/v32/merchant-brand.js?check=$RANDOM" || true)"
             hydration="$(curl -fsS "$LIVE_URL/v32/merchant-brand-hydration.js?check=$RANDOM" || true)"
             final_branding="$(curl -fsS "$LIVE_URL/v32/merchant-brand-final.js?check=$RANDOM" || true)"
-            if echo "$sw" | grep -q "finanzplan-v3.2.0-dedupe1" \
+            if echo "$sw" | grep -q "finanzplan-v3.2.0-ecenter1" \
               && echo "$learning" | grep -q "CASH_CATEGORY_NAME='Bargeldabhebung'" \
               && echo "$banking" | grep -q "bankCodeDescription" \
               && echo "$banking" | grep -q "sameN26Signature" \
               && echo "$banking" | grep -q "cleanupN26Duplicates" \
               && echo "$banking" | grep -q "reconcileSyncedRows" \
               && echo "$categories" | grep -q "merchantProfiles" \
+              && echo "$categories" | grep -q "'e center','EDEKA'" \
+              && echo "$categories" | grep -q "'ecenter','EDEKA'" \
               && echo "$branding" | grep -q "window.FinanzBrand" \
+              && echo "$branding" | grep -q "'e-center'" \
               && echo "$branding" | grep -q "SIMPLE_ICONS_VERSION='16.29.0'" \
               && echo "$branding" | grep -q "cdn.jsdelivr.net/npm/simple-icons" \
               && echo "$branding" | grep -q "topMerchants" \
@@ -125,7 +128,7 @@ jobs:
             fi
             sleep 10
           done
-          echo "Render did not expose the exact N26 dedupe release in time"
+          echo "Render did not expose the exact E center release in time"
           exit 1
       - name: Verify live security headers
         run: |
