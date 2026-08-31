@@ -42,7 +42,7 @@ try{
   await gate.locator('input[name="password"]').fill('sicheres-test-passwort');
   await gate.locator('[data-auth-submit]').click();
   await gate.waitFor({state:'detached',timeout:15000});
-  await page.waitForFunction(()=>window.__finanzplanV32Ready===true&&window.FinanzAuthGate?.version==='1.0.0',{timeout:15000});
+  await page.waitForFunction(()=>window.__finanzplanV32Ready===true&&window.FinanzAuthGate?.version==='1.0.1',{timeout:15000});
 
   const result=await page.evaluate(async()=>({
     hidden:document.getElementById('appShell')?.getAttribute('aria-hidden'),
@@ -51,7 +51,9 @@ try{
     household:data.integrations?.cloud?.householdId||'',
     cloudEnabled:!!data.integrations?.cloud?.enabled,
     sessionEmail:(await FinanzCloud.getSession())?.user?.email||'',
-    authGate:!!document.getElementById('finanzplanAuthGate')
+    authGate:!!document.getElementById('finanzplanAuthGate'),
+    canInvite:typeof FinanzAuthGate.openInvite==='function',
+    canAccept:typeof FinanzAuthGate.openAcceptInvite==='function'
   }));
   assert.equal(result.hidden,null);
   assert.equal(result.inert,false);
@@ -60,6 +62,8 @@ try{
   assert.equal(result.cloudEnabled,true);
   assert.equal(result.sessionEmail,'auth-test@example.de');
   assert.equal(result.authGate,false);
+  assert.equal(result.canInvite,true);
+  assert.equal(result.canAccept,true);
   if(errors.length)throw new Error(errors.join('\n'));
   console.log('Finanzplan V3.2 mandatory auth gate smoke: OK');
 } finally {await browser.close()}
