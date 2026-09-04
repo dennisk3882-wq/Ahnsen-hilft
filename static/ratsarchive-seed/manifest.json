@@ -5,6 +5,23 @@
   "current_term_start": "2021-11-01",
   "meetings": [
     {
+      "session_number": 19,
+      "date": "2026-09-24",
+      "time": "19:30",
+      "title": "Gemeinderat Ahnsen, 19. Sitzung",
+      "organization": "Gemeinderat Ahnsen",
+      "location": "Dorfgemeinschaftshaus Ahnsen, 31708 Ahnsen, Versammlungsraum",
+      "summary": "Amtliche Sitzung des Gemeinderates Ahnsen vom 24.09.2026. Das Ratsinformationssystem führt die Sitzung im Status Niederschrift; ein separater öffentlicher PDF-Download der Niederschrift wird dort derzeit nicht ausgegeben.",
+      "source_page": "https://samtgemeinde-eilsen.ratsinfomanagement.net/tops/?__=UGhVM0hpd2NXNFdFcExjZb1aioKrrkfnibrguDorpo0",
+      "source_pdf": "",
+      "published_on": "",
+      "filename": "",
+      "sha256": "",
+      "text_sha256": "",
+      "size_bytes": 0,
+      "minutes_status": "listed_without_public_pdf"
+    },
+    {
       "session_number": 18,
       "date": "2026-05-05",
       "time": "19:30",
