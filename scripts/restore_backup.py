@@ -10,7 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from sqlalchemy import MetaData, inspect, text
+from sqlalchemy import MetaData, Date, DateTime, inspect, text
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -51,7 +51,16 @@ def restore_payload(payload, target_engine):
             for row in payload["tables"][table.name]:
                 if set(row) != columns:
                     raise ValueError(f"Spalten stimmen nicht überein: {table.name}")
-                decoded[table.name].append({key: decode(value) for key, value in row.items()})
+                result = {key: decode(value) for key, value in row.items()}
+                # Legacy SQLite backups used untyped SELECT text and therefore
+                # contain ISO timestamp strings rather than typed markers.
+                for column in table.columns:
+                    value = result[column.name]
+                    if isinstance(value, str) and isinstance(column.type, DateTime):
+                        result[column.name] = datetime.fromisoformat(value)
+                    elif isinstance(value, str) and isinstance(column.type, Date):
+                        result[column.name] = date.fromisoformat(value)
+                decoded[table.name].append(result)
         quote = connection.dialect.identifier_preparer.quote
         if target_engine.dialect.name == "postgresql":
             # Include every table explicitly; CASCADE must not erase data outside

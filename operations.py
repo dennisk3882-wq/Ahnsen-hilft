@@ -12,7 +12,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, inspect, text
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, MetaData, inspect, text
 
 from database import Base, SessionLocal, engine
 
@@ -140,9 +140,11 @@ def create_backup() -> dict[str, Any]:
         elif engine.dialect.name == "sqlite":
             connection.exec_driver_sql("BEGIN")
         inspector = inspect(connection)
+        metadata = MetaData()
+        metadata.reflect(bind=connection)
         for table_name in sorted(set(inspector.get_table_names()) - {"rate_limit_events"}):
             encoded_rows = []
-            for row in connection.execute(text("SELECT * FROM " + connection.dialect.identifier_preparer.quote(table_name))).mappings():
+            for row in connection.execute(metadata.tables[table_name].select()).mappings():
                 encoded = {}
                 for key, value in row.items():
                     if isinstance(value, bytes):

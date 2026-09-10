@@ -86,7 +86,10 @@ def run() -> int:
         # of the worker's start minute and of failures in warning sources.
         digest_delivered = dispatch_due_digests(send_user_notification)
         from job_control import run_due
-        run_due("warning_poll", 1800, lambda: poll_warning_sources(send_push=True))
+        try:
+            run_due("warning_poll", 1800, lambda: poll_warning_sources(send_push=True))
+        except Exception as error:
+            _record("error", "Warnquellen-Prüfung fehlgeschlagen: " + type(error).__name__)
 
         if not push_configured():
             message = "VAPID-Schlüssel fehlen; Push-Job beendet."

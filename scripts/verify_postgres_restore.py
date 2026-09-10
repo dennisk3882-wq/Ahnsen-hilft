@@ -48,7 +48,29 @@ def main():
         with target.connect() as connection:
             assert len(connection.execute(parent.select()).all()) == 2
             assert len(connection.execute(child.select()).all()) == 2
+        from concurrent.futures import ThreadPoolExecutor
+        from sqlalchemy.orm import sessionmaker
+        from database import Base
+        import dgh_crud, community_crud
+        Base.metadata.create_all(target)
+        sessions = sessionmaker(bind=target)
+        with patch("dgh_crud.SessionLocal", sessions):
+            def book(_):
+                try:
+                    dgh_crud.save_dgh_termin("20.09.2026", "18:00", "Concurrency test", "Test", "", "")
+                    return "confirmed"
+                except ValueError:
+                    return "conflict"
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(book, range(2)))
+            assert sorted(results) == ["confirmed", "conflict"], results
+        with patch("community_crud.SessionLocal", sessions), patch.dict("os.environ", {"AUDIT_SIGNING_SECRET": "postgres-drill-secret"}):
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                list(pool.map(lambda index: community_crud.audit_event("test", "concurrent", object_id=str(index)), range(20)))
+            result = community_crud.verify_audit_chain()
+            assert result["valid"] and result["checked"] == 20, result
         print("PostgreSQL restore, dependency order, identity continuation and rollback passed.")
+        print("PostgreSQL concurrent DGH bookings and audit writers passed.")
     finally:
         target.dispose()
         with engine.begin() as connection:

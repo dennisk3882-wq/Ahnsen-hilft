@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from platform_runtime import get_platform_snapshot
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from community_crud import (
@@ -39,7 +39,7 @@ def in_quiet_hours(pref, now) -> bool:
 
 
 def notification_strategy(user_id: int, category: str | None) -> str:
-    if not category or category in REALTIME_CATEGORIES:
+    if category in REALTIME_CATEGORIES:
         return "sofort"
     pref = get_preference(user_id)
     mode = getattr(pref, "push_mode", "sofort") or "sofort"
@@ -59,11 +59,24 @@ def enqueue_digest_notification(
     return queue_notification(user_id, category, title, body, url, dedupe_key)
 
 
+def digest_due_at(pref, now):
+    due = now.replace(hour=pref.digest_hour, minute=0, second=0, microsecond=0)
+    if pref.push_mode == "woechentlich":
+        due -= timedelta(days=now.weekday())
+        if due > now: due -= timedelta(days=7)
+    elif due > now:
+        due -= timedelta(days=1)
+    return due.astimezone(timezone.utc).replace(tzinfo=None) if due.tzinfo else due
+
+
 def dispatch_due_digests(send_immediate) -> int:
     now = datetime.now(ZoneInfo("Europe/Berlin"))
     delivered = 0
     for user, pref in get_due_digest_users(now):
         pending = get_pending_notifications(user.id, limit=40)
+        if pref.push_mode != "sofort":
+            due = digest_due_at(pref, now)
+            pending = [item for item in pending if item.erstellt_am <= due]
         if not pending:
             continue
         preview = pending[:5]

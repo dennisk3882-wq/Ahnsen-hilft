@@ -312,6 +312,9 @@ def review_content_revision(revision_id: int, reviewer: str, *, approve: bool) -
         account = db.query(AdminUser).filter(AdminUser.username == reviewer, AdminUser.active.is_(True)).first()
         if not account or not has_permission(account.role, content_permission(item.area), method="POST"):
             raise ValueError("Keine Freigabeberechtigung für diesen Bereich.")
+        newer_publication = db.query(ContentRevision).filter(ContentRevision.area == item.area, ContentRevision.object_id == item.object_id, ContentRevision.state == "Freigegeben", ContentRevision.applied_at > item.created_at).first()
+        if approve and newer_publication:
+            raise ValueError("Seit diesem Entwurf wurde eine neuere Fassung veröffentlicht. Bitte den Inhalt erneut prüfen und einreichen.")
         payload = json.loads(item.payload_json or "{}")
         if approve:
             from admin_content import apply_content_payload

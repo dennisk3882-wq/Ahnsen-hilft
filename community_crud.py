@@ -623,10 +623,13 @@ def get_due_digest_users(now: datetime) -> list[tuple[PWAUser, CitizenPreference
             from smart_push import in_quiet_hours
             if in_quiet_hours(pref, now):
                 continue
-            if pref.push_mode != "sofort" and now.hour < pref.digest_hour:
-                continue
-            if pref.push_mode == "woechentlich" and now.weekday() != 0:
-                continue
+            if pref.push_mode != "sofort":
+                from smart_push import digest_due_at
+                due_utc = digest_due_at(pref, now)
+                # One summary per due period, including catch-up after downtime.
+                already = db.query(NotificationQueue).filter(NotificationQueue.user_id == user.id, NotificationQueue.zugestellt_am >= due_utc).first()
+                if already:
+                    continue
             result.append((user, pref))
         return result
     finally:
@@ -685,11 +688,7 @@ def dashboard_stats() -> dict:
         report_summary = report_stats()
         finished = db.query(Meldung).filter(Meldung.status == "Erledigt", Meldung.updated_at.isnot(None), Meldung.erstellt_am.isnot(None)).all()
         durations = [max(0.0, (item.closed_at - item.erstellt_am).total_seconds() / 86400) for item in finished if item.closed_at and item.erstellt_am]
-        first_response_durations = []
-        for item in db.query(Meldung).filter(Meldung.erstellt_am.isnot(None)).all():
-            first = db.query(CaseHistory).filter(CaseHistory.ticket == item.ticket).order_by(CaseHistory.created_at.asc()).first()
-            if first and first.created_at >= item.erstellt_am:
-                first_response_durations.append((first.created_at - item.erstellt_am).total_seconds() / 3600)
+        first_response_durations = [max(0.0, (item.first_response_at - item.erstellt_am).total_seconds() / 3600) for item in db.query(Meldung).filter(Meldung.first_response_at.isnot(None), Meldung.erstellt_am.isnot(None)).all()]
         dgh_total = db.query(DGHTermin).count()
         dgh_confirmed = db.query(DGHTermin).filter(DGHTermin.status == "Bestätigt", DGHTermin.aktiv == "Ja").count()
         day_ago = now - timedelta(hours=24)
@@ -708,8 +707,8 @@ def dashboard_stats() -> dict:
             "reports_urgent": open_reports.filter(Meldung.priority == "Dringend").count(),
             "reports_unassigned": open_reports.filter(or_(Meldung.assigned_to == "", Meldung.assigned_to.is_(None))).count(),
             "reports_completion_rate": round((report_summary.get("erledigt", 0) / max(report_summary.get("gesamt", 0), 1)) * 100, 1),
-            "reports_average_days": round(sum(durations) / len(durations), 1) if durations else 0.0,
-            "reports_first_response_hours": round(sum(first_response_durations) / len(first_response_durations), 1) if first_response_durations else 0.0,
+            "reports_average_days": round(sum(durations) / len(durations), 1) if durations else None,
+            "reports_first_response_hours": round(sum(first_response_durations) / len(first_response_durations), 1) if first_response_durations else None,
             "reports_sla_days": sla_days,
             "dgh_total": dgh_total,
             "dgh_pending": db.query(DGHTermin).filter(DGHTermin.status == "Anfrage", DGHTermin.aktiv == "Ja").count(),

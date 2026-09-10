@@ -40,7 +40,7 @@ class DatabaseHardeningTests(unittest.TestCase):
     def setUp(self):
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
-        import operations, governance, community_crud, dgh_crud, citizen_privacy, admin_content, veranstaltungen_crud, pwa_crud, gemeinde_crud
+        import operations, governance, community_crud, dgh_crud, citizen_privacy, admin_content, veranstaltungen_crud, pwa_crud, gemeinde_crud, email_verification
         from database import Base
         self.temp = tempfile.TemporaryDirectory()
         self.engine = create_engine("sqlite:///" + self.temp.name + "/test.db")
@@ -48,7 +48,7 @@ class DatabaseHardeningTests(unittest.TestCase):
         Base.metadata.create_all(self.engine)
         self.stack = ExitStack()
         self.stack.enter_context(patch.dict(os.environ, {"AUDIT_SIGNING_SECRET": "audit-test-secret", "CONTENT_APPROVAL_MODE": "auto"}))
-        for module in (operations, governance, community_crud, dgh_crud, citizen_privacy, admin_content, veranstaltungen_crud, pwa_crud, gemeinde_crud):
+        for module in (operations, governance, community_crud, dgh_crud, citizen_privacy, admin_content, veranstaltungen_crud, pwa_crud, gemeinde_crud, email_verification):
             self.stack.enter_context(patch.object(module, "SessionLocal", self.session))
             if hasattr(module, "engine"):
                 self.stack.enter_context(patch.object(module, "engine", self.engine))
@@ -169,6 +169,19 @@ class DatabaseHardeningTests(unittest.TestCase):
             self.assertNotIn("private@example.test", db.query(Meldung).one().whatsapp_absender)
             self.assertNotEqual(db.query(NeighborChatMessage).one().body, "Private Nachricht")
             self.assertEqual(db.query(PasswordResetToken).count(), 0)
+
+    def test_email_confirmation_expires_and_is_single_use(self):
+        from pwa_crud import create_user
+        from email_verification import issue_token, confirm_token, EmailVerificationToken
+        user = create_user("verify@example.test", "password-123", "Verification", verification_required=True)
+        token = issue_token(user.id)
+        self.assertTrue(confirm_token(token))
+        self.assertFalse(confirm_token(token))
+        token = issue_token(user.id)
+        with self.session() as db:
+            db.query(EmailVerificationToken).one().expires_at = datetime(2000, 1, 1)
+            db.commit()
+        self.assertFalse(confirm_token(token))
 
     def test_quiet_hours_and_digest_do_not_depend_on_start_minute(self):
         from smart_push import in_quiet_hours

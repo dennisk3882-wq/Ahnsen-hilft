@@ -180,6 +180,8 @@ def _polish_response(response: HTMLResponse, request: Request | None = None) -> 
         count=1,
         flags=re.S,
     )
+    from public_translation import add_public_fragment
+    html = add_public_fragment(html, _quick_overview(None))
     headers = {
         key: value
         for key, value in response.headers.items()

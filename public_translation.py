@@ -31,7 +31,7 @@ class PublicText(HTMLParser):
                 self.add(data.get(key, ""))
 
     def handle_endtag(self, tag):
-        if self.blocked:
+        if tag not in {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"} and self.blocked:
             self.blocked.pop()
 
     def handle_data(self, data):
@@ -61,3 +61,13 @@ def valid_capability(value, token):
         return int(time.time()) <= int(expires) <= int(time.time()) + 3700 and hmac.compare_digest(signature, _signature(value, expires))
     except (ValueError, TypeError):
         return False
+
+
+def add_public_fragment(html, fragment):
+    import re
+    pattern = r'(<script[^>]*id="public-translation-capabilities"[^>]*>)(.*?)(</script>)'
+    def update(match):
+        capabilities = json.loads(match.group(2))
+        capabilities.update(public_capabilities(fragment))
+        return match.group(1) + json.dumps(capabilities, ensure_ascii=False).replace("<", "\\u003c") + match.group(3)
+    return re.sub(pattern, update, html, count=1, flags=re.S)
