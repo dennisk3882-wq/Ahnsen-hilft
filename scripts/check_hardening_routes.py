@@ -43,11 +43,17 @@ with patch("pwa_core.seed_official_ratsarchive"), TestClient(pwa_main.app, base_
         report = Meldung(ticket="MAP-TEST", art="Straße", ort="Privatweg 12", beschreibung="GPS-Position: 52.25842, 9.09923", public_visible=False)
         db.add(report); db.commit(); db.refresh(report); report_id = report.id
     assert not any(row["id"] == report_id for row in _public_report_points())
+    from mangel_duplicate_patch import _public_match
+    from mangel_duplicates import DuplicateMatch
+    candidate = DuplicateMatch("MAP-TEST", 99, "Straße", "Privatweg 12", "Offen", "Geheime Beschreibung", 1.0, ("GPS",))
+    assert _public_match(candidate) is None
     with SessionLocal() as db:
         db.get(Meldung, report_id).public_visible = True; db.commit()
     point = next(row for row in _public_report_points() if row["id"] == report_id)
     assert "Privatweg" not in json.dumps(point)
     assert point["lat"] == 52.258
+    duplicate = json.dumps(_public_match(candidate))
+    assert "MAP-TEST" not in duplicate and "Privatweg" not in duplicate and "Geheime" not in duplicate
     worker = client.get("/service-worker.js")
     assert "static-only" in worker.text
     print("Installed routes: private headers, translation boundary, role navigation, optional 2FA, write denial and map moderation passed.")

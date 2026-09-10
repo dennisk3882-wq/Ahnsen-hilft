@@ -96,6 +96,10 @@ def run_migrations() -> None:
             applied = _add_column(table, column, sql_type)
             if applied and not db.query(SchemaMigration).filter(SchemaMigration.version == version).first():
                 db.add(SchemaMigration(version=version, description=description))
+        cleanup_version = "2026-09-10-public-translation-cache"
+        if "translation_cache" in inspect(engine).get_table_names() and not db.query(SchemaMigration).filter_by(version=cleanup_version).first():
+            db.execute(text("DELETE FROM translation_cache"))
+            db.add(SchemaMigration(version=cleanup_version, description="Ungeprüften alten Übersetzungscache verwerfen"))
         db.commit()
     finally:
         db.close()
@@ -237,9 +241,17 @@ def scheduled_backup_status() -> dict[str, Any]:
     latest = files[0] if files else None
     from backup_offsite import configured as offsite_configured
     receipt = latest.with_suffix(latest.suffix + ".receipt.json") if latest else None
+    verified = False
+    if receipt and receipt.exists() and offsite_configured():
+        try:
+            info = json.loads(receipt.read_text())
+            destination = os.environ["BACKUP_WEBDAV_URL"].rstrip("/") + "/"
+            verified = info.get("destination") == hashlib.sha256(destination.encode()).hexdigest() and receipt.stat().st_mtime >= latest.stat().st_mtime
+        except (OSError, ValueError, KeyError):
+            pass
     return {
         "offsite_configured": offsite_configured(),
-        "offsite_verified": bool(receipt and receipt.exists()),
+        "offsite_verified": verified,
         "configured": bool(directory and key_configured),
         "directory": str(directory or ""),
         "key_configured": key_configured,
@@ -251,6 +263,13 @@ def scheduled_backup_status() -> dict[str, Any]:
 
 
 def run_scheduled_backup(*, force: bool = False) -> dict[str, Any]:
+    from db_coordination import transaction_lock
+    with SessionLocal() as db:
+        transaction_lock(db, "backup-files")
+        return _run_scheduled_backup_locked(force=force)
+
+
+def _run_scheduled_backup_locked(*, force: bool = False) -> dict[str, Any]:
     directory = backup_directory()
     passphrase = str(os.getenv("BACKUP_ENCRYPTION_KEY") or "")
     if not directory or len(passphrase) < 12:

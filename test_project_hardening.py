@@ -170,6 +170,21 @@ class DatabaseHardeningTests(unittest.TestCase):
             self.assertNotEqual(db.query(NeighborChatMessage).one().body, "Private Nachricht")
             self.assertEqual(db.query(PasswordResetToken).count(), 0)
 
+    def test_offsite_backup_is_verified_and_wrong_copy_is_rejected(self):
+        from backup_offsite import sync_encrypted_backup
+        path = Path(self.temp.name) / "ahnsen-automatik-2026-09-10.ahnsenbak"
+        raw = b"AHNSEN-BACKUP-V2\nencrypted-test-content"
+        path.write_bytes(raw)
+        response = SimpleNamespace(status_code=200, close=lambda: None, iter_content=lambda size: [raw])
+        with patch.dict(os.environ, {"BACKUP_WEBDAV_URL": "https://backup.example.test/ahnsen/"}), patch("backup_offsite.requests.put", return_value=response) as put, patch("backup_offsite.requests.get", return_value=response):
+            self.assertEqual(sync_encrypted_backup(path)["offsite"], "verified")
+            sync_encrypted_backup(path)
+            self.assertEqual(put.call_count, 1)
+            path.with_suffix(path.suffix + ".receipt.json").unlink()
+            response.iter_content = lambda size: [b"wrong"]
+            with self.assertRaises(RuntimeError): sync_encrypted_backup(path)
+            self.assertFalse(path.with_suffix(path.suffix + ".receipt.json").exists())
+
     def test_email_confirmation_expires_and_is_single_use(self):
         from pwa_crud import create_user
         from email_verification import issue_token, confirm_token, EmailVerificationToken

@@ -37,7 +37,7 @@ Produktionswebservice und Hintergrundjobs müssen während eines echten Restores
 ## Bewusste Grenzen
 
 - Ein grüner CI-Restore ersetzt keinen Test einer echten Produktionssicherung und ihrer externen Kopie.
-- Bereits vor diesem Update an Übersetzungsanbieter übermittelte Texte lassen sich durch ein Codeupdate nicht zurückholen. Der alte serverseitige Übersetzungscache ist ein gesonderter, verzichtbarer Datenbestand und kann nach Betreiberprüfung geleert werden.
+- Bereits vor diesem Update an Übersetzungsanbieter übermittelte Texte lassen sich durch ein Codeupdate nicht zurückholen. Der alte serverseitige Übersetzungscache wird durch eine einmalige Migration geleert; neue Cacheeinträge entstehen nur aus signierten öffentlichen Texten.
 - Kontolöschung ist keine rückwirkende Löschung aller Sicherungen. Aufbewahrungsfristen und Nachbearbeitung von Löschungen nach einem Restore gehören ins Betriebskonzept. Freie Vorgangstexte können trotz Entfernung bekannter Kontaktdaten weitere personenbezogene Angaben enthalten; aufbewahrte Vorgänge und Moderationsnachweise müssen deshalb nach festgelegten Fristen fachlich geprüft werden. Das System behauptet keine vollständige Anonymisierung sämtlicher historischer Nachweise.
 - Die Audit-Kette und ihr Datenbankkopf erkennen versehentliche oder partielle Änderungen. Eine Person mit vollständigem Datenbank- **und** Schlüsselzugriff könnte beide ändern. Eine unabhängige unveränderliche Archivierung ist damit noch nicht ersetzt.
 - Push bestätigt die Annahme durch den Push-Dienst, nicht das Lesen oder die tatsächliche Anzeige auf dem Handy. Bei Prozessabbruch zwischen externer Annahme und lokaler Verbuchung bleibt ein Wiederholungsrisiko. Garantierte genau-einmalige Zustellung ist nicht gegeben.

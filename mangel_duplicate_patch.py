@@ -50,10 +50,12 @@ def _response_with_html(response, html: str) -> HTMLResponse:
     return HTMLResponse(content=html, status_code=getattr(response, "status_code", 200))
 
 
-def _public_match(match) -> dict:
-    data = match.as_dict()
-    data.pop("beschreibung", None)
-    return data
+def _public_match(match) -> dict | None:
+    report = get_meldung(match.ticket)
+    if not report or not getattr(report, "public_visible", False):
+        return None
+    from platform_runtime import get_platform_snapshot
+    return {"score": match.score, "art": match.art, "ort": get_platform_snapshot()["municipality_name"], "status": match.status, "ticket": "Öffentlich geprüft", "reasons": ["Ähnliche bereits freigegebene Meldung"]}
 
 
 def _inject_report_intelligence(response, forced_match=None) -> HTMLResponse:
@@ -144,6 +146,9 @@ async def intelligent_report_page(request: Request):
 
 @router.post("/api/maengel/duplikat-pruefung")
 async def duplicate_preflight(request: Request):
+    from operations import consume_rate_limit
+    if not consume_rate_limit("duplicate-preflight", request.client.host if request.client else "unknown", 60, 3600):
+        raise HTTPException(status_code=429, detail="Bitte später erneut versuchen.")
     try:
         payload = await request.json()
     except Exception:
@@ -160,7 +165,7 @@ async def duplicate_preflight(request: Request):
         latitude=core._trim(payload.get("latitude"), 30),
         longitude=core._trim(payload.get("longitude"), 30),
     )
-    public = [_public_match(item) for item in matches if item.score >= WARNING_THRESHOLD]
+    public = [data for item in matches if item.score >= WARNING_THRESHOLD if (data := _public_match(item)) is not None]
     return JSONResponse({"matches": public, "threshold": WARNING_THRESHOLD})
 
 
@@ -218,7 +223,7 @@ async def intelligent_submit_report(request: Request, background_tasks: Backgrou
     )
     top = matches[0] if matches and matches[0].score >= WARNING_THRESHOLD else None
     confirmed = core._trim(form.get("duplicate_confirm"), 10) == "ja"
-    if top and not confirmed:
+    if top and not confirmed and _public_match(top) is not None:
         warning = "Es gibt bereits eine sehr ähnliche offene Meldung. Bitte prüfe den Hinweis und bestätige ausdrücklich, wenn du trotzdem senden möchtest."
         return _inject_report_intelligence(core.report_page(warning, values), forced_match=top)
 

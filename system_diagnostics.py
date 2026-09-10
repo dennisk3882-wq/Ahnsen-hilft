@@ -554,6 +554,16 @@ def run_system_checks(app, request=None, deep: bool = False) -> dict[str, Any]:
 
     add("backup_freshness", "Aktualität der Datensicherung", "Sicherheit & Betrieb", check_backup_freshness)
 
+    def check_offsite_backup():
+        status = scheduled_backup_status()
+        if not status.get("offsite_configured"):
+            return "warn", "Eine unabhängige externe Sicherung ist noch nicht eingerichtet."
+        if not status.get("offsite_verified"):
+            return "warn", "Die aktuelle externe Kopie wurde noch nicht erfolgreich zurückgelesen und geprüft."
+        return "ok", "Die aktuelle verschlüsselte externe Kopie wurde zurückgelesen und per Prüfsumme verifiziert."
+
+    add("backup_offsite", "Externe Sicherung", "Sicherheit & Betrieb", check_offsite_backup)
+
     def check_cron():
         event = get_last_system_event("background_scheduler") or get_last_system_event("muell_cron")
         if not event:
