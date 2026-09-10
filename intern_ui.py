@@ -68,7 +68,9 @@ def intern_nav(active=""):
             mobile_links.append(f'<a class="internal-mobile-link{klasse}" href="{escape(href)}"{current}><span>{_icon(icon_name)}</span><small>{escape(label)}</small></a>')
 
     brand_logo = f'<span class="internal-brand-crest"><img src="{escape(cfg["logo_url"])}" alt="" style="width:100%;height:100%;object-fit:contain"></span>' if cfg.get("logo_url") else _crest()
+    readonly_css = 'form[method="post" i]:not([action="/logout"]){display:none!important}' if admin.get("role") == "read_only" else ''
     return f"""
+    <style>{readonly_css}</style>
     <style>:root{{--admin-forest:{cfg['primary_color']};--admin-sage:{cfg['accent_color']};}}</style>
     <header class="internal-nav">
         <a class="internal-brand" href="/intern/cockpit" aria-label="{escape(cfg['platform_name'])} Verwaltung">

@@ -24,11 +24,26 @@ REALTIME_CATEGORIES = {
 }
 
 
+def in_quiet_hours(pref, now) -> bool:
+    def minutes(value):
+        try:
+            hour, minute = map(int, str(value).split(":"))
+            return hour * 60 + minute if 0 <= hour < 24 and 0 <= minute < 60 else None
+        except (ValueError, TypeError):
+            return None
+    start, end = minutes(getattr(pref, "quiet_start", "")), minutes(getattr(pref, "quiet_end", ""))
+    if start is None or end is None or start == end:
+        return False
+    current = now.hour * 60 + now.minute
+    return start <= current < end if start < end else current >= start or current < end
+
+
 def notification_strategy(user_id: int, category: str | None) -> str:
     if not category or category in REALTIME_CATEGORIES:
         return "sofort"
     pref = get_preference(user_id)
-    return getattr(pref, "push_mode", "sofort") or "sofort"
+    mode = getattr(pref, "push_mode", "sofort") or "sofort"
+    return "ruhezeit" if mode == "sofort" and in_quiet_hours(pref, datetime.now(ZoneInfo("Europe/Berlin"))) else mode
 
 
 def enqueue_digest_notification(

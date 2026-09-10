@@ -461,6 +461,9 @@ def get_civic_items(limit: int = 100, include_inactive: bool = False) -> list[Ci
 def audit_event(actor: str, action: str, object_type: str = "", object_id: str = "", detail: str = "") -> None:
     db = SessionLocal()
     try:
+        from db_coordination import transaction_lock
+        from community_models import AuditHead
+        transaction_lock(db, "audit-chain")
         now = datetime.utcnow()
         values = {
             "actor": str(actor or "system")[:160], "action": str(action or "")[:120],
@@ -470,9 +473,18 @@ def audit_event(actor: str, action: str, object_type: str = "", object_id: str =
         previous = db.query(AuditLog).filter(AuditLog.entry_hash != "").order_by(AuditLog.id.desc()).first()
         previous_hash = str(previous.entry_hash or "") if previous else ""
         canonical = "|".join((previous_hash, now.isoformat(timespec="microseconds"), values["actor"], values["action"], values["object_type"], values["object_id"], values["detail"]))
-        secret = str(os.getenv("AUDIT_SIGNING_SECRET") or os.getenv("DASHBOARD_SESSION_SECRET") or "audit-development-key").encode("utf-8")
+        secret = str(os.getenv("AUDIT_SIGNING_SECRET") or os.getenv("DASHBOARD_SESSION_SECRET") or "").encode("utf-8")
+        if not secret:
+            raise RuntimeError("AUDIT_SIGNING_SECRET ist nicht eingerichtet.")
         entry_hash = hmac.new(secret, canonical.encode("utf-8"), hashlib.sha256).hexdigest()
-        db.add(AuditLog(**values, previous_hash=previous_hash, entry_hash=entry_hash, erstellt_am=now))
+        entry = AuditLog(**values, previous_hash=previous_hash, entry_hash=entry_hash, erstellt_am=now)
+        db.add(entry)
+        db.flush()
+        head = db.get(AuditHead, 1)
+        if head is None:
+            head = AuditHead(id=1)
+            db.add(head)
+        head.entry_id, head.entry_hash = entry.id, entry.entry_hash
         db.commit()
     except Exception as error:
         db.rollback()
@@ -531,12 +543,18 @@ def audit_filter_options() -> dict[str, list[str]]:
 def verify_audit_chain(limit: int = 5000) -> dict[str, int | bool]:
     db = SessionLocal()
     try:
-        rows = db.query(AuditLog).order_by(AuditLog.id.asc()).limit(max(1, limit)).all()
+        from community_models import AuditHead
+        from db_coordination import transaction_lock
+        transaction_lock(db, "audit-chain")
+        rows = db.query(AuditLog).order_by(AuditLog.id.asc()).all()
+        head = db.get(AuditHead, 1)
+        head_hash = head.entry_hash if head else None
+        head_id = head.entry_id if head else None
     finally:
         db.close()
-    secret = str(os.getenv("AUDIT_SIGNING_SECRET") or os.getenv("DASHBOARD_SESSION_SECRET") or "audit-development-key").encode("utf-8")
+    secret = str(os.getenv("AUDIT_SIGNING_SECRET") or os.getenv("DASHBOARD_SESSION_SECRET") or "").encode("utf-8")
     sealed = [item for item in rows if item.entry_hash]
-    invalid = 0
+    invalid = 0 if secret else 1
     previous_hash = ""
     for item in sealed:
         canonical = "|".join((str(item.previous_hash or ""), item.erstellt_am.isoformat(timespec="microseconds"), item.actor, item.action, item.object_type, item.object_id, item.detail))
@@ -546,6 +564,8 @@ def verify_audit_chain(limit: int = 5000) -> dict[str, int | bool]:
         if not linked or not signed:
             invalid += 1
         previous_hash = str(item.entry_hash or "")
+    if head_hash is not None and (not sealed or head_id != sealed[-1].id or not hmac.compare_digest(head_hash, previous_hash)):
+        invalid += 1
     try:
         retention_days = max(90, min(int(os.getenv("AUDIT_RETENTION_DAYS", "730")), 3650))
     except ValueError:
@@ -565,11 +585,12 @@ def verify_audit_chain(limit: int = 5000) -> dict[str, int | bool]:
 def queue_notification(user_id: int, category: str, title: str, body: str, url: str, dedupe_key: str) -> bool:
     db = SessionLocal()
     try:
+        from db_coordination import transaction_lock
+        transaction_lock(db, "notification-queue")
         existing = (
             db.query(NotificationQueue)
             .filter(NotificationQueue.user_id == user_id)
             .filter(NotificationQueue.dedupe_key == str(dedupe_key)[:220])
-            .filter(NotificationQueue.zugestellt_am.is_(None))
             .first()
         )
         if existing:
@@ -595,12 +616,15 @@ def get_due_digest_users(now: datetime) -> list[tuple[PWAUser, CitizenPreference
             db.query(PWAUser, CitizenPreference)
             .join(CitizenPreference, CitizenPreference.user_id == PWAUser.id)
             .filter(PWAUser.aktiv.is_(True))
-            .filter(CitizenPreference.push_mode.in_(["taeglich", "woechentlich"]))
-            .filter(CitizenPreference.digest_hour == now.hour)
             .all()
         )
         result = []
         for user, pref in rows:
+            from smart_push import in_quiet_hours
+            if in_quiet_hours(pref, now):
+                continue
+            if pref.push_mode != "sofort" and now.hour < pref.digest_hour:
+                continue
             if pref.push_mode == "woechentlich" and now.weekday() != 0:
                 continue
             result.append((user, pref))
@@ -660,7 +684,7 @@ def dashboard_stats() -> dict:
         latest_waste_year = db.query(func.max(Muelltermin.jahr)).scalar()
         report_summary = report_stats()
         finished = db.query(Meldung).filter(Meldung.status == "Erledigt", Meldung.updated_at.isnot(None), Meldung.erstellt_am.isnot(None)).all()
-        durations = [max(0.0, (item.updated_at - item.erstellt_am).total_seconds() / 86400) for item in finished if item.updated_at and item.erstellt_am]
+        durations = [max(0.0, (item.closed_at - item.erstellt_am).total_seconds() / 86400) for item in finished if item.closed_at and item.erstellt_am]
         first_response_durations = []
         for item in db.query(Meldung).filter(Meldung.erstellt_am.isnot(None)).all():
             first = db.query(CaseHistory).filter(CaseHistory.ticket == item.ticket).order_by(CaseHistory.created_at.asc()).first()
@@ -726,18 +750,16 @@ def monthly_report_payload(period_key: str | None = None) -> dict:
     db = SessionLocal()
     try:
         reports_created = db.query(Meldung).filter(Meldung.erstellt_am >= start, Meldung.erstellt_am < end).all()
-        reports_closed = db.query(Meldung).filter(Meldung.status == "Erledigt", Meldung.updated_at >= start, Meldung.updated_at < end).all()
-        closed_durations = [max(0.0, (item.updated_at - item.erstellt_am).total_seconds() / 86400) for item in reports_closed if item.updated_at and item.erstellt_am]
-        first_hours = []
-        for item in reports_created:
-            first = db.query(CaseHistory).filter(CaseHistory.ticket == item.ticket, CaseHistory.created_at >= item.erstellt_am).order_by(CaseHistory.created_at.asc()).first()
-            if first:
-                first_hours.append(max(0.0, (first.created_at - item.erstellt_am).total_seconds() / 3600))
+        reports_closed = db.query(Meldung).filter(Meldung.status == "Erledigt", Meldung.closed_at >= start, Meldung.closed_at < end).all()
+        closed_durations = [max(0.0, (item.closed_at - item.erstellt_am).total_seconds() / 86400) for item in reports_closed if item.closed_at and item.erstellt_am]
+        first_hours = [max(0.0, (item.first_response_at - item.erstellt_am).total_seconds() / 3600) for item in reports_created if item.first_response_at and item.erstellt_am]
         dgh_created = db.query(DGHTermin).filter(DGHTermin.erstellt_am >= start, DGHTermin.erstellt_am < end).all()
         confirmed_dates = set()
         for item in db.query(DGHTermin).filter(DGHTermin.status == "Bestätigt", DGHTermin.aktiv == "Ja").all():
             try:
-                value = datetime.fromisoformat(str(item.datum)).date()
+                from dgh_crud import parse_datum
+                value = parse_datum(item.datum)
+                if value is None: continue
                 if start.date() <= value < end.date(): confirmed_dates.add(value)
             except ValueError:
                 continue
@@ -749,9 +771,9 @@ def monthly_report_payload(period_key: str | None = None) -> dict:
             "reports_closed": len(reports_closed),
             "reports_open_created": sum(1 for item in reports_created if item.status in {"Offen", "In Bearbeitung", "Warten auf Rückmeldung"}),
             "reports_urgent_created": sum(1 for item in reports_created if item.priority == "Dringend"),
-            "reports_completion_rate": round(len(reports_closed) / max(len(reports_created), 1) * 100, 1),
-            "reports_average_days": round(sum(closed_durations) / len(closed_durations), 1) if closed_durations else 0.0,
-            "reports_first_response_hours": round(sum(first_hours) / len(first_hours), 1) if first_hours else 0.0,
+            "reports_completion_rate": round(sum(1 for item in reports_created if item.status == "Erledigt") / max(len(reports_created), 1) * 100, 1),
+            "reports_average_days": round(sum(closed_durations) / len(closed_durations), 1) if closed_durations else None,
+            "reports_first_response_hours": round(sum(first_hours) / len(first_hours), 1) if first_hours else None,
             "dgh_requests": len(dgh_created),
             "dgh_confirmed_requests": sum(1 for item in dgh_created if item.status == "Bestätigt"),
             "dgh_occupancy_days": len(confirmed_dates),
@@ -775,7 +797,7 @@ def generate_monthly_report(period_key: str | None = None) -> GeneratedReport:
     previous = monthly_report_payload(previous_start.strftime("%Y-%m"))
     comparable = ("reports_created", "reports_closed", "reports_average_days", "reports_first_response_hours", "dgh_requests", "dgh_occupancy_rate", "new_users", "new_ideas", "new_neighbor_posts")
     payload["comparison_previous_period"] = previous["period"]
-    payload["comparison"] = {key: round(float(payload.get(key, 0)) - float(previous.get(key, 0)), 1) for key in comparable}
+    payload["comparison"] = {key: round(float(payload[key]) - float(previous[key]), 1) if payload.get(key) is not None and previous.get(key) is not None else None for key in comparable}
     current = dashboard_stats()
     payload["current_backlog"] = current["reports"].get("offen", 0) + current["reports"].get("bearbeitung", 0)
     payload["current_overdue"] = current["reports_overdue"]

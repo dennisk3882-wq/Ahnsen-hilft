@@ -9,6 +9,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     env:
+      MYMEMORY_ENABLED: "1"
       DATABASE_URL: sqlite:///./translation-fallback-smoke.db
       MYMEMORY_ENABLED: "1"
     steps:

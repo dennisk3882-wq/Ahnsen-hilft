@@ -144,7 +144,7 @@ app = FastAPI(
 
 @app.middleware("http")
 async def browser_security(request: Request, call_next):
-    set_current_admin(None)
+    set_current_admin(legacy._session_context(request))
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = str(request.headers.get("origin") or "")
         fetch_site = str(request.headers.get("sec-fetch-site") or "").casefold()
@@ -156,11 +156,14 @@ async def browser_security(request: Request, call_next):
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    from privacy_policy import browser_headers
+    response.headers.update(browser_headers(request.url.path))
     return response
 
 
 @app.on_event("startup")
 def startup() -> None:
+    import job_control  # register persistent scheduling state before migration
     init_db()
     init_veranstaltungen_db()
     init_dgh_db()
@@ -1195,16 +1198,14 @@ async def manifest():
 async def service_worker():
     cfg = get_platform_snapshot()
     default_payload = json.dumps({"title": cfg["platform_name"], "body": "Es gibt eine neue Information.", "url": "/profil", "tag": "citizen-platform"}, ensure_ascii=False)
-    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=5', '/warning.css?v=1', '/accessibility.css?v=3', '/header-controls.css?v=1', '/accessibility.js?v=2', '/pwa.js?v=1', '/community.js?v=5', '/pwa/icon-192.png']
-    hero = str(cfg.get("hero_image_url") or "")
-    if hero.startswith("/"):
-        core_assets.append(hero)
+    from privacy_policy import PUBLIC_ASSET_PATHS
+    core_assets = sorted(PUBLIC_ASSET_PATHS)
     core_json = json.dumps(list(dict.fromkeys(core_assets)), ensure_ascii=False)
     script = f"""
-const CACHE = 'citizen-platform-pwa-v5-i18n-public-only-v7';
+const CACHE = 'citizen-platform-pwa-v8-static-only';
 const CORE = {core_json};
 const PRIVATE_PREFIXES = ['/intern', '/verwaltung', '/profil', '/nachrichten', '/api', '/anmelden', '/registrieren', '/passwort'];
-const isPublicCacheable = url => !PRIVATE_PREFIXES.some(prefix => url.pathname === prefix || url.pathname.startsWith(prefix + '/'));
+const isPublicCacheable = url => CORE.includes(url.pathname) && !PRIVATE_PREFIXES.some(prefix => url.pathname === prefix || url.pathname.startsWith(prefix + '/'));
 self.addEventListener('install', event => {{ event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); }});
 self.addEventListener('activate', event => {{ event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); }});
 self.addEventListener('fetch', event => {{
@@ -1220,7 +1221,7 @@ self.addEventListener('fetch', event => {{
     const cacheControl = response.headers.get('cache-control') || '';
     if (response.ok && !cacheControl.includes('no-store') && response.type === 'basic') caches.open(CACHE).then(cache => cache.put(event.request, copy));
     return response;
-  }}).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
+  }}).catch(() => caches.match(event.request).then(cached => cached || new Response('Du bist offline. Persönliche Seiten sind nur mit Internetverbindung verfügbar.', {{status: 503, headers: {{'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store'}}}}))));
 }});
 self.addEventListener('push', event => {{
   let data = {default_payload};

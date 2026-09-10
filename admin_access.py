@@ -61,7 +61,7 @@ ROUTE_PERMISSIONS = (
     ("/intern/nachrichten", "messages"),
     ("/intern/gemeindeseite", "content"),
     ("/gemeindeseite", "content"),
-    ("/intern/inhalte", "content"),
+    ("/intern/inhalte", "editorial"),
     ("/intern/plattform", "content"),
 )
 
@@ -80,7 +80,7 @@ NAVIGATION = (
     ("politik", "gemeindeseite", "/intern/politik", "Politik & Rat", "politics"),
     ("berichte", "berichte", "/intern/berichte", "Berichte", "reports"),
     ("audit", "berichte", "/intern/audit", "Audit", "audit"),
-    ("versionen", "gemeindeseite", "/intern/inhalte/versionen", "Versionen", "content"),
+    ("versionen", "gemeindeseite", "/intern/inhalte/versionen", "Versionen", "editorial"),
     ("benutzer", "system", "/intern/benutzer", "Zugänge", "admin"),
     ("sicherung", "system", "/intern/sicherung", "Sicherung", "backup"),
     ("plattform", "system", "/intern/plattform", "Plattform", "content"),
@@ -97,7 +97,7 @@ def set_current_admin(admin: dict | None) -> None:
 
 
 def current_admin() -> dict:
-    return _CURRENT_ADMIN.get() or {"username": "", "display_name": "", "role": "superadmin"}
+    return _CURRENT_ADMIN.get() or {"username": "", "display_name": "", "role": ""}
 
 
 def required_permission(path: str) -> str:
@@ -108,6 +108,8 @@ def required_permission(path: str) -> str:
 
 
 def can_access(role: str, permission: str, *, method: str = "GET") -> bool:
+    if permission == "editorial":
+        return can_access(role, "content", method=method) or can_access(role, "events", method=method)
     permissions = ROLE_PERMISSIONS.get(str(role or ""), set())
     if "*" in permissions or permission in permissions:
         return True

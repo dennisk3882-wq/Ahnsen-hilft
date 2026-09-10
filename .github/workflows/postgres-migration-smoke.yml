@@ -49,3 +49,5 @@ jobs:
           assert 'TIMESTAMP' in str(columns['duplicate_checked_at']['type']).upper(), columns['duplicate_checked_at']
           print('PostgreSQL migration smoke test passed')
           PY
+      - name: Restore into an isolated schema and verify identities and rollback
+        run: python scripts/verify_postgres_restore.py

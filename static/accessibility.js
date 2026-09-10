@@ -114,6 +114,11 @@
       if (open) { refresh(); panel.querySelector('button')?.focus(); }
     });
     panel.addEventListener('click', event => {
+      if (event.target.closest('[data-a11y-reset]')) {
+        settings.forEach(name => localStorage.setItem(key(name), '0'));
+        document.querySelectorAll('[data-accessibility-profile] select').forEach(select => { select.value = 'nein'; });
+        apply(); refresh(); trigger.focus(); return;
+      }
       const button = event.target.closest('[data-a11y]');
       if (!button) return;
       const name = button.dataset.a11y;

@@ -56,18 +56,23 @@ def _bottom_nav(active: str) -> str:
     return f'<nav class="bottom-nav" aria-label="App-Navigation">{"".join(links)}</nav>'
 
 
-def page(title: str, content: str, *, active: str = "home", description: str = "", show_header: bool = True, body_class: str = "") -> HTMLResponse:
+def page(title: str, content: str, *, active: str = "home", description: str = "", show_header: bool = True, body_class: str = "", public_translation: bool = False) -> HTMLResponse:
     cfg = get_platform_snapshot()
     language_options = platform_language_options()
     content = apply_static_branding(content, cfg)
     title = apply_static_branding(title, cfg)
     description = apply_static_branding(description or cfg["description"], cfg)
     header = f'<header class="topbar">{_brand()}<div class="topbar-community-actions"><button class="accessibility-button" id="accessibility-toggle" type="button" aria-expanded="false" aria-controls="accessibility-panel" title="Darstellung und Barrierefreiheit">Aa</button><label class="language-picker" translate="no"><span class="sr-only">Sprache</span><span class="language-picker-code" id="platform-language-code" aria-hidden="true">DE</span><select id="platform-language" aria-label="Sprache auswählen">{language_options}</select><span class="language-picker-chevron" aria-hidden="true"></span></label><button id="translation-state" class="translation-state" type="button" aria-live="polite" hidden translate="no">↻</button><a class="message-center-link" id="message-center-link" href="/nachrichten" aria-label="Nachrichten" hidden style="display:none!important">{icon("message")}<span class="message-badge" hidden style="display:none!important"></span></a><button class="install-button" id="install-app" type="button" hidden>{icon("download")}<span>Installieren</span></button></div></header>' if show_header else ""
+    public_text = content if public_translation else ""
     content += '<footer class="public-footer" aria-label="Rechtliche Informationen"><a href="/impressum">Impressum</a><a href="/datenschutz">Datenschutz</a><a href="/barrierefreiheit">Barrierefreiheit</a><a href="/leichte-sprache">Leichte Sprache</a><p>Bei akuter Gefahr: 112. Diese Plattform ersetzt keinen Notruf.</p></footer>'
     style = f'<link rel="stylesheet" href="/compliance.css?v=1"><style>:root{{--forest:{cfg["primary_color"]};--sage:{cfg["accent_color"]};}} .custom-brand-logo img{{width:100%;height:100%;object-fit:contain}}</style>'
+    from public_translation import public_capabilities
+    import json
+    capabilities = json.dumps(public_capabilities(header + _bottom_nav(active) + public_text), ensure_ascii=False).replace("<", "\\u003c")
+    content += f'<script type="application/json" id="public-translation-capabilities" data-no-translate>{capabilities}</script>'
     html = f"""<!doctype html><html lang="{escape(cfg['default_language'])}"><head>
 <meta charset="utf-8"><meta name="application-name" content="{escape(cfg['platform_name'])}"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="{escape(cfg['primary_color'])}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="{escape(cfg['short_name'])}"><meta name="description" content="{escape(description)}"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="{escape(cfg['apple_touch_icon_url'])}"><link rel="icon" href="{escape(cfg['pwa_icon_192_url'])}"><link rel="stylesheet" href="/pwa.css?v=1"><link rel="stylesheet" href="/community.css?v=5"><link rel="stylesheet" href="/warning.css?v=1"><link rel="stylesheet" href="/accessibility.css?v=3"><link rel="stylesheet" href="/header-controls.css?v=1"><title>{escape(title)} · {escape(cfg['platform_name'])}</title>{style}</head>
-<body class="{escape(body_class)}" data-platform-municipality-name="{escape(cfg['municipality_name'])}" data-platform-default-language="{escape(cfg['default_language'])}"><a class="skip-link" href="#main-content">Direkt zum Inhalt</a><div class="app-shell">{header}<main class="app-main" id="main-content" tabindex="-1">{content}</main>{_bottom_nav(active)}</div><section class="accessibility-panel" id="accessibility-panel" aria-label="Darstellung und Barrierefreiheit" hidden><h2>Darstellung</h2><p>Die Grundseite bleibt gleich. Diese Optionen passen sie zusätzlich an deine Bedürfnisse an.</p><div class="accessibility-options"><button type="button" data-a11y="large" aria-pressed="false">Größere Schrift</button><button type="button" data-a11y="contrast" aria-pressed="false">Hoher Kontrast</button><button type="button" data-a11y="simple" aria-pressed="false">Einfache Ansicht</button><button type="button" data-a11y="reduce" aria-pressed="false">Weniger Bewegung</button></div></section><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Bereits geladene Inhalte bleiben verfügbar.</div><script src="/accessibility.js?v=2" defer></script><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=5" defer></script></body></html>"""
+<body class="{escape(body_class)}" data-platform-municipality-name="{escape(cfg['municipality_name'])}" data-platform-default-language="{escape(cfg['default_language'])}"><a class="skip-link" href="#main-content">Direkt zum Inhalt</a><div class="app-shell">{header}<main class="app-main" id="main-content" tabindex="-1">{content}</main>{_bottom_nav(active)}</div><section class="accessibility-panel" id="accessibility-panel" aria-label="Darstellung und Barrierefreiheit" hidden><h2>Darstellung</h2><p>Die Grundseite bleibt gleich. Diese Optionen passen sie zusätzlich an deine Bedürfnisse an.</p><div class="accessibility-options"><button type="button" data-a11y="large" aria-pressed="false">Größere Schrift</button><button type="button" data-a11y="contrast" aria-pressed="false">Hoher Kontrast</button><button type="button" data-a11y="simple" aria-pressed="false">Einfache Ansicht</button><button type="button" data-a11y="reduce" aria-pressed="false">Weniger Bewegung</button><button type="button" data-a11y-reset>Darstellung zurücksetzen</button></div></section><div class="offline-banner" id="offline-banner" role="status" aria-live="polite" hidden>Du bist offline. Für aktuelle und persönliche Inhalte benötigst du eine Internetverbindung.</div><script src="/accessibility.js?v=3" defer></script><script src="/pwa.js?v=1" defer></script><script src="/community.js?v=6" defer></script></body></html>"""
     return HTMLResponse(html)
 
 
@@ -133,7 +138,7 @@ def home_page(data: dict) -> HTMLResponse:
 <form class="home-search" method="get" action="/suche"><input name="q" aria-label="Suche" placeholder="Was suchst du? Müll, DGH, Rat, Feuerwehr …"><button type="submit" aria-label="Suchen">⌕</button></form>
 <section class="service-grid" aria-label="Digitale Dienste">{cards}</section>{waste_card}
 """
-    return page(settings.get("seiten_titel") or "Ahnsen hilft", content, body_class="home-view")
+    return page(settings.get("seiten_titel") or "Ahnsen hilft", content, body_class="home-view", public_translation=True)
 
 
 def report_page(error: str = "", values: dict | None = None) -> HTMLResponse:
@@ -227,14 +232,14 @@ def events_page(events: Iterable, past_events: Iterable = ()) -> HTMLResponse:
 
     styles = '<style>.past-events-section{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}.past-events-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}.past-events-head h2{margin:3px 0 4px;color:var(--forest);font-size:22px}.past-events-head p{margin:0;color:var(--muted);font-size:13px}.past-events-count{flex:0 0 auto;padding:6px 10px;border-radius:999px;background:#eef1eb;color:#67736b;font-size:11px;font-weight:850}.event-card.past-event{background:#fbfcf9;border-color:#e3e8df;box-shadow:none}.past-event-label{display:inline-flex;margin-left:6px;padding:3px 7px;border-radius:999px;background:#e8ece6;color:#667269;font-size:10px;font-weight:850;vertical-align:middle}.event-recap{margin-top:15px;padding-top:14px;border-top:1px solid #dfe6dc}.event-recap>strong{display:block;margin-bottom:6px;color:var(--forest);font-size:13px;text-transform:uppercase;letter-spacing:.05em}.event-recap>p{margin:0 0 11px;color:#526057;line-height:1.55}.past-event-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.past-event-gallery img{width:100%;aspect-ratio:1.2;object-fit:cover;border-radius:10px;background:#eef1eb}@media(max-width:560px){.past-events-head{align-items:flex-start}.past-events-count{margin-top:2px}.past-event-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>'
     content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Dorfkalender</span><h1>Veranstaltungen</h1><p>Aktuelle Termine sowie Rückblicke auf vergangene Veranstaltungen in Ahnsen.</p></section>{styles}<div class="event-list">{"".join(upcoming)}</div>{archive}'
-    return page("Veranstaltungen", content, active="calendar")
+    return page("Veranstaltungen", content, active="calendar", public_translation=True)
 
 
 def dgh_page(free_days: Iterable[date], terms: Iterable) -> HTMLResponse:
     chips = "".join(f'<span>{day.strftime("%d.%m.%Y")}</span>' for day in list(free_days)[:12]) or '<p class="muted">Freie Termine werden derzeit aktualisiert.</p>'
     count = sum(1 for item in terms if getattr(item, "status", "") == "Bestätigt")
     content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Dorfgemeinschaftshaus</span><h1>DGH-Kalender</h1><p>Prüfe freie Termine. Eine Reservierung wird erst nach Bestätigung verbindlich.</p></section><section class="info-hero"><span>{icon("building")}</span><div><small>Aktuelle Übersicht</small><strong>{count} bestätigte Belegungen</strong><p>Die nächsten freien Tage findest du direkt darunter.</p></div></section><section class="content-card"><div class="section-title"><span class="eyebrow">Nächste Verfügbarkeiten</span><h2>Freie Tage</h2></div><div class="date-chips">{chips}</div></section><section class="trust-strip"><span>{icon("phone")}</span><div><strong>Mietanfrage</strong><small>Die digitale Buchungsanfrage folgt im nächsten Ausbauschritt.</small></div></section>'
-    return page("DGH-Kalender", content, active="calendar")
+    return page("DGH-Kalender", content, active="calendar", public_translation=True)
 
 
 def waste_page(terms: Iterable) -> HTMLResponse:
@@ -244,7 +249,7 @@ def waste_page(terms: Iterable) -> HTMLResponse:
         rows.append(f'<article class="waste-row"><div class="waste-date"><strong>{escape(_date(value))}</strong><small>{escape(_days(value))}</small></div><span class="waste-symbol">{icon("waste")}</span><div><strong>{escape(getattr(item, "abfuhrarten", "") or "Müllabfuhr")}</strong><small>{"Feiertagsverschiebung" if getattr(item, "feiertagsabweichung", "") == "Ja" else "Regulärer Termin"}</small></div></article>')
     if not rows: rows.append('<section class="empty-state"><span>🗑️</span><h2>Noch keine Abfuhrtermine</h2><p>Der Jahreskalender kann im Verwaltungsbereich importiert werden.</p></section>')
     content = f'<section class="page-heading compact"><a class="back-link" href="/">← Start</a><span class="eyebrow">Abfallkalender</span><h1>Müllabfuhr</h1><p>Die nächsten Abholtermine für Ahnsen.</p></section><a class="download-card" href="/muelltermine.ics">{icon("download")}<div><strong>In Kalender übernehmen</strong><small>ICS-Datei für Handy, Outlook oder Google Kalender</small></div>{icon("arrow")}</a><div class="waste-list">{"".join(rows)}</div>'
-    return page("Müllabfuhr", content, active="calendar")
+    return page("Müllabfuhr", content, active="calendar", public_translation=True)
 
 
 def info_page(kind: str, settings: dict) -> HTMLResponse:

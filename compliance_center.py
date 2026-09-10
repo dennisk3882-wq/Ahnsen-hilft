@@ -11,18 +11,18 @@ from platform_runtime import get_platform_snapshot
 from pwa_ui import page
 
 
-REVIEW_DATE = date(2026, 8, 14)
+REVIEW_DATE = date(2026, 9, 10)
 
 
 DATA_FLOWS = (
-    ("Webbetrieb", "IP-Adresse, Zeitpunkt, Browser-/Geräteangaben", "Auslieferung, Sicherheit und Fehleranalyse", "Render Web Service; Region Frankfurt"),
+    ("Webbetrieb", "IP-Adresse, Zeitpunkt, Browser-/Geräteangaben", "Auslieferung, Sicherheit und Fehleranalyse", "Render Web Service; Betriebsregion durch Betreiber zu bestätigen"),
     ("Mängelmelder", "Beschreibung, Ort, optional Foto, Standort, Name und E-Mail", "Bearbeitung und Rückfragen zu einer Meldung", "Verwaltungsbereich, Datenbank und konfiguriertes Verwaltungspostfach"),
-    ("Bürgerkonto", "Name, E-Mail, optional Telefon, Passwort-Hash und Einstellungen", "Konto, Statusinformationen und Benachrichtigungen", "Datenbank in Frankfurt"),
+    ("Bürgerkonto", "Name, E-Mail, optional Telefon, Passwort-Hash und Einstellungen", "Konto, Statusinformationen und Benachrichtigungen", "Datenbank; Betriebsregion separat zu bestätigen"),
     ("DGH-Anfrage", "Termin, Anlass, Kontakt- und Nachrichtendaten", "Prüfung und Beantwortung der Anfrage", "Verwaltungsbereich und konfiguriertes Verwaltungspostfach"),
     ("Push-Nachrichten", "Push-Endpunkt, Geräteschlüssel und Auswahl der Themen", "Vom Nutzer bestellte Benachrichtigungen", "Browser-Push-Dienst des jeweiligen Geräteanbieters"),
     ("Karten und Mobilität", "Kartenausschnitt, Suchbegriff oder Haltestelle; GPS nur nach Freigabe", "Karte, Routen- und Fahrplanauskunft", "OpenStreetMap/OpenFreeMap, Nominatim und öffentliche Mobilitäts-APIs"),
     ("Wetter und Warnungen", "Ort Ahnsen; keine Formulareingaben", "Wetterlage und amtliche Warninformationen", "Open-Meteo, DWD und BBK"),
-    ("Übersetzung", "Sichtbare Seitentexte nach aktiver Sprachauswahl", "Maschinelle Übersetzung", "Konfigurierter LibreTranslate-kompatibler Dienst; keine Formulareingaben"),
+    ("Übersetzung", "Ausdrücklich freigegebene öffentliche Texte nach Sprachauswahl", "Maschinelle Übersetzung", "Konfigurierter LibreTranslate-Dienst; MyMemory nur bei ausdrücklicher Aktivierung; keine privaten Nachrichten oder Formulareingaben"),
 )
 
 
@@ -54,7 +54,7 @@ def legal_notice_page() -> HTMLResponse:
       <div class="compliance-status {'ready' if complete else 'blocked'}"><strong>{escape(status)}</strong><p>Diese Seite befindet sich im Entwicklungs- und Pilotbetrieb. Eine Übernahme als offizielles Angebot muss durch den künftigen Betreiber ausdrücklich bestätigt werden.</p></div>
       <h2>Verantwortliche Stelle / Diensteanbieter</h2><p>{contact}</p>
       <h2>Redaktionell verantwortlich</h2><p><mark>Vor der offiziellen Freigabe durch die Gemeinde zu benennen.</mark></p>
-      <h2>Technischer Betrieb</h2><p>Die Anwendung wird derzeit als Webdienst bei Render betrieben. Webdienst und Datenbank sind für die Region Frankfurt eingerichtet.</p>
+      <h2>Technischer Betrieb</h2><p>Die Anwendung wird derzeit als Webdienst bei Render betrieben. Die tatsächlichen Regionen von Webdienst und Datenbank müssen im Betriebsnachweis getrennt bestätigt werden.</p>
       <h2>Hinweis zu Inhalten</h2><p>Amtliche Bekanntmachungen sind nur dann rechtsverbindlich, wenn dies beim jeweiligen Inhalt ausdrücklich angegeben und von der zuständigen Stelle bestätigt ist. Verlinkte Angebote liegen in der Verantwortung ihrer jeweiligen Betreiber.</p>
     </article>'''
     return page("Impressum", content, active="more", description="Anbieterkennzeichnung und Betriebsstatus")
@@ -76,8 +76,8 @@ def privacy_page() -> HTMLResponse:
       <h2>5. Speicherdauer</h2><p>Daten werden nur so lange gespeichert, wie sie für Bearbeitung, Nachweis und gesetzliche Aufbewahrung erforderlich sind. Das technische Löschkonzept sieht getrennte Fristen für Konten, Meldungen, DGH-Anfragen, Push-Abonnements, Protokolle und Sicherungen vor. Die verbindlichen Fristen muss die verantwortliche Stelle vor der Freigabe beschließen.</p>
       <h2>6. Fotos und Standort</h2><p>Standortdaten werden nur nach einer ausdrücklichen Gerätefreigabe übernommen. Fotos sind freiwillig. Vor einer Veröffentlichung werden Meldungen moderiert; öffentliche Koordinaten werden gerundet. Bitte keine erkennbaren Personen, Kennzeichen oder privaten Dokumente hochladen.</p>
       <h2>7. Lokale Speicherung und Cookies</h2><p>Die PWA verwendet technisch notwendige Sitzungsinformationen sowie lokale Einstellungen für Sprache, Darstellung und Offline-Funktion. Es findet kein Werbe- oder Reichweitentracking statt. Ein Einwilligungsbanner ist nur erforderlich, wenn künftig nicht notwendige Dienste hinzukommen.</p>
-      <h2>8. Externe Dienste</h2><p>Karten-, Mobilitäts-, Wetter-, Warn- und Übersetzungsfunktionen rufen die in der Tabelle genannten Dienste nur bei der jeweiligen Nutzung auf. Karten werden zusätzlich durch textliche Informationen ergänzt. Bei der Übersetzung werden sichtbare Seitentexte, aber keine Formulareingaben übertragen.</p>
-      <h2>9. Hosting und Drittlandbezug</h2><p>Webdienst und Datenbank sind in Frankfurt eingerichtet. Render und einzelne Unterauftragnehmer können dennoch einen Drittlandbezug haben. Auftragsverarbeitungsvertrag, Unterauftragnehmer, technische Maßnahmen und geeignete Garantien sind vor einem amtlichen Betrieb durch den Verantwortlichen zu dokumentieren.</p>
+      <h2>8. Externe Dienste</h2><p>Karten-, Mobilitäts-, Wetter-, Warn- und Übersetzungsfunktionen rufen die in der Tabelle genannten Dienste nur bei der jeweiligen Nutzung auf. Karten werden zusätzlich durch textliche Informationen ergänzt. Bei der Übersetzung werden ausschließlich serverseitig freigegebene öffentliche Texte übertragen. Private Nachrichten und Formulareingaben sind ausgeschlossen.</p>
+      <h2>9. Hosting und Drittlandbezug</h2><p>Die Regionen von Webdienst und Datenbank sind im Betriebsnachweis getrennt festzuhalten. Render und einzelne Unterauftragnehmer können dennoch einen Drittlandbezug haben. Auftragsverarbeitungsvertrag, Unterauftragnehmer, technische Maßnahmen und geeignete Garantien sind vor einem amtlichen Betrieb durch den Verantwortlichen zu dokumentieren.</p>
       <h2>10. Betroffenenrechte</h2><p>Betroffene können Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und – soweit einschlägig – Widerspruch oder Widerruf verlangen. Außerdem besteht ein Beschwerderecht bei der zuständigen Datenschutzaufsicht.</p>
       <h2>11. Sicherheit</h2><p>Die Plattform nutzt verschlüsselte Übertragung, rollenbasierten Verwaltungszugang, Zwei-Faktor-Authentisierung, widerrufbare Sitzungen, Rate-Limits, Protokollierung, Sicherungen und Diagnoseprüfungen. Sicherheitsvorfälle werden nach dem internen Vorfallplan bewertet und dokumentiert.</p>
       <p class="legal-updated">Stand der technischen Vorabfassung: {REVIEW_DATE.strftime('%d.%m.%Y')}</p>
@@ -92,7 +92,7 @@ def accessibility_page(message: str = "", error: str = "") -> HTMLResponse:
         alert = f'<div class="form-alert error" role="alert">{escape(error)}</div>'
     content = _heading("Erklärung zur Barrierefreiheit", "Barrierefreiheit") + f'''
     <article class="legal-card compliance-document">
-      <div class="compliance-status pending"><strong>Vorläufige technische Selbstbewertung</strong><p>Die Anwendung ist nach dem derzeitigen Entwicklungsstand teilweise mit den Anforderungen an barrierefreie öffentliche Websites vereinbar. Die formale Erklärung muss vor dem amtlichen Betrieb von der verantwortlichen Stelle bestätigt und der niedersächsischen Überwachungsstelle mitgeteilt werden.</p></div>
+      <div class="compliance-status pending"><strong>Vorläufige technische Selbstbewertung</strong><p>Die technische Umsetzung ist noch nicht vollständig manuell auf Barrierefreiheit geprüft. Ein bestätigter Konformitätsstatus liegt nicht vor. Die formale Erklärung muss vor dem amtlichen Betrieb von der verantwortlichen Stelle bestätigt und der niedersächsischen Überwachungsstelle mitgeteilt werden.</p></div>
       <h2>Geltungsbereich</h2><p>Diese Erklärung gilt für {escape(cfg['platform_name'])} einschließlich der öffentlich erreichbaren PWA-Seiten.</p>
       <h2>Stand der Vereinbarkeit</h2><p>Die Bedienoberfläche bietet Tastaturfokus, Sprunglink, semantische Formulare, vergrößerbare Schrift, hohen Kontrast, reduzierte Bewegung und eine vereinfachte Ansicht. Eine repräsentative manuelle Prüfung nach EN 301 549 / WCAG 2.1 AA ist vorbereitet, aber noch nicht durch die künftige öffentliche Stelle abgeschlossen.</p>
       <h2>Noch bekannte Einschränkungen</h2><ul><li>Einzelne historische PDF-Dokumente können noch nicht vollständig barrierefrei sein.</li><li>Interaktive Karten sind visuell; textliche Alternativen und externe Kartendaten können abweichend zugänglich sein.</li><li>Maschinelle Übersetzungen können Fehler enthalten; die deutsche Originalfassung ist maßgeblich.</li><li>Inhalte externer Anbieter liegen nicht vollständig im Einflussbereich der Plattform.</li></ul>
@@ -139,7 +139,7 @@ def readiness_snapshot() -> dict:
         ("Barrierefreiheit freigegeben", os.getenv("OFFICIAL_ACCESSIBILITY_APPROVED", "").casefold() == "true", "Selbstbewertung abgeschlossen und Erklärung gemeldet"),
         ("Löschfristen beschlossen", os.getenv("OFFICIAL_RETENTION_APPROVED", "").casefold() == "true", "Löschkonzept organisatorisch freigegeben"),
         ("Amtliches Postfach", bool(email_user) and not email_user.casefold().endswith("@gmail.com"), "Funktionspostfach statt Privat-/Testkonto"),
-        ("Produktionsregion", os.getenv("RENDER_REGION", "frankfurt").casefold() == "frankfurt", "Webdienst und Datenbank Frankfurt"),
+        ("Produktionsregion", os.getenv("RENDER_REGION", "").casefold() == "frankfurt" and os.getenv("DATABASE_REGION", "").casefold() == "frankfurt", "Webdienst und Datenbank getrennt als Frankfurt konfiguriert; Nachweis im Betreiberkonto prüfen"),
     )
     ready = sum(1 for _, state, _ in checks if state)
     return {"checks": checks, "ready": ready, "total": len(checks), "blocked": len(checks) - ready}
