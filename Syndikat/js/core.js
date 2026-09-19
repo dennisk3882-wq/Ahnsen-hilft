@@ -1414,9 +1414,19 @@
     }
   }
   function v4EquipmentMods(p,vehicleId,weaponId,gearId){
-    const vehicle=v4Item('vehicles',vehicleId)||{power:0,heat:0,evidence:0};
-    const weapon=v4Item('weapons',weaponId)||{power:0,heat:0,evidence:0};
-    const gear=v4Item('gear',gearId)||{power:0,heat:0,evidence:0};
+    const calc=(type,id)=>{
+      const def=v4Item(type,id)||{power:0,heat:0,evidence:0};
+      const inv=(p.inventory?.[type]||[]).find(x=>x.id===id);
+      const condition=inv?clamp(Number(inv.condition)||100,15,100):100;
+      const wear=condition/100;
+      return{
+        power:def.power*wear,
+        heat:def.heat+(condition<55?2:0)+(condition<30?3:0),
+        evidence:def.evidence+(condition<50?2:0),
+        condition
+      };
+    };
+    const vehicle=calc('vehicles',vehicleId),weapon=calc('weapons',weaponId),gear=calc('gear',gearId);
     return{power:vehicle.power+weapon.power+gear.power,heat:vehicle.heat+weapon.heat+gear.heat,evidence:vehicle.evidence+weapon.evidence+gear.evidence};
   }
   function v4OpPreview(kind,p,targetPlayer,target,crewId,vehicleId,weaponId,gearId,timing){
@@ -1486,6 +1496,12 @@
     if(kind!=='bank'&&(!tp||!target))return toast('Ziel nicht mehr verfügbar.');
     const prev=v4OpPreview(kind,p,tp,target,crewId,vehicleId,weaponId,gearId,timing);
     p.dirty-=spec.baseCost;p.actionPoints-=spec.ap;p.roundActivity=(p.roundActivity||0)+4;
+    const wearItem=(type,id,min,max)=>{
+      if(!id)return;
+      const item=(p.inventory?.[type]||[]).find(x=>x.id===id);
+      if(item)item.condition=clamp((Number(item.condition)||100)-rand(min,max),15,100);
+    };
+    wearItem('vehicles',vehicleId,2,6);wearItem('weapons',weaponId,2,5);wearItem('gear',gearId,3,8);
     const members=v4CrewMembers(p,crewId);members.forEach(s=>{s.operations++;v4GainXp(s,8);});
     p.heat=clamp(p.heat+prev.heat*(1-shield(p)/100),0,100);
     v4AddEvidence(p,prev.evidence,`${spec.name} in Runde ${state.round}`);
