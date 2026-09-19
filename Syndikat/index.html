@@ -1417,6 +1417,15 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 })();
 /* SYNDIKAT_REVISION_3_2_END */
 
+/* SYNDIKAT_REVISION_3_5_BEGIN */
+(function REVISION35_PATCH(){
+  const neutralV35={oldtown:340,center:470,station:275,redlight:365,harbor:310,industrial:305,west:420,south:350};
+  DISTRICTS.forEach(d=>{if(neutralV35[d.id])d.neutral=neutralV35[d.id];});
+  const processV34=processEndOfTurn;
+  processEndOfTurn=function(p){processV34(p);p.reputation=clamp(p.reputation,0,100);if(!state.gameOver)saveGame();};
+})();
+/* SYNDIKAT_REVISION_3_5_END */
+
   init();
 })();
 
