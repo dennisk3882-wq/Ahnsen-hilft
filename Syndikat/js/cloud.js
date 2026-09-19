@@ -26,7 +26,14 @@
     if(!r.ok)throw new Error(text||('Cloud HTTP '+r.status));
     return text?JSON.parse(text):null;
   }
-  let realtimeClient=null,realtimeChannel=null;
+  let realtimeClient=null,realtimeChannel=null,accountClient=null;
+  function accountFactory(){
+    if(!window.supabase?.createClient)return null;
+    if(!accountClient)accountClient=window.supabase.createClient(cfg.url,cfg.publishableKey,{
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'syndikat-auth-v1'}
+    });
+    return accountClient;
+  }
   function realtimeFactory(){
     if(!window.supabase?.createClient)return null;
     if(!realtimeClient)realtimeClient=window.supabase.createClient(cfg.url,cfg.publishableKey,{
@@ -111,6 +118,39 @@
     stopRealtime(){
       if(realtimeClient&&realtimeChannel){try{realtimeClient.removeChannel(realtimeChannel)}catch{}}
       realtimeChannel=null;
+    },
+    async getAccount(){
+      const client=accountFactory();if(!client)return null;
+      const {data,error}=await client.auth.getSession();if(error)throw error;
+      return data?.session?.user||null;
+    },
+    async signUpAccount(email,password){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist offline nicht verfügbar.');
+      const {data,error}=await client.auth.signUp({email,password});if(error)throw error;return data;
+    },
+    async signInAccount(email,password){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist offline nicht verfügbar.');
+      const {data,error}=await client.auth.signInWithPassword({email,password});if(error)throw error;return data;
+    },
+    async signOutAccount(){
+      const client=accountFactory();if(!client)return;
+      const {error}=await client.auth.signOut();if(error)throw error;
+    },
+    async accountListSaves(){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
+      const {data,error}=await client.rpc('syndikat_account_list_saves');if(error)throw error;return data||[];
+    },
+    async accountLoadSave(slot){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
+      const {data,error}=await client.rpc('syndikat_account_load_save',{p_slot:Number(slot)});if(error)throw error;return data||null;
+    },
+    async accountSaveSlot(slot,state,expectedRevision=null){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
+      const {data,error}=await client.rpc('syndikat_account_save_slot',{p_slot:Number(slot),p_game_state:state,p_expected_revision:expectedRevision==null?null:Number(expectedRevision)});if(error)throw error;return data;
+    },
+    async accountDeleteSave(slot){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
+      const {data,error}=await client.rpc('syndikat_account_delete_save',{p_slot:Number(slot)});if(error)throw error;return !!data;
     },
     hashToken:hash
   };
