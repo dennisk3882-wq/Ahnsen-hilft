@@ -777,3 +777,5 @@ drop policy if exists syndikat_push_config_deny on public.syndikat_push_config;
 create policy syndikat_push_config_deny on public.syndikat_push_config for all to anon,authenticated using(false) with check(false);
 drop policy if exists syndikat_push_subscriptions_deny on public.syndikat_push_subscriptions;
 create policy syndikat_push_subscriptions_deny on public.syndikat_push_subscriptions for all to anon,authenticated using(false) with check(false);
+
+create index if not exists syndikat_push_participant_idx on public.syndikat_push_subscriptions(participant_id);
