@@ -100,7 +100,7 @@
       return await req('syndikat_online_players?game_code=eq.'+encodeURIComponent(code)+'&select=participant_id,game_code,display_name,family,ready,joined_at,last_seen&order=joined_at.asc',{code,token})||[];
     },
     async setReady(session,ready){
-      return await req('syndikat_online_players?participant_id=eq.'+encodeURIComponent(session.participantId),{method:'PATCH',code:session.code,token:session.token,body:{ready:!!ready,last_seen:new Date().toISOString()},prefer:'return=representation'});
+      return await req('syndikat_online_players?participant_id=eq.'+encodeURIComponent(session.participantId)+'&select=participant_id,game_code,display_name,family,ready,joined_at,last_seen',{method:'PATCH',code:session.code,token:session.token,body:{ready:!!ready,last_seen:new Date().toISOString()},prefer:'return=representation'});
     },
     async startGame(session,revision,state,firstParticipantId){
       return await rpc('syndikat_start_game',{code:session.code,token:session.token,body:{
@@ -116,6 +116,11 @@
     async updateGame(session,revision,patch){
       if(patch?.game_state&&patch?.status==='playing')return this.submitTurn(session,revision,patch.game_state,patch.active_participant_id,'playing',patch.winner_participant_id||null);
       throw new Error('Direkte Online-Spielstandsänderungen sind serverseitig gesperrt.');
+    },
+    async deleteOnlineGame(session){
+      if(!session?.host)throw new Error('Nur der Host kann die Online-Partie löschen.');
+      await req('syndikat_online_games?game_code=eq.'+encodeURIComponent(session.code),{method:'DELETE',code:session.code,token:session.token,prefer:'return=minimal'});
+      return true;
     },
     watchGame(session,onSignal){
       const client=realtimeFactory();if(!client)return null;
