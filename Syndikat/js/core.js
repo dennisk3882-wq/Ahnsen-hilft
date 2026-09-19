@@ -2832,8 +2832,12 @@
   const oldActions=renderActions;
   renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
 
-  const oldOp=window.SyndikatV4?.openOperation;
-  if(oldOp)window.SyndikatV4.openOperation=function(kind,...args){oldOp(kind,...args);setTimeout(()=>{const root=$('#dialogContent .v4-operation');if(root&&!root.querySelector('.operation-hero'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="operation-hero" src="${OP_ART[kind]||OP_ART.sabotage}" alt="">`);},10);};
+  const oldPlanner=v4OpenOperationPlanner;
+  v4OpenOperationPlanner=function(kind,...args){
+    oldPlanner(kind,...args);
+    setTimeout(()=>{const root=$('#dialogContent .v4-operation');if(root&&!root.querySelector('.operation-hero'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="operation-hero" src="${OP_ART[kind]||OP_ART.sabotage}" alt="">`);},10);
+  };
+  if(window.SyndikatV4)window.SyndikatV4.openOperation=v4OpenOperationPlanner;
   function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
   document.addEventListener('click',e=>{const b=e.target.closest?.('[data-v4-arsenal],[data-arsenal]');if(b)setTimeout(decorateArsenal,30);});
 
@@ -2868,7 +2872,7 @@
   addStory();
 
   const oldGameOver=showGameOver;
-  showGameOver=function(){oldGameOver();const p=state?.players.find(x=>x.id===state.winnerId),root=$('#dialogContent');if(!p||!root||root.querySelector('.ending-card'))return;const e=p.story?.flags?.ending||(p.finalCrisis?.choice==='legit'?'empire':p.finalCrisis?.choice==='politics'?'shadow':p.finalCrisis?.choice==='war'?'crown':'family');const endings={empire:['Das legale Imperium',BUSINESS_ART.holding,'Deine Macht trägt Anzüge, besitzt Gebäude und unterschreibt Verträge.'],shadow:['Der unsichtbare Staat',A+'event-corruption.svg','Niemand kann genau sagen, wo dein Einfluss beginnt. Genau deshalb reicht er so weit.'],crown:['Krone aus Neon',V=>V,'Die Stadt erinnert sich an deinen Namen und deine Macht.'],family:['Die Familie bleibt',A+'staff-bodyguard.svg','Deine Organisation hat gelernt, ohne einzelne Helden zu bestehen.']};let x=endings[e]||endings.family;if(typeof x[1]==='function')x=[x[0],A+'start-user.webp',x[2]];root.insertAdjacentHTML('beforeend',`<div class="ending-card"><img src="${x[1]}" alt=""><div><small>Dein Ende</small><h3>${x[0]}</h3><p>${x[2]}</p></div></div>`);};
+  showGameOver=function(){oldGameOver();const p=state?.players.find(x=>x.id===state.winnerId),root=$('#dialogContent');if(!p||!root||root.querySelector('.ending-card'))return;const e=p.story?.flags?.ending||(p.finalCrisis?.choice==='legit'?'empire':p.finalCrisis?.choice==='politics'?'shadow':p.finalCrisis?.choice==='war'?'crown':'family');const endings={empire:['Das legale Imperium',BUSINESS_ART.holding,'Deine Macht trägt Anzüge, besitzt Gebäude und unterschreibt Verträge.'],shadow:['Der unsichtbare Staat',A+'event-corruption.svg','Niemand kann genau sagen, wo dein Einfluss beginnt. Genau deshalb reicht er so weit.'],crown:['Krone aus Neon',A+'start-user.webp','Die Stadt erinnert sich an deinen Namen und deine Macht.'],family:['Die Familie bleibt',A+'staff-bodyguard.svg','Deine Organisation hat gelernt, ohne einzelne Helden zu bestehen.']};const x=endings[e]||endings.family;root.insertAdjacentHTML('beforeend',`<div class="ending-card"><img src="${x[1]}" alt=""><div><small>Dein Ende</small><h3>${x[0]}</h3><p>${x[2]}</p></div></div>`);};
 
   const oldInit=initPlayer;initPlayer=function(p){oldInit(p);ensureDepth(p);};
   const oldMigrate=migrateState;migrateState=function(data){data=oldMigrate(data);(data.players||[]).forEach(ensureDepth);return data;};
