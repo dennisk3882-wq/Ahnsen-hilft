@@ -123,12 +123,22 @@
   ];
 
   const TUTORIAL = [
-    ['Willkommen bei Syndikat','Du startest klein. Verdiene Geld durch Aktionen und investiere es in Betriebe, damit dein Syndikat jede Runde automatisch wächst.'],
-    ['Die Stadt ist nicht leer','Jedes Viertel besitzt neutralen Grundbesitz. Ein einzelner Automat gibt dir nur wenige Prozent Einfluss. Erst mehrere und größere Betriebe bringen echte Kontrolle.'],
-    ['Ausspähen vor dem Handeln','Mit „Viertel auskundschaften“ deckst du Rivalen, Betriebe, Sicherheitslage und lukrative Möglichkeiten auf. Informanten erhöhen die Detailtiefe.'],
-    ['Organisation aufbauen','Personal sind jetzt individuelle Figuren mit Fähigkeit, Loyalität, Eigenschaft und Gehalt. Gute Leute machen einen spürbaren Unterschied.'],
-    ['Heat und Justiz','Kriminalität erhöht Heat. Kontakte, Untertauchen, Anwälte und Gefängnisaktionen helfen – hohe Aufmerksamkeit kann Razzien auslösen.'],
-    ['Gewinnen','Vermögen allein reicht nicht. Kontrolliere Stadtteile, baue Einfluss und Organisation aus und erreiche die notwendige Dominanz für deine gewählte Partielänge.']
+    ['Willkommen bei Syndikat','Du startest klein. Verdiene Geld durch Aktionen und investiere es in Betriebe, damit dein Syndikat jede Runde wächst.'],
+    ['Sauberes und schmutziges Geld','Kriminelle Aktionen liefern überwiegend schmutziges Geld. Viele Investitionen, Kredite, Immobilien und legale Ausgaben benötigen sauberes Kapital. Betriebe waschen pro Runde nur begrenzte Beträge.'],
+    ['Die Stadt und ihre Viertel','Jedes Viertel besitzt Nachfrage, Polizeidruck, begrenzte Standorte und neutralen Einfluss. Kontrolle entsteht durch Betriebe, Immobilien und weitere Einflussquellen.'],
+    ['Aufklärung','Mit „Viertel auskundschaften“ deckst du Rivalen, Betriebe, Sicherheitslage und Chancen auf. Informanten erhöhen die Detailtiefe und helfen bei Gegenaufklärung.'],
+    ['Personal und Loyalität','Mitarbeiter besitzen Rolle, Fähigkeit, Loyalität, Eigenschaft, Gehalt, Erfahrung und Level. Unzufriedene oder schlecht geführte Leute werden zum Risiko.'],
+    ['Crews und Unterboss','Stelle feste Einsatzcrews zusammen und ernenne geeignete Führungskräfte. Ein guter Unterboss hält die Organisation auch während deiner Haft handlungsfähig.'],
+    ['Arsenal und Fuhrpark','Waffen, Fahrzeuge und Spezialausrüstung beeinflussen geplante Operationen. Einsatzmittel verschleißen und müssen gewartet werden.'],
+    ['Operationen','Sabotage, Entführung, Auftragsmord und Bankoperationen werden geplant. Crew, Ziel, Ausrüstung, Timing, Gegenwehr und Intel verändern Erfolg, Heat und Beweislage.'],
+    ['Betriebe und Spezialisierungen','Betriebe können ausgebaut und spezialisiert werden. Marktsättigung, Sicherheit, Zustand, Standort und Immobilienzuordnung beeinflussen ihren Ertrag.'],
+    ['Immobilien und Schutzgeld','Eigene Grundstücke senken laufende Mietkosten und erzeugen zusätzlichen Einfluss. Schutzgeldverträge bringen schmutzige Einnahmen, erhöhen aber Risiko und Heat.'],
+    ['Diplomatie und Spionage','Geschenke, Pakte, Bündnisse, Handel, geheime Geschäfte, Gebietstausch und Verrat verändern Beziehungen. Spione können Informanten einschleusen oder Personal abwerben.'],
+    ['Heat, Ermittlungen und Gericht','Kriminalität erzeugt Heat und Beweise. Kontakte, Anwälte und Gegenaufklärung helfen. Hohe Beweise führen zu Anklage und Gerichtsverfahren mit mehreren Verteidigungswegen.'],
+    ['Gefängnis und Führung','In Haft kannst du Berufung, Kontakte, Schmuggel, Tunnel oder Flucht vorbereiten. Ohne verlässliche Stellvertretung leiden Betriebe und Loyalität.'],
+    ['Story und Entscheidungen','Die 20 Kapitel reagieren auf frühere Entscheidungen. Kapitelziele, Rivalenbeziehungen, Politik, Familie und Endgame formen das spätere Ende.'],
+    ['Endgame und Sieg','Dominanz- und Wirtschaftssieg richten sich nach der Partielänge. Die Endgame-Krise verlangt Legalisierung, politischen Einfluss oder offenen Machtkampf. Nach einem Sieg kannst du im freien Spiel weitermachen.'],
+    ['Speichern, Cloud und Online','Neben Autosave und lokalen Slots gibt es Export/Import, Cloud-Saves und Online-Lobbys. Online wird jeder Zug serverseitig mit Revision und aktivem Teilnehmer geprüft.']
   ];
 
   let state=null, selectedDistrict='oldtown', currentView='city', deferredInstallPrompt=null;

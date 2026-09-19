@@ -169,7 +169,7 @@
       <p class="muted">Freie Standorte: ${districtSlotsFree(d.id)} / ${d.slots} · Freigeschaltete Geschäftsstufe: ${tier}/6 · Kauf benötigt 1 AP. Ab Stufe 2 wird sauberes Kapital benötigt.</p>
       <div class="dialog-list">${entries.map(([k,b])=>{const cost=purchaseCost(k),locked=b.tier>tier,space=districtSlotsFree(d.id)<b.slotUse,clean=b.tier>=2?p.clean:totalLiquid(p),disabled=locked||space||clean<cost||p.actionPoints<1||p.businessPurchasesThisTurn>=2;
       return `<div class="dialog-option ${focusType===k?'highlight':''}"><div><strong>${b.icon} ${esc(b.name)}</strong><p>${esc(b.desc)}<br>ca. ${fmt(Math.round(b.baseIncome*d.demand))}/R · ${b.slotUse} Standort${b.slotUse===1?'':'e'} · Tier ${b.tier}${locked?' · GESPERRT':''}${b.tier>=2?' · sauberes Geld':''}${businessPerk(k)?`<br>${esc(businessPerk(k))}`:''}</p></div><button class="btn btn-primary" data-buy="${k}" ${disabled?'disabled':''}>${fmt(cost)}</button></div>`;}).join('')}</div></div>`);
-    $('[data-buy]').forEach(btn=>btn.onclick=()=>buyBusiness(btn.dataset.buy,districtId));
+    $$('[data-buy]').forEach(btn=>btn.onclick=()=>buyBusiness(btn.dataset.buy,districtId));
   };
 
   buyBusiness=function(type,districtId){
@@ -208,8 +208,8 @@
       <p class="muted">Ertrag und Risiko unterscheiden sich je Standort. Schlechter Zustand senkt den Umsatz und erhöht Störungsrisiken.</p>
       <div class="dialog-list">${b.machines.map(m=>{const loc=MACHINE_LOCATIONS.find(x=>x.id===m.location),repair=machineRepairCost(m);return `<div class="dialog-option"><div><strong>${esc(m.name)}</strong><p>Zustand ${m.condition}% · Risiko x${(loc?.risk||1).toFixed(2)}${m.condition<75?' · Wartung empfohlen':''}</p></div><div class="mini-actions"><select data-machine-loc="${m.id}">${MACHINE_LOCATIONS.map(l=>`<option value="${l.id}" ${m.location===l.id?'selected':''}>${esc(l.name)} · Ertrag x${l.mult.toFixed(2)} · Risiko x${l.risk.toFixed(2)}</option>`).join('')}</select><button class="btn btn-secondary" data-machine-repair="${m.id}" ${m.condition>=100||p.clean<repair?'disabled':''}>Warten ${fmt(repair)}</button></div></div>`;}).join('')}</div>
       <div class="dialog-footer"><button class="btn btn-secondary" data-route-manager>Automatenroute zuweisen</button></div></div>`);
-    $('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{const m=b.machines.find(x=>x.id===sel.dataset.machineLoc);if(p.clean<300){sel.value=m.location;return toast('Du brauchst 300 $ sauberes Geld für den Standortwechsel.');}spendClean(p,300);m.location=sel.value;markActivity(p);ledger(p,'Automat umgesetzt',-300,'expense');saveGame();renderAll();toast('Standort geändert.');});
-    $('[data-machine-repair]').forEach(btn=>btn.onclick=()=>{const m=b.machines.find(x=>x.id===btn.dataset.machineRepair),cost=machineRepairCost(m);if(!spendClean(p,cost))return toast('Nicht genug sauberes Geld.');m.condition=100;p.stats.maintenance++;markActivity(p);ledger(p,'Automat gewartet',-cost,'expense');openMachineManager(bid);});
+    $$('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{const m=b.machines.find(x=>x.id===sel.dataset.machineLoc);if(p.clean<300){sel.value=m.location;return toast('Du brauchst 300 $ sauberes Geld für den Standortwechsel.');}spendClean(p,300);m.location=sel.value;markActivity(p);ledger(p,'Automat umgesetzt',-300,'expense');saveGame();renderAll();toast('Standort geändert.');});
+    $$('[data-machine-repair]').forEach(btn=>btn.onclick=()=>{const m=b.machines.find(x=>x.id===btn.dataset.machineRepair),cost=machineRepairCost(m);if(!spendClean(p,cost))return toast('Nicht genug sauberes Geld.');m.condition=100;p.stats.maintenance++;markActivity(p);ledger(p,'Automat gewartet',-cost,'expense');openMachineManager(bid);});
     $('[data-route-manager]').onclick=()=>openRoutesDialog(bid);
   };
 
@@ -221,8 +221,8 @@
       ${p.routes.length?p.routes.map(r=>`<div class="route-card"><div><strong>${esc(r.name)}</strong><p>Stufe ${r.level} · ${bundles.filter(b=>b.routeId===r.id).length} Pakete · Bonus +${r.level*7}%</p></div><button class="btn btn-secondary" data-up-route="${r.id}" ${r.level>=3||p.clean<5000*r.level?'disabled':''}>Verbessern ${fmt(5000*r.level)}</button></div>`).join(''):'<div class="empty-state">Noch keine Route angelegt.</div>'}
       <h3>Pakete zuweisen</h3><div class="dialog-list">${bundles.map(b=>`<div class="dialog-option"><div><strong>${esc(byDistrict(b.district).name)} · ${esc(b.name)}</strong></div><select data-route-biz="${b.id}"><option value="">Keine Route</option>${p.routes.map(r=>`<option value="${r.id}" ${b.routeId===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`).join('')}</div></div>`);
     $('[data-new-route]')?.addEventListener('click',()=>{if(!spendClean(p,2500))return;p.routes.push({id:uid(),name:`Route ${p.routes.length+1}`,level:1});markActivity(p);ledger(p,'Automatenroute eingerichtet',-2500,'asset');saveGame();openRoutesDialog(focusBiz);});
-    $('[data-up-route]').forEach(btn=>btn.onclick=()=>{const r=p.routes.find(x=>x.id===btn.dataset.upRoute),cost=5000*r.level;if(!spendClean(p,cost))return toast('Nicht genug sauberes Kapital.');r.level++;markActivity(p);ledger(p,'Automatenroute verbessert',-cost,'asset');saveGame();openRoutesDialog(focusBiz);});
-    $('[data-route-biz]').forEach(sel=>sel.onchange=()=>{const b=p.businesses.find(x=>x.id===sel.dataset.routeBiz);b.routeId=sel.value||null;markActivity(p);saveGame();renderAll();});
+    $$('[data-up-route]').forEach(btn=>btn.onclick=()=>{const r=p.routes.find(x=>x.id===btn.dataset.upRoute),cost=5000*r.level;if(!spendClean(p,cost))return toast('Nicht genug sauberes Kapital.');r.level++;markActivity(p);ledger(p,'Automatenroute verbessert',-cost,'asset');saveGame();openRoutesDialog(focusBiz);});
+    $$('[data-route-biz]').forEach(sel=>sel.onchange=()=>{const b=p.businesses.find(x=>x.id===sel.dataset.routeBiz);b.routeId=sel.value||null;markActivity(p);saveGame();renderAll();});
   };
 
   doCrime=function(id){
@@ -247,7 +247,7 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Aufklärung Stufe ${level}</p><h2>${esc(d.name)}</h2></div><button class="icon-btn" data-close>✕</button></div>
       <div class="intel-summary"><span>Intel: Runde ${intel.round}${age>2?' · veraltet':''}</span><span>Neutral: ${Math.round(neutralShare(did))}%</span><span>Polizei: ${pct(d.police*100)}</span><span>Risiko: ${pct((d.risk||1)*100)}</span><span>Standorte frei: ${districtSlotsFree(did)}/${d.slots}</span></div>
       <div class="intel-list">${rows}</div><h3>Lukrative Möglichkeiten</h3><div class="dialog-list">${roi.map(x=>`<div class="dialog-option"><div><strong>${x.b.icon} ${esc(x.b.name)}</strong><p>Marktsättigung ${Math.round(marketSaturation(x.k,did)*100)}% · erwarteter Basisertrag ${fmt(x.b.baseIncome*d.demand)}/R · ${x.b.slotUse} Standorte</p></div><button class="btn btn-primary" data-intel-buy="${x.k}">${fmt(purchaseCost(x.k))}</button></div>`).join('')}</div></div>`);
-    $('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
+    $$('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
   };
 
   hireStaff=function(key){
@@ -289,7 +289,7 @@
     const max=Math.max(30000,Math.round(netWorth(p)*.55+p.reputation*3000)),out=outstandingLoans(p),rate=loanRate(p),opts=[25000,100000,500000,1000000,2500000].filter(x=>x+out<=max);
     if(!opts.length)return toast(`Deine Kreditlinie ist ausgeschöpft (${fmt(max)}).`);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Bank</p><h2>Kredit aufnehmen</h2></div><button class="icon-btn" data-close>✕</button></div><p class="muted">Kreditlinie: ${fmt(max)} · offen ${fmt(out)} · Zinssatz ${Math.round(rate*1000)/10}%/R · Ausfälle: ${p.creditDefaults}.</p><div class="dialog-list">${opts.map(a=>`<div class="dialog-option"><div><strong>${fmt(a)}</strong><p>Mindesttilgung ${fmt(Math.max(1500,Math.round(a/10)))}/R · Auszahlung ist sauberes Kapital.</p></div><button class="btn btn-primary" data-loan-amt="${a}">Aufnehmen</button></div>`).join('')}</div></div>`);
-    $('[data-loan-amt]').forEach(b=>b.onclick=()=>takeLoan(+b.dataset.loanAmt));
+    $$('[data-loan-amt]').forEach(b=>b.onclick=()=>takeLoan(+b.dataset.loanAmt));
   };
   takeLoan=function(amount){const p=currentPlayer(),rate=loanRate(p);p.clean+=amount;p.loans.push({id:uid(),original:amount,remaining:amount,rate,payment:Math.max(1500,Math.round(amount/10)),started:state.round,missed:0,status:'active'});markActivity(p);ledger(p,'Bankkredit',amount,'loan');recordChronicle(`${p.family} finanziert Expansion über einen Bankkredit.`);closeDialog();saveGame();renderAll();toast(`${fmt(amount)} sauberes Kapital ausgezahlt.`);};
   function repayLoan(id,amount=null){const p=currentPlayer(),l=p.loans.find(x=>x.id===id);if(!l)return;const pay=Math.min(l.remaining,amount||Math.max(5000,Math.round(l.remaining*.25)),p.clean);if(pay<=0)return toast('Kein sauberes Kapital zur Tilgung.');spendClean(p,pay);l.remaining-=pay;l.missed=0;markActivity(p);p.stats.loansRepaid++;ledger(p,'Sondertilgung Bankkredit',-pay,'loan');if(l.remaining<=50)p.loans=p.loans.filter(x=>x.id!==id);saveGame();renderAll();toast(`${fmt(pay)} Kredit getilgt.`);}
@@ -317,7 +317,7 @@
     $('#ledgerList').innerHTML=`<div class="finance-actions"><button class="btn btn-primary" data-loan>Kredit aufnehmen</button><button class="btn btn-secondary" data-export>Spielstand exportieren</button></div>
       <div class="panel" style="padding:1rem;margin:.8rem 0"><strong>Geldkreislauf</strong><p class="muted">Betriebe ab Tier 2, Ausbauten, Reparaturen und Bankraten benötigen sauberes Geld. Illegale Aktionen und Bestechung nutzen vor allem schmutziges Geld. Deine Betriebe waschen pro Runde nur eine begrenzte Summe.</p></div>
       ${p.debt>0?`<div class="debt-repay"><div><strong>Sonstige Schulden: ${fmt(p.debt)}</strong><div class="muted">Sauber verfügbar: ${fmt(p.clean)}</div></div><button class="btn btn-primary" data-repay ${p.clean<=0?'disabled':''}>Tilgen</button></div>`:''}${loanRows}${p.ledger.length?p.ledger.slice(0,20).map(x=>`<div class="ledger-row"><span class="muted">Runde ${x.round}</span><span>${esc(x.label)}</span><strong class="${x.amount>=0?'plus':'minus'}">${x.amount>=0?'+':''}${fmt(x.amount)}</strong></div>`).join(''):'<div class="empty-state">Noch keine Buchungen.</div>'}`;
-    $('[data-repay]')?.addEventListener('click',repayDebt);$('[data-loan]')?.addEventListener('click',openLoanDialog);$('[data-export]')?.addEventListener('click',exportSave);$('[data-repay-loan]').forEach(b=>b.onclick=()=>repayLoan(b.dataset.repayLoan));if(currentView==='finance')requestAnimationFrame(drawChart);
+    $('[data-repay]')?.addEventListener('click',repayDebt);$('[data-loan]')?.addEventListener('click',openLoanDialog);$('[data-export]')?.addEventListener('click',exportSave);$$('[data-repay-loan]').forEach(b=>b.onclick=()=>repayLoan(b.dataset.repayLoan));if(currentView==='finance')requestAnimationFrame(drawChart);
   };
 
   makeMission=function(p){
@@ -480,7 +480,7 @@
   }
   openMoreMenu=function(){
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Navigation</p><h2>Mehr</h2></div><button class="icon-btn" data-close>✕</button></div><div class="more-grid"><button class="btn btn-secondary" data-go="staff">♟ Personal</button><button class="btn btn-secondary" data-go="corruption">⚖ Einfluss</button><button class="btn btn-secondary" data-go="finance">▥ Finanzen</button><button class="btn btn-secondary" data-go="missions">◎ Aufträge</button><button class="btn btn-secondary" data-go="ranking">♛ Rangliste</button><button class="btn btn-secondary" data-more-diplomacy>🤝 Diplomatie</button><button class="btn btn-secondary" data-more-routes>♣ Automatenrouten</button><button class="btn btn-secondary" data-chronicle>▤ Stadtchronik</button></div></div>`);
-    $('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-chronicle]').onclick=openChronicleDialog;
+    $$('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-chronicle]').onclick=openChronicleDialog;
   };
 
   const baseOpenGameMenu=openGameMenu;
@@ -630,7 +630,7 @@
   };
 
   renderCorruption=function(){
-    const p=currentPlayer();$('#corruptionGrid').innerHTML=Object.entries(CORRUPTION).map(([k,c])=>`<article class="shop-card"><div class="shop-top"><div><small class="eyebrow">Einfluss</small><h3>${esc(c.name)}</h3></div><span class="owned">${p.bribes[k]?'✓':'–'}</span></div><p>${esc(c.desc)}</p><footer><span class="price">${fmt(c.cost)} schmutzig</span><button class="btn ${p.bribes[k]?'btn-ghost':'btn-secondary'}" data-bribe="${k}" ${p.bribes[k]||p.jailed||p.dirty<c.cost?'disabled':''}>${p.bribes[k]?'Aktiv':'Bestechen'}</button></footer></article>`).join('');$('#corruptionGrid [data-bribe]').forEach(b=>b.onclick=()=>buyBribe(b.dataset.bribe));
+    const p=currentPlayer();$('#corruptionGrid').innerHTML=Object.entries(CORRUPTION).map(([k,c])=>`<article class="shop-card"><div class="shop-top"><div><small class="eyebrow">Einfluss</small><h3>${esc(c.name)}</h3></div><span class="owned">${p.bribes[k]?'✓':'–'}</span></div><p>${esc(c.desc)}</p><footer><span class="price">${fmt(c.cost)} schmutzig</span><button class="btn ${p.bribes[k]?'btn-ghost':'btn-secondary'}" data-bribe="${k}" ${p.bribes[k]||p.jailed||p.dirty<c.cost?'disabled':''}>${p.bribes[k]?'Aktiv':'Bestechen'}</button></footer></article>`).join('');$$('#corruptionGrid [data-bribe]').forEach(b=>b.onclick=()=>buyBribe(b.dataset.bribe));
   };
 })();
 /* SYNDIKAT_REVISION_3_1_END */

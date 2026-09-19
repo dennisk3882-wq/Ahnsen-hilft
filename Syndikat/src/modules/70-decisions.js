@@ -66,7 +66,7 @@
     const spec=DECISIONS[dec.type];if(!spec)return;
     const d=dec.data?.district?DISTRICTS.find(x=>x.id===dec.data.district):null;
     openDialog(`<div class="dialog-wrap decision-dialog"><div class="dialog-head"><div><p class="eyebrow">Entscheidung · Runde ${dec.round}</p><h2>${esc(spec.title)}</h2></div><button class="icon-btn" data-close>✕</button></div><p>${esc(spec.intro(d))}</p><div class="dialog-list">${spec.options.map(o=>{const enough=o.cost===0||p.clean>=o.cost||p.dirty>=o.cost;return `<div class="dialog-option"><div><strong>${esc(o.name)}</strong><p>${esc(o.desc)}${o.cost?` · Kosten ${fmt(o.cost)}`:''}</p></div><button class="btn btn-primary" data-decision="${o.id}" ${enough?'':'disabled'}>Wählen</button></div>`}).join('')}</div></div>`);
-    $('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
+    $$('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
   }
 
   function v46AiTrade(p){

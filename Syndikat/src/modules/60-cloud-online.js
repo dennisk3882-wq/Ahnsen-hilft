@@ -166,7 +166,7 @@
       <div class="form-grid"><label><span>Cloud-Code</span><input id="cloudLoadCode"></label><label><span>Schlüssel</span><input id="cloudLoadToken"></label></div><div class="dialog-footer"><button class="btn btn-secondary" data-cloud-load>Laden</button></div></div>`);
     $('[data-cloud-create]').onclick=v45CreateLobby;$('[data-cloud-join]').onclick=v45JoinLobby;$('[data-cloud-save-new]')?.addEventListener('click',v45CloudSaveNew);$('[data-cloud-save-update]')?.addEventListener('click',v45CloudSaveUpdate);$('[data-cloud-load]').onclick=v45CloudLoad;
     $('[data-account-login]')?.addEventListener('click',()=>v45AccountSignIn(false));$('[data-account-register]')?.addEventListener('click',()=>v45AccountSignIn(true));$('[data-account-signout]')?.addEventListener('click',v45AccountSignOut);
-    $('[data-account-save]').forEach(b=>b.onclick=()=>v45AccountSave(+b.dataset.accountSave));$('[data-account-load]').forEach(b=>b.onclick=()=>v45AccountLoad(+b.dataset.accountLoad));$('[data-account-delete]').forEach(b=>b.onclick=()=>v45AccountDelete(+b.dataset.accountDelete));
+    $$('[data-account-save]').forEach(b=>b.onclick=()=>v45AccountSave(+b.dataset.accountSave));$$('[data-account-load]').forEach(b=>b.onclick=()=>v45AccountLoad(+b.dataset.accountLoad));$$('[data-account-delete]').forEach(b=>b.onclick=()=>v45AccountDelete(+b.dataset.accountDelete));
   }
 
   const v45EndTurn=endHumanTurn;
@@ -191,7 +191,7 @@
       const p=currentPlayer(),mine=p?.onlineParticipantId===onlineSession.participantId||p?.type==='ai';
       if(p?.type==='remote'||!mine){
         const b=$('#statusBanner');b.className='status-banner';b.textContent=`Online: ${p?.name||p?.family||'Mitspieler'} ist am Zug. Die Ansicht aktualisiert sich automatisch.`;
-        $('#gameScreen .content-area button').forEach(x=>x.disabled=true);
+        $$('#gameScreen .content-area button').forEach(x=>x.disabled=true);
       }
     }
   };

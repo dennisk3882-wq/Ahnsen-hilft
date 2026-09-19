@@ -77,8 +77,8 @@
       }).join('')}</div>`;
     }).join('');
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Logistik & Wartung</p><h2>Arsenal & Fuhrpark</h2></div><button class="icon-btn" data-close>✕</button></div><p class="muted">Einsatzmittel verschleißen bei Operationen. Schlechter Zustand reduziert ihre Wirkung und kann zusätzliche Spuren erzeugen.</p>${sections}</div>`);
-    $('[data-final-buy]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalBuy.split(':');buyEquipment(type,id);});
-    $('[data-final-repair]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalRepair.split(':');repairEquipment(type,id);});
+    $$('[data-final-buy]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalBuy.split(':');buyEquipment(type,id);});
+    $$('[data-final-repair]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalRepair.split(':');repairEquipment(type,id);});
   }
 
   openMachineManager=function(bid){
@@ -88,12 +88,12 @@
       const cond=Math.round(m.condition),cost=Math.max(180,Math.round((100-cond)*18));
       return `<div class="dialog-option"><div><strong>${esc(m.name)}</strong><p>Zustand ${cond}% · aktueller Ort: ${esc(MACHINE_LOCATIONS.find(x=>x.id===m.location)?.name||'Unbekannt')}</p><div class="healthbar"><i style="width:${cond}%"></i></div></div><div class="mini-actions"><select data-machine-loc="${m.id}">${MACHINE_LOCATIONS.map(l=>`<option value="${l.id}" ${m.location===l.id?'selected':''}>${esc(l.name)} · x${l.mult.toFixed(2)}</option>`).join('')}</select><button class="btn btn-secondary" data-machine-maintain="${m.id}" ${cond>=100?'disabled':''}>Warten ${fmt(cost)}</button></div></div>`;
     }).join('')}</div><div class="dialog-footer"><button class="btn btn-secondary" data-route-manager>Automatenroute zuweisen</button></div></div>`);
-    $('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{
+    $$('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{
       const m=b.machines.find(x=>x.id===sel.dataset.machineLoc);
       if(totalLiquid(p)<300){sel.value=m.location;return toast('Du brauchst 300 $ für den Standortwechsel.');}
       m.location=sel.value;spend(p,300,false);ledger(p,'Automat umgesetzt',-300,'expense');saveGame();openMachineManager(bid);
     });
-    $('[data-machine-maintain]').forEach(btn=>btn.onclick=()=>{
+    $$('[data-machine-maintain]').forEach(btn=>btn.onclick=()=>{
       const m=b.machines.find(x=>x.id===btn.dataset.machineMaintain);if(!m)return;
       const cost=Math.max(180,Math.round((100-m.condition)*18));
       if(p.clean<cost)return toast('Nicht genug sauberes Geld.');
@@ -190,7 +190,7 @@
         ['Stellvertreter',leader?esc(leader.name):'Keiner',leader?'positive':'negative'],
         ['Organisationseffizienz',`${eff}%`,eff>=90?'positive':eff<80?'negative':'']
       ])}</div>`;
-    $('[data-prison-final]').forEach(b=>b.onclick=()=>prisonAction(b.dataset.prisonFinal));
+    $$('[data-prison-final]').forEach(b=>b.onclick=()=>prisonAction(b.dataset.prisonFinal));
     return true;
   }
 
@@ -288,7 +288,7 @@
       <div class="dialog-option"><div><strong>Politisches Schutzschild</strong><p>180.000 $ schmutziges Geld. Korruption und Informanten helfen, können aber auffliegen.</p></div><button class="btn btn-secondary" data-final-choice="politics">Netzwerk nutzen</button></div>
       <div class="dialog-option"><div><strong>Offener Machtkampf</strong><p>Mindestens 2 Revolverhelden. Brutal, schnell und sehr auffällig.</p></div><button class="btn btn-danger" data-final-choice="war">Krieg</button></div>
     </div></div>`);
-    $('[data-final-choice]').forEach(b=>b.onclick=()=>{closeDialog();applyFinalChoice(p,b.dataset.finalChoice,false);});
+    $$('[data-final-choice]').forEach(b=>b.onclick=()=>{closeDialog();applyFinalChoice(p,b.dataset.finalChoice,false);});
   }
 
   const basePower=powerIndex;
@@ -391,6 +391,20 @@
       list.insertAdjacentHTML('afterbegin',`<div class="situation-item" data-final-city><span>Endgame</span><button class="btn ${p.finalCrisis.active?'btn-danger':'btn-secondary'}" data-open-final>${esc(p.finalCrisis.resolved?p.finalCrisis.outcome:'Krise aktiv')}</button></div>`);
       $('[data-open-final]',list).onclick=openFinalCrisis;
     }
+  };
+
+  const finalBaseGameOver=showGameOver;
+  showGameOver=function(){
+    finalBaseGameOver();
+    const winner=state?.players?.find(x=>x.id===state.winnerId);
+    const root=$('#dialogContent');
+    if(!state?.gameOver||winner?.type!=='human'||!root||root.querySelector('[data-freeplay]'))return;
+    root.insertAdjacentHTML('beforeend',`<div class="dialog-footer post-victory-actions"><button class="btn btn-secondary" data-freeplay>Nach dem Sieg weiterspielen</button></div>`);
+    $('[data-freeplay]')?.addEventListener('click',()=>{
+      state.gameOver=false;state.winnerId=null;state.endReason='';
+      state.postVictory=true;state.settings=state.settings||{};state.settings.length='endless';
+      closeDialog();saveGame();renderAll();toast('Freies Spiel aktiviert. Story, Betriebe und Rivalen bleiben vollständig erhalten.');
+    });
   };
 
   window.SyndikatFinalSystems={openArsenal:openArsenalFinal,openFinalCrisis};
