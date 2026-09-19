@@ -2386,8 +2386,7 @@
       }catch{}
     },5000);
   }
-  function v45FindHash(participantId){return onlineRoster.find(x=>x.participant_id===participantId)?.player_token_hash||null}
-  function v45BuildState(roster,settings){
+    function v45BuildState(roster,settings){
     const players=roster.map(r=>{const p=blankPlayer(r.display_name,r.family,'human');p.onlineParticipantId=r.participant_id;return p;});
     const aiCount=Math.max(0,Math.min(Number(settings.aiCount)||0,8-players.length));
     for(let i=0;i<aiCount;i++){const prof=AI_PROFILES[i%AI_PROFILES.length],p=blankPlayer(prof.family,prof.family,'ai',prof.style),mult={easy:.85,normal:1,hard:1.2,boss:1.45}[settings.difficulty]||1;p.clean=Math.round(p.clean*mult);p.dirty=Math.round(p.dirty*mult);players.push(p);}
@@ -2417,7 +2416,7 @@
       const game=await c.getGame(onlineSession.code,onlineSession.token),roster=await c.getPlayers(onlineSession.code,onlineSession.token);
       if(roster.length<2)return toast('Für Online-Multiplayer werden mindestens 2 menschliche Spieler benötigt.');
       onlineRoster=roster;const st=v45BuildState(roster,game.settings||{}),first=roster[0];
-      const row=await c.updateGame(onlineSession,game.revision,{status:'playing',game_state:st,active_participant_id:first.participant_id,active_token_hash:first.player_token_hash});
+      const row=await c.updateGame(onlineSession,game.revision,{status:'playing',game_state:st,active_participant_id:first.participant_id});
       onlineRevision=row.revision;v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();toast('Online-Partie gestartet.');
     }catch(e){toast('Cloud: '+e.message);}
   }
@@ -2469,8 +2468,8 @@
     (async()=>{
       try{
         if(!onlineRoster.length)onlineRoster=await v45Cloud().getPlayers(onlineSession.code,onlineSession.token);
-        const next=currentPlayer(),nextPid=next?.onlineParticipantId||null,nextHash=nextPid?v45FindHash(nextPid):null;
-        const patch={game_state:v45CanonicalState(),status:state.gameOver?'finished':'playing',active_participant_id:nextPid,active_token_hash:nextHash,winner_participant_id:state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null};
+        const next=currentPlayer(),nextPid=next?.onlineParticipantId||null;
+        const patch={game_state:v45CanonicalState(),status:state.gameOver?'finished':'playing',active_participant_id:nextPid,winner_participant_id:state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null};
         const row=await v45Cloud().updateGame(onlineSession,onlineRevision,patch);onlineRevision=row.revision;
       }catch(e){toast('Online-Synchronisation fehlgeschlagen: '+e.message);}
     })();
