@@ -2622,7 +2622,7 @@
   const previousRenderStaff=renderStaff;
   renderStaff=function(){
     previousRenderStaff();const p=currentPlayer();
-    $$$('#staffGrid [data-staff-person]').forEach(btn=>{
+    $$('#staffGrid [data-staff-person]').forEach(btn=>{
       const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!s||!card)return;
       const top=card.querySelector('.shop-top');if(!top||top.querySelector('.person-portrait,.person-initial-avatar'))return;
       const img=staffPortrait(s);
