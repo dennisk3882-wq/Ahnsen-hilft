@@ -221,9 +221,9 @@ assert(src.includes('SYNDIKAT_V56_RUNTIME_FACADE_BEGIN'));
 {
   const base=fs.readFileSync('Syndikat/src/core-base.js','utf8');
   const moduleNames=[
-    '10-legacy-v3.js','20-organization-operations.js','30-meta-progression.js',
-    '40-ai-espionage-events.js','50-economy-property.js','55-visual-story.js','58-world-depth.js','59-visual-expansion.js','60-cloud-online.js','62-account-push.js','65-ui-art.js',
-    '70-decisions.js','80-justice.js','90-final-gameplay.js','95-runtime-facade.js'
+    '10-compatibility-core.js','20-organization-operations.js','30-progression.js',
+    '40-ai-events.js','50-economy-property.js','55-story-campaign.js','58-world-systems.js','59-visuals.js','60-online-cloud.js','62-account-push.js','65-ui-art.js',
+    '70-decisions.js','80-justice.js','90-endgame.js','95-runtime-facade.js'
   ];
   assert(base.includes('__SYNDIKAT_MODULES__'),'modular core base must expose build marker');
   for(const name of moduleNames) assert(fs.existsSync('Syndikat/src/modules/'+name),'missing source module '+name);
@@ -250,7 +250,7 @@ assert(src.includes('SYNDIKAT_V56_RUNTIME_FACADE_BEGIN'));
 
 // v5.4 complete visual expansion guards
 {
-  const visualExpansion=fs.readFileSync('Syndikat/src/modules/59-visual-expansion.js','utf8');
+  const visualExpansion=fs.readFileSync('Syndikat/src/modules/59-visuals.js','utf8');
   assert(visualExpansion.includes('SYNDIKAT_V54_VISUAL_EXPANSION_BEGIN'),'visual expansion module missing');
   assert(visualExpansion.includes('story-20.svg'),'all story chapters must have dedicated art');
   assert(visualExpansion.includes('ending-shadow.svg'),'ending art mapping missing');

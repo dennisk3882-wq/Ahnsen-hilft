@@ -4,20 +4,20 @@ const path=require('path');
 const root=path.resolve(__dirname,'..');
 const marker='/* __SYNDIKAT_MODULES__ */';
 const modules=[
-  "src/modules/10-legacy-v3.js",
+  "src/modules/10-compatibility-core.js",
   "src/modules/20-organization-operations.js",
-  "src/modules/30-meta-progression.js",
-  "src/modules/40-ai-espionage-events.js",
+  "src/modules/30-progression.js",
+  "src/modules/40-ai-events.js",
   "src/modules/50-economy-property.js",
-  "src/modules/55-visual-story.js",
-  "src/modules/58-world-depth.js",
-  "src/modules/59-visual-expansion.js",
-  "src/modules/60-cloud-online.js",
+  "src/modules/55-story-campaign.js",
+  "src/modules/58-world-systems.js",
+  "src/modules/59-visuals.js",
+  "src/modules/60-online-cloud.js",
   "src/modules/62-account-push.js",
   "src/modules/65-ui-art.js",
   "src/modules/70-decisions.js",
   "src/modules/80-justice.js",
-  "src/modules/90-final-gameplay.js",
+  "src/modules/90-endgame.js",
   "src/modules/95-runtime-facade.js"
 ];
 
