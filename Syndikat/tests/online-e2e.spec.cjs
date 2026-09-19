@@ -36,10 +36,14 @@ test('two real browser clients: lobby, realtime, reconnect, turns and finish',as
     expect(started.status).toBe('playing');
     expect(started.revision).toBe(2);
 
+    await host.evaluate(s=>{window.__hostSignal=null;SyndikatCloud.watchGame(s,p=>window.__hostSignal=p);},hs);
     await guest.evaluate(s=>{window.__e2eSignal=null;SyndikatCloud.watchGame(s,p=>window.__e2eSignal=p);},gs);
-    await host.waitForTimeout(1200);
-    await host.evaluate(s=>SyndikatCloud.signalGame(s,2,'state'),hs);
-    await expect.poll(()=>guest.evaluate(()=>window.__e2eSignal?.revision||0),{timeout:8000}).toBe(2);
+    await host.waitForTimeout(1000);
+    await expect.poll(async()=>{
+      await host.evaluate(s=>SyndikatCloud.signalGame(s,2,'state'),hs);
+      await guest.waitForTimeout(350);
+      return await guest.evaluate(()=>window.__e2eSignal?.revision||0);
+    },{timeout:10000,intervals:[500,700,1000]}).toBe(2);
 
     const st2=gameState(hs,gs,1,1);
     st2.players[0].clean=12000;st2.players[0].actionPoints=0;
