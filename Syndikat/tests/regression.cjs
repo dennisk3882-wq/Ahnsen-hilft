@@ -184,6 +184,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(schema.includes('syndikat_private.validate_game_state'),'online/account states must pass the v5.5 structural validator');
   assert(schema.includes('security invoker set search_path=pg_catalog,syndikat_private'),'public privileged RPC surfaces must be security-invoker wrappers');
   assert(schema.includes('start_game_impl')&&schema.includes('submit_turn_impl'),'privileged online implementations must live in the private schema');
+  assert(schema.includes('grant execute on function syndikat_private.request_header(text) to anon')&&schema.includes('grant execute on function syndikat_private.lobby_is_joinable(text) to anon'),'RLS helper functions required by anon policies must remain executable');
   assert(schema.includes('revoke update on public.syndikat_online_games from anon'),'clients must not directly overwrite online game state');
   assert(!schema.includes('active_token_hash'),'player token hashes must not be exposed through active game state');
 }

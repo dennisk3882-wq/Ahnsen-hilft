@@ -643,3 +643,12 @@ grant execute on function public.syndikat_account_list_saves() to authenticated;
 grant execute on function public.syndikat_account_load_save(smallint) to authenticated;
 grant execute on function public.syndikat_account_save_slot(smallint,jsonb,bigint) to authenticated;
 grant execute on function public.syndikat_account_delete_save(smallint) to authenticated;
+
+
+-- v5.5: RLS policy helpers remain callable by anon while privileged implementations stay private.
+grant execute on function syndikat_private.request_header(text) to anon;
+grant execute on function syndikat_private.token_hash() to anon;
+grant execute on function syndikat_private.is_participant(text) to anon;
+grant execute on function syndikat_private.is_host(text) to anon;
+grant execute on function syndikat_private.is_active_player(text) to anon;
+grant execute on function syndikat_private.lobby_is_joinable(text) to anon;

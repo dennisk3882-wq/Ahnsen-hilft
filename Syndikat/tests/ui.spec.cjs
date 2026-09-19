@@ -75,8 +75,10 @@ test('mobile v5.5 core and management systems', async ({page})=>{
 
   await page.locator('.bottom-bar [data-view="actions"]').tap();
   await expect(page.locator('#crimeGrid .crime-card').first()).toBeVisible();
-  await page.locator('[data-action="diplomacy"]').tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-more-diplomacy]').tap();
   await expect(page.locator('#gameDialog')).toBeVisible();
+  await expect(page.locator('#gameDialog [data-gift]').first()).toBeVisible();
   await closeDialog(page);
 
   await page.locator('.bottom-bar [data-action="more"]').tap();
