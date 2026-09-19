@@ -101,7 +101,8 @@ test('mobile v5.5 core and management systems', async ({page})=>{
   await expect(page.locator('.rival-profile')).toBeVisible();
   await closeDialog(page);
 
-  await page.locator('[data-action="back-menu"]').tap();
+  await page.locator('#menuBtn').tap();
+  await page.locator('#gameDialog [data-home]').tap();
   await expect(page.locator('#menuScreen')).toHaveClass(/active/);
   await page.locator('#saveSlotsBtn').tap();
   await expect(page.locator('[data-slot-save="1"]')).toBeVisible();

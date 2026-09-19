@@ -267,7 +267,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(sw.includes('syndikat-v5-5-0'),'PWA cache must match the v5.5 stability release');
 }
 
-// Deterministic balance/soak matrix: 240 finite campaigns across all difficulties and lengths.
+// Deterministic balance/soak matrix: 240 full-table campaigns (7 rival AIs) across all difficulties and lengths.
 {
   const balanceWins={};
   let totalRuns=0;
@@ -276,7 +276,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
     for(const length of ['short','normal','long']){
       for(let seed=1;seed<=20;seed++){
         context.Math.random=seeded(seed*7919+length.length+difficulty.length*101);
-        const st=mk({ais:3,length,difficulty});
+        const st=mk({ais:7,length,difficulty});
         let guard=0;
         assert.doesNotThrow(()=>{
           while(!st.gameOver&&guard++<1800){

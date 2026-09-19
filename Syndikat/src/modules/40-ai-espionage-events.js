@@ -158,7 +158,9 @@
   const v43Ai=aiTurn;
   aiTurn=function(p){
     v43Ensure(p);v43BuyAiGear(p);v43BuildAiCrew(p);
-    if(p.profile==='aggressive'||(p.casusbelli&&Object.values(p.casusbelli).some(r=>r>=state.round))){if(v43AiSpecialOp(p)){p.lastAction='Geplante Operation';return;}}
+    const hasCause=!!(p.casusbelli&&Object.values(p.casusbelli).some(r=>r>=state.round));
+    const triesSpecial=hasCause||(p.profile==='aggressive'&&chance(.32));
+    if(triesSpecial&&v43AiSpecialOp(p)){p.lastAction='Geplante Operation';return;}
     v43Ai(p);
   };
 
