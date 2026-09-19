@@ -135,3 +135,11 @@ body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.c
 /* Syndikat v4.7 justice */
 .court-case{margin-bottom:1rem;border-color:rgba(239,106,103,.28)}
 .court-case .finance-grid{padding-top:.2rem}
+
+/* Syndikat v5.0 final gameplay */
+.prison-metrics{grid-template-columns:repeat(5,minmax(0,1fr))}
+.decision-dialog .dialog-option,.court-case,.v4-operation,.v44-site-panel{position:relative}
+[data-final-city],.decision-row{border-left:3px solid rgba(217,173,84,.65)}
+[data-final-city] .btn.btn-danger{box-shadow:0 0 0 1px rgba(239,106,103,.18)}
+.online-waiting{opacity:.72}
+@media(max-width:760px){.prison-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
