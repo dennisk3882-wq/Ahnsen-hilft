@@ -105,6 +105,42 @@
     const c=v45Cloud(),code=$('#cloudLoadCode').value.trim().toUpperCase(),token=$('#cloudLoadToken').value.trim();if(!code||!token)return toast('Code und Schlüssel erforderlich.');
     try{const row=await c.loadCloudSave(code,token);if(!row)return toast('Cloud-Spielstand nicht gefunden.');localStorage.setItem(CLOUD_SAVE_KEY,JSON.stringify({code,token,revision:row.revision}));state=migrateState(row.game_state);showScreen('gameScreen');renderAll();closeDialog();toast('Cloud-Spielstand geladen.');}catch(e){toast('Cloud: '+e.message);}
   }
+  async function v45AccountSignIn(register=false){
+    const c=v45Cloud(),email=$('#accountEmail')?.value.trim(),password=$('#accountPassword')?.value||'';
+    if(!email||password.length<6)return toast('Bitte E-Mail und ein Passwort mit mindestens 6 Zeichen eingeben.');
+    try{
+      const data=register?await c.signUpAccount(email,password):await c.signInAccount(email,password);
+      if(register&&!data?.session){toast('Konto angelegt. Bitte bestätige gegebenenfalls die E-Mail und melde dich danach an.');return;}
+      toast(register?'Cloud-Konto angelegt.':'Cloud-Konto angemeldet.');await v45OpenCloudHub();
+    }catch(e){toast('Konto: '+(e.message||e));}
+  }
+  async function v45AccountSignOut(){
+    try{await v45Cloud().signOutAccount();toast('Cloud-Konto abgemeldet.');await v45OpenCloudHub();}catch(e){toast('Konto: '+(e.message||e));}
+  }
+  async function v45AccountSave(slot){
+    const c=v45Cloud();if(!state)return toast('Keine Partie zum Speichern.');
+    try{
+      const list=await c.accountListSaves(),old=list.find(x=>Number(x.slot)===Number(slot));
+      await c.accountSaveSlot(slot,v45CanonicalState(),old?.revision??null);
+      toast(`Cloud-Slot ${slot} gespeichert.`);await v45OpenCloudHub();
+    }catch(e){toast('Cloud-Konto: '+(e.message||e));}
+  }
+  async function v45AccountLoad(slot){
+    try{
+      const row=await v45Cloud().accountLoadSave(slot);if(!row?.game_state)return toast('Dieser Cloud-Slot ist leer.');
+      state=migrateState(row.game_state);showScreen('gameScreen');currentView='city';saveGame();renderAll();closeDialog();toast(`Cloud-Slot ${slot} geladen.`);
+    }catch(e){toast('Cloud-Konto: '+(e.message||e));}
+  }
+  async function v45AccountDelete(slot){
+    try{await v45Cloud().accountDeleteSave(slot);toast(`Cloud-Slot ${slot} gelöscht.`);await v45OpenCloudHub();}catch(e){toast('Cloud-Konto: '+(e.message||e));}
+  }
+  function v45AccountSlotsHtml(saves){
+    return [1,2,3,4,5].map(slot=>{
+      const x=saves.find(s=>Number(s.slot)===slot);
+      return `<div class="dialog-option account-slot"><div><strong>Cloud-Slot ${slot}</strong><p>${x?`${esc(x.family||'Syndikat')} · Runde ${x.round} · Revision ${x.revision}`:'Leer'}</p></div><div class="mini-actions">${state?`<button class="btn btn-secondary" data-account-save="${slot}">${x?'Überschreiben':'Speichern'}</button>`:''}${x?`<button class="btn btn-primary" data-account-load="${slot}">Laden</button><button class="btn btn-danger" data-account-delete="${slot}">Löschen</button>`:''}</div></div>`;
+    }).join('');
+  }
+
   async function v45OpenCloudHub(){
     const c=v45Cloud();if(!c?.enabled)return toast('Cloud/Online ist vorbereitet, aber noch nicht mit einem kostenlosen separaten Backend verbunden.');
     v45LoadSession();
@@ -118,12 +154,19 @@
         $('[data-online-start]')?.addEventListener('click',v45StartLobbyGame);$('[data-online-open]')?.addEventListener('click',()=>v45RefreshOnline(false));$('[data-online-leave]')?.addEventListener('click',v45LeaveOnline);return;
       }catch(e){toast('Cloud: '+e.message);}
     }
-    openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Cloud & Online</p><h2>Syndikat über mehrere Geräte</h2></div><button class="icon-btn" data-close>✕</button></div>
+    let account=null,accountSaves=[];
+    try{account=await c.getAccount?.();if(account)accountSaves=await c.accountListSaves();}catch{}
+    const accountHtml=account
+      ?`<h3>Cloud-Konto</h3><div class="account-status"><div><strong>${esc(account.email||'Angemeldet')}</strong><small>Spielstände können auf anderen Geräten nach Anmeldung wiederhergestellt werden.</small></div><button class="btn btn-secondary" data-account-signout>Abmelden</button></div><div class="dialog-list account-slots">${v45AccountSlotsHtml(accountSaves)}</div>`
+      :`<h3>Cloud-Konto</h3><p class="muted">Optional: Mit E-Mail und Passwort kannst du bis zu fünf Spielstände geräteübergreifend wiederherstellen.</p><div class="form-grid"><label><span>E-Mail</span><input id="accountEmail" type="email" autocomplete="email"></label><label><span>Passwort</span><input id="accountPassword" type="password" minlength="6" autocomplete="current-password"></label></div><div class="dialog-footer"><button class="btn btn-primary" data-account-login>Anmelden</button><button class="btn btn-secondary" data-account-register>Konto anlegen</button></div>`;
+    openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Cloud & Online</p><h2>Syndikat über mehrere Geräte</h2></div><button class="icon-btn" data-close>✕</button></div>${accountHtml}
       <h3>Online-Partie erstellen</h3><div class="form-grid"><label><span>Name</span><input id="cloudName" maxlength="24" value="Spieler"></label><label><span>Familie</span><input id="cloudFamily" maxlength="24" value="Leone"></label><label><span>Schwierigkeit</span><select id="cloudDifficulty"><option value="easy">Leicht</option><option value="normal" selected>Normal</option><option value="hard">Schwer</option><option value="boss">Boss</option></select></label><label><span>Partielänge</span><select id="cloudLength"><option value="short">Kurz</option><option value="normal" selected>Normal</option><option value="long">Lang</option><option value="endless">Endlos</option></select></label><label><span>Zusätzliche KI</span><select id="cloudAi"><option>0</option><option selected>2</option><option>4</option><option>6</option></select></label></div><div class="dialog-footer"><button class="btn btn-primary" data-cloud-create>Lobby erstellen</button></div>
       <h3>Lobby beitreten</h3><div class="form-grid"><label><span>Spielcode</span><input id="joinCode"></label><label><span>Name</span><input id="joinName" value="Spieler"></label><label><span>Familie</span><input id="joinFamily" value="Familie"></label></div><div class="dialog-footer"><button class="btn btn-secondary" data-cloud-join>Beitreten</button></div>
       <h3>Cloud-Spielstand</h3><div class="dialog-footer">${state?'<button class="btn btn-secondary" data-cloud-save-new>Neuen Cloud-Save anlegen</button><button class="btn btn-secondary" data-cloud-save-update>Verknüpften Save aktualisieren</button>':''}</div>
       <div class="form-grid"><label><span>Cloud-Code</span><input id="cloudLoadCode"></label><label><span>Schlüssel</span><input id="cloudLoadToken"></label></div><div class="dialog-footer"><button class="btn btn-secondary" data-cloud-load>Laden</button></div></div>`);
     $('[data-cloud-create]').onclick=v45CreateLobby;$('[data-cloud-join]').onclick=v45JoinLobby;$('[data-cloud-save-new]')?.addEventListener('click',v45CloudSaveNew);$('[data-cloud-save-update]')?.addEventListener('click',v45CloudSaveUpdate);$('[data-cloud-load]').onclick=v45CloudLoad;
+    $('[data-account-login]')?.addEventListener('click',()=>v45AccountSignIn(false));$('[data-account-register]')?.addEventListener('click',()=>v45AccountSignIn(true));$('[data-account-signout]')?.addEventListener('click',v45AccountSignOut);
+    $('[data-account-save]').forEach(b=>b.onclick=()=>v45AccountSave(+b.dataset.accountSave));$('[data-account-load]').forEach(b=>b.onclick=()=>v45AccountLoad(+b.dataset.accountLoad));$('[data-account-delete]').forEach(b=>b.onclick=()=>v45AccountDelete(+b.dataset.accountDelete));
   }
 
   const v45EndTurn=endHumanTurn;
