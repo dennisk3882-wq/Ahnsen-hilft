@@ -161,7 +161,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   const schema=fs.readFileSync('Syndikat/supabase/schema.sql','utf8');
   new Function(cloud);new Function(cfg);
   assert(schema.includes('enable row level security'));
-  assert(schema.includes('private.syndikat_token_hash'));
+  assert(schema.includes('syndikat_private.token_hash'));
   assert(schema.includes('grant select, insert, update, delete'));
   assert(!cloud.includes('service_role'),'public client must never contain a service-role key');
   assert(cfg.includes('enabled: true'),'cloud configuration must be enabled for v5');
