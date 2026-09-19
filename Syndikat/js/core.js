@@ -2692,6 +2692,16 @@
   const BUSINESS_ART=Object.fromEntries(Object.keys(BUSINESSES).map(k=>[k,A+'business-'+k+'.svg']));
   const DISTRICT_ART=Object.fromEntries(DISTRICTS.map(d=>[d.id,A+'district-'+d.id+'.svg']));
   const STAFF_ART={informant:A+'staff-informant.svg',guard:A+'staff-guard.svg',bodyguard:A+'staff-bodyguard.svg',gunman:A+'staff-gunman.svg',lawyer:A+'staff-lawyer.svg',manager:A+'staff-manager.svg'};
+  const PERSON_ART={
+    'Marco Bellini':A+'portrait-marco.webp',
+    'Julia Costa':A+'person-julia-costa.svg','Vito Serra':A+'person-vito-serra.svg','Mara Conti':A+'person-mara-conti.svg',
+    'Enzo Vitale':A+'person-enzo-vitale.svg','Giulia Rizzo':A+'person-giulia-rizzo.svg','Luca Ferraro':A+'person-luca-ferraro.svg',
+    'Sofia Greco':A+'person-sofia-greco.svg','Carlo De Luca':A+'person-carlo-de-luca.svg','Elena Marino':A+'person-elena-marino.svg',
+    'Nico Romano':A+'person-nico-romano.svg','Tessa Bianchi':A+'person-tessa-bianchi.svg','Rico Falcone':A+'person-rico-falcone.svg',
+    'Valentina Moretti':A+'person-valentina-moretti.svg','Dario Russo':A+'person-dario-russo.svg','Mina Leone':A+'person-mina-leone.svg'
+  };
+  const CONTACT_ART={officer:A+'contact-officer.svg',inspector:A+'contact-inspector.svg',judge:A+'contact-judge.svg',prosecutor:A+'contact-prosecutor.svg',mayor:A+'contact-mayor.svg'};
+  const PROPERTY_ART={shop:A+'property-shop.svg',block:A+'property-block.svg',warehouse:A+'property-warehouse.svg',prime:A+'property-prime.svg'};
   const RIVAL_INFO={
     Romano:{boss:'Don Enzo Romano',art:A+'rival-romano.svg',motto:'Respekt wird genommen.',style:'Druck & Tempo',desc:'Romano wächst schnell und setzt Rivalen früh unter Druck.'},
     Moretti:{boss:'Sofia Moretti',art:A+'rival-moretti.svg',motto:'Jeder Konflikt hat einen Preis.',style:'Ökonomie & Diplomatie',desc:'Moretti bevorzugt profitable Geschäfte, Verträge und kontrollierte Expansion.'},
@@ -2755,10 +2765,41 @@
   const oldBizDialog=openBusinessDialog;
   openBusinessDialog=function(id){const p=currentPlayer(),b=p.businesses.find(x=>x.id===id);oldBizDialog(id);const root=$('#dialogContent .dialog-wrap');if(b&&root&&!root.querySelector('.business-detail-art'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="business-detail-art" src="${BUSINESS_ART[b.type]}" alt="">`);};
 
+  function staffVisual(s){return PERSON_ART[s?.name]||STAFF_ART[s?.role]||A+'staff-manager.svg'}
   const oldStaff=renderStaff;
-  renderStaff=function(){oldStaff();const p=currentPlayer();$$('#staffGrid [data-staff-person]').forEach(btn=>{const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');const old=card?.querySelector('.person-initial-avatar');if(s&&old)old.outerHTML=`<img class="person-portrait role-portrait" src="${STAFF_ART[s.role]}" alt="">`;});};
+  renderStaff=function(){
+    oldStaff();const p=currentPlayer();
+    $('#staffGrid [data-staff-person]').forEach(btn=>{
+      const person=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!person||!card)return;
+      const img=card.querySelector('.person-portrait'),initial=card.querySelector('.person-initial-avatar'),src=staffVisual(person);
+      if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="person-portrait role-portrait" src="${src}" alt="">`;
+    });
+  };
   const oldPerson=openStaffPerson;
-  openStaffPerson=function(id){const p=currentPlayer(),s=p.staffRoster.find(x=>x.id===id);oldPerson(id);const root=$('#dialogContent .dialog-wrap');if(s&&root?.querySelector('.dialog-person-initial'))root.querySelector('.dialog-person-initial').outerHTML=`<img class="dialog-person-hero" src="${STAFF_ART[s.role]}" alt="">`;};
+  openStaffPerson=function(id){
+    const p=currentPlayer(),person=p.staffRoster.find(x=>x.id===id);oldPerson(id);if(!person)return;
+    const root=$('#dialogContent .dialog-wrap'),src=staffVisual(person),img=root?.querySelector('.dialog-person-hero'),initial=root?.querySelector('.dialog-person-initial');
+    if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="dialog-person-hero" src="${src}" alt="">`;
+  };
+
+  const oldCorruption=renderCorruption;
+  renderCorruption=function(){
+    oldCorruption();
+    for(const [key,src] of Object.entries(CONTACT_ART)){
+      const card=$('#corruptionGrid [data-bribe="'+key+'"]')?.closest('.shop-card');if(!card)continue;
+      let img=card.querySelector('.contact-portrait');if(img)img.src=src;else card.insertAdjacentHTML('afterbegin',`<img class="contact-portrait" src="${src}" alt="">`);
+    }
+  };
+
+  function decoratePropertyMarket(){
+    const root=$('#dialogContent');if(!root)return;
+    const kinds={Ladenlokal:'shop','Wohn- & Geschäftshaus':'block','Lagerhalle':'warehouse','Premium-Grundstück':'prime'};
+    $('.dialog-option',root).forEach(row=>{
+      if(row.querySelector('.property-thumb'))return;
+      const txt=row.textContent||'';for(const [label,id] of Object.entries(kinds))if(txt.includes(label)){row.insertAdjacentHTML('afterbegin',`<img class="property-thumb" src="${PROPERTY_ART[id]}" alt="">`);break;}
+    });
+  }
+  document.addEventListener('click',e=>{if(e.target.closest?.('[data-land],[data-buy-land],[data-assign-land],[data-sell-land]'))setTimeout(decoratePropertyMarket,35);});
 
   function openRivalProfile(pid){
     const p=currentPlayer(),r=state.players.find(x=>x.id===pid);if(!r)return;ensureDepth(p);ensureDepth(r);const info=rivalInfo(r),gr=p.rivalMemory.grudges[r.id]||0,fav=p.rivalMemory.favors[r.id]||0;
@@ -2840,7 +2881,7 @@
 (function SYNDIKAT_V45_CLOUD_UI(){
   const ONLINE_KEY='syndikat_online_session_v1';
   const CLOUD_SAVE_KEY='syndikat_cloud_save_session_v1';
-  let onlineSession=null,onlineRevision=0,onlinePoll=null,onlineRoster=[];
+  let onlineSession=null,onlineRevision=0,onlinePoll=null,onlineRoster=[],onlineStopWatch=null,onlineTransport='Fallback';
 
   function v45LoadSession(){try{onlineSession=JSON.parse(localStorage.getItem(ONLINE_KEY)||'null')}catch{onlineSession=null}return onlineSession}
   function v45StoreSession(v){onlineSession=v;if(v)localStorage.setItem(ONLINE_KEY,JSON.stringify(v));else localStorage.removeItem(ONLINE_KEY)}
@@ -2874,13 +2915,20 @@
   }
   function v45StartPolling(){
     if(onlinePoll)clearInterval(onlinePoll);
+    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}
     if(!onlineSession||!v45Cloud()?.enabled)return;
+    onlineTransport='Fallback';
+    onlineStopWatch=v45Cloud().watchGame?.(onlineSession,async signal=>{
+      onlineTransport='Realtime';
+      const rev=Number(signal?.revision)||0;
+      if(signal?.kind==='lobby'||rev>onlineRevision)await v45RefreshOnline(true);
+    })||null;
     onlinePoll=setInterval(async()=>{
       try{
         const game=await v45Cloud().getGame(onlineSession.code,onlineSession.token);
         if(game&&Number(game.revision)>onlineRevision){onlineRevision=Number(game.revision);if(game.game_state)v45ApplyCloudState(game.game_state);}
       }catch{}
-    },5000);
+    },30000);
   }
     function v45BuildState(roster,settings){
     const players=roster.map(r=>{const p=blankPlayer(r.display_name,r.family,'human');p.onlineParticipantId=r.participant_id;return p;});
@@ -2903,7 +2951,7 @@
     const code=$('#joinCode').value.trim().toUpperCase(),name=$('#joinName').value.trim()||'Spieler',family=$('#joinFamily').value.trim()||'Familie';
     if(!code)return toast('Bitte Spielcode eingeben.');
     try{
-      const s=await c.joinLobby(code,{displayName:name,family});v45StoreSession(s);v45StartPolling();await v45OpenCloudHub();toast('Lobby beigetreten.');
+      const s=await c.joinLobby(code,{displayName:name,family});v45StoreSession(s);v45StartPolling();setTimeout(()=>c.signalGame?.(s,0,'lobby'),700);await v45OpenCloudHub();toast('Lobby beigetreten.');
     }catch(e){toast('Cloud: '+e.message);}
   }
   async function v45StartLobbyGame(){
@@ -2913,12 +2961,12 @@
       if(roster.length<2)return toast('Für Online-Multiplayer werden mindestens 2 menschliche Spieler benötigt.');
       if(roster.some(r=>!r.ready))return toast('Alle Mitspieler müssen zuerst auf „Bereit“ stehen.');
       onlineRoster=roster;const st=v45BuildState(roster,game.settings||{}),first=roster[0];
-      const row=await c.updateGame(onlineSession,game.revision,{status:'playing',game_state:st,active_participant_id:first.participant_id});
-      onlineRevision=row.revision;v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();toast('Online-Partie gestartet.');
+      const row=await c.startGame(onlineSession,game.revision,st,first.participant_id);
+      onlineRevision=Number(row.revision);v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();await c.signalGame?.(onlineSession,onlineRevision,'state');toast('Online-Partie gestartet.');
     }catch(e){toast('Cloud: '+e.message);}
   }
   async function v45LeaveOnline(){
-    v45StoreSession(null);onlineRoster=[];onlineRevision=0;if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}toast('Online-Verbindung getrennt.');closeDialog();
+    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}v45Cloud()?.stopRealtime?.();v45StoreSession(null);onlineRoster=[];onlineRevision=0;if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}toast('Online-Verbindung getrennt.');closeDialog();
   }
   async function v45CloudSaveNew(){
     const c=v45Cloud();if(!c?.enabled||!state)return toast('Keine Partie für Cloud-Speicherung.');
@@ -2945,7 +2993,7 @@
           <p class="muted">Status: ${esc(game?.status||'unbekannt')} · Revision ${onlineRevision}. Teile den Spielcode nur mit Mitspielern.</p>
           <div class="dialog-list">${onlineRoster.map((r,i)=>`<div class="dialog-option"><div><strong>${i+1}. ${esc(r.display_name)} · ${esc(r.family)}</strong><p>${r.participant_id===onlineSession.participantId?'Dieses Gerät':''}${r.ready?' · bereit':''}</p></div><span class="pill">${r.ready?'Bereit':'Wartet'}</span></div>`).join('')}</div>
           <div class="dialog-footer">${game?.status==='lobby'?`<button class="btn btn-secondary" data-ready>Bereit umschalten</button>${onlineSession.host?'<button class="btn btn-primary" data-online-start>Partie starten</button>':''}`:'<button class="btn btn-primary" data-online-open>Spiel aktualisieren</button>'}<button class="btn btn-danger" data-online-leave>Verbindung trennen</button></div></div>`);
-        $('[data-ready]')?.addEventListener('click',async()=>{const me=onlineRoster.find(x=>x.participant_id===onlineSession.participantId);await c.setReady(onlineSession,!me?.ready);v45OpenCloudHub();});
+        $('[data-ready]')?.addEventListener('click',async()=>{const me=onlineRoster.find(x=>x.participant_id===onlineSession.participantId);await c.setReady(onlineSession,!me?.ready);await c.signalGame?.(onlineSession,onlineRevision,'lobby');v45OpenCloudHub();});
         $('[data-online-start]')?.addEventListener('click',v45StartLobbyGame);$('[data-online-open]')?.addEventListener('click',()=>v45RefreshOnline(false));$('[data-online-leave]')?.addEventListener('click',v45LeaveOnline);return;
       }catch(e){toast('Cloud: '+e.message);}
     }
@@ -2967,7 +3015,7 @@
         if(!onlineRoster.length)onlineRoster=await v45Cloud().getPlayers(onlineSession.code,onlineSession.token);
         const next=currentPlayer(),nextPid=next?.onlineParticipantId||null;
         const patch={game_state:v45CanonicalState(),status:state.gameOver?'finished':'playing',active_participant_id:nextPid,winner_participant_id:state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null};
-        const row=await v45Cloud().updateGame(onlineSession,onlineRevision,patch);onlineRevision=row.revision;
+        const row=await v45Cloud().submitTurn(onlineSession,onlineRevision,patch.game_state,nextPid,patch.status,patch.winner_participant_id);onlineRevision=Number(row.revision);await v45Cloud().signalGame?.(onlineSession,onlineRevision,'state');
       }catch(e){toast('Online-Synchronisation fehlgeschlagen: '+e.message);}
     })();
   };
