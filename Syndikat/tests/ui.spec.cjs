@@ -90,8 +90,8 @@ test('mobile v5.5 core and management systems', async ({page})=>{
 
   await page.locator('.bottom-bar [data-action="more"]').tap();
   await page.locator('#gameDialog [data-go="missions"]').tap();
-  await expect(page.locator('.story-card')).toBeVisible();
-  await expect(page.locator('.story-card img').first()).toBeVisible();
+  await expect(page.locator('.story-v51-card')).toBeVisible();
+  await expect(page.locator('.story-v51-card img').first()).toBeVisible();
 
   await page.locator('.bottom-bar [data-action="more"]').tap();
   await page.locator('#gameDialog [data-go="ranking"]').tap();
