@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06080c"/><stop offset=".6" stop-color="#111925"/><stop offset="1" stop-color="#05070a"/></linearGradient><radialGradient id="glow"><stop stop-color="#9b4b4b" stop-opacity=".28"/><stop offset="1" stop-color="#9b4b4b" stop-opacity="0"/></radialGradient></defs>
+  <rect width="1200" height="675" fill="url(#bg)"/><circle cx="910" cy="180" r="260" fill="url(#glow)"/>
+  <ellipse cx="600" cy="330" rx="145" ry="175" fill="#171e28"/><path d="M430 730c35-180 95-250 170-250s135 70 170 250" fill="#101720"/><path d="M430 245h340l-70-75H500z" fill="#090c11"/><path d="M475 250c40-130 210-130 250 0" fill="#0b0f15"/><path d="M535 335h45M620 335h45" stroke="#9b4b4b" stroke-width="10" stroke-linecap="round"/><path d="M565 415q35 24 70 0" fill="none" stroke="#7d7062" stroke-width="8"/>
+  <rect x="0" y="0" width="1200" height="675" fill="none" stroke="#9b4b4b" stroke-opacity=".18" stroke-width="3"/>
+  <g font-family="Arial,Helvetica,sans-serif"><text x="70" y="80" fill="#9b4b4b" font-size="22" font-weight="700" letter-spacing="5">SYNDIKAT · NOIR</text><text x="70" y="600" fill="#f4f0e8" font-size="52" font-weight="800">Verrat</text><text x="72" y="638" fill="#aeb6c3" font-size="22">Ein alter Freund wechselt die Seite.</text></g>
+  </svg>

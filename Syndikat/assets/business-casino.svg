@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06080c"/><stop offset=".6" stop-color="#111925"/><stop offset="1" stop-color="#05070a"/></linearGradient><radialGradient id="glow"><stop stop-color="#c7a448" stop-opacity=".28"/><stop offset="1" stop-color="#c7a448" stop-opacity="0"/></radialGradient></defs>
+  <rect width="1200" height="675" fill="url(#bg)"/><circle cx="910" cy="180" r="260" fill="url(#glow)"/>
+  <rect x="110" y="150" width="980" height="470" rx="30" fill="#111923"/><circle cx="420" cy="365" r="110" fill="#090d13" stroke="#c7a448" stroke-width="14"/><circle cx="420" cy="365" r="68" fill="none" stroke="#6e1f1f" stroke-width="18" stroke-dasharray="10 10"/><rect x="650" y="240" width="280" height="220" rx="18" fill="#080c11" stroke="#c7a448" stroke-width="6"/>
+  <rect x="0" y="0" width="1200" height="675" fill="none" stroke="#c7a448" stroke-opacity=".18" stroke-width="3"/>
+  <g font-family="Arial,Helvetica,sans-serif"><text x="70" y="80" fill="#c7a448" font-size="22" font-weight="700" letter-spacing="5">SYNDIKAT · NOIR</text><text x="70" y="600" fill="#f4f0e8" font-size="52" font-weight="800">Casino</text><text x="72" y="638" fill="#aeb6c3" font-size="22">High Stakes · Geld · Aufmerksamkeit</text></g>
+  </svg>
