@@ -2572,7 +2572,7 @@
 
   function v46AiTrade(p){
     if(p.clean<180000||p.businesses.length<2||chance(.90))return false;
-    const candidates=state.players.filter(t=>t.id!==p.id&&!t.eliminated&&relation(p,t)>8&&t.businesses.length&&!allianceActive(p,t));
+    const candidates=state.players.filter(t=>t.id!==p.id&&!t.eliminated&&t.type==='ai'&&relation(p,t)>8&&t.businesses.length&&!allianceActive(p,t));
     if(!candidates.length)return false;
     const t=candidates[rand(0,candidates.length-1)];
     const b=[...t.businesses].filter(b=>(BUSINESSES[b.type].tier||1)<=Math.max(4,Math.floor((p.reputation||0)/18)+1)).sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0];
