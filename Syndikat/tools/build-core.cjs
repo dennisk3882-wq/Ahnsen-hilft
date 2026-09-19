@@ -10,6 +10,7 @@ const modules=[
   "src/modules/40-ai-espionage-events.js",
   "src/modules/50-economy-property.js",
   "src/modules/55-visual-story.js",
+  "src/modules/58-world-depth.js",
   "src/modules/60-cloud-online.js",
   "src/modules/70-decisions.js",
   "src/modules/80-justice.js",
