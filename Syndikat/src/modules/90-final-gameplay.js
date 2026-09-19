@@ -182,7 +182,7 @@
       ['escape','Fluchtversuch','Erfolg hängt jetzt von Vorbereitung, Schmuggel und Kontakten ab.','2 AP']
     ].map(x=>`<article class="crime-card"><h3>${x[1]}</h3><p>${x[2]}</p><div class="crime-meta"><span>${x[3]}</span></div><button class="btn btn-secondary" data-prison-final="${x[0]}" ${p.actionPoints<(x[0]==='escape'?2:1)?'disabled':''}>Ausführen</button></article>`).join('');
     const panel=$('#actionsView .action-panel');
-    panel.innerHTML=`<div class="panel-head"><h3>Organisation aus der Haft</h3><small>${p.jailed} Runde(n) Resthaft</small></div>
+    panel.innerHTML=`<div class="panel-head"><h3>Organisation aus der Haft</h3><small>${p.jailed} Runde(n) Resthaft</small></div><div class="prison-visual"><img src="./assets/event-prison-break.webp" alt="Gefängnis bei Nacht"><div><small>HINTER GITTERN</small><strong>Deine Geschäfte laufen weiter. Deine Freiheit nicht.</strong></div></div>
       <div class="finance-grid prison-metrics" style="padding:1rem">${metricCards([
         ['Gefängniseinfluss',`${Math.round(ps.influence)}%`,''],
         ['Fluchtplan',`${Math.round(ps.tunnel)}%`,ps.tunnel>=80?'positive':''],
