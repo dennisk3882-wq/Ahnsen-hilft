@@ -139,6 +139,7 @@ assert(src.includes('SYNDIKAT_V43_DEPTH_BEGIN'));
 assert(src.includes('SYNDIKAT_V44_ECONOMY_DEPTH_BEGIN'));
 assert(src.includes('SYNDIKAT_V45_CLOUD_UI_BEGIN'));
 assert(src.includes('SYNDIKAT_V46_DECISIONS_BEGIN'));
+assert(src.includes('SYNDIKAT_V47_JUSTICE_BEGIN'));
 
 // New-state migration must create the v4 economy/meta structures without losing the save.
 {
