@@ -82,3 +82,14 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
   #menuScreen .feature-strip{display:none}
 }
 @media(max-width:430px){#menuScreen .hero-panel{margin-top:37dvh}}
+
+/* Syndikat v4.1 systems */
+.xpbar{height:6px;background:#202833;border-radius:99px;overflow:hidden;margin-top:.45rem}.xpbar i{display:block;height:100%;background:linear-gradient(90deg,#6ea8ff,#d9ad54)}
+.operation-preview{margin-top:1rem;padding:1rem;border:1px solid var(--line);border-radius:14px;background:#0b1118}
+.operation-preview .finance-grid{margin-bottom:.6rem}
+.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;margin:.8rem 0}
+.check-card{display:flex;gap:.7rem;align-items:center;padding:.75rem;border:1px solid var(--line);border-radius:12px;background:#0d141c}
+.check-card span{display:grid}.check-card small{color:var(--muted);margin-top:.2rem}
+.field{display:grid;gap:.45rem;margin:.8rem 0}.field input,.field select{width:100%;background:#0b1016;color:var(--text);border:1px solid var(--line2);border-radius:10px;padding:.75rem}
+.v4-operation .form-grid{padding:0;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:620px){.check-grid,.v4-operation .form-grid{grid-template-columns:1fr}.operation-preview .finance-grid{grid-template-columns:1fr 1fr}}
