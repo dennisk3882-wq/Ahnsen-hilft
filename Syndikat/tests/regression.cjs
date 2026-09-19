@@ -267,14 +267,14 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(sw.includes('syndikat-v5-5-0'),'PWA cache must match the v5.5 stability release');
 }
 
-// Deterministic balance/soak matrix: 240 full-table campaigns (7 rival AIs) across all difficulties and lengths.
+// Required CI soak: 24 full-table campaigns (7 rival AIs) across all difficulties and lengths.
 {
   const balanceWins={};
   let totalRuns=0;
   for(const difficulty of ['easy','normal','hard','boss']){
     balanceWins[difficulty]={};
     for(const length of ['short','normal','long']){
-      for(let seed=1;seed<=20;seed++){
+      for(let seed=1;seed<=2;seed++){
         context.Math.random=seeded(seed*7919+length.length+difficulty.length*101);
         const st=mk({ais:7,length,difficulty});
         let guard=0;
@@ -294,7 +294,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
       }
     }
   }
-  assert.strictEqual(totalRuns,240,'balance matrix must execute 240 finite campaigns');
+  assert.strictEqual(totalRuns,24,'CI balance matrix must execute 24 finite full-table campaigns');
   console.log('Syndikat balance matrix:',JSON.stringify(balanceWins));
   const endless=mk({ais:0,length:'endless'});endless.round=500;T.checkVictory();
   assert.strictEqual(endless.gameOver,false,'endless mode must never auto-resolve');

@@ -1,0 +1,20 @@
+name: Syndikat deep balance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * 0'
+
+jobs:
+  deep-balance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build canonical core bundle
+        run: node Syndikat/tools/build-core.cjs
+      - name: Run 240-campaign deep balance matrix
+        run: node Syndikat/tests/deep-balance.cjs
