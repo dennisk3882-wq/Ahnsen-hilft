@@ -131,3 +131,7 @@ body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.c
 .decision-row{background:linear-gradient(90deg,rgba(217,173,84,.13),transparent);align-items:center}
 .decision-row .btn{padding:.55rem .75rem}
 .decision-dialog>p{color:#c7ced6;line-height:1.55}
+
+/* Syndikat v4.7 justice */
+.court-case{margin-bottom:1rem;border-color:rgba(239,106,103,.28)}
+.court-case .finance-grid{padding-top:.2rem}
