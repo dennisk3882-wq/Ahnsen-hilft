@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#090b0f" />
+  <meta name="description" content="Syndikat – rundenbasierte Gangster-Wirtschaftssimulation als direkt startbare Offline-Web-App für Android." />
+  <title>Syndikat · Noir Strategy v5.5</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <section id="menuScreen" class="screen active">
+      <div class="hero-panel">
+        <div class="brand-mark" aria-hidden="true">♠</div>
+        <p class="eyebrow">Rundenbasierte Wirtschaft · Strategie · Unterwelt</p>
+        <h1>SYNDIKAT</h1>
+        <p class="subtitle">Das Syndikat</p>
+        <p class="hero-copy">Beginne als Niemand, baue Geschäfte auf, kontrolliere Viertel, halte Polizei und Rivalen auf Abstand und werde zur dominierenden Macht der Stadt.</p>
+        <div class="menu-actions">
+          <button id="newGameBtn" class="btn btn-primary btn-xl">Neues Spiel</button>
+          <button id="continueBtn" class="btn btn-secondary btn-xl">Spiel fortsetzen</button>
+          <button id="installBtn" class="btn btn-ghost hidden">App installieren</button><button id="saveSlotsBtn" class="btn btn-ghost">Spielstände</button><button id="hallBtn" class="btn btn-ghost">Hall of Fame</button><button id="settingsBtn" class="btn btn-ghost">Anzeige</button>
+        </div>
+        <div class="v4-badge">NOIR STRATEGY · v5.5</div><div class="feature-strip">
+          <span>Offline spielbar</span><span>1–8 Spieler</span><span>KI-Familien</span><span>Autosave</span>
+        </div>
+      </div>
+      <div class="menu-footer">Version 5.5 · Syndikat · Offline-PWA · Spielstand wird lokal gespeichert.</div>
+    </section>
+
+    <section id="setupScreen" class="screen">
+      <div class="setup-card panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Neue Partie</p>
+            <h2>Dein Syndikat</h2>
+          </div>
+          <button class="icon-btn" data-action="back-menu" aria-label="Zurück">✕</button>
+        </div>
+        <div class="form-grid">
+          <label><span>Dein Name</span><input id="playerName" maxlength="18" value="Dennis" /></label>
+          <label><span>Familienname</span><input id="familyName" maxlength="18" value="Leone" /></label>
+          <label><span>Menschliche Spieler</span><select id="humanCount"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+          <label><span>KI-Familien</span><select id="aiCount"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+          <label><span>Schwierigkeit</span><select id="difficulty"><option value="easy">Leicht</option><option value="normal" selected>Normal</option><option value="hard">Schwer</option><option value="boss">Boss</option></select></label>
+          <label><span>Partielänge</span><select id="gameLength"><option value="short">Kurz</option><option value="normal" selected>Normal</option><option value="long">Lang</option><option value="endless">Endlos</option></select></label><label><span>Geführter Einstieg</span><select id="guidedTutorial"><option value="on" selected>An</option><option value="off">Aus</option></select></label>
+        </div>
+        <div class="setup-summary">
+          <div><strong>Startkapital</strong><span>$ 25.000</span></div>
+          <div><strong>Sieg</strong><span>Machtindex & Dominanz</span></div>
+          <div><strong>Speichern</strong><span>Automatisch nach jeder Runde</span></div>
+        </div>
+        <button id="startGameBtn" class="btn btn-primary btn-xl full">Partie starten</button>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen game-screen">
+      <header class="topbar">
+        <div class="brand-small"><span class="brand-mark-sm">♠</span><div><strong>SYNDIKAT</strong><small>Das Syndikat</small></div></div>
+        <div class="turn-card"><span id="roundLabel">Runde 1</span><small id="turnLabel">Du bist am Zug</small></div>
+        <div class="top-stats">
+          <div><small>Bargeld</small><strong id="cashTop">$ 0</strong></div>
+          <div><small>Heat</small><strong id="heatTop">0 / 100</strong></div>
+          <div><small>Macht</small><strong id="powerTop">0 %</strong></div>
+        </div>
+        <button id="menuBtn" class="icon-btn">☰</button>
+      </header>
+
+      <main class="game-layout">
+        <aside class="sidebar desktop-nav">
+          <button class="nav-btn active" data-view="city">⌖<span>Stadt</span></button>
+          <button class="nav-btn" data-view="businesses">▦<span>Besitz</span></button>
+          <button class="nav-btn" data-view="actions">◆<span>Aktionen</span></button>
+          <button class="nav-btn" data-view="missions">◎<span>Aufträge</span></button>
+          <button class="nav-btn" data-view="staff">♟<span>Personal</span></button>
+          <button class="nav-btn" data-view="corruption">⚖<span>Einfluss</span></button>
+          <button class="nav-btn" data-view="finance">▥<span>Finanzen</span></button>
+          <button class="nav-btn" data-view="ranking">♛<span>Rangliste</span></button>
+          <button id="endTurnDesktop" class="btn btn-primary sidebar-end">Runde beenden</button>
+        </aside>
+
+        <section class="content-area">
+          <div id="statusBanner" class="status-banner hidden"></div>
+
+          <div id="cityView" class="view active">
+            <div class="section-head">
+              <div><p class="eyebrow">Stadtkarte</p><h2 id="cityTitle">Die Stadt gehört niemandem. Noch nicht.</h2></div>
+              <div class="chip" id="rankChip">Niemand</div>
+            </div>
+            <div id="districtGrid" class="district-grid"></div>
+            <div class="dashboard-grid">
+              <article class="panel">
+                <div class="panel-head"><h3>Ausgewähltes Viertel</h3><span id="districtControl" class="pill">Neutral</span></div>
+                <div id="districtDetail" class="district-detail"></div>
+              </article>
+              <article class="panel">
+                <div class="panel-head"><h3>Aktuelle Lage</h3><span class="live-dot">LIVE</span></div>
+                <div id="situationList" class="situation-list"></div>
+              </article>
+            </div>
+          </div>
+
+          <div id="businessesView" class="view">
+            <div class="section-head"><div><p class="eyebrow">Imperium</p><h2>Geschäfte & Besitz</h2></div><div class="section-actions"><button class="btn btn-secondary" data-action="routes">♣ Routen</button><button class="btn btn-primary" data-action="open-buy">+ Kaufen</button></div></div>
+            <div id="businessSummary" class="metric-row"></div>
+            <div id="businessList" class="card-list"></div>
+          </div>
+
+          <div id="actionsView" class="view">
+            <div class="section-head"><div><p class="eyebrow">Operationen</p><h2>Aktionen dieser Runde</h2></div><span id="actionPoints" class="chip">2 AP</span></div>
+            <div id="crimeGrid" class="action-grid"></div>
+            <div class="panel action-panel">
+              <div class="panel-head"><h3>Syndikatsaktionen</h3><small>Rivalen gezielt unter Druck setzen</small></div>
+              <div class="button-grid">
+                <button class="btn btn-danger" data-action="attack">Rivalen angreifen</button>
+                <button class="btn btn-secondary" data-action="intel">Informationen beschaffen</button>
+                <button class="btn btn-secondary" data-action="cooldown">Untertauchen</button><button class="btn btn-secondary" data-action="diplomacy">Diplomatie</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="missionsView" class="view">
+            <div class="section-head"><div><p class="eyebrow">Syndikat</p><h2>Aufträge & Ziele</h2></div><span class="chip">3 aktive Aufträge</span></div>
+            <div id="missionList" class="mission-list"></div>
+          </div>
+
+          <div id="staffView" class="view">
+            <div class="section-head"><div><p class="eyebrow">Organisation</p><h2>Personal</h2></div></div>
+            <div id="staffGrid" class="shop-grid"></div>
+          </div>
+
+          <div id="corruptionView" class="view">
+            <div class="section-head"><div><p class="eyebrow">Netzwerk</p><h2>Einfluss & Korruption</h2></div></div>
+            <div id="corruptionGrid" class="shop-grid"></div>
+          </div>
+
+          <div id="financeView" class="view">
+            <div class="section-head"><div><p class="eyebrow">Bücher</p><h2>Finanzen</h2></div><button class="btn btn-primary" data-action="bank">Bank / Kredit</button></div>
+            <div id="financeMetrics" class="finance-grid"></div>
+            <article class="panel"><div class="panel-head"><h3>Vermögensentwicklung</h3><small>Letzte 16 Runden</small></div><canvas id="financeChart" width="900" height="260"></canvas></article>
+            <article class="panel"><div class="panel-head"><h3>Letzte Buchungen</h3></div><div id="ledgerList" class="ledger-list"></div></article>
+          </div>
+
+          <div id="rankingView" class="view">
+            <div class="section-head"><div><p class="eyebrow">Machtverhältnisse</p><h2>Rangliste</h2></div></div>
+            <div id="rankingList" class="ranking-list"></div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="bottom-bar">
+        <button class="nav-btn active" data-view="city">⌖<span>Stadt</span></button>
+        <button class="nav-btn" data-view="businesses">▦<span>Besitz</span></button>
+        <button class="nav-btn" data-view="actions">◆<span>Aktionen</span></button>
+        <button class="nav-btn" data-action="more">•••<span>Mehr</span></button>
+        <button id="endTurnBtn" class="end-turn">Runde beenden</button>
+      </footer>
+    </section>
+  </div>
+
+  <dialog id="gameDialog" class="game-dialog"><div id="dialogContent"></div></dialog>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="./js/core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="./cloud-config.js"></script>
+<script src="./js/cloud.js"></script>
+<script>
+(function(){
+  if(!('serviceWorker' in navigator) || location.protocol!=='https:') return;
+  function updateNotice(reg){
+    let box=document.getElementById('updateNotice');
+    if(!box){
+      box=document.createElement('div');
+      box.id='updateNotice';
+      box.className='update-notice hidden';
+      box.innerHTML='<strong>Neue Syndikat-Version verfügbar</strong><span>Die neue Version kann jetzt geladen werden.</span><button>Aktualisieren</button>';
+      document.body.appendChild(box);
+      box.querySelector('button').addEventListener('click',()=>{
+        if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+      });
+    }
+    box.classList.remove('hidden');
+  }
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./sw.js');
+      if(reg.waiting) updateNotice(reg);
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        if(!nw) return;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed' && navigator.serviceWorker.controller) updateNotice(reg);
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
+    }catch{}
+  });
+})();
+</script>
+</body>
+</html>

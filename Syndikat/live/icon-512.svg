@@ -1,0 +1,6 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="108" fill="#090b0f"/>
+<circle cx="256" cy="256" r="178" fill="#111820" stroke="#d9ad54" stroke-width="14"/>
+<path d="M256 112c-29 43-91 92-91 150 0 39 30 70 68 70 18 0 34-7 45-19-3 31-18 57-42 77h40c-24-20-39-46-42-77 11 12 27 19 45 19 38 0 68-31 68-70 0-58-62-107-91-150z" fill="#d9ad54"/>
+<text x="256" y="430" text-anchor="middle" font-family="Georgia,serif" font-size="54" font-weight="700" fill="#f2cc77">S</text>
+</svg>

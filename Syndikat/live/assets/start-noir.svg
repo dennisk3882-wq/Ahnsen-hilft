@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-label="Noir-Stadt bei Nacht mit Oldtimer und Syndikat-Silhouetten">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#08101a"/><stop offset=".52" stop-color="#11141a"/><stop offset="1" stop-color="#05070a"/></linearGradient>
+ <linearGradient id="street" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#11161c"/><stop offset="1" stop-color="#020304"/></linearGradient>
+ <radialGradient id="lamp"><stop stop-color="#ffd88a" stop-opacity=".95"/><stop offset=".2" stop-color="#d99138" stop-opacity=".65"/><stop offset="1" stop-color="#d99138" stop-opacity="0"/></radialGradient>
+ <radialGradient id="red"><stop stop-color="#ff342f" stop-opacity=".95"/><stop offset=".2" stop-color="#b00000" stop-opacity=".55"/><stop offset="1" stop-color="#b00000" stop-opacity="0"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="12"/></filter>
+ <filter id="soft"><feGaussianBlur stdDeviation="4"/></filter>
+</defs>
+<rect width="1080" height="1920" fill="url(#sky)"/>
+<g opacity=".88" fill="#0c1117">
+ <path d="M0 520V180h120v340zm90 0V110h180v410zm210 0V240h150v280zm130 0V60h170v460zm130 0V155h140v365zm120 0V95h190v425zm160 0V210h140v310z"/>
+</g>
+<g fill="#e5b45e" opacity=".62">
+ <rect x="70" y="165" width="18" height="30"/><rect x="210" y="165" width="18" height="30"/><rect x="350" y="165" width="18" height="30"/><rect x="490" y="165" width="18" height="30"/><rect x="630" y="165" width="18" height="30"/><rect x="770" y="165" width="18" height="30"/><rect x="910" y="165" width="18" height="30"/><rect x="70" y="261" width="18" height="30"/><rect x="210" y="261" width="18" height="30"/><rect x="350" y="261" width="18" height="30"/><rect x="490" y="261" width="18" height="30"/><rect x="630" y="261" width="18" height="30"/><rect x="770" y="261" width="18" height="30"/><rect x="910" y="261" width="18" height="30"/><rect x="70" y="357" width="18" height="30"/><rect x="210" y="357" width="18" height="30"/><rect x="350" y="357" width="18" height="30"/><rect x="490" y="357" width="18" height="30"/><rect x="630" y="357" width="18" height="30"/><rect x="770" y="357" width="18" height="30"/><rect x="910" y="357" width="18" height="30"/><rect x="70" y="453" width="18" height="30"/>
+</g>
+<path d="M0 560L1080 540V1920H0Z" fill="url(#street)"/>
+<g opacity=".52" filter="url(#soft)">
+ <path d="M60 1920L350 630h80L265 1920z" fill="#b46e23"/>
+ <path d="M1015 1920L800 650h-70l120 1270z" fill="#941b18"/>
+</g>
+<g opacity=".75"><ellipse cx="205" cy="670" rx="150" ry="150" fill="url(#lamp)"/><ellipse cx="910" cy="740" rx="180" ry="180" fill="url(#red)"/></g>
+<!-- elevated train -->
+<g fill="#10161d" stroke="#2b333b" stroke-width="5"><rect x="-20" y="500" width="1120" height="70"/><path d="M90 570v180M290 570v180M510 570v180M730 570v180M930 570v180"/></g>
+<!-- car -->
+<g transform="translate(35 925)">
+ <path d="M90 210c18-125 93-198 250-220h248c116 18 190 82 225 193l91 48v126H38V244z" fill="#090b0e" stroke="#3f464c" stroke-width="9"/>
+ <path d="M276 12h297l118 174H160z" fill="#131920" stroke="#3f464c" stroke-width="8"/>
+ <path d="M202 52h129v126H154zm165 0h177l92 126H367z" fill="#1d2832"/>
+ <ellipse cx="200" cy="350" rx="86" ry="86" fill="#030405" stroke="#575d62" stroke-width="12"/><ellipse cx="746" cy="350" rx="86" ry="86" fill="#030405" stroke="#575d62" stroke-width="12"/>
+ <circle cx="83" cy="265" r="38" fill="#ffe19a"/><circle cx="836" cy="265" r="38" fill="#ffe19a"/>
+ <path d="M360 210h255v20H360zm0 35h255v18H360zm0 34h255v16H360z" fill="#6a6d6a"/>
+</g>
+<!-- man silhouette -->
+<g transform="translate(575 620)" fill="#08090b" stroke="#24282c" stroke-width="5">
+ <ellipse cx="160" cy="90" rx="72" ry="88"/><path d="M58 78q102-80 210 0l-12 26H68z" fill="#070809"/>
+ <path d="M75 166q85-56 170 0l52 385-52 390H66L25 548z"/>
+ <path d="M72 930l-35 330h94l39-330zm126 0l52 330h96l-62-330z"/>
+ <path d="M250 400l73 125 30 250-50 20-70-228z"/>
+ <rect x="324" y="720" width="22" height="94" rx="6" fill="#111"/><path d="M330 704l56 14-6 25-56-14z" fill="#111"/>
+</g>
+<!-- woman silhouette -->
+<g transform="translate(720 760)">
+ <ellipse cx="112" cy="72" rx="53" ry="65" fill="#181014"/>
+ <path d="M80 135q55-34 86 15l55 292-58 360H72L30 438z" fill="#6c1117"/>
+ <path d="M65 156q-38 88-56 185l45 14 44-177z" fill="#151013"/>
+ <path d="M166 150q55 100 70 210l-47 12-57-191z" fill="#151013"/>
+ <path d="M89 787l-10 310h57l22-310zm72 0l48 310h58l-63-310z" fill="#151013"/>
+ <path d="M58 150q78-67 142 12l-7 100-138-8z" fill="#171014" opacity=".92"/>
+</g>
+<!-- neon -->
+<g transform="translate(900 245)"><rect x="0" y="0" width="126" height="340" rx="12" fill="#130406" stroke="#731013" stroke-width="7"/><text x="63" y="72" text-anchor="middle" font-family="Arial Black" font-size="58" fill="#ff453d">C</text><text x="63" y="137" text-anchor="middle" font-family="Arial Black" font-size="58" fill="#ff453d">L</text><text x="63" y="202" text-anchor="middle" font-family="Arial Black" font-size="58" fill="#ff453d">U</text><text x="63" y="267" text-anchor="middle" font-family="Arial Black" font-size="58" fill="#ff453d">B</text></g>
+<!-- title -->
+<g transform="translate(58 78)"><rect x="0" y="0" width="680" height="166" fill="#08090b" opacity=".73" stroke="#8f6034" stroke-width="3"/><text x="340" y="113" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="105" letter-spacing="7" fill="#d8c09c" stroke="#5c3926" stroke-width="2">SYNDIKAT</text></g>
+<g opacity=".55" filter="url(#blur)"><ellipse cx="475" cy="1500" rx="390" ry="60" fill="#d69438"/><ellipse cx="785" cy="1630" rx="260" ry="48" fill="#b61918"/></g>
+</svg>
