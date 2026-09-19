@@ -81,7 +81,7 @@
   const oldStaff=renderStaff;
   renderStaff=function(){
     oldStaff();const p=currentPlayer();
-    $('#staffGrid [data-staff-person]').forEach(btn=>{
+    $$('#staffGrid [data-staff-person]').forEach(btn=>{
       const person=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!person||!card)return;
       const img=card.querySelector('.person-portrait'),initial=card.querySelector('.person-initial-avatar'),src=staffVisual(person);
       if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="person-portrait role-portrait" src="${src}" alt="">`;
@@ -106,7 +106,7 @@
   function decoratePropertyMarket(){
     const root=$('#dialogContent');if(!root)return;
     const kinds={Ladenlokal:'shop','Wohn- & Geschäftshaus':'block','Lagerhalle':'warehouse','Premium-Grundstück':'prime'};
-    $('.dialog-option',root).forEach(row=>{
+    $$('.dialog-option',root).forEach(row=>{
       if(row.querySelector('.property-thumb'))return;
       const txt=row.textContent||'';for(const [label,id] of Object.entries(kinds))if(txt.includes(label)){row.insertAdjacentHTML('afterbegin',`<img class="property-thumb" src="${PROPERTY_ART[id]}" alt="">`);break;}
     });
