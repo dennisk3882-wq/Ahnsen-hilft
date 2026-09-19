@@ -200,7 +200,7 @@
       ?p.courtHistory.map(x=>`<div class="dialog-option"><div><strong>${esc(x.charge)} · ${esc(x.result||'Abgeschlossen')}</strong><p>Runde ${x.openedRound}–${x.closedRound||'?'} · Geldstrafe ${fmt(x.fine||0)} · Haft ${x.jail||0}</p></div></div>`).join('')
       :'<div class="empty-state">Noch keine abgeschlossenen Verfahren.</div>';
 
-    openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Justiz & Verteidigung</p><h2>Gerichtsakte</h2></div><button class="icon-btn" data-close>✕</button></div>${activeHtml}<h3>Fallarchiv</h3><div class="dialog-list">${history}</div></div>`);
+    openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Justiz & Verteidigung</p><h2>Gerichtsakte</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-visual-banner"><img src="./assets/event-court.webp" alt="Gerichtssaal im Noir-Stil"><div><small>STAATSANWALTSCHAFT</small><strong>Jede Akte erzählt eine Geschichte. Sorge dafür, dass sie nicht mit deiner Verurteilung endet.</strong></div></div>${activeHtml}<h3>Fallarchiv</h3><div class="dialog-list">${history}</div></div>`);
     $('[data-court]').forEach(btn=>btn.onclick=()=>resolveCase(p,c,btn.dataset.court,false));
   }
 
