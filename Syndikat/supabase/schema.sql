@@ -547,3 +547,99 @@ for all to anon, authenticated using (false) with check (false);
 drop policy if exists syndikat_turn_audit_no_direct on public.syndikat_turn_audit;
 create policy syndikat_turn_audit_no_direct on public.syndikat_turn_audit
 for all to anon, authenticated using (false) with check (false);
+
+
+-- v5.5: privileged turn/save implementations live outside the exposed public schema.
+create or replace function syndikat_private.validate_game_state(p_state jsonb, p_min_players integer default 1)
+returns void language plpgsql security invoker set search_path=pg_catalog
+as $$
+declare n integer; idx integer; rnd integer;
+begin
+  if jsonb_typeof(p_state)<>'object' or jsonb_typeof(p_state->'players')<>'array' then raise exception 'invalid game state'; end if;
+  n:=jsonb_array_length(p_state->'players');
+  if n<p_min_players or n>8 then raise exception 'invalid player count'; end if;
+  if length(p_state::text)>1500000 then raise exception 'game state too large'; end if;
+  if coalesce(p_state->>'currentIndex','') !~ '^[0-9]+$' then raise exception 'invalid current index'; end if;
+  idx:=(p_state->>'currentIndex')::integer;
+  if idx<0 or idx>=n then raise exception 'current index out of range'; end if;
+  if coalesce(p_state->>'round','') !~ '^[0-9]+$' then raise exception 'invalid round'; end if;
+  rnd:=(p_state->>'round')::integer;
+  if rnd<1 or rnd>1000000 then raise exception 'invalid round'; end if;
+  if exists(
+    select 1 from jsonb_array_elements(p_state->'players') e
+    where jsonb_typeof(e)<>'object'
+       or nullif(e->>'id','') is null or length(e->>'id')>128
+       or length(coalesce(e->>'name',''))>80 or length(coalesce(e->>'family',''))>80
+       or jsonb_typeof(e->'clean')<>'number' or jsonb_typeof(e->'dirty')<>'number' or jsonb_typeof(e->'debt')<>'number'
+       or (e->>'clean')::numeric<0 or (e->>'clean')::numeric>1000000000000
+       or (e->>'dirty')::numeric<0 or (e->>'dirty')::numeric>1000000000000
+       or (e->>'debt')::numeric<0 or (e->>'debt')::numeric>1000000000000
+       or (e ? 'heat' and (jsonb_typeof(e->'heat')<>'number' or (e->>'heat')::numeric<0 or (e->>'heat')::numeric>100))
+       or (e ? 'reputation' and (jsonb_typeof(e->'reputation')<>'number' or (e->>'reputation')::numeric<0 or (e->>'reputation')::numeric>100))
+       or (e ? 'actionPoints' and (jsonb_typeof(e->'actionPoints')<>'number' or (e->>'actionPoints')::numeric<0 or (e->>'actionPoints')::numeric>20))
+       or (e ? 'jailed' and (jsonb_typeof(e->'jailed')<>'number' or (e->>'jailed')::numeric<0 or (e->>'jailed')::numeric>1000))
+  ) then raise exception 'invalid player state'; end if;
+  if (select count(*) from jsonb_array_elements(p_state->'players')) <>
+     (select count(distinct e->>'id') from jsonb_array_elements(p_state->'players') e) then raise exception 'duplicate player ids'; end if;
+  if exists(
+    select 1 from jsonb_array_elements(p_state->'players') e
+    where nullif(e->>'onlineParticipantId','') is not null
+      and (e->>'onlineParticipantId') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  ) then raise exception 'invalid online participant id'; end if;
+end;
+$$;
+
+alter function public.syndikat_start_game(text,bigint,jsonb,uuid) set schema syndikat_private;
+alter function syndikat_private.syndikat_start_game(text,bigint,jsonb,uuid) rename to start_game_impl;
+alter function public.syndikat_submit_turn(text,bigint,jsonb,uuid,text,uuid) set schema syndikat_private;
+alter function syndikat_private.syndikat_submit_turn(text,bigint,jsonb,uuid,text,uuid) rename to submit_turn_impl;
+alter function public.syndikat_account_list_saves() set schema syndikat_private;
+alter function syndikat_private.syndikat_account_list_saves() rename to account_list_saves_impl;
+alter function public.syndikat_account_load_save(smallint) set schema syndikat_private;
+alter function syndikat_private.syndikat_account_load_save(smallint) rename to account_load_save_impl;
+alter function public.syndikat_account_save_slot(smallint,jsonb,bigint) set schema syndikat_private;
+alter function syndikat_private.syndikat_account_save_slot(smallint,jsonb,bigint) rename to account_save_slot_impl;
+alter function public.syndikat_account_delete_save(smallint) set schema syndikat_private;
+alter function syndikat_private.syndikat_account_delete_save(smallint) rename to account_delete_save_impl;
+
+revoke all on all functions in schema syndikat_private from public,anon,authenticated;
+grant usage on schema syndikat_private to anon,authenticated;
+grant execute on function syndikat_private.validate_game_state(jsonb,integer) to anon,authenticated;
+grant execute on function syndikat_private.start_game_impl(text,bigint,jsonb,uuid) to anon,authenticated;
+grant execute on function syndikat_private.submit_turn_impl(text,bigint,jsonb,uuid,text,uuid) to anon,authenticated;
+grant execute on function syndikat_private.account_list_saves_impl() to authenticated;
+grant execute on function syndikat_private.account_load_save_impl(smallint) to authenticated;
+grant execute on function syndikat_private.account_save_slot_impl(smallint,jsonb,bigint) to authenticated;
+grant execute on function syndikat_private.account_delete_save_impl(smallint) to authenticated;
+
+create or replace function public.syndikat_start_game(p_game_code text,p_revision bigint,p_game_state jsonb,p_first_participant_id uuid)
+returns jsonb language plpgsql security invoker set search_path=pg_catalog,syndikat_private
+as $$ begin perform syndikat_private.validate_game_state(p_game_state,2); return syndikat_private.start_game_impl(p_game_code,p_revision,p_game_state,p_first_participant_id); end; $$;
+create or replace function public.syndikat_submit_turn(p_game_code text,p_revision bigint,p_game_state jsonb,p_next_participant_id uuid,p_status text default 'playing',p_winner_participant_id uuid default null)
+returns jsonb language plpgsql security invoker set search_path=pg_catalog,syndikat_private
+as $$ begin perform syndikat_private.validate_game_state(p_game_state,2); return syndikat_private.submit_turn_impl(p_game_code,p_revision,p_game_state,p_next_participant_id,p_status,p_winner_participant_id); end; $$;
+create or replace function public.syndikat_account_list_saves()
+returns jsonb language sql security invoker set search_path=pg_catalog,syndikat_private
+as $$ select syndikat_private.account_list_saves_impl(); $$;
+create or replace function public.syndikat_account_load_save(p_slot smallint)
+returns jsonb language sql security invoker set search_path=pg_catalog,syndikat_private
+as $$ select syndikat_private.account_load_save_impl(p_slot); $$;
+create or replace function public.syndikat_account_save_slot(p_slot smallint,p_game_state jsonb,p_expected_revision bigint default null)
+returns jsonb language plpgsql security invoker set search_path=pg_catalog,syndikat_private
+as $$ begin perform syndikat_private.validate_game_state(p_game_state,1); return syndikat_private.account_save_slot_impl(p_slot,p_game_state,p_expected_revision); end; $$;
+create or replace function public.syndikat_account_delete_save(p_slot smallint)
+returns boolean language sql security invoker set search_path=pg_catalog,syndikat_private
+as $$ select syndikat_private.account_delete_save_impl(p_slot); $$;
+
+revoke all on function public.syndikat_start_game(text,bigint,jsonb,uuid) from public,anon,authenticated;
+revoke all on function public.syndikat_submit_turn(text,bigint,jsonb,uuid,text,uuid) from public,anon,authenticated;
+revoke all on function public.syndikat_account_list_saves() from public,anon,authenticated;
+revoke all on function public.syndikat_account_load_save(smallint) from public,anon,authenticated;
+revoke all on function public.syndikat_account_save_slot(smallint,jsonb,bigint) from public,anon,authenticated;
+revoke all on function public.syndikat_account_delete_save(smallint) from public,anon,authenticated;
+grant execute on function public.syndikat_start_game(text,bigint,jsonb,uuid) to anon,authenticated;
+grant execute on function public.syndikat_submit_turn(text,bigint,jsonb,uuid,text,uuid) to anon,authenticated;
+grant execute on function public.syndikat_account_list_saves() to authenticated;
+grant execute on function public.syndikat_account_load_save(smallint) to authenticated;
+grant execute on function public.syndikat_account_save_slot(smallint,jsonb,bigint) to authenticated;
+grant execute on function public.syndikat_account_delete_save(smallint) to authenticated;
