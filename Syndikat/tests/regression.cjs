@@ -253,7 +253,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
     assert(sw.includes('./assets/'+asset),'UI artwork must be cached offline: '+asset);
     assert(uiArt.includes(asset),'UI artwork must be mapped: '+asset);
   }
-  assert(sw.includes('syndikat-v5-4-1'),'PWA cache must be bumped for final artwork pass');
+  assert(sw.includes('syndikat-v5-4-2'),'PWA cache must be bumped for final artwork pass');
 }
 
 console.log('Syndikat regression suite: OK');
