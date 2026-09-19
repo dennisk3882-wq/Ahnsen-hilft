@@ -123,3 +123,84 @@ test('offline shell declares complete v5.5 PWA', async ({page})=>{
   expect(await cache.text()).toContain("syndikat-v5-5-0");
   expect(errors).toEqual([]);
 });
+
+
+test('advanced v5.5 systems open and render without browser errors', async ({page})=>{
+  const errors=watchErrors(page);
+  await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());
+  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
+  await page.locator('#newGameBtn').tap();
+  await page.selectOption('#aiCount','1');
+  await page.selectOption('#guidedTutorial','off');
+  await page.locator('#startGameBtn').tap();
+  await page.waitForTimeout(300);
+  await closeDialog(page);
+
+  await page.evaluate(()=>window.SyndikatV4.openOperation('bank'));
+  await expect(page.locator('.v4-operation')).toBeVisible();
+  await expect(page.locator('#opCrew')).toBeVisible();
+  await closeDialog(page);
+
+  await page.evaluate(()=>window.SyndikatEconomyDepth.openPropertyMarket());
+  await expect(page.locator('[data-buy-land]').first()).toBeVisible();
+  await closeDialog(page);
+
+  await page.evaluate(()=>{
+    const st=JSON.parse(localStorage.getItem('syndikat_save_v3'));
+    const p=st.players[0],r=st.players[1];
+    p.clean=1000000;p.dirty=500000;p.actionPoints=8;
+    p.staffRoster=[{id:'spy1',role:'informant',name:'Test Informant',skill:82,loyalty:90,trait:'steady',salary:900,heldUntil:0,level:2,xp:20}];
+    r.staffRoster=[{id:'target1',role:'guard',name:'Rival Guard',skill:45,loyalty:35,trait:'steady',salary:700,heldUntil:0,level:1,xp:0}];
+    localStorage.setItem('syndikat_save_v3',JSON.stringify(st));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#continueBtn').tap();
+  await page.evaluate(()=>window.SyndikatDepth.openEspionage());
+  await expect(page.locator('[data-mole]').first()).toBeVisible();
+  await expect(page.locator('[data-defect]').first()).toBeVisible();
+  await closeDialog(page);
+
+  await page.evaluate(()=>{
+    const st=JSON.parse(localStorage.getItem('syndikat_save_v3'));
+    const p=st.players[0];
+    p.clean=1000000;p.dirty=500000;p.actionPoints=8;p.jailed=0;
+    p.investigation=Object.assign({},p.investigation||{},{evidence:78,stage:'Anklage droht',warrant:true,corruptionExposure:0});
+    p.courtCases=[{id:'case-test',charge:'Organisierte Erpressung',severity:2,evidenceAtOpen:78,openedRound:st.round,hearingRound:st.round+2,status:'pending',result:null,fine:0,jail:0}];
+    p.courtHistory=[];
+    localStorage.setItem('syndikat_save_v3',JSON.stringify(st));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#continueBtn').tap();
+  await page.evaluate(()=>window.SyndikatJustice.open());
+  await expect(page.locator('[data-court="fight"]')).toBeVisible();
+  await expect(page.locator('[data-court="deal"]')).toBeVisible();
+  await expect(page.locator('[data-court="corrupt"]')).toBeVisible();
+  await closeDialog(page);
+
+  await page.evaluate(()=>{
+    const st=JSON.parse(localStorage.getItem('syndikat_save_v3'));
+    const p=st.players[0];
+    p.jailed=3;p.actionPoints=3;p.clean=100000;p.dirty=100000;
+    localStorage.setItem('syndikat_save_v3',JSON.stringify(st));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#continueBtn').tap();
+  await page.locator('.bottom-bar [data-view="actions"]').tap();
+  await expect(page.locator('[data-prison-final]')).toHaveCount(7);
+
+  await page.evaluate(()=>{
+    const st=JSON.parse(localStorage.getItem('syndikat_save_v3'));
+    const p=st.players[0];
+    p.jailed=0;p.clean=1000000;p.dirty=500000;p.actionPoints=8;
+    p.finalCrisis={triggered:true,active:true,choice:null,startedRound:st.round,resolveRound:0,resolved:false,outcome:null};
+    localStorage.setItem('syndikat_save_v3',JSON.stringify(st));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#continueBtn').tap();
+  await page.evaluate(()=>window.SyndikatFinalSystems.openFinalCrisis());
+  await expect(page.locator('[data-final-choice]')).toHaveCount(3);
+  await expect(page.locator('[data-final-choice="legit"]')).toBeVisible();
+  await closeDialog(page);
+
+  expect(errors).toEqual([]);
+});
