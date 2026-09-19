@@ -71,6 +71,7 @@ function mk({ais=0,length='normal',difficulty='normal'}={}){
   assert.strictEqual(T.rankName(p),'Niemand');
   assert(T.powerIndex(p)<5,'new player power must stay low');
   assert(p.inventory&&p.investigation&&p.story&&Array.isArray(p.crews),'v4 systems must migrate/init');
+  assert(p.prisonState&&p.leadership&&p.finalCrisis,'final gameplay systems must initialize');
 }
 
 // No solo auto-win.
@@ -163,6 +164,9 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(schema.includes('private.syndikat_token_hash'));
   assert(schema.includes('grant select, insert, update, delete'));
   assert(!cloud.includes('service_role'),'public client must never contain a service-role key');
+  assert(cfg.includes('enabled: true'),'cloud configuration must be enabled for v5');
+  assert(schema.includes('syndikat_private'),'schema must isolate Syndikat helpers');
+  assert(!schema.includes('active_token_hash'),'player token hashes must not be exposed through active game state');
 }
 
 // Offline shell must include the modular/cloud files and update path.
