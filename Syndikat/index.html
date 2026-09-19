@@ -1298,6 +1298,120 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 })();
 /* SYNDIKAT_REVISION_3_1_END */
 
+/* SYNDIKAT_REVISION_3_2_BEGIN */
+(function REVISION32_PATCH(){
+  function slotsUsed32(did){return state.players.filter(x=>!x.eliminated).reduce((s,p)=>s+p.businesses.filter(b=>b.district===did).reduce((a,b)=>a+(BUSINESSES[b.type].slotUse||1),0),0);}
+  function slotsFree32(did){const d=DISTRICTS.find(x=>x.id===did);return Math.max(0,(d.slots||14)-slotsUsed32(did));}
+  function inf32(){return 1+Math.min(.65,Math.max(0,(state?.round||1)-1)*.005);}
+  function tier32(p){const n=netWorth(p),r=p.reputation||0,c=controlledDistricts(p);if(n>=7500000&&r>=55&&c>=2)return 6;if(n>=2500000&&r>=35&&c>=1)return 5;if(n>=750000&&r>=20)return 4;if(n>=200000&&r>=10)return 3;if(n>=60000||r>=6)return 2;return 1;}
+  function reserve32(p){
+    const upkeep=p.businesses.reduce((s,b)=>s+BUSINESSES[b.type].upkeep*(1+.10*((b.level||1)-1)),0),pay=staffPayroll(p),loans=(p.loans||[]).reduce((s,l)=>s+(l.payment||0),0);
+    return Math.round(Math.max(12000,upkeep*1.8+pay*2.2+loans*1.3));
+  }
+  function cost32(type){return Math.round(BUSINESSES[type].cost*inf32());}
+  function clean32(p,a){a=Math.round(a);if(p.clean<a)return false;p.clean-=a;return true;}
+  function dirty32(p,a){a=Math.round(a);if(p.dirty<a)return false;p.dirty-=a;return true;}
+  function dirtyFirst32(p,a){a=Math.round(a);const d=Math.min(p.dirty,a);p.dirty-=d;a-=d;const c=Math.min(p.clean,a);p.clean-=c;a-=c;return a===0;}
+  function act32(p,n=1){p.roundActivity=(p.roundActivity||0)+n;}
+  function focus32(p){
+    if(Array.isArray(p.aiFocus)&&p.aiFocus.length)return p.aiFocus;
+    const m={aggressive:['redlight','station','oldtown','harbor'],economic:['center','west','oldtown','south'],corrupt:['center','oldtown','west','redlight'],smuggler:['harbor','station','industrial','south'],defensive:['west','south','industrial','oldtown'],balanced:['oldtown','south','center','station']};p.aiFocus=[...(m[p.profile]||m.balanced)];return p.aiFocus;
+  }
+  function claim32(p){for(const m of [...p.missions])if(missionProgress(p,m).done){p.clean+=m.reward;p.reputation+=m.rep;p.missions=p.missions.filter(x=>x.id!==m.id);ledger(p,`Auftrag: ${m.title}`,m.reward,'income');}ensureMissions(p);}
+  function canBuy32(p,type,did){
+    const d=BUSINESSES[type],price=cost32(type),reserve=reserve32(p);
+    if(!d||d.tier>tier32(p)||p.actionPoints<1||p.businessPurchasesThisTurn>=2||slotsFree32(did)<d.slotUse)return false;
+    return d.tier>=2?p.clean>=price+reserve:totalLiquid(p)>=price+reserve;
+  }
+  function buy32(p,type,did){
+    if(!canBuy32(p,type,did))return false;const d=BUSINESSES[type],price=cost32(type);
+    d.tier>=2?clean32(p,price):spend(p,price,false);p.actionPoints--;p.businessPurchasesThisTurn++;act32(p,2);
+    const b={id:uid(),type,district:did,health:100,level:1,name:d.name,acquiredRound:state.round,routeId:null};if(type==='machines')b.machines=createMachineUnits();p.businesses.push(b);p.reputation+=d.rep;return true;
+  }
+  function redevelop32(p,did,need){
+    if(slotsFree32(did)>=need)return true;const own=p.businesses.filter(b=>b.district===did).sort((a,b)=>(BUSINESSES[a.type].influence/(BUSINESSES[a.type].slotUse||1))-(BUSINESSES[b.type].influence/(BUSINESSES[b.type].slotUse||1)));
+    while(slotsFree32(did)<need&&own.length){const b=own.shift(),v=Math.round(BUSINESSES[b.type].cost*.52*(b.health/100));p.businesses=p.businesses.filter(x=>x.id!==b.id);p.clean+=v;ledger(p,`Standort neu entwickelt: ${BUSINESSES[b.type].name}`,v,'clean');}
+    return slotsFree32(did)>=need;
+  }
+  function upgrade32(p){
+    const reserve=reserve32(p),cand=p.businesses.filter(b=>b.level<3).sort((a,b)=>(BUSINESSES[b.type].influence/(BUSINESSES[b.type].slotUse||1))-(BUSINESSES[a.type].influence/(BUSINESSES[a.type].slotUse||1)))[0];if(!cand)return false;
+    const c=Math.round(BUSINESSES[cand.type].cost*.20*cand.level*inf32());if(p.clean<c+reserve)return false;p.clean-=c;cand.level++;p.stats.upgrades++;act32(p);return true;
+  }
+  function route32(p){
+    const reserve=reserve32(p),packs=p.businesses.filter(b=>b.type==='machines');
+    if(packs.length>=2&&!p.routes.length&&p.clean>=2500+reserve){p.clean-=2500;p.routes.push({id:uid(),name:'Automatenroute',level:1});packs.forEach(b=>b.routeId=p.routes[0].id);act32(p);}
+    else if(p.routes.length&&p.routes[0].level<3&&p.clean>=5000*p.routes[0].level+reserve&&chance(.14)){p.clean-=5000*p.routes[0].level;p.routes[0].level++;act32(p);}
+  }
+  function politics32(p){
+    const reserve=reserve32(p),others=state.players.filter(t=>t.id!==p.id&&!t.eliminated);if(!others.length)return;const t=others[rand(0,others.length-1)];
+    if(p.profile!=='aggressive'&&!pactActive(p,t)&&relation(p,t)>5&&p.clean>=5000+reserve&&chance(.08)){p.clean-=5000;p.pacts[t.id]=state.round+5;t.pacts[p.id]=state.round+5;adjustRelation(p,t,6);act32(p);}
+    if(!allianceActive(p,t)&&relation(p,t)>25&&p.clean>=15000+reserve&&chance(.04)){p.clean-=15000;p.alliances[t.id]=state.round+7;t.alliances[p.id]=state.round+7;p.pacts[t.id]=state.round+7;t.pacts[p.id]=state.round+7;adjustRelation(p,t,9);act32(p);}
+  }
+  function violence32(p,diff){
+    const reserve=reserve32(p);if(p.actionPoints<2||p.staff.gunman<1||p.dirty<2500||totalLiquid(p)<reserve)return;
+    const targets=state.players.filter(t=>t.id!==p.id&&!t.eliminated&&!pactActive(p,t)&&!allianceActive(p,t));if(!targets.length)return;const t=[...targets].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
+    if(p.staff.gunman>=2&&activeStaff(t).length&&p.dirty>=5000&&chance(.035*diff)){const s=[...activeStaff(t)].sort((a,b)=>b.skill-a.skill)[0];dirty32(p,5000);p.actionPoints-=2;act32(p,4);const ok=chance(clamp(.25+roleSkill(p,'gunman')/550+roleSkill(p,'informant')/950-roleSkill(t,'guard')/650,.06,.72));p.heat=clamp(p.heat+32,0,100);adjustRelation(p,t,-50);if(ok){t.staffRoster=t.staffRoster.filter(x=>x.id!==s.id);syncStaffCounts(t);p.reputation+=5;p.stats.attacksSuccess++;}return;}
+    if(t.businesses.length&&chance(.12*diff)){const b=[...t.businesses].sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0];dirty32(p,2500);p.actionPoints-=2;act32(p,3);const ok=chance(clamp(.40+(roleSkill(p,'gunman')*.42-businessSecurity(t,b))/120,.08,.85));p.heat=clamp(p.heat+15,0,100);adjustRelation(p,t,-20);if(ok){b.health=clamp(b.health-rand(25,50),0,100);if(!b.health)t.businesses=t.businesses.filter(x=>x.id!==b.id);p.stats.attacksSuccess++;}}
+  }
+
+  aiTurn=function(p){
+    if(p.eliminated)return;initPlayer(p);claim32(p);const diff={easy:.82,normal:1,hard:1.12,boss:1.28}[state.settings.difficulty]||1;
+    if(p.jailed>0){if(p.actionPoints>0&&chance(.45))doAiPrison(p);act32(p);p.lastAction='Organisation aus der Haft geführt';return;}
+    const reserve=reserve32(p);
+    if(p.debt>0&&p.clean>reserve+5000){const pay=Math.min(p.debt,Math.round((p.clean-reserve)*.55));p.clean-=pay;p.debt-=pay;ledger(p,'Schulden getilgt',-pay,'debt');}
+    if(p.heat>55&&p.actionPoints>0){p.actionPoints--;p.heat=clamp(p.heat-rand(11,19),0,100);act32(p);}
+    const roster=p.profile==='aggressive'?[['gunman',3],['guard',2],['informant',2],['bodyguard',1],['lawyer',1],['manager',2]]:
+      p.profile==='economic'?[['manager',3],['guard',2],['lawyer',1],['informant',1],['bodyguard',1],['gunman',1]]:
+      p.profile==='defensive'?[['guard',3],['bodyguard',2],['lawyer',1],['manager',2],['informant',1],['gunman',1]]:
+      [['manager',2],['guard',2],['gunman',2],['informant',1],['lawyer',1],['bodyguard',1]];
+    for(const [role,target] of roster){if(p.staff[role]>=target)continue;const c=STAFF[role].cost,legal=role==='manager'||role==='lawyer',avail=legal?p.clean:totalLiquid(p);if(avail<c+reserve*1.05)continue;legal?clean32(p,c):dirtyFirst32(p,c);p.staffRoster.push(createStaffPerson(role));syncStaffCounts(p);act32(p);break;}
+    if((p.profile==='corrupt'||p.heat>48)&&p.dirty>reserve*.25){const next=Object.entries(CORRUPTION).find(([k,c])=>!p.bribes[k]&&p.dirty>=c.cost+5000);if(next&&chance(.35)){dirty32(p,next[1].cost);p.bribes[next[0]]=true;p.reputation+=2;act32(p);}}
+    if(p.staff.informant&&chance(.22)){const did=focus32(p)[rand(0,focus32(p).length-1)];p.scouting[did]={round:state.round,level:clamp(1+Math.floor(roleSkill(p,'informant')/35),1,3)};p.stats.scouts++;act32(p);}
+    if(p.clean>reserve*2&&chance(.28))upgrade32(p);
+
+    let buys=0;
+    while(p.actionPoints>0&&p.businessPurchasesThisTurn<2&&buys<2){
+      const f=focus32(p).map((did,i)=>({did,i,share:districtShare(p,did),controlled:districtShare(p,did)>=50})).sort((a,b)=>(a.controlled-b.controlled)||(b.share-a.share)||a.i-b.i),did=f[0]?.did||DISTRICTS[0].id;
+      const options=Object.entries(BUSINESSES).filter(([type,b])=>b.tier<=tier32(p)).sort((a,b)=>{
+        const score=x=>{const [type,d]=x,roi=(d.baseIncome-d.upkeep)/Math.max(1,cost32(type)),inf=d.influence/(d.slotUse||1);return inf*2.4+roi*360+(d.tier===tier32(p)?10:0);};return score(b)-score(a);
+      });
+      let pick=options.find(([type])=>canBuy32(p,type,did));
+      if(!pick&&tier32(p)>=3&&options.length){const affordable=options.filter(([type,d])=>d.tier>=2?p.clean>=cost32(type)+reserve:totalLiquid(p)>=cost32(type)+reserve);if(affordable.length){const need=Math.min(...affordable.map(([type])=>BUSINESSES[type].slotUse||1));redevelop32(p,did,need);pick=affordable.find(([type])=>canBuy32(p,type,did));}}
+      if(!pick||!buy32(p,pick[0],did))break;buys++;
+    }
+
+    // If the AI cannot invest safely, use AP to build cash rather than burning its reserve.
+    if(p.staff.gunman>0&&p.actionPoints>0&&p.dirty>=5000&&totalLiquid(p)>reserve*1.3&&chance(.18)){const did=focus32(p).filter(x=>districtShare(p,x)<50).sort((a,b)=>districtShare(p,b)-districtShare(p,a))[0]||focus32(p)[0],lv=p.protection[did]?.level||0,c=2500*(lv+1);if(lv<3&&p.dirty>=c+2500){dirty32(p,c);p.protection[did]={level:lv+1,started:state.round};p.actionPoints--;p.stats.protection++;act32(p,2);}}
+    route32(p);politics32(p);if(p.profile==='aggressive')violence32(p,diff);
+
+    while(p.actionPoints>0&&!p.jailed){
+      const pool=CRIMES.filter(c=>p.actionPoints>=c.ap),c=p.heat>55?pool[0]:pool[Math.min(pool.length-1,Math.floor(netWorth(p)/180000)%pool.length)];if(!c)break;p.actionPoints-=c.ap;act32(p,2);
+      if(chance(clamp(crimeSuccess(p,c)*diff,.05,.96))){const take=Math.round(rand(c.min,c.max)*diff);p.dirty+=take;p.reputation++;p.stats.crimesSuccess++;}else if(chance(.22))p.jailed=Math.max(1,c.jail-(p.bribes.judge?1:0));p.heat=clamp(p.heat+c.heat*(1-shield(p)/100),0,100);
+    }
+    if(p.clean<reserve*.8&&netWorth(p)>150000&&p.creditDefaults<1&&outstandingLoans(p)<netWorth(p)*.22&&chance(.08)){const amount=Math.min(100000,Math.max(25000,Math.round(netWorth(p)*.12)));p.clean+=amount;p.loans.push({id:uid(),original:amount,remaining:amount,rate:.03,payment:Math.max(1500,Math.round(amount/10)),started:state.round,missed:0,status:'active'});}
+    claim32(p);p.lastAction='Syndikat strategisch geführt';
+  };
+
+  const victoryV3=checkVictory;
+  checkVictory=function(){
+    if(!state||state.gameOver)return;
+    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
+    if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
+    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
+    if(state.settings.length==='endless')return;
+    const cfg={short:{min:12,target:60,districts:2},normal:{min:22,target:72,districts:3},long:{min:35,target:82,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
+    if(state.round<cfg.min)return;
+    if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){
+      const survivor=active[0];
+      if(powerIndex(survivor)>=38&&controlledDistricts(survivor)>=1){state.gameOver=true;state.winnerId=survivor.id;state.endReason='Alle Rivalen sind ausgeschieden und das verbleibende Syndikat besitzt eine gefestigte Stadtbasis.';}
+      return;
+    }
+    const leader=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
+    if(leader&&powerIndex(leader)>=cfg.target&&controlledDistricts(leader)>=cfg.districts){state.gameOver=true;state.winnerId=leader.id;state.endReason=`Dominanzziel erreicht: ${cfg.target}% Macht und ${cfg.districts} Viertel.`;}
+  };
+})();
+/* SYNDIKAT_REVISION_3_2_END */
+
   init();
 })();
 
