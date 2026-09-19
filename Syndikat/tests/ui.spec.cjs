@@ -29,15 +29,16 @@ test('mobile PWA core journey and visual assets', async ({page})=>{
   const map=page.locator('.city-art-map img').first();
   await expect(map).toBeVisible();
   expect(await map.evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
-  await expect(page.locator('[data-map-district]')).toHaveCount(8);
+  await expect(page.locator('.city-map-hit')).toHaveCount(8);
+  await expect(page.locator('.city-map-tag')).toHaveCount(8);
   await expect(page.locator('[data-map-mode]')).toHaveCount(5);
 
   await page.locator('[data-map-mode="ownership"]').tap();
-  await page.locator('[data-map-district="oldtown"]').tap();
+  await page.locator('.city-map-hit[data-map-district="oldtown"]').tap();
   await expect(page.locator('.district-visual img')).toBeVisible();
   expect(await page.locator('.district-visual img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
 
-  await page.locator('[data-view="businesses"]').last().tap();
+  await page.locator('.bottom-bar [data-view="businesses"]').tap();
   await page.locator('[data-action="open-buy"]').tap();
   await expect(page.locator('.business-buy-thumb').first()).toBeVisible();
   expect(await page.locator('.business-buy-thumb').first().evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
@@ -45,7 +46,8 @@ test('mobile PWA core journey and visual assets', async ({page})=>{
   await expect(page.locator('#businessList .business-card')).toHaveCount(1);
   await expect(page.locator('#businessList .business-thumb')).toHaveCount(1);
 
-  await page.locator('[data-view="staff"]').first().tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-go="staff"]').tap();
   await page.locator('[data-recruit]').tap();
   await page.locator('[data-hire="informant"]').tap();
   await expect(page.locator('#staffGrid .person-card')).toHaveCount(1);
@@ -53,11 +55,13 @@ test('mobile PWA core journey and visual assets', async ({page})=>{
   await expect(staffImg).toBeVisible();
   expect(await staffImg.evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
 
-  await page.locator('[data-view="missions"]').first().tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-go="missions"]').tap();
   await expect(page.locator('.story-card')).toBeVisible();
   await expect(page.locator('.story-card img').first()).toBeVisible();
 
-  await page.locator('[data-view="ranking"]').first().tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-go="ranking"]').tap();
   await expect(page.locator('.rank-row')).toHaveCount(2);
   await expect(page.locator('.rival-rank-portrait').first()).toBeVisible();
 
