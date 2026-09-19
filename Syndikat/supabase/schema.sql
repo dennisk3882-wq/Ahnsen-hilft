@@ -700,3 +700,80 @@ using (
   game_code = syndikat_private.request_header('x-syndikat-game')
   and syndikat_private.is_host(game_code)
 );
+
+
+-- v5.6 live submit_turn_impl sync
+CREATE OR REPLACE FUNCTION syndikat_private.submit_turn_impl(p_game_code text, p_revision bigint, p_game_state jsonb, p_next_participant_id uuid, p_status text DEFAULT 'playing'::text, p_winner_participant_id uuid DEFAULT NULL::uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'public', 'syndikat_private', 'extensions'
+AS $function$
+declare
+  g public.syndikat_online_games; caller_id uuid; old_round integer; new_round integer;
+  old_ids text[]; new_ids text[]; current_online text;
+begin
+  select * into g from public.syndikat_online_games where game_code=p_game_code for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status<>'playing' then raise exception 'game is not active'; end if;
+  if g.revision<>p_revision then raise exception 'revision conflict'; end if;
+
+  select p.participant_id into caller_id
+  from public.syndikat_online_players p
+  where p.game_code=p_game_code and p.participant_id=g.active_participant_id
+    and p.player_token_hash=syndikat_private.token_hash();
+  if caller_id is null then raise exception 'not active participant'; end if;
+
+  perform syndikat_private.validate_game_state(p_game_state,2);
+  if p_status not in ('playing','finished') then raise exception 'invalid status'; end if;
+
+  if g.game_state is not null then
+    if jsonb_array_length(g.game_state->'players')<>jsonb_array_length(p_game_state->'players') then raise exception 'player count cannot change during a turn'; end if;
+    select array_agg(e->>'id' order by e->>'id') into old_ids from jsonb_array_elements(g.game_state->'players') e;
+    select array_agg(e->>'id' order by e->>'id') into new_ids from jsonb_array_elements(p_game_state->'players') e;
+    if old_ids is distinct from new_ids then raise exception 'player identities cannot change'; end if;
+    old_round:=coalesce((g.game_state->>'round')::integer,1);
+    new_round:=coalesce((p_game_state->>'round')::integer,1);
+    if new_round<old_round or new_round>old_round+1 then raise exception 'invalid round progression'; end if;
+    if coalesce(g.game_state->>'startedAt','')<>coalesce(p_game_state->>'startedAt','') then raise exception 'game identity changed'; end if;
+  end if;
+
+  if exists(
+    select 1 from jsonb_array_elements(p_game_state->'players') e
+    where nullif(e->>'onlineParticipantId','') is not null
+      and not exists(select 1 from public.syndikat_online_players op
+                     where op.game_code=p_game_code and op.participant_id=(e->>'onlineParticipantId')::uuid)
+  ) then raise exception 'unknown online participant in state'; end if;
+
+  if p_status='playing' then
+    if p_next_participant_id is null
+       or not exists(select 1 from public.syndikat_online_players where game_code=p_game_code and participant_id=p_next_participant_id)
+    then raise exception 'invalid next participant'; end if;
+  end if;
+
+  if p_winner_participant_id is not null
+     and not exists(select 1 from public.syndikat_online_players where game_code=p_game_code and participant_id=p_winner_participant_id)
+  then raise exception 'invalid winner participant'; end if;
+
+  perform syndikat_private.validate_turn_transition(
+    p_game_code,g.game_state,p_game_state,caller_id,p_next_participant_id,p_status,p_winner_participant_id
+  );
+
+  update public.syndikat_online_games
+  set revision=g.revision+1,game_state=p_game_state,
+      active_participant_id=case when p_status='finished' then null else p_next_participant_id end,
+      status=p_status,winner_participant_id=p_winner_participant_id
+  where game_code=p_game_code returning * into g;
+
+  insert into public.syndikat_turn_audit(game_code,revision,participant_id,round,state_hash)
+  values(p_game_code,g.revision,caller_id,coalesce((p_game_state->>'round')::integer,1),
+         encode(extensions.digest(p_game_state::text,'sha256'),'hex'));
+  return syndikat_private.public_game(g);
+end;
+$function$
+
+
+drop policy if exists syndikat_push_config_deny on public.syndikat_push_config;
+create policy syndikat_push_config_deny on public.syndikat_push_config for all to anon,authenticated using(false) with check(false);
+drop policy if exists syndikat_push_subscriptions_deny on public.syndikat_push_subscriptions;
+create policy syndikat_push_subscriptions_deny on public.syndikat_push_subscriptions for all to anon,authenticated using(false) with check(false);
