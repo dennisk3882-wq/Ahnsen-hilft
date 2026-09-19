@@ -1,0 +1,1 @@
+// Deployed Edge Function: authenticated Supabase account deletion.\nexport const purpose='delete account';\n

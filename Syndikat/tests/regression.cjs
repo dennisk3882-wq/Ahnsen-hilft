@@ -186,6 +186,10 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(schema.includes('start_game_impl')&&schema.includes('submit_turn_impl'),'privileged online implementations must live in the private schema');
   assert(schema.includes('grant execute on function syndikat_private.request_header(text) to anon')&&schema.includes('grant execute on function syndikat_private.lobby_is_joinable(text) to anon'),'RLS helper functions required by anon policies must remain executable');
   assert(schema.includes('revoke update on public.syndikat_online_games from anon'),'clients must not directly overwrite online game state');
+  assert(schema.includes('validate_turn_transition'),'online turns need transition-level anti-tamper validation');
+  assert(schema.includes('syndikat_push_subscriptions'),'turn push subscriptions must be stored server-side');
+  assert(cloud.includes('enableTurnPush')&&cloud.includes('notifyActiveTurn'),'client must support real turn push');
+  assert(cloud.includes('resetPasswordAccount')&&cloud.includes('deleteAccount'),'complete account lifecycle must be implemented');
   assert(!schema.includes('active_token_hash'),'player token hashes must not be exposed through active game state');
 }
 
@@ -264,7 +268,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
     assert(sw.includes('./assets/'+asset),'UI artwork must be cached offline: '+asset);
     assert(uiArt.includes(asset),'UI artwork must be mapped: '+asset);
   }
-  assert(sw.includes('syndikat-v5-5-0'),'PWA cache must match the v5.5 stability release');
+  assert(sw.includes('syndikat-v5-6-0'),'PWA cache must match the v5.6 completion release');
 }
 
 // Required CI soak: 12 full-table campaigns (7 rival AIs), one per difficulty/length combination.

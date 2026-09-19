@@ -17,7 +17,8 @@ const modules=[
   "src/modules/65-ui-art.js",
   "src/modules/70-decisions.js",
   "src/modules/80-justice.js",
-  "src/modules/90-final-gameplay.js"
+  "src/modules/90-final-gameplay.js",
+  "src/modules/95-runtime-facade.js"
 ];
 
 const basePath=path.join(root,'src','core-base.js');

@@ -652,3 +652,41 @@ grant execute on function syndikat_private.is_participant(text) to anon;
 grant execute on function syndikat_private.is_host(text) to anon;
 grant execute on function syndikat_private.is_active_player(text) to anon;
 grant execute on function syndikat_private.lobby_is_joinable(text) to anon;
+
+
+-- v5.6 multiplayer transition hardening + web push storage.
+create or replace function syndikat_private.validate_turn_transition(
+  p_game_code text,p_old_state jsonb,p_new_state jsonb,p_actor uuid,p_next uuid,p_status text,p_winner uuid
+) returns void language plpgsql security definer set search_path=pg_catalog,public,syndikat_private
+as $$
+declare oldp jsonb; newp jsonb; pid text; old_count integer; new_count integer; current_online text; state_winner_online text;
+begin
+  if p_old_state is null then return; end if;
+  if jsonb_array_length(p_old_state->'players')<>jsonb_array_length(p_new_state->'players') then raise exception 'player count changed'; end if;
+  for oldp in select value from jsonb_array_elements(p_old_state->'players') loop
+    pid:=oldp->>'id'; select value into newp from jsonb_array_elements(p_new_state->'players') where value->>'id'=pid;
+    if newp is null then raise exception 'player identity removed'; end if;
+    if coalesce(oldp->>'family','')<>coalesce(newp->>'family','') or coalesce(oldp->>'onlineParticipantId','')<>coalesce(newp->>'onlineParticipantId','') or coalesce(oldp->>'type','')<>coalesce(newp->>'type','') then raise exception 'immutable player identity changed'; end if;
+    if abs(coalesce((newp->>'clean')::numeric,0)-coalesce((oldp->>'clean')::numeric,0))>100000000 or abs(coalesce((newp->>'dirty')::numeric,0)-coalesce((oldp->>'dirty')::numeric,0))>100000000 or abs(coalesce((newp->>'debt')::numeric,0)-coalesce((oldp->>'debt')::numeric,0))>100000000 then raise exception 'implausible financial transition'; end if;
+    old_count:=case when jsonb_typeof(oldp->'businesses')='array' then jsonb_array_length(oldp->'businesses') else 0 end;new_count:=case when jsonb_typeof(newp->'businesses')='array' then jsonb_array_length(newp->'businesses') else 0 end;if new_count>old_count+4 then raise exception 'implausible business transition'; end if;
+    old_count:=case when jsonb_typeof(oldp->'staffRoster')='array' then jsonb_array_length(oldp->'staffRoster') else 0 end;new_count:=case when jsonb_typeof(newp->'staffRoster')='array' then jsonb_array_length(newp->'staffRoster') else 0 end;if new_count>old_count+8 then raise exception 'implausible staff transition'; end if;
+    old_count:=case when jsonb_typeof(oldp->'propertyIds')='array' then jsonb_array_length(oldp->'propertyIds') else 0 end;new_count:=case when jsonb_typeof(newp->'propertyIds')='array' then jsonb_array_length(newp->'propertyIds') else 0 end;if new_count>old_count+4 then raise exception 'implausible property transition'; end if;
+    old_count:=case when jsonb_typeof(oldp->'gear')='array' then jsonb_array_length(oldp->'gear') else 0 end;new_count:=case when jsonb_typeof(newp->'gear')='array' then jsonb_array_length(newp->'gear') else 0 end;if new_count>old_count+10 then raise exception 'implausible gear transition'; end if;
+  end loop;
+  if p_status='playing' then
+    if coalesce((p_new_state->>'gameOver')::boolean,false) then raise exception 'playing state cannot be game over'; end if;
+    current_online:=p_new_state->'players'->((p_new_state->>'currentIndex')::integer)->>'onlineParticipantId';
+    if current_online is distinct from p_next::text then raise exception 'next participant mismatch'; end if;
+  elsif p_status='finished' then
+    if not coalesce((p_new_state->>'gameOver')::boolean,false) or p_winner is null then raise exception 'invalid finished state'; end if;
+    select e->>'onlineParticipantId' into state_winner_online from jsonb_array_elements(p_new_state->'players') e where e->>'id'=p_new_state->>'winnerId';
+    if state_winner_online is distinct from p_winner::text then raise exception 'winner does not match game state'; end if;
+  end if;
+end;
+$$;
+
+create table if not exists public.syndikat_push_config(id smallint primary key default 1 check(id=1),public_key text not null,private_key text not null,created_at timestamptz not null default now());
+alter table public.syndikat_push_config enable row level security; revoke all on public.syndikat_push_config from anon,authenticated;
+create table if not exists public.syndikat_push_subscriptions(id uuid primary key default gen_random_uuid(),game_code text not null references public.syndikat_online_games(game_code) on delete cascade,participant_id uuid not null references public.syndikat_online_players(participant_id) on delete cascade,endpoint text not null,p256dh text not null,auth text not null,user_agent text not null default '',created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(game_code,participant_id,endpoint));
+alter table public.syndikat_push_subscriptions enable row level security; revoke all on public.syndikat_push_subscriptions from anon,authenticated;
+create index if not exists syndikat_push_target_idx on public.syndikat_push_subscriptions(game_code,participant_id);
