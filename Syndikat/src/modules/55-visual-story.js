@@ -229,7 +229,7 @@
     el.querySelectorAll('.story-card').forEach(x=>x.remove());
     const ch=currentStory(p);
     if(!ch){
-      el.insertAdjacentHTML('afterbegin',`<article class="mission-card panel story-v51-card story-complete"><img class="story-card-image" src="${ASSETS.city}" alt=""><div class="story-card-copy"><p class="eyebrow">Storykampagne · 12/12</p><h3>Die Stadt kennt deinen Namen</h3><p>Alle zwölf Kapitel sind abgeschlossen. Deine Entscheidungen bleiben in der Chronik erhalten.</p><footer><button class="btn btn-secondary" data-story-archive>Kapitelarchiv</button></footer></div></article>`);
+      el.insertAdjacentHTML('afterbegin',`<article class="mission-card panel story-v51-card story-complete"><img class="story-card-image" src="${ASSETS.city}" alt=""><div class="story-card-copy"><p class="eyebrow">Storykampagne · ${STORY_V51.length}/${STORY_V51.length}</p><h3>Die Stadt kennt deinen Namen</h3><p>Alle ${STORY_V51.length} Kapitel sind abgeschlossen. Deine Entscheidungen bleiben in der Chronik erhalten.</p><footer><button class="btn btn-secondary" data-story-archive>Kapitelarchiv</button></footer></div></article>`);
       $('[data-story-archive]',el)?.addEventListener('click',openStoryArchive);return;
     }
     const done=storyDone(ch,p);

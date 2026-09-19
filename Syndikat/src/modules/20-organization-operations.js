@@ -289,7 +289,7 @@
     const p=currentPlayer();v4EnsurePlayer(p);
     const sections=Object.entries(V4_ITEMS).map(([type,items])=>`<h3>${type==='weapons'?'Waffen':type==='vehicles'?'Fahrzeuge':'Ausrüstung'}</h3><div class="dialog-list">${Object.entries(items).map(([id,d])=>{const own=v4Owns(p,type,id),currency=type==='weapons'?'schmutzig':'sauber';return `<div class="dialog-option"><div><strong>${esc(d.name)}</strong><p>${esc(d.desc)} · Stärke ${d.power>=0?'+':''}${d.power} · Heat ${d.heat>=0?'+':''}${d.heat} · Spuren ${d.evidence>=0?'+':''}${d.evidence}</p></div><button class="btn ${own?'btn-ghost':'btn-primary'}" data-buy-item="${type}:${id}" ${own?'disabled':''}>${own?'Besitzt':fmt(d.cost)+' '+currency}</button></div>`;}).join('')}</div>`).join('');
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Logistik & Einsatzmittel</p><h2>Arsenal & Fuhrpark</h2></div><button class="icon-btn" data-close>✕</button></div>${sections}</div>`);
-    $('[data-buy-item]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.buyItem.split(':'),d=v4Item(type,id);const clean=type!=='weapons';if((clean?p.clean:p.dirty)<d.cost)return toast(`Nicht genug ${clean?'sauberes':'schmutziges'} Geld.`);if(clean)p.clean-=d.cost;else p.dirty-=d.cost;v4AddItem(p,type,id);ledger(p,`${d.name} gekauft`,-d.cost,'asset');saveGame();v4OpenArsenal();});
+    $$('[data-buy-item]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.buyItem.split(':'),d=v4Item(type,id);const clean=type!=='weapons';if((clean?p.clean:p.dirty)<d.cost)return toast(`Nicht genug ${clean?'sauberes':'schmutziges'} Geld.`);if(clean)p.clean-=d.cost;else p.dirty-=d.cost;v4AddItem(p,type,id);ledger(p,`${d.name} gekauft`,-d.cost,'asset');saveGame();v4OpenArsenal();});
   }
   function v4OpenCrewManager(){
     const p=currentPlayer();v4EnsurePlayer(p);
@@ -298,7 +298,7 @@
       <div class="dialog-footer"><button class="btn btn-primary" data-new-crew ${p.crews.length>=4?'disabled':''}>Neue Crew gründen</button></div>
       <div class="dialog-list">${p.crews.length?p.crews.map(c=>`<div class="dialog-option"><div><strong>${esc(c.name)}</strong><p>${c.memberIds.length} Mitglieder · Bilanz ${c.wins}/${c.losses} · ${c.underbossId?'geführt':'ohne Capo'}</p></div><button class="btn btn-secondary" data-edit-crew="${c.id}">Bearbeiten</button></div>`).join(''):'<div class="empty-state">Noch keine feste Crew.</div>'}</div></div>`);
     $('[data-new-crew]')?.addEventListener('click',()=>{const c={id:uid(),name:`Crew ${p.crews.length+1}`,memberIds:[],underbossId:null,wins:0,losses:0};p.crews.push(c);saveGame();v4EditCrew(c.id);});
-    $('[data-edit-crew]').forEach(b=>b.onclick=()=>v4EditCrew(b.dataset.editCrew));
+    $$('[data-edit-crew]').forEach(b=>b.onclick=()=>v4EditCrew(b.dataset.editCrew));
   }
   function v4EditCrew(id){
     const p=currentPlayer(),c=p.crews.find(x=>x.id===id);if(!c)return;
@@ -308,7 +308,7 @@
       <h3>Mitglieder</h3><div class="check-grid">${candidates.map(s=>`<label class="check-card"><input type="checkbox" data-crew-member="${s.id}" ${c.memberIds.includes(s.id)?'checked':''}><span><strong>${esc(s.name)}</strong><small>${esc(STAFF[s.role].name)} · L${s.level} · ${s.skill}</small></span></label>`).join('')}</div>
       <label class="field"><span>Capo / Crew-Leitung</span><select id="crewBoss"><option value="">Keiner</option>${candidates.filter(s=>s.level>=2&&s.loyalty>=55).map(s=>`<option value="${s.id}" ${c.underbossId===s.id?'selected':''}>${esc(s.name)} · L${s.level}</option>`).join('')}</select></label>
       <div class="dialog-footer"><button class="btn btn-danger" data-delete-crew>Auflösen</button><button class="btn btn-primary" data-save-crew>Speichern</button></div></div>`);
-    $('[data-save-crew]').onclick=()=>{c.name=$('#crewName').value.trim()||c.name;c.memberIds=$('[data-crew-member]').filter(x=>x.checked).map(x=>x.dataset.crewMember).slice(0,5);c.underbossId=$('#crewBoss').value||null;p.staffRoster.forEach(s=>{if(c.memberIds.includes(s.id))s.crewId=c.id;else if(s.crewId===c.id)s.crewId=null;});saveGame();closeDialog();renderAll();toast('Crew gespeichert.');};
+    $('[data-save-crew]').onclick=()=>{c.name=$('#crewName').value.trim()||c.name;c.memberIds=$$('[data-crew-member]').filter(x=>x.checked).map(x=>x.dataset.crewMember).slice(0,5);c.underbossId=$('#crewBoss').value||null;p.staffRoster.forEach(s=>{if(c.memberIds.includes(s.id))s.crewId=c.id;else if(s.crewId===c.id)s.crewId=null;});saveGame();closeDialog();renderAll();toast('Crew gespeichert.');};
     $('[data-delete-crew]').onclick=()=>{p.staffRoster.forEach(s=>{if(s.crewId===c.id)s.crewId=null;});p.crews=p.crews.filter(x=>x.id!==c.id);saveGame();v4OpenCrewManager();};
   }
 
@@ -317,7 +317,7 @@
     const p=currentPlayer();v4EnsurePlayer(p);
     $('#staffGrid').innerHTML=`<article class="shop-card staff-recruit"><div class="shop-top"><div><small class="eyebrow">Organisation</small><h3>Personal & Crews</h3></div><span class="owned">${activeStaff(p).length}</span></div><p>Rekrutiere, trainiere, spezialisiere und organisiere deine Leute in festen Crews.</p><footer><div class="mini-actions"><button class="btn btn-primary" data-recruit>Rekrutieren</button><button class="btn btn-secondary" data-crews>Crews</button><button class="btn btn-secondary" data-arsenal>Arsenal</button></div></footer></article>`+
       (p.staffRoster.length?p.staffRoster.map(s=>{v4EnsurePerson(s);const held=s.heldUntil>state.round,crew=p.crews.find(c=>c.id===s.crewId),assigned=p.businesses.find(b=>b.id===s.assignedBusinessId),need=v4XpNeed(s.level);return `<article class="shop-card person-card ${held?'held':''}"><div class="shop-top"><div><small class="eyebrow">${STAFF[s.role].icon} ${esc(STAFF[s.role].name)} · Level ${s.level}</small><h3>${esc(s.name)}</h3></div><span class="owned">${held?'ENTFÜHRT':s.skill}</span></div><p>${esc(s.specialty||traitName(s.trait))} · Loyalität ${s.loyalty}/100${crew?` · ${esc(crew.name)}`:''}${assigned?` · ${esc(BUSINESSES[assigned.type].name)}`:''}</p><div class="loyalty"><i style="width:${s.loyalty}%"></i></div><div class="xpbar"><i style="width:${Math.min(100,s.xp/need*100)}%"></i></div><footer><span class="price">${fmt(s.salary)}/R · XP ${s.xp}/${need}</span><button class="btn btn-secondary" data-staff-person="${s.id}">Details</button></footer></article>`;}).join(''):'');
-    $('[data-recruit]')?.addEventListener('click',openRecruitDialog);$('[data-crews]')?.addEventListener('click',v4OpenCrewManager);$('[data-arsenal]')?.addEventListener('click',v4OpenArsenal);$('[data-staff-person]').forEach(b=>b.onclick=()=>openStaffPerson(b.dataset.staffPerson));
+    $('[data-recruit]')?.addEventListener('click',openRecruitDialog);$('[data-crews]')?.addEventListener('click',v4OpenCrewManager);$('[data-arsenal]')?.addEventListener('click',v4OpenArsenal);$$('[data-staff-person]').forEach(b=>b.onclick=()=>openStaffPerson(b.dataset.staffPerson));
   };
 
   openStaffPerson=function(id){
@@ -364,7 +364,7 @@
       <button class="btn btn-secondary" data-go="staff">♟ Personal</button><button class="btn btn-secondary" data-go="corruption">⚖ Einfluss</button><button class="btn btn-secondary" data-go="finance">▥ Finanzen</button><button class="btn btn-secondary" data-go="missions">◎ Aufträge</button><button class="btn btn-secondary" data-go="ranking">♛ Rangliste</button>
       <button class="btn btn-secondary" data-more-diplomacy>🤝 Diplomatie</button><button class="btn btn-secondary" data-more-routes>♣ Automatenrouten</button><button class="btn btn-secondary" data-v4-crew>♟ Crews</button><button class="btn btn-secondary" data-v4-arsenal>▣ Arsenal</button><button class="btn btn-secondary" data-v4-case>⌕ Ermittlungen</button><button class="btn btn-secondary" data-chronicle>▤ Stadtchronik</button>
       </div></div>`);
-    $('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-v4-crew]').onclick=v4OpenCrewManager;$('[data-v4-arsenal]').onclick=v4OpenArsenal;$('[data-v4-case]').onclick=v4OpenInvestigation;$('[data-chronicle]').onclick=()=>{closeDialog();if(typeof openChronicleDialog==='function')openChronicleDialog();};
+    $$('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-v4-crew]').onclick=v4OpenCrewManager;$('[data-v4-arsenal]').onclick=v4OpenArsenal;$('[data-v4-case]').onclick=v4OpenInvestigation;$('[data-chronicle]').onclick=()=>{closeDialog();if(typeof openChronicleDialog==='function')openChronicleDialog();};
   };
 
   const v4BaseRenderAll=renderAll;

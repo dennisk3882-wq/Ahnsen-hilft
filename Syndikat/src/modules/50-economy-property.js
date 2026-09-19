@@ -128,7 +128,7 @@
     </div>
     ${!path&&(b.level||1)>=2?`<div class="dialog-list">${(PATHS[b.type]||[]).map(x=>`<div class="dialog-option"><div><strong>${esc(x.name)}</strong><p>${esc(x.desc)}<br>Ertrag ×${x.income.toFixed(2)} · Wäsche ×${x.launder.toFixed(2)} · Risiko ×${x.risk.toFixed(2)}</p></div><button class="btn btn-secondary" data-path="${x.id}">${fmt(Math.round(BUSINESSES[b.type].cost*.12))}</button></div>`).join('')}</div>`:''}</div>`;
     const footer=root.querySelector('.dialog-footer');if(footer)root.insertBefore(box,footer);else root.appendChild(box);
-    $('[data-path]',box).forEach(btn=>btn.onclick=()=>v44ChoosePath(p,b,btn.dataset.path));
+    $$('[data-path]',box).forEach(btn=>btn.onclick=()=>v44ChoosePath(p,b,btn.dataset.path));
   };
 
   const v44Buy=buyBusiness;
@@ -143,9 +143,9 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Grundbesitz · ${esc(d.name)}</p><h2>Immobilien & Grundstücke</h2></div><button class="icon-btn" data-close>✕</button></div>
       <p class="muted">Eigene Immobilien ersetzen Mietkosten, bringen legalen Mietertrag und zusätzlichen Viertel-Einfluss. Freie Kapazität kann für deine Betriebe genutzt werden.</p>
       <div class="dialog-list">${lots.map(l=>{const k=v44Kind(l),mine=l.ownerId===p.id,owner=state.players.find(x=>x.id===l.ownerId);return `<div class="dialog-option"><div><strong>${esc(l.name)} · ${esc(k.name)}</strong><p>Wert ${fmt(v44PropertyValue(l))} · Zustand ${Math.round(l.condition)}% · Kapazität ${v44UsedCapacity(l)}/${l.capacity} · Einfluss ${k.influence}<br>${mine?`Dein Eigentum · externer Mietertrag ca. ${fmt(v44PropertyIncome(p,l))}/R`:owner?`Eigentümer: ${esc(owner.family)}`:'Zum Verkauf'}</p></div><div class="mini-actions">${!l.ownerId?`<button class="btn btn-primary" data-buy-land="${l.id}" ${p.clean<l.value||p.actionPoints<1?'disabled':''}>Kaufen ${fmt(l.value)}</button>`:''}${mine?`<button class="btn btn-secondary" data-assign-land="${l.id}">Betriebe zuweisen</button><button class="btn btn-danger" data-sell-land="${l.id}" ${v44UsedCapacity(l)>0?'disabled':''}>Verkaufen</button>`:''}</div></div>`}).join('')}</div></div>`);
-    $('[data-buy-land]').forEach(b=>b.onclick=()=>v44BuyLand(b.dataset.buyLand));
-    $('[data-assign-land]').forEach(b=>b.onclick=()=>v44AssignLandDialog(b.dataset.assignLand));
-    $('[data-sell-land]').forEach(b=>b.onclick=()=>v44SellLand(b.dataset.sellLand));
+    $$('[data-buy-land]').forEach(b=>b.onclick=()=>v44BuyLand(b.dataset.buyLand));
+    $$('[data-assign-land]').forEach(b=>b.onclick=()=>v44AssignLandDialog(b.dataset.assignLand));
+    $$('[data-sell-land]').forEach(b=>b.onclick=()=>v44SellLand(b.dataset.sellLand));
   }
   function v44BuyLand(id){
     const p=currentPlayer(),lot=state.propertyMarket.find(x=>x.id===id);if(!lot||lot.ownerId)return;if(p.actionPoints<1)return toast('Du brauchst 1 AP.');if(p.clean<lot.value)return toast('Nicht genug sauberes Kapital.');
@@ -161,7 +161,7 @@
     const p=currentPlayer(),lot=state.propertyMarket.find(x=>x.id===id);if(!lot||lot.ownerId!==p.id)return;
     const biz=p.businesses.filter(b=>b.district===lot.district);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">${esc(lot.name)}</p><h2>Betriebe zuweisen</h2></div><button class="icon-btn" data-close>✕</button></div><p class="muted">Kapazität ${v44UsedCapacity(lot)}/${lot.capacity}. Ein Betrieb im eigenen Objekt zahlt keine Standortmiete.</p><div class="dialog-list">${biz.map(b=>{const here=b.propertyId===lot.id,need=Math.min(4,BUSINESSES[b.type].slotUse||1);return `<div class="dialog-option"><div><strong>${esc(BUSINESSES[b.type].name)}</strong><p>Benötigt ${need} Kapazität · ${b.propertyId?'bereits im Eigentum':'aktuell gemietet'}</p></div><button class="btn btn-secondary" data-move-biz="${b.id}" ${!here&&v44FreeCapacity(lot)<need?'disabled':''}>${here?'Aus Objekt lösen':'Hier einziehen'}</button></div>`}).join('')}</div></div>`);
-    $('[data-move-biz]').forEach(btn=>btn.onclick=()=>{const b=p.businesses.find(x=>x.id===btn.dataset.moveBiz);if(!b)return;if(b.propertyId===lot.id){b.propertyId=null;b.leaseCost=v44LeaseFor(b);}else{b.propertyId=lot.id;b.leaseCost=0;b.siteName=lot.name;}saveGame();v44AssignLandDialog(id);});
+    $$('[data-move-biz]').forEach(btn=>btn.onclick=()=>{const b=p.businesses.find(x=>x.id===btn.dataset.moveBiz);if(!b)return;if(b.propertyId===lot.id){b.propertyId=null;b.leaseCost=v44LeaseFor(b);}else{b.propertyId=lot.id;b.leaseCost=0;b.siteName=lot.name;}saveGame();v44AssignLandDialog(id);});
   }
 
   function v44AddProtectionContract(p,did,level){
@@ -182,7 +182,7 @@
   openProtectionDialog=function(){
     v44ProtectionDialog();const p=currentPlayer(),root=$('#dialogContent .dialog-wrap');if(!root)return;
     const contracts=p.protectionContracts||[];
-    if(contracts.length){const box=document.createElement('div');box.innerHTML=`<h3>Einzelne Schutzverträge</h3><div class="dialog-list">${contracts.map(c=>`<div class="dialog-option"><div><strong>${esc(c.name)} · ${esc(DISTRICTS.find(d=>d.id===c.district).name)}</strong><p>Ertrag ${fmt(Math.round(c.income*c.loyalty/100))}/R · Loyalität ${c.loyalty}% · Risiko ${c.risk}</p></div><button class="btn btn-secondary" data-pressure="${c.id}">Druck erhöhen</button></div>`).join('')}</div>`;root.appendChild(box);$('[data-pressure]',box).forEach(btn=>btn.onclick=()=>{const c=contracts.find(x=>x.id===btn.dataset.pressure);if(!c||p.actionPoints<1)return toast('Du brauchst 1 AP.');p.actionPoints--;c.income=Math.round(c.income*1.15);c.loyalty=clamp(c.loyalty-rand(7,14),20,100);p.heat=clamp(p.heat+rand(2,6),0,100);if(c.loyalty<35&&chance(.25)){p.protectionContracts=p.protectionContracts.filter(x=>x.id!==c.id);toast('Der Betrieb verweigert weitere Zahlungen.');}else toast('Zahlung erhöht – Widerstand wächst.');saveGame();closeDialog();renderAll();});}
+    if(contracts.length){const box=document.createElement('div');box.innerHTML=`<h3>Einzelne Schutzverträge</h3><div class="dialog-list">${contracts.map(c=>`<div class="dialog-option"><div><strong>${esc(c.name)} · ${esc(DISTRICTS.find(d=>d.id===c.district).name)}</strong><p>Ertrag ${fmt(Math.round(c.income*c.loyalty/100))}/R · Loyalität ${c.loyalty}% · Risiko ${c.risk}</p></div><button class="btn btn-secondary" data-pressure="${c.id}">Druck erhöhen</button></div>`).join('')}</div>`;root.appendChild(box);$$('[data-pressure]',box).forEach(btn=>btn.onclick=()=>{const c=contracts.find(x=>x.id===btn.dataset.pressure);if(!c||p.actionPoints<1)return toast('Du brauchst 1 AP.');p.actionPoints--;c.income=Math.round(c.income*1.15);c.loyalty=clamp(c.loyalty-rand(7,14),20,100);p.heat=clamp(p.heat+rand(2,6),0,100);if(c.loyalty<35&&chance(.25)){p.protectionContracts=p.protectionContracts.filter(x=>x.id!==c.id);toast('Der Betrieb verweigert weitere Zahlungen.');}else toast('Zahlung erhöht – Widerstand wächst.');saveGame();closeDialog();renderAll();});}
   };
 
   function v44IntelAccuracy(p,did){
@@ -200,7 +200,7 @@
     const rows=state.players.filter(x=>!x.eliminated).map(r=>{const sh=districtShare(r,did),biz=r.businesses.filter(b=>b.district===did);let detail=`Einfluss ${noise(sh)}%`;if(level>=2)detail+=` · ${noise(biz.length)} Betriebe${biz.length&&!noisy?`: ${biz.slice(0,4).map(b=>BUSINESSES[b.type].name).join(', ')}`:''}`;if(level>=3&&biz.length)detail+=` · Sicherheit ca. ${noise(biz.reduce((s,b)=>s+businessSecurity(r,b),0)/biz.length)}%`;return `<div class="intel-row"><strong>${esc(r.family)}${r.id===p.id?' (du)':''}</strong><span>${esc(detail)}</span></div>`;}).join('');
     const roi=Object.entries(BUSINESSES).map(([k,b])=>({k,b,roi:b.baseIncome*d.demand/b.cost})).sort((a,b)=>b.roi-a.roi).slice(0,3);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Aufklärung Stufe ${level}</p><h2>${esc(d.name)}</h2></div><button class="icon-btn" data-close>✕</button></div><div class="intel-summary"><span>Intel Runde ${intel.round}${age>2?' · veraltet':''}</span><span>Zuverlässigkeit ${Math.round(acc*100)}%</span><span>${noisy?'⚠ Gegenaufklärung möglich':'✓ Daten konsistent'}</span><span>Neutral ca. ${noise(neutralShare(did))}%</span></div><div class="intel-list">${rows}</div><h3>Lukrative Möglichkeiten</h3><div class="dialog-list">${roi.map(x=>`<div class="dialog-option"><div><strong>${x.b.icon} ${esc(x.b.name)}</strong><p>Erwarteter Basisertrag ${fmt(x.b.baseIncome*d.demand)}/R · Einfluss ${x.b.influence}</p></div><button class="btn btn-primary" data-intel-buy="${x.k}">${fmt(x.b.cost)}</button></div>`).join('')}</div></div>`);
-    $('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
+    $$('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
   };
 
   const v44End=processEndOfTurn;

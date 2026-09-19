@@ -79,8 +79,8 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Spielstände</p><h2>Speichern & Wiederherstellen</h2></div><button class="icon-btn" data-close>✕</button></div>
       <h3>Manuelle Slots</h3><div class="dialog-list">${slots.map((s,i)=>`<div class="dialog-option"><div><strong>Slot ${i+1}</strong><p>${s?`${esc(s.family)} · Runde ${s.round} · ${new Date(s.savedAt).toLocaleString('de-DE')}`:'Leer'}</p></div><div class="mini-actions">${state?`<button class="btn btn-secondary" data-slot-save="${i}">Speichern</button>`:''}${s?`<button class="btn btn-primary" data-slot-load="${i}">Laden</button><button class="btn btn-danger" data-slot-delete="${i}">Löschen</button>`:''}</div></div>`).join('')}</div>
       <h3>Automatische Backups</h3><div class="dialog-list">${backs.length?backs.map((b,i)=>`<div class="dialog-option"><div><strong>${esc(b.family)} · Runde ${b.round}</strong><p>${new Date(b.savedAt).toLocaleString('de-DE')}</p></div><button class="btn btn-secondary" data-backup-load="${i}">Wiederherstellen</button></div>`).join(''):'<div class="empty-state">Noch keine 10-Runden-Backups.</div>'}</div></div>`);
-    $('[data-slot-save]').forEach(b=>b.onclick=()=>v42SaveSlot(+b.dataset.slotSave));$('[data-slot-load]').forEach(b=>b.onclick=()=>v42LoadSlot(+b.dataset.slotLoad));$('[data-slot-delete]').forEach(b=>b.onclick=()=>v42DeleteSlot(+b.dataset.slotDelete));
-    $('[data-backup-load]').forEach(b=>b.onclick=()=>{const x=backs[+b.dataset.backupLoad];if(!x)return;state=migrateState(JSON.parse(JSON.stringify(x.state)));showScreen('gameScreen');saveGame();renderAll();closeDialog();toast('Backup wiederhergestellt.');});
+    $$('[data-slot-save]').forEach(b=>b.onclick=()=>v42SaveSlot(+b.dataset.slotSave));$$('[data-slot-load]').forEach(b=>b.onclick=()=>v42LoadSlot(+b.dataset.slotLoad));$$('[data-slot-delete]').forEach(b=>b.onclick=()=>v42DeleteSlot(+b.dataset.slotDelete));
+    $$('[data-backup-load]').forEach(b=>b.onclick=()=>{const x=backs[+b.dataset.backupLoad];if(!x)return;state=migrateState(JSON.parse(JSON.stringify(x.state)));showScreen('gameScreen');saveGame();renderAll();closeDialog();toast('Backup wiederhergestellt.');});
   }
 
   function v42Unlocked(){return v42GetJSON(ACH_KEY,{})}
@@ -181,8 +181,8 @@
   function v42OpenPendingOffers(){
     const p=currentPlayer();v42Ensure(p);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Diplomatie</p><h2>Offene Angebote</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-list">${p.pendingOffers.length?p.pendingOffers.map(o=>{const from=state.players.find(x=>x.id===o.from);return `<div class="dialog-option"><div><strong>${esc(from?.family||'Unbekannt')}</strong><p>${o.type==='alliance'?'Bündnis':'Nichtangriff'} · ${o.duration} Runden · Zahlung ${fmt(o.cash)}</p></div><div class="mini-actions"><button class="btn btn-primary" data-offer-yes="${o.id}">Annehmen</button><button class="btn btn-danger" data-offer-no="${o.id}">Ablehnen</button></div></div>`;}).join(''):'<div class="empty-state">Keine offenen Angebote.</div>'}</div></div>`);
-    $('[data-offer-yes]').forEach(b=>b.onclick=()=>{const o=p.pendingOffers.find(x=>x.id===b.dataset.offerYes),from=state.players.find(x=>x.id===o?.from);if(o&&from&&v42ApplyDeal(from,p,o.type,o.duration,o.cash)){p.pendingOffers=p.pendingOffers.filter(x=>x.id!==o.id);saveGame();v42OpenPendingOffers();}});
-    $('[data-offer-no]').forEach(b=>b.onclick=()=>{p.pendingOffers=p.pendingOffers.filter(x=>x.id!==b.dataset.offerNo);saveGame();v42OpenPendingOffers();});
+    $$('[data-offer-yes]').forEach(b=>b.onclick=()=>{const o=p.pendingOffers.find(x=>x.id===b.dataset.offerYes),from=state.players.find(x=>x.id===o?.from);if(o&&from&&v42ApplyDeal(from,p,o.type,o.duration,o.cash)){p.pendingOffers=p.pendingOffers.filter(x=>x.id!==o.id);saveGame();v42OpenPendingOffers();}});
+    $$('[data-offer-no]').forEach(b=>b.onclick=()=>{p.pendingOffers=p.pendingOffers.filter(x=>x.id!==b.dataset.offerNo);saveGame();v42OpenPendingOffers();});
   }
 
   openDiplomacyDialog=function(){
@@ -191,7 +191,7 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Beziehungen</p><h2>Diplomatie & Handel</h2></div><button class="icon-btn" data-close>✕</button></div>
       ${p.pendingOffers.length?`<div class="dialog-footer"><button class="btn btn-primary" data-pending>${p.pendingOffers.length} offene${p.pendingOffers.length===1?'s':''} Angebot${p.pendingOffers.length===1?'':'e'}</button></div>`:''}
       <div class="dialog-list">${rivals.map(r=>{const active=pactActive(p,r)||allianceActive(p,r);return `<div class="diplomacy-card"><div><strong>${esc(r.family)}</strong><p>Beziehung ${relation(p,r)} · Macht ${pct(powerIndex(r))}${pactActive(p,r)?` · NAP bis R${p.pacts[r.id]}`:''}${allianceActive(p,r)?` · Bündnis bis R${p.alliances[r.id]}`:''}${r.casusbelli?.[p.id]>=state.round?' · FEHDE':''}</p></div><div class="mini-actions"><button class="btn btn-secondary" data-gift="${r.id}">Geschenk</button><button class="btn btn-primary" data-negotiate="${r.id}">Verhandeln</button><button class="btn btn-secondary" data-trade="${r.id}">Handel</button>${active?`<button class="btn btn-danger" data-break="${r.id}">Abkommen brechen</button>`:''}</div></div>`;}).join('')}</div></div>`);
-    $('[data-gift]').forEach(b=>b.onclick=()=>diplomaticGift(b.dataset.gift));$('[data-negotiate]').forEach(b=>b.onclick=()=>v42OpenNegotiation(b.dataset.negotiate));$('[data-trade]').forEach(b=>b.onclick=()=>openTradeDialog(b.dataset.trade));$('[data-break]').forEach(b=>b.onclick=()=>v42BreakAgreement(b.dataset.break));$('[data-pending]')?.addEventListener('click',v42OpenPendingOffers);
+    $$('[data-gift]').forEach(b=>b.onclick=()=>diplomaticGift(b.dataset.gift));$$('[data-negotiate]').forEach(b=>b.onclick=()=>v42OpenNegotiation(b.dataset.negotiate));$$('[data-trade]').forEach(b=>b.onclick=()=>openTradeDialog(b.dataset.trade));$$('[data-break]').forEach(b=>b.onclick=()=>v42BreakAgreement(b.dataset.break));$('[data-pending]')?.addEventListener('click',v42OpenPendingOffers);
   };
 
   const v42BaseCreate=createGame;
@@ -227,18 +227,20 @@
       <div class="dialog-option"><div><strong>Spielstände</strong><p>Slots laden, sichern oder Backup wiederherstellen.</p></div><button class="btn btn-secondary" data-slots>Öffnen</button></div>
       <div class="dialog-option"><div><strong>Tutorial / Hilfe</strong><p>Grundlagen erneut anzeigen oder geführten Einstieg aktivieren.</p></div><button class="btn btn-secondary" data-tutorial>Tutorial</button></div>
       <div class="dialog-option"><div><strong>Anzeige & Barrierefreiheit</strong><p>Schriftgröße, Kontrast, Bewegungen und kompakte Ansicht.</p></div><button class="btn btn-secondary" data-display>Öffnen</button></div>
+      <div class="dialog-option"><div><strong>Soundeffekte</strong><p>Kurze Rückmeldungen bei Bedienung und Aktionen.</p></div><button class="btn btn-secondary" data-sfx>${audioPrefs.sfx?'An':'Aus'}</button></div>
+      <div class="dialog-option"><div><strong>Noir-Musik</strong><p>Leise synthetische Hintergrundatmosphäre.</p></div><button class="btn btn-secondary" data-music>${audioPrefs.music?'An':'Aus'}</button></div>
       <div class="dialog-option"><div><strong>Erfolge & Hall of Fame</strong><p>Karriereziele und abgeschlossene Partien.</p></div><div class="mini-actions"><button class="btn btn-secondary" data-ach>Erfolge</button><button class="btn btn-secondary" data-hall>Hall of Fame</button></div></div>
       <div class="dialog-option"><div><strong>Stadtchronik</strong><p>Wichtige Ereignisse, Angriffe, Pfändungen und politische Entwicklungen.</p></div><button class="btn btn-secondary" data-news>Chronik</button></div>
       <div class="dialog-option"><div><strong>Spielstand übertragen</strong><p>Export/Import für ein anderes Gerät.</p></div><button class="btn btn-secondary" data-transfer>Öffnen</button></div>
       <div class="dialog-option"><div><strong>Hauptmenü</strong><p>Spielstand bleibt erhalten.</p></div><button class="btn btn-secondary" data-home>Verlassen</button></div></div>
       <div class="danger-zone"><div class="dialog-option"><div><strong>Partie abbrechen</strong><p>Der aktuelle Autosave wird gelöscht; manuelle Slots bleiben erhalten.</p></div><button class="btn btn-danger" data-abort>Abbrechen</button></div></div></div>`);
-    $('[data-save]').onclick=()=>{saveGame();toast('Spiel gespeichert.');closeDialog();};$('[data-slots]').onclick=v42OpenSlots;$('[data-tutorial]').onclick=()=>startTutorial(0);$('[data-display]').onclick=v42OpenSettings;$('[data-ach]').onclick=v42OpenAchievements;$('[data-hall]').onclick=v42OpenHall;$('[data-news]').onclick=v42OpenChronicle;$('[data-transfer]').onclick=openTransferDialog;$('[data-home]').onclick=()=>{saveGame();closeDialog();showScreen('menuScreen');updateContinueButton();};$('[data-abort]').onclick=()=>{if(confirm('Partie wirklich endgültig abbrechen?')){localStorage.removeItem(SAVE_KEY);state=null;closeDialog();showScreen('menuScreen');updateContinueButton();}};
+    $('[data-save]').onclick=()=>{saveGame();toast('Spiel gespeichert.');closeDialog();};$('[data-slots]').onclick=v42OpenSlots;$('[data-tutorial]').onclick=()=>startTutorial(0);$('[data-display]').onclick=v42OpenSettings;$('[data-sfx]').onclick=()=>{audioPrefs.sfx=!audioPrefs.sfx;saveAudioPrefs();openGameMenu();};$('[data-music]').onclick=()=>{audioPrefs.music=!audioPrefs.music;saveAudioPrefs();audioPrefs.music?startMusic():stopMusic();openGameMenu();};$('[data-ach]').onclick=v42OpenAchievements;$('[data-hall]').onclick=v42OpenHall;$('[data-news]').onclick=v42OpenChronicle;$('[data-transfer]').onclick=openTransferDialog;$('[data-home]').onclick=()=>{saveGame();closeDialog();showScreen('menuScreen');updateContinueButton();};$('[data-abort]').onclick=()=>{if(confirm('Partie wirklich endgültig abbrechen?')){localStorage.removeItem(SAVE_KEY);state=null;closeDialog();showScreen('menuScreen');updateContinueButton();}};
   };
 
   const v42BaseInit=init;
   init=function(){
-    audioPrefs.music=false;audioPrefs.sfx=false;try{stopMusic()}catch{}
     v42BaseInit();v42ApplyUi();
+    if(audioPrefs.music)try{startMusic()}catch{}
     $('#saveSlotsBtn')?.addEventListener('click',v42OpenSlots);$('#hallBtn')?.addEventListener('click',v42OpenHall);$('#settingsBtn')?.addEventListener('click',v42OpenSettings);
   };
 

@@ -100,8 +100,8 @@
     if(!people.length)return toast('Kein geeignetes Ziel.');
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Spionage & Abwerbung</p><h2>Menschen sind die Schwachstelle</h2></div><button class="icon-btn" data-close>✕</button></div>
       <p class="muted">Niedrige Loyalität, starke Informanten und schlechte Beziehungen zum eigenen Boss erhöhen deine Chance.</p><div class="dialog-list">${people.slice(0,18).map(({t,s})=>`<div class="dialog-option"><div><strong>${esc(t.family)} · ${esc(s.name)}</strong><p>${esc(STAFF[s.role].name)} · Loyalität ${s.loyalty} · Fähigkeit ${s.skill}</p></div><div class="mini-actions"><button class="btn btn-secondary" data-mole="${t.id}:${s.id}">Doppelagent · ${fmt(8000)}</button><button class="btn btn-primary" data-defect="${t.id}:${s.id}">Abwerben · ${fmt(12000)}</button></div></div>`).join('')}</div></div>`);
-    $('[data-mole]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.mole,'mole'));
-    $('[data-defect]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.defect,'defect'));
+    $$('[data-mole]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.mole,'mole'));
+    $$('[data-defect]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.defect,'defect'));
   }
   function v43TurnPerson(data,mode){
     const p=currentPlayer(),[tid,sid]=data.split(':'),t=state.players.find(x=>x.id===tid),s=t?.staffRoster.find(x=>x.id===sid),cost=mode==='mole'?8000:12000;
@@ -172,7 +172,7 @@
   const v43Business=renderBusinesses;
   renderBusinesses=function(){
     v43Business();const p=currentPlayer();
-    $('#businessList .business-card').forEach((el,i)=>{const b=p.businesses[i];if(!b)return;let site=el.querySelector('.v43-site');if(!site){site=document.createElement('small');site.className='v43-site';site.textContent=b.siteName||'';el.querySelector('.title')?.appendChild(site);}});
+    $$('#businessList .business-card').forEach((el,i)=>{const b=p.businesses[i];if(!b)return;let site=el.querySelector('.v43-site');if(!site){site=document.createElement('small');site.className='v43-site';site.textContent=b.siteName||'';el.querySelector('.title')?.appendChild(site);}});
   };
 
   const v43City=renderCity;

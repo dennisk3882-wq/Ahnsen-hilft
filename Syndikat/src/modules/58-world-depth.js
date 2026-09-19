@@ -144,12 +144,13 @@
   const oldActions=renderActions;
   renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
 
-  const oldPlanner=v4OpenOperationPlanner;
-  v4OpenOperationPlanner=function(kind,...args){
+  const oldPlanner=window.SyndikatV4?.openOperation;
+  const decoratedPlanner=function(kind,...args){
+    if(!oldPlanner)return toast('Operationsplanung ist nicht verfügbar.');
     oldPlanner(kind,...args);
     setTimeout(()=>{const root=$('#dialogContent .v4-operation');if(root&&!root.querySelector('.operation-hero'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="operation-hero" src="${OP_ART[kind]||OP_ART.sabotage}" alt="">`);},10);
   };
-  if(window.SyndikatV4)window.SyndikatV4.openOperation=v4OpenOperationPlanner;
+  if(window.SyndikatV4&&oldPlanner)window.SyndikatV4.openOperation=decoratedPlanner;
   function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
   document.addEventListener('click',e=>{const b=e.target.closest?.('[data-v4-arsenal],[data-arsenal]');if(b)setTimeout(decorateArsenal,30);});
 
@@ -168,6 +169,17 @@
   const oldAi=aiTurn;
   aiTurn=function(p){ensureDepth(p);if(p.family==='Costa'&&p.clean>25000){for(const k of ['officer','inspector','prosecutor'])if(!p.bribes[k]&&p.clean>CORRUPTION[k].cost*2){p.clean-=CORRUPTION[k].cost;p.bribes[k]=true;break;}}if(p.family==='Conti')for(const b of p.businesses)if(b.health<80&&p.clean>10000){const c=Math.min(p.clean,Math.round(BUSINESSES[b.type].cost*.025));p.clean-=c;b.health=clamp(b.health+10,0,100);break;}oldAi(p);};
 
+  function storyVictoryTarget(p){
+    const cfg={
+      short:{power:52,districts:2,econ:5000000,econDistricts:1},
+      normal:{power:62,districts:3,econ:20000000,econDistricts:2},
+      long:{power:72,districts:4,econ:50000000,econDistricts:3},
+      endless:{power:72,districts:3,econ:50000000,econDistricts:3}
+    }[state?.settings?.length||'normal'];
+    const dominance=powerIndex(p)>=cfg.power&&controlledDistricts(p)>=cfg.districts;
+    const economy=netWorth(p)>=cfg.econ&&controlledDistricts(p)>=cfg.econDistricts;
+    return (dominance||economy)&&p.finalCrisis?.resolved;
+  }
   function addStory(){
     const story=window.SyndikatVisualStory?.story;if(!story||story.some(x=>x.chapter===13))return;const V=window.SyndikatVisualStory.assets;
     story.push(
@@ -178,7 +190,7 @@
       {chapter:17,kicker:'Kapitel XVII',title:'Die Stadtverwaltung',speaker:'Alessandro Costa',portrait:RIVAL_INFO.Costa.art,image:A+'event-corruption.svg',desc:'Erreiche politischen Einfluss oder beweise, dass du ohne ihn auskommst.',narrative:['Costa lädt dich in ein Büro mit Tageslicht. Das ist seine Art von Machtdemonstration.','Er behauptet, eine Stadt werde nicht auf der Straße regiert, sondern in Sitzungszimmern, in denen niemand seinen echten Preis nennt.'],done:p=>corruptionCount(p)>=3||p.clean>=2500000,reward:290000,rep:11,choices:[{id:'network',label:'Einflussnetzwerk ausbauen',text:'Kontakte werden stärker, aber öffentliche Kontrolle nimmt zu.',apply:p=>{p.story.flags.politics='network';if(p.investigation)p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+8,0,100);p.politicalShield=6;}},{id:'independent',label:'Unabhängig bleiben',text:'Kostet Kapital, bringt aber Reputation.',apply:p=>{spend(p,80000);p.reputation+=7;p.story.flags.politics='independent';}}]},
       {chapter:18,kicker:'Kapitel XVIII',title:'Die Stadt steht still',speaker:'Sofia Moretti',portrait:V.sofia,image:A+'event-gangwar.svg',desc:'Beende eine schwere Rivalitätsphase durch Stärke oder Verhandlung.',narrative:['Mehrere Familien ziehen gleichzeitig Grenzen neu. Lieferanten warten ab, Geschäftsleute schließen früher, alte Verträge werden plötzlich wichtig.','Du kannst die Lage weiter eskalieren oder zeigen, dass die Stadt auch durch Absprachen kontrolliert werden kann.'],done:p=>(p.stats?.operationsSuccess||0)>=7||state.players.some(x=>x.id!==p.id&&relation(p,x)>=35),reward:330000,rep:12,choices:[{id:'pressure',label:'Härte zeigen',text:'Mehr Ruf, schlechtere Rivalenbeziehungen.',apply:p=>{state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,-8));p.reputation+=6;p.story.flags.cityCrisis='pressure';}},{id:'settle',label:'Einigung suchen',text:'40.000 $ für eine stadtweite Deeskalation.',apply:p=>{spend(p,40000);state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,8));p.heat=clamp(p.heat-10,0,100);p.story.flags.cityCrisis='settle';}}]},
       {chapter:19,kicker:'Kapitel XIX',title:'Das Erbe',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Bereite deine Organisation auf eine Zukunft ohne dich vor.',narrative:['Vittorio spricht zum ersten Mal nicht über den nächsten Monat, sondern über die nächsten zehn Jahre. Ein Imperium, das an einer Person hängt, ist kein Imperium.','Crews, Unterboss und Betriebe müssen auch dann funktionieren, wenn du nicht mehr jede Entscheidung selbst triffst.'],done:p=>!!p.underbossId&&(p.crews||[]).length>=2&&activeStaff(p).length>=8,reward:380000,rep:13,choices:[{id:'family',label:'Familienmodell',text:'Loyalität aller Mitarbeiter steigt.',apply:p=>{activeStaff(p).forEach(s=>s.loyalty=clamp(s.loyalty+7,0,100));p.story.flags.legacy='family';}},{id:'corporate',label:'Konzernmodell',text:'Betriebe werden effizienter.',apply:p=>{p.permanentIncomeBonus=(p.permanentIncomeBonus||0)+.035;p.story.flags.legacy='corporate';}}]},
-      {chapter:20,kicker:'Epilog',title:'Welche Stadt bleibt?',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Erreiche endgültige Dominanz und bestimme, welches Syndikat du hinterlässt.',narrative:['Die Stadt ist ruhig – nicht friedlich. Das ist ein Unterschied, den du besser kennst als jeder andere.','Alles, was du früher entschieden hast, liegt jetzt unter diesem Moment: Moretti, Keller, Marco, Politik und Geld.'],done:p=>powerIndex(p)>=72&&controlledDistricts(p)>=3&&p.finalCrisis?.resolved,reward:500000,rep:18,choices:[{id:'empire',label:'Das legale Imperium',text:'Dein Syndikat tritt als Konzern in die Zukunft.',apply:p=>{p.story.flags.ending='empire';p.clean+=150000;}},{id:'shadow',label:'Der unsichtbare Staat',text:'Kontakte und Abhängigkeiten bleiben deine wichtigste Währung.',apply:p=>{p.story.flags.ending='shadow';p.politicalShield=(p.politicalShield||0)+10;}},{id:'crown',label:'Krone aus Neon',text:'Die Stadt soll deinen Namen nie vergessen.',apply:p=>{p.story.flags.ending='crown';p.reputation=clamp(p.reputation+10,0,100);}}]}
+      {chapter:20,kicker:'Epilog',title:'Welche Stadt bleibt?',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Erreiche endgültige Dominanz und bestimme, welches Syndikat du hinterlässt.',narrative:['Die Stadt ist ruhig – nicht friedlich. Das ist ein Unterschied, den du besser kennst als jeder andere.','Alles, was du früher entschieden hast, liegt jetzt unter diesem Moment: Moretti, Keller, Marco, Politik und Geld.'],done:p=>storyVictoryTarget(p),reward:500000,rep:18,choices:[{id:'empire',label:'Das legale Imperium',text:'Dein Syndikat tritt als Konzern in die Zukunft.',apply:p=>{p.story.flags.ending='empire';p.clean+=150000;}},{id:'shadow',label:'Der unsichtbare Staat',text:'Kontakte und Abhängigkeiten bleiben deine wichtigste Währung.',apply:p=>{p.story.flags.ending='shadow';p.politicalShield=(p.politicalShield||0)+10;}},{id:'crown',label:'Krone aus Neon',text:'Die Stadt soll deinen Namen nie vergessen.',apply:p=>{p.story.flags.ending='crown';p.reputation=clamp(p.reputation+10,0,100);}}]}
     );
   }
   addStory();
