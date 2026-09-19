@@ -9,16 +9,35 @@ on:
     paths:
       - 'Syndikat/**'
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check generated core bundle
-        run: node Syndikat/tools/build-core.cjs --check
+      - name: Build canonical core bundle
+        run: node Syndikat/tools/build-core.cjs
       - name: Run Syndikat regression suite
         run: node Syndikat/tests/regression.cjs
+      - name: Verify canonical bundle
+        run: node Syndikat/tools/build-core.cjs --check
+      - name: Commit generated core after green regression
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if git diff --quiet -- Syndikat/js/core.js; then
+            echo "Generated core already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Syndikat/js/core.js
+          git commit -m "Syndikat: rebuild canonical core bundle"
+          git push

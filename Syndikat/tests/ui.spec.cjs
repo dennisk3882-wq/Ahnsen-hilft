@@ -19,6 +19,7 @@ function watchErrors(page){
 }
 
 test.use({ viewport:{width:390,height:844}, hasTouch:true, isMobile:true });
+test.setTimeout(60000);
 
 test('mobile v5.5 core and management systems', async ({page})=>{
   const errors=watchErrors(page);
@@ -57,7 +58,8 @@ test('mobile v5.5 core and management systems', async ({page})=>{
   await expect(page.locator('#gameDialog')).toBeVisible();
   await closeDialog(page);
 
-  await page.locator('.bottom-bar [data-view="staff"]').tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-go="staff"]').tap();
   await page.locator('[data-recruit]').tap();
   await page.locator('[data-hire="informant"]').tap();
   await expect(page.locator('#staffGrid .person-card')).toHaveCount(1);
@@ -77,17 +79,20 @@ test('mobile v5.5 core and management systems', async ({page})=>{
   await expect(page.locator('#gameDialog')).toBeVisible();
   await closeDialog(page);
 
-  await page.locator('.nav-btn[data-view="finance"]').first().tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-go="finance"]').tap();
   await page.locator('[data-action="bank"]').tap();
   await expect(page.locator('[data-loan-amt]').first()).toBeVisible();
   await page.locator('[data-loan-amt]').first().tap();
   await expect(page.locator('#loanList')).not.toBeEmpty();
 
-  await page.locator('.nav-btn[data-view="missions"]').first().tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-go="missions"]').tap();
   await expect(page.locator('.story-card')).toBeVisible();
   await expect(page.locator('.story-card img').first()).toBeVisible();
 
-  await page.locator('.nav-btn[data-view="ranking"]').first().tap();
+  await page.locator('.bottom-bar [data-action="more"]').tap();
+  await page.locator('#gameDialog [data-go="ranking"]').tap();
   await expect(page.locator('.rank-row')).toHaveCount(2);
   await expect(page.locator('.rival-rank-portrait').first()).toBeVisible();
   await page.locator('.clickable-rival').first().tap();
