@@ -1486,6 +1486,27 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 })();
 /* SYNDIKAT_REVISION_3_12_END */
 
+/* SYNDIKAT_REVISION_3_13_BEGIN */
+(function REVISION313_PATCH(){
+  function deadlineCfg313(){return {short:90,normal:220,long:340}[state.settings.length]||220;}
+  function resolveDeadline313(){
+    if(!state||state.gameOver||state.settings.length==='endless')return;
+    const max=deadlineCfg313();if(state.round<=max)return;
+    const active=state.players.filter(p=>!p.eliminated);
+    if((state.initialPlayerCount||state.players.length)<=1){
+      state.gameOver=true;state.winnerId=null;state.endReason=`Stichtag nach ${max} Runden erreicht, ohne das erforderliche Dominanz- oder Wirtschaftsziel zu erfüllen.`;saveGame();return;
+    }
+    if(!active.length){state.gameOver=true;state.winnerId=null;state.endReason='Am Stichtag ist kein Syndikat mehr handlungsfähig.';saveGame();return;}
+    const ranked=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a)||controlledDistricts(b)-controlledDistricts(a)||netWorth(b)-netWorth(a));
+    state.gameOver=true;state.winnerId=ranked[0].id;state.endReason=`Stichtag nach ${max} Runden: höchste Gesamtmacht entscheidet die Partie.`;saveGame();
+  }
+  const advance313=advanceIndex;
+  advanceIndex=function(){const before=state?.round||0;advance313();if(state&&!state.gameOver&&state.round>before)resolveDeadline313();};
+  const renderCity313=renderCity;
+  renderCity=function(){renderCity313();if(!state||state.settings.length==='endless')return;const stats=$('#districtDetail .district-stats'),max=deadlineCfg313();if(stats&&!stats.querySelector('[data-deadline]'))stats.insertAdjacentHTML('beforeend',`<div class="mini-metric" data-deadline><small>Stichtag</small><strong>Runde ${state.round} / ${max}</strong></div>`);};
+})();
+/* SYNDIKAT_REVISION_3_13_END */
+
   init();
 })();
 
