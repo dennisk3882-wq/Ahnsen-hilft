@@ -1962,7 +1962,23 @@
   }
   function v43CrewScore(p){
     const crew=p.crews[0],members=crew?crew.memberIds.map(id=>p.staffRoster.find(s=>s.id===id)).filter(Boolean):activeStaff(p).filter(s=>['gunman','bodyguard','informant'].includes(s.role)).slice(0,4);
-    return members.length?members.reduce((a,s)=>a+s.skill+s.level*4,0)/members.length:0;
+    const staffScore=members.length?members.reduce((a,s)=>a+s.skill+s.level*4,0)/members.length:0;
+    const defs=v43ItemDefs();
+    let gearBonus=0;
+    for(const type of ['weapons','vehicles','gear']){
+      const best=(p.inventory?.[type]||[]).map(item=>{
+        const def=defs[type]?.[item.id],condition=clamp(Number(item.condition)||100,15,100);
+        return def?def.power*(condition/100):0;
+      }).sort((a,b)=>b-a)[0]||0;
+      gearBonus+=best;
+    }
+    return staffScore+gearBonus*.7;
+  }
+  function v43WearAiEquipment(p){
+    for(const type of ['weapons','vehicles','gear']){
+      const item=(p.inventory?.[type]||[]).sort((a,b)=>(b.condition||100)-(a.condition||100))[0];
+      if(item)item.condition=clamp((Number(item.condition)||100)-rand(2,type==='gear'?7:5),15,100);
+    }
   }
   function v43AiSpecialOp(p){
     if(p.actionPoints<2||p.staff.gunman<1||p.dirty<5000)return false;
@@ -1975,13 +1991,13 @@
       const b=[...t.businesses].sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0],def=businessSecurity(t,b);
       p.dirty-=3500;p.actionPoints-=2;p.roundActivity=(p.roundActivity||0)+4;p.heat=clamp(p.heat+13,0,100);
       if(chance(clamp(.38+(score-def)/160,.12,.83))){b.health=clamp(b.health-rand(30,58),0,100);if(!b.health)t.businesses=t.businesses.filter(x=>x.id!==b.id);p.stats.operationsSuccess=(p.stats.operationsSuccess||0)+1;if(p.crews[0])p.crews[0].wins++;}else{p.stats.operationsFailed=(p.stats.operationsFailed||0)+1;if(p.crews[0])p.crews[0].losses++;}
-      adjustRelation(p,t,-20);return true;
+      adjustRelation(p,t,-20);v43WearAiEquipment(p);return true;
     }
     if(activeStaff(t).length&&p.staff.informant>=1&&chance(feud?.28:.08)){
       const target=[...activeStaff(t)].sort((a,b)=>a.loyalty-b.loyalty)[0];
       p.dirty-=5000;p.actionPoints-=2;p.roundActivity=(p.roundActivity||0)+4;p.heat=clamp(p.heat+18,0,100);
       if(chance(clamp(.25+score/300+(55-target.loyalty)/180,.08,.72))){target.heldUntil=state.round+2;p.stats.operationsSuccess=(p.stats.operationsSuccess||0)+1;}else p.stats.operationsFailed=(p.stats.operationsFailed||0)+1;
-      adjustRelation(p,t,-28);return true;
+      adjustRelation(p,t,-28);v43WearAiEquipment(p);return true;
     }
     return false;
   }
@@ -3217,6 +3233,47 @@
 
   const basePower=powerIndex;
   powerIndex=function(p){return clamp(basePower(p)+(p.endgameBonus||0),0,100);};
+
+  function maintainAiEquipment(p){
+    ensureFinalSystems(p);
+    if(!p.inventory)return;
+    const reserve=Math.max(25000,staffPayroll(p)*3);
+    for(const type of ['vehicles','gear','weapons']){
+      const item=(p.inventory[type]||[]).filter(x=>(Number(x.condition)||100)<58).sort((a,b)=>(a.condition||100)-(b.condition||100))[0];
+      if(!item)continue;
+      const cost=repairCost(type,item);
+      if(p.clean>=cost+reserve){
+        p.clean-=cost;item.condition=100;p.stats.equipmentRepairs++;
+        ledger(p,`KI-Wartung ${equipmentDef(type,item.id)?.name||item.id}`,-cost,'expense');
+        break;
+      }
+    }
+  }
+
+  doAiPrison=function(p){
+    ensureFinalSystems(p);
+    const ps=p.prisonState,leader=activeLeader(p);
+    if(p.actionPoints>0)p.actionPoints--;
+    if(roleSkill(p,'lawyer')>45&&p.clean>=5000&&chance(.48)){
+      const cost=5000;p.clean-=cost;p.jailed=Math.max(0,p.jailed-rand(1,2));p.stats.prisonAppeals++;ledger(p,'KI-Berufung',-cost,'expense');return;
+    }
+    if(p.dirty>=7500&&chance(.30+ps.influence/300)){
+      p.dirty-=7500;p.jailed=Math.max(0,p.jailed-1);ps.contraband=clamp(ps.contraband+10,0,100);p.stats.prisonBribes++;return;
+    }
+    if(leader&&chance(.55)){
+      const worst=[...p.businesses].sort((a,b)=>a.health-b.health)[0];
+      if(worst)worst.health=clamp(worst.health+rand(5,11),0,100);
+      leader.xp=(leader.xp||0)+8;p.stats.delegations++;return;
+    }
+    ps.influence=clamp(ps.influence+rand(8,16),0,100);ps.contacts++;p.reputation=clamp(p.reputation+1,0,100);
+  };
+
+  const baseAi=aiTurn;
+  aiTurn=function(p){
+    ensureFinalSystems(p);
+    if(p.jailed<=0)maintainAiEquipment(p);
+    baseAi(p);
+  };
 
   const baseInit=initPlayer;
   initPlayer=function(p){baseInit(p);ensureFinalSystems(p);};
