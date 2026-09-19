@@ -294,6 +294,47 @@
   const basePower=powerIndex;
   powerIndex=function(p){return clamp(basePower(p)+(p.endgameBonus||0),0,100);};
 
+  function maintainAiEquipment(p){
+    ensureFinalSystems(p);
+    if(!p.inventory)return;
+    const reserve=Math.max(25000,staffPayroll(p)*3);
+    for(const type of ['vehicles','gear','weapons']){
+      const item=(p.inventory[type]||[]).filter(x=>(Number(x.condition)||100)<58).sort((a,b)=>(a.condition||100)-(b.condition||100))[0];
+      if(!item)continue;
+      const cost=repairCost(type,item);
+      if(p.clean>=cost+reserve){
+        p.clean-=cost;item.condition=100;p.stats.equipmentRepairs++;
+        ledger(p,`KI-Wartung ${equipmentDef(type,item.id)?.name||item.id}`,-cost,'expense');
+        break;
+      }
+    }
+  }
+
+  doAiPrison=function(p){
+    ensureFinalSystems(p);
+    const ps=p.prisonState,leader=activeLeader(p);
+    if(p.actionPoints>0)p.actionPoints--;
+    if(roleSkill(p,'lawyer')>45&&p.clean>=5000&&chance(.48)){
+      const cost=5000;p.clean-=cost;p.jailed=Math.max(0,p.jailed-rand(1,2));p.stats.prisonAppeals++;ledger(p,'KI-Berufung',-cost,'expense');return;
+    }
+    if(p.dirty>=7500&&chance(.30+ps.influence/300)){
+      p.dirty-=7500;p.jailed=Math.max(0,p.jailed-1);ps.contraband=clamp(ps.contraband+10,0,100);p.stats.prisonBribes++;return;
+    }
+    if(leader&&chance(.55)){
+      const worst=[...p.businesses].sort((a,b)=>a.health-b.health)[0];
+      if(worst)worst.health=clamp(worst.health+rand(5,11),0,100);
+      leader.xp=(leader.xp||0)+8;p.stats.delegations++;return;
+    }
+    ps.influence=clamp(ps.influence+rand(8,16),0,100);ps.contacts++;p.reputation=clamp(p.reputation+1,0,100);
+  };
+
+  const baseAi=aiTurn;
+  aiTurn=function(p){
+    ensureFinalSystems(p);
+    if(p.jailed<=0)maintainAiEquipment(p);
+    baseAi(p);
+  };
+
   const baseInit=initPlayer;
   initPlayer=function(p){baseInit(p);ensureFinalSystems(p);};
 
