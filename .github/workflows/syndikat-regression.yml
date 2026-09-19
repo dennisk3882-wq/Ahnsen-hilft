@@ -17,5 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check generated core bundle
+        run: node Syndikat/tools/build-core.cjs --check
       - name: Run Syndikat regression suite
         run: node Syndikat/tests/regression.cjs
