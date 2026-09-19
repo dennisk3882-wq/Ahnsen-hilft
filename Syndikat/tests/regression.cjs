@@ -140,6 +140,7 @@ assert(src.includes('SYNDIKAT_V44_ECONOMY_DEPTH_BEGIN'));
 assert(src.includes('SYNDIKAT_V45_CLOUD_UI_BEGIN'));
 assert(src.includes('SYNDIKAT_V46_DECISIONS_BEGIN'));
 assert(src.includes('SYNDIKAT_V47_JUSTICE_BEGIN'));
+assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
 
 // New-state migration must create the v4 economy/meta structures without losing the save.
 {
@@ -175,6 +176,17 @@ assert(src.includes('SYNDIKAT_V47_JUSTICE_BEGIN'));
   const css=fs.readFileSync('Syndikat/style.css','utf8');
   assert(css.includes("./assets/start-user.webp"),'startup must use the user-provided artwork');
   assert(sw.includes("./assets/start-user.webp"),'startup artwork must be available offline');
+}
+
+{
+  const base=fs.readFileSync('Syndikat/src/core-base.js','utf8');
+  const moduleNames=[
+    '10-legacy-v3.js','20-organization-operations.js','30-meta-progression.js',
+    '40-ai-espionage-events.js','50-economy-property.js','60-cloud-online.js',
+    '70-decisions.js','80-justice.js','90-final-gameplay.js'
+  ];
+  assert(base.includes('__SYNDIKAT_MODULES__'),'modular core base must expose build marker');
+  for(const name of moduleNames) assert(fs.existsSync('Syndikat/src/modules/'+name),'missing source module '+name);
 }
 
 console.log('Syndikat regression suite: OK');
