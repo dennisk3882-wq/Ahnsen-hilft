@@ -1426,6 +1426,13 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 })();
 /* SYNDIKAT_REVISION_3_5_END */
 
+/* SYNDIKAT_REVISION_3_6_BEGIN */
+(function REVISION36_PATCH(){
+  const neutralV36={oldtown:300,center:360,station:220,redlight:280,harbor:250,industrial:300,west:280,south:320};
+  DISTRICTS.forEach(d=>{if(neutralV36[d.id])d.neutral=neutralV36[d.id];});
+})();
+/* SYNDIKAT_REVISION_3_6_END */
+
   init();
 })();
 
