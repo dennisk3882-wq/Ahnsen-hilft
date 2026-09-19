@@ -2739,8 +2739,8 @@
   function mapMarkers(p){return DISTRICTS.map(d=>{const [x,y]=POS[d.id],biz=districtBusinessCount(p,d.id),props=(state.propertyMarket||[]).filter(l=>l.ownerId===p.id&&l.district===d.id).length,r=districtTopRival(p,d.id);const rival=mapMode==='rivals'&&r&&r.s>5?`<span class="map-marker rival" style="left:${x+4}%;top:${y+7}%">♛ ${esc(r.p.family)}</span>`:'';const mine=biz||props?`<span class="map-marker mine" style="left:${x-4}%;top:${y+7}%">▣ ${biz}${props?' · ⌂ '+props:''}</span>`:'';return mine+rival;}).join('')}
   function decorateMap(){
     const p=currentPlayer(),grid=$('#districtGrid'),map=grid?.querySelector('.city-art-map');if(!grid||!map)return;
-    let bar=$('#cityOverlayBar');if(!bar){grid.insertAdjacentHTML('beforebegin',`<div id="cityOverlayBar" class="map-mode-bar">${[['normal','Übersicht'],['ownership','Besitz'],['police','Polizei'],['income','Einkommen'],['rivals','Rivalen']].map(([id,n])=>`<button class="map-mode ${mapMode===id?'active':''}" data-map-mode="${id}">${n}</button>`).join('')}</div>`);bar=$('#cityOverlayBar');$('[data-map-mode]',bar).forEach(b=>b.onclick=()=>{mapMode=b.dataset.mapMode;renderCity();});}else $('[data-map-mode]',bar).forEach(b=>b.classList.toggle('active',b.dataset.mapMode===mapMode));
-    $('.city-map-tag',map).forEach(tag=>{const d=DISTRICTS.find(x=>x.id===tag.dataset.mapDistrict),span=tag.querySelector('span');if(d&&span)span.textContent=overlayText(p,d);});
+    let bar=$('#cityOverlayBar');if(!bar){grid.insertAdjacentHTML('beforebegin',`<div id="cityOverlayBar" class="map-mode-bar">${[['normal','Übersicht'],['ownership','Besitz'],['police','Polizei'],['income','Einkommen'],['rivals','Rivalen']].map(([id,n])=>`<button class="map-mode ${mapMode===id?'active':''}" data-map-mode="${id}">${n}</button>`).join('')}</div>`);bar=$('#cityOverlayBar');$$('[data-map-mode]',bar).forEach(b=>b.onclick=()=>{mapMode=b.dataset.mapMode;renderCity();});}else $$('[data-map-mode]',bar).forEach(b=>b.classList.toggle('active',b.dataset.mapMode===mapMode));
+    $$('.city-map-tag',map).forEach(tag=>{const d=DISTRICTS.find(x=>x.id===tag.dataset.mapDistrict),span=tag.querySelector('span');if(d&&span)span.textContent=overlayText(p,d);});
     map.querySelectorAll('.map-marker').forEach(x=>x.remove());map.insertAdjacentHTML('beforeend',mapMarkers(p));
     const d=DISTRICTS.find(x=>x.id===selectedDistrict),detail=$('#districtDetail');if(d&&detail&&!detail.querySelector('.district-visual'))detail.insertAdjacentHTML('afterbegin',`<div class="district-visual"><img src="${DISTRICT_ART[d.id]}" alt=""><div><strong>${esc(d.name)}</strong><span>${esc(d.desc)}</span></div></div>`);
   }
@@ -2749,14 +2749,14 @@
   function decorateEvent(){const p=currentPlayer(),list=$('#situationList');if(!list||list.querySelector('.deep-event-card'))return;const ev=p.deepEvent||state?.cityEvent;if(!ev)return;const art=EVENT_ART[ev.id]||A+'event-press.svg';list.insertAdjacentHTML('afterbegin',`<div class="deep-event-card"><img src="${art}" alt=""><div><small>Stadtgeschehen</small><strong>${esc(ev.name||p.eventText||'Ereignis')}</strong><span>${esc(ev.desc||ev.text||'Die Lage verändert sich.')}</span></div></div>`);}
 
   const oldBiz=renderBusinesses;
-  renderBusinesses=function(){oldBiz();const p=currentPlayer();$('#businessList .business-card').forEach((card,i)=>{const b=p.businesses[i];if(b&&!card.querySelector('.business-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="business-thumb" src="${BUSINESS_ART[b.type]}" alt="">`);});};
+  renderBusinesses=function(){oldBiz();const p=currentPlayer();$$('#businessList .business-card').forEach((card,i)=>{const b=p.businesses[i];if(b&&!card.querySelector('.business-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="business-thumb" src="${BUSINESS_ART[b.type]}" alt="">`);});};
   const oldBuy=openBuyDialog;
-  openBuyDialog=function(did=selectedDistrict,focus=null){oldBuy(did,focus);$('#dialogContent .dialog-option [data-buy]').forEach(btn=>{const row=btn.closest('.dialog-option'),type=btn.dataset.buy;if(row&&!row.querySelector('.business-buy-thumb'))row.insertAdjacentHTML('afterbegin',`<img class="business-buy-thumb" src="${BUSINESS_ART[type]}" alt="">`);});};
+  openBuyDialog=function(did=selectedDistrict,focus=null){oldBuy(did,focus);$$('#dialogContent .dialog-option [data-buy]').forEach(btn=>{const row=btn.closest('.dialog-option'),type=btn.dataset.buy;if(row&&!row.querySelector('.business-buy-thumb'))row.insertAdjacentHTML('afterbegin',`<img class="business-buy-thumb" src="${BUSINESS_ART[type]}" alt="">`);});};
   const oldBizDialog=openBusinessDialog;
   openBusinessDialog=function(id){const p=currentPlayer(),b=p.businesses.find(x=>x.id===id);oldBizDialog(id);const root=$('#dialogContent .dialog-wrap');if(b&&root&&!root.querySelector('.business-detail-art'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="business-detail-art" src="${BUSINESS_ART[b.type]}" alt="">`);};
 
   const oldStaff=renderStaff;
-  renderStaff=function(){oldStaff();const p=currentPlayer();$('#staffGrid [data-staff-person]').forEach(btn=>{const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');const old=card?.querySelector('.person-initial-avatar');if(s&&old)old.outerHTML=`<img class="person-portrait role-portrait" src="${STAFF_ART[s.role]}" alt="">`;});};
+  renderStaff=function(){oldStaff();const p=currentPlayer();$$('#staffGrid [data-staff-person]').forEach(btn=>{const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');const old=card?.querySelector('.person-initial-avatar');if(s&&old)old.outerHTML=`<img class="person-portrait role-portrait" src="${STAFF_ART[s.role]}" alt="">`;});};
   const oldPerson=openStaffPerson;
   openStaffPerson=function(id){const p=currentPlayer(),s=p.staffRoster.find(x=>x.id===id);oldPerson(id);const root=$('#dialogContent .dialog-wrap');if(s&&root?.querySelector('.dialog-person-initial'))root.querySelector('.dialog-person-initial').outerHTML=`<img class="dialog-person-hero" src="${STAFF_ART[s.role]}" alt="">`;};
 
@@ -2766,7 +2766,7 @@
     $('[data-deep-diplomacy]')?.addEventListener('click',()=>openDeepDiplomacy(r.id));
   }
   const oldRanking=renderRanking;
-  renderRanking=function(){oldRanking();const sorted=[...state.players].sort((a,b)=>powerIndex(b)-powerIndex(a));$('#rankingList .rank-row').forEach((row,i)=>{const r=sorted[i];if(!r||row.querySelector('.rival-rank-portrait'))return;row.insertAdjacentHTML('afterbegin',`<img class="rival-rank-portrait" src="${rivalPortrait(r)}" alt="">`);if(r.id!==currentPlayer().id){row.classList.add('clickable-rival');row.onclick=()=>openRivalProfile(r.id);}});};
+  renderRanking=function(){oldRanking();const sorted=[...state.players].sort((a,b)=>powerIndex(b)-powerIndex(a));$$('#rankingList .rank-row').forEach((row,i)=>{const r=sorted[i];if(!r||row.querySelector('.rival-rank-portrait'))return;row.insertAdjacentHTML('afterbegin',`<img class="rival-rank-portrait" src="${rivalPortrait(r)}" alt="">`);if(r.id!==currentPlayer().id){row.classList.add('clickable-rival');row.onclick=()=>openRivalProfile(r.id);}});};
 
   function deepAccept(p,t,base){if(t.type==='human')return confirm(`${t.family}: Angebot annehmen?`);let v=base+relation(p,t)/220-(t.rivalMemory?.grudges?.[p.id]||0)/600;if(t.family==='Moretti')v+=.08;return chance(clamp(v,.08,.9))}
   function openDeepDiplomacy(tid){
@@ -2777,7 +2777,7 @@
       <div class="dialog-option"><div><strong>Gebietstausch</strong><p>Einen Betrieb gegen einen Rivalenbetrieb tauschen.</p></div><button class="btn btn-secondary" data-dd="swap">Tausch öffnen</button></div>
       <div class="dialog-option"><div><strong>Abkommen brechen</strong><p>Pakte und Bündnisse sofort beenden. Ruf und Beziehung leiden dauerhaft.</p></div><button class="btn btn-danger" data-dd="betray">Verraten</button></div>
     </div></div>`);
-    $('[data-dd]').forEach(b=>b.onclick=()=>doDeepDiplomacy(t,b.dataset.dd));
+    $$('[data-dd]').forEach(b=>b.onclick=()=>doDeepDiplomacy(t,b.dataset.dd));
   }
   function doDeepDiplomacy(t,kind){
     const p=currentPlayer();ensureDepth(p);ensureDepth(t);
@@ -2789,11 +2789,11 @@
   }
 
   const oldActions=renderActions;
-  renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
+  renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
 
   const oldOp=window.SyndikatV4?.openOperation;
   if(oldOp)window.SyndikatV4.openOperation=function(kind,...args){oldOp(kind,...args);setTimeout(()=>{const root=$('#dialogContent .v4-operation');if(root&&!root.querySelector('.operation-hero'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="operation-hero" src="${OP_ART[kind]||OP_ART.sabotage}" alt="">`);},10);};
-  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
+  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
   document.addEventListener('click',e=>{const b=e.target.closest?.('[data-v4-arsenal],[data-arsenal]');if(b)setTimeout(decorateArsenal,30);});
 
   const EVENTS2=[
