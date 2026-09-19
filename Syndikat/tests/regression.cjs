@@ -219,3 +219,12 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
 }
 
 console.log('Syndikat regression suite: OK');
+
+// v5.3.1 visual regression guards
+{
+  const worldDepthSource531=fs.readFileSync('Syndikat/src/modules/58-world-depth.js','utf8');
+  assert(worldDepthSource531.includes("$$('#staffGrid [data-staff-person]').forEach"),'named staff portrait renderer must iterate all staff buttons');
+  assert(worldDepthSource531.includes("$$('.dialog-option',root).forEach"),'property artwork decorator must iterate all dialog options');
+  assert(!worldDepthSource531.includes("$('#staffGrid [data-staff-person]').forEach"),'single-element selector must not be used as an iterable for staff portraits');
+  assert(!worldDepthSource531.includes("$('.dialog-option',root).forEach"),'single-element selector must not be used as an iterable for property artwork');
+}
