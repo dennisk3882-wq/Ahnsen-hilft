@@ -30,21 +30,21 @@
     enabled:!!(cfg.enabled&&cfg.url&&cfg.publishableKey),
     async createCloudSave(state){
       const code=gameCode(),token=rand(24),owner_token_hash=await hash(token);
-      const rows=await req('syndikat_cloud_saves',{method:'POST',code,token,prefer:'return=representation',body:{save_code:code,owner_token_hash,family:state?.players?.[state.currentIndex]?.family||state?.players?.[0]?.family||'Syndikat',round:state?.round||1,revision:1,game_state:state}});
+      const rows=await req('syndikat_cloud_saves?select=save_code,family,round,revision,game_state,created_at,updated_at',{method:'POST',code,token,prefer:'return=representation',body:{save_code:code,owner_token_hash,family:state?.players?.[state.currentIndex]?.family||state?.players?.[0]?.family||'Syndikat',round:state?.round||1,revision:1,game_state:state}});
       return{code,token,row:rows?.[0]||null};
     },
     async loadCloudSave(code,token){
-      const rows=await req('syndikat_cloud_saves?save_code=eq.'+encodeURIComponent(code)+'&select=*',{code,token});
+      const rows=await req('syndikat_cloud_saves?save_code=eq.'+encodeURIComponent(code)+'&select=save_code,family,round,revision,game_state,created_at,updated_at',{code,token});
       return rows?.[0]||null;
     },
     async updateCloudSave(code,token,state,revision){
-      const rows=await req('syndikat_cloud_saves?save_code=eq.'+encodeURIComponent(code)+'&revision=eq.'+Number(revision),{method:'PATCH',code,token,prefer:'return=representation',body:{family:state?.players?.[state.currentIndex]?.family||'Syndikat',round:state?.round||1,revision:Number(revision)+1,game_state:state}});
+      const rows=await req('syndikat_cloud_saves?save_code=eq.'+encodeURIComponent(code)+'&revision=eq.'+Number(revision)+'&select=save_code,family,round,revision,game_state,created_at,updated_at',{method:'PATCH',code,token,prefer:'return=representation',body:{family:state?.players?.[state.currentIndex]?.family||'Syndikat',round:state?.round||1,revision:Number(revision)+1,game_state:state}});
       if(!rows?.length)throw new Error('Cloud-Spielstand wurde zwischenzeitlich geändert.');
       return rows[0];
     },
     async createLobby({displayName,family,settings={}}){
       const code=gameCode(),token=rand(24),participantId=crypto.randomUUID(),tokenHash=await hash(token);
-      await req('syndikat_online_games',{method:'POST',code,token,body:{game_code:code,host_participant_id:participantId,host_token_hash:tokenHash,active_participant_id:participantId,active_token_hash:tokenHash,status:'lobby',revision:1,settings},prefer:'return=minimal'});
+      await req('syndikat_online_games',{method:'POST',code,token,body:{game_code:code,host_participant_id:participantId,host_token_hash:tokenHash,active_participant_id:participantId,status:'lobby',revision:1,settings},prefer:'return=minimal'});
       await req('syndikat_online_players',{method:'POST',code,token,body:{participant_id:participantId,game_code:code,player_token_hash:tokenHash,display_name:displayName,family,ready:true},prefer:'return=minimal'});
       return{code,token,participantId,host:true};
     },
@@ -56,10 +56,10 @@
       return{code,token,participantId,host:false};
     },
     async getGame(code,token){
-      const rows=await req('syndikat_online_games?game_code=eq.'+encodeURIComponent(code)+'&select=*',{code,token});return rows?.[0]||null;
+      const rows=await req('syndikat_online_games?game_code=eq.'+encodeURIComponent(code)+'&select=game_code,host_participant_id,active_participant_id,status,revision,settings,game_state,winner_participant_id,created_at,updated_at',{code,token});return rows?.[0]||null;
     },
     async getPlayers(code,token){
-      return await req('syndikat_online_players?game_code=eq.'+encodeURIComponent(code)+'&select=participant_id,display_name,family,ready,joined_at,player_token_hash&order=joined_at.asc',{code,token})||[];
+      return await req('syndikat_online_players?game_code=eq.'+encodeURIComponent(code)+'&select=participant_id,game_code,display_name,family,ready,joined_at,last_seen&order=joined_at.asc',{code,token})||[];
     },
     async setReady(session,ready){
       return await req('syndikat_online_players?participant_id=eq.'+encodeURIComponent(session.participantId),{method:'PATCH',code:session.code,token:session.token,body:{ready:!!ready,last_seen:new Date().toISOString()},prefer:'return=representation'});
