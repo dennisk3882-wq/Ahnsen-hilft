@@ -2585,7 +2585,7 @@
       <div class="story-prose">${narrative}</div>
       ${ch.choices?.length?'<p class="muted">Diese Entscheidung wird in deiner Storychronik gespeichert.</p>':''}${choices}</div>`);
     $('[data-story-finish]')?.addEventListener('click',()=>finalizeStory(p,ch));
-    $$('[data-story-choice]').forEach(b=>b.onclick=()=>finalizeStory(p,ch,b.dataset.storyChoice));
+    $('[data-story-choice]').forEach(b=>b.onclick=()=>finalizeStory(p,ch,b.dataset.storyChoice));
   }
   function openStoryArchive(){
     const p=currentPlayer();ensureStoryV51(p);
@@ -2622,7 +2622,7 @@
   const previousRenderStaff=renderStaff;
   renderStaff=function(){
     previousRenderStaff();const p=currentPlayer();
-    $$('#staffGrid [data-staff-person]').forEach(btn=>{
+    $('#staffGrid [data-staff-person]').forEach(btn=>{
       const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!s||!card)return;
       const top=card.querySelector('.shop-top');if(!top||top.querySelector('.person-portrait,.person-initial-avatar'))return;
       const img=staffPortrait(s);
@@ -2670,7 +2670,7 @@
       <svg class="city-hotspots" viewBox="0 0 1672 941" aria-label="Anklickbare Stadtviertel">${DISTRICTS.map(d=>`<polygon tabindex="0" role="button" aria-label="${esc(d.name)}" class="city-hotspot ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" points="${HOTSPOTS[d.id]}" style="--district-accent:${d.accent}"></polygon>`).join('')}</svg>
       ${DISTRICTS.map(d=>{const v=DISTRICT_VISUALS[d.id],share=Math.round(districtShare(p,d.id)),owner=districtOwner(d.id);return `<button class="city-map-tag ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" style="left:${v.tag[0]}%;top:${v.tag[1]}%;--district-accent:${d.accent}"><strong>${esc(d.name)}</strong><span>${share}% · ${esc(owner.player?owner.player.family:'Neutral')}</span></button>`;}).join('')}
     </div></div>`;
-    $$('[data-map-district]',grid).forEach(el=>{
+    $('[data-map-district]',grid).forEach(el=>{
       const open=()=>{selectedDistrict=el.dataset.mapDistrict;renderCity();};
       el.onclick=open;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
     });
@@ -2749,8 +2749,8 @@
   function mapMarkers(p){return DISTRICTS.map(d=>{const [x,y]=POS[d.id],biz=districtBusinessCount(p,d.id),props=(state.propertyMarket||[]).filter(l=>l.ownerId===p.id&&l.district===d.id).length,r=districtTopRival(p,d.id);const rival=mapMode==='rivals'&&r&&r.s>5?`<span class="map-marker rival" style="left:${x+4}%;top:${y+7}%">♛ ${esc(r.p.family)}</span>`:'';const mine=biz||props?`<span class="map-marker mine" style="left:${x-4}%;top:${y+7}%">▣ ${biz}${props?' · ⌂ '+props:''}</span>`:'';return mine+rival;}).join('')}
   function decorateMap(){
     const p=currentPlayer(),grid=$('#districtGrid'),map=grid?.querySelector('.city-art-map');if(!grid||!map)return;
-    let bar=$('#cityOverlayBar');if(!bar){grid.insertAdjacentHTML('beforebegin',`<div id="cityOverlayBar" class="map-mode-bar">${[['normal','Übersicht'],['ownership','Besitz'],['police','Polizei'],['income','Einkommen'],['rivals','Rivalen']].map(([id,n])=>`<button class="map-mode ${mapMode===id?'active':''}" data-map-mode="${id}">${n}</button>`).join('')}</div>`);bar=$('#cityOverlayBar');$$('[data-map-mode]',bar).forEach(b=>b.onclick=()=>{mapMode=b.dataset.mapMode;renderCity();});}else $$('[data-map-mode]',bar).forEach(b=>b.classList.toggle('active',b.dataset.mapMode===mapMode));
-    $$('.city-map-tag',map).forEach(tag=>{const d=DISTRICTS.find(x=>x.id===tag.dataset.mapDistrict),span=tag.querySelector('span');if(d&&span)span.textContent=overlayText(p,d);});
+    let bar=$('#cityOverlayBar');if(!bar){grid.insertAdjacentHTML('beforebegin',`<div id="cityOverlayBar" class="map-mode-bar">${[['normal','Übersicht'],['ownership','Besitz'],['police','Polizei'],['income','Einkommen'],['rivals','Rivalen']].map(([id,n])=>`<button class="map-mode ${mapMode===id?'active':''}" data-map-mode="${id}">${n}</button>`).join('')}</div>`);bar=$('#cityOverlayBar');$('[data-map-mode]',bar).forEach(b=>b.onclick=()=>{mapMode=b.dataset.mapMode;renderCity();});}else $('[data-map-mode]',bar).forEach(b=>b.classList.toggle('active',b.dataset.mapMode===mapMode));
+    $('.city-map-tag',map).forEach(tag=>{const d=DISTRICTS.find(x=>x.id===tag.dataset.mapDistrict),span=tag.querySelector('span');if(d&&span)span.textContent=overlayText(p,d);});
     map.querySelectorAll('.map-marker').forEach(x=>x.remove());map.insertAdjacentHTML('beforeend',mapMarkers(p));
     const d=DISTRICTS.find(x=>x.id===selectedDistrict),detail=$('#districtDetail');if(d&&detail&&!detail.querySelector('.district-visual'))detail.insertAdjacentHTML('afterbegin',`<div class="district-visual"><img src="${DISTRICT_ART[d.id]}" alt=""><div><strong>${esc(d.name)}</strong><span>${esc(d.desc)}</span></div></div>`);
   }
@@ -2759,9 +2759,9 @@
   function decorateEvent(){const p=currentPlayer(),list=$('#situationList');if(!list||list.querySelector('.deep-event-card'))return;const ev=p.deepEvent||state?.cityEvent;if(!ev)return;const art=EVENT_ART[ev.id]||A+'event-press.svg';list.insertAdjacentHTML('afterbegin',`<div class="deep-event-card"><img src="${art}" alt=""><div><small>Stadtgeschehen</small><strong>${esc(ev.name||p.eventText||'Ereignis')}</strong><span>${esc(ev.desc||ev.text||'Die Lage verändert sich.')}</span></div></div>`);}
 
   const oldBiz=renderBusinesses;
-  renderBusinesses=function(){oldBiz();const p=currentPlayer();$$('#businessList .business-card').forEach((card,i)=>{const b=p.businesses[i];if(b&&!card.querySelector('.business-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="business-thumb" src="${BUSINESS_ART[b.type]}" alt="">`);});};
+  renderBusinesses=function(){oldBiz();const p=currentPlayer();$('#businessList .business-card').forEach((card,i)=>{const b=p.businesses[i];if(b&&!card.querySelector('.business-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="business-thumb" src="${BUSINESS_ART[b.type]}" alt="">`);});};
   const oldBuy=openBuyDialog;
-  openBuyDialog=function(did=selectedDistrict,focus=null){oldBuy(did,focus);$$('#dialogContent .dialog-option [data-buy]').forEach(btn=>{const row=btn.closest('.dialog-option'),type=btn.dataset.buy;if(row&&!row.querySelector('.business-buy-thumb'))row.insertAdjacentHTML('afterbegin',`<img class="business-buy-thumb" src="${BUSINESS_ART[type]}" alt="">`);});};
+  openBuyDialog=function(did=selectedDistrict,focus=null){oldBuy(did,focus);$('#dialogContent .dialog-option [data-buy]').forEach(btn=>{const row=btn.closest('.dialog-option'),type=btn.dataset.buy;if(row&&!row.querySelector('.business-buy-thumb'))row.insertAdjacentHTML('afterbegin',`<img class="business-buy-thumb" src="${BUSINESS_ART[type]}" alt="">`);});};
   const oldBizDialog=openBusinessDialog;
   openBusinessDialog=function(id){const p=currentPlayer(),b=p.businesses.find(x=>x.id===id);oldBizDialog(id);const root=$('#dialogContent .dialog-wrap');if(b&&root&&!root.querySelector('.business-detail-art'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="business-detail-art" src="${BUSINESS_ART[b.type]}" alt="">`);};
 
@@ -2769,7 +2769,7 @@
   const oldStaff=renderStaff;
   renderStaff=function(){
     oldStaff();const p=currentPlayer();
-    $$('#staffGrid [data-staff-person]').forEach(btn=>{
+    $('#staffGrid [data-staff-person]').forEach(btn=>{
       const person=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!person||!card)return;
       const img=card.querySelector('.person-portrait'),initial=card.querySelector('.person-initial-avatar'),src=staffVisual(person);
       if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="person-portrait role-portrait" src="${src}" alt="">`;
@@ -2794,7 +2794,7 @@
   function decoratePropertyMarket(){
     const root=$('#dialogContent');if(!root)return;
     const kinds={Ladenlokal:'shop','Wohn- & Geschäftshaus':'block','Lagerhalle':'warehouse','Premium-Grundstück':'prime'};
-    $$('.dialog-option',root).forEach(row=>{
+    $('.dialog-option',root).forEach(row=>{
       if(row.querySelector('.property-thumb'))return;
       const txt=row.textContent||'';for(const [label,id] of Object.entries(kinds))if(txt.includes(label)){row.insertAdjacentHTML('afterbegin',`<img class="property-thumb" src="${PROPERTY_ART[id]}" alt="">`);break;}
     });
@@ -2807,7 +2807,7 @@
     $('[data-deep-diplomacy]')?.addEventListener('click',()=>openDeepDiplomacy(r.id));
   }
   const oldRanking=renderRanking;
-  renderRanking=function(){oldRanking();const sorted=[...state.players].sort((a,b)=>powerIndex(b)-powerIndex(a));$$('#rankingList .rank-row').forEach((row,i)=>{const r=sorted[i];if(!r||row.querySelector('.rival-rank-portrait'))return;row.insertAdjacentHTML('afterbegin',`<img class="rival-rank-portrait" src="${rivalPortrait(r)}" alt="">`);if(r.id!==currentPlayer().id){row.classList.add('clickable-rival');row.onclick=()=>openRivalProfile(r.id);}});};
+  renderRanking=function(){oldRanking();const sorted=[...state.players].sort((a,b)=>powerIndex(b)-powerIndex(a));$('#rankingList .rank-row').forEach((row,i)=>{const r=sorted[i];if(!r||row.querySelector('.rival-rank-portrait'))return;row.insertAdjacentHTML('afterbegin',`<img class="rival-rank-portrait" src="${rivalPortrait(r)}" alt="">`);if(r.id!==currentPlayer().id){row.classList.add('clickable-rival');row.onclick=()=>openRivalProfile(r.id);}});};
 
   function deepAccept(p,t,base){if(t.type==='human')return confirm(`${t.family}: Angebot annehmen?`);let v=base+relation(p,t)/220-(t.rivalMemory?.grudges?.[p.id]||0)/600;if(t.family==='Moretti')v+=.08;return chance(clamp(v,.08,.9))}
   function openDeepDiplomacy(tid){
@@ -2818,7 +2818,7 @@
       <div class="dialog-option"><div><strong>Gebietstausch</strong><p>Einen Betrieb gegen einen Rivalenbetrieb tauschen.</p></div><button class="btn btn-secondary" data-dd="swap">Tausch öffnen</button></div>
       <div class="dialog-option"><div><strong>Abkommen brechen</strong><p>Pakte und Bündnisse sofort beenden. Ruf und Beziehung leiden dauerhaft.</p></div><button class="btn btn-danger" data-dd="betray">Verraten</button></div>
     </div></div>`);
-    $$('[data-dd]').forEach(b=>b.onclick=()=>doDeepDiplomacy(t,b.dataset.dd));
+    $('[data-dd]').forEach(b=>b.onclick=()=>doDeepDiplomacy(t,b.dataset.dd));
   }
   function doDeepDiplomacy(t,kind){
     const p=currentPlayer();ensureDepth(p);ensureDepth(t);
@@ -2830,7 +2830,7 @@
   }
 
   const oldActions=renderActions;
-  renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
+  renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
 
   const oldPlanner=v4OpenOperationPlanner;
   v4OpenOperationPlanner=function(kind,...args){
@@ -2838,7 +2838,7 @@
     setTimeout(()=>{const root=$('#dialogContent .v4-operation');if(root&&!root.querySelector('.operation-hero'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="operation-hero" src="${OP_ART[kind]||OP_ART.sabotage}" alt="">`);},10);
   };
   if(window.SyndikatV4)window.SyndikatV4.openOperation=v4OpenOperationPlanner;
-  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
+  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
   document.addEventListener('click',e=>{const b=e.target.closest?.('[data-v4-arsenal],[data-arsenal]');if(b)setTimeout(decorateArsenal,30);});
 
   const EVENTS2=[
@@ -2880,6 +2880,58 @@
   window.SyndikatWorldDepth={businessArt:BUSINESS_ART,districtArt:DISTRICT_ART,rivals:RIVAL_INFO,operationArt:OP_ART,itemArt:ITEM_ART,setMapMode:m=>{mapMode=m;renderCity();}};
 })();
 /* SYNDIKAT_V52_WORLD_DEPTH_END */
+
+/* SYNDIKAT_V54_VISUAL_EXPANSION_BEGIN */
+(function SYNDIKAT_V54_VISUAL_EXPANSION(){
+  const STORY={"1":"./assets/story-01.svg","2":"./assets/story-02.svg","3":"./assets/story-03.svg","4":"./assets/story-04.svg","5":"./assets/story-05.svg","6":"./assets/story-06.svg","7":"./assets/story-07.svg","8":"./assets/story-08.svg","9":"./assets/story-09.svg","10":"./assets/story-10.svg","11":"./assets/story-11.svg","12":"./assets/story-12.svg","13":"./assets/story-13.svg","14":"./assets/story-14.svg","15":"./assets/story-15.svg","16":"./assets/story-16.svg","17":"./assets/story-17.svg","18":"./assets/story-18.svg","19":"./assets/story-19.svg","20":"./assets/story-20.svg"};
+  const EVENTS={"blackout":"./assets/event-blackout.svg","tourism":"./assets/event-tourism.svg","scandal":"./assets/event-scandal.svg","dockstrike":"./assets/event-dockstrike.svg"};
+  const CRIME_ART={"machine":"./assets/crime-machine.svg","mug":"./assets/crime-mug.svg","car":"./assets/crime-car.svg","bar":"./assets/crime-bar.svg","bank":"./assets/crime-bank.svg"};
+  const DIPLOMACY={"tribute":"./assets/diplomacy-tribute.svg","venture":"./assets/diplomacy-venture.svg","swap":"./assets/diplomacy-swap.svg","betray":"./assets/diplomacy-betray.svg"};
+  const ENDGAME={"legit":"./assets/endgame-legit.svg","politics":"./assets/endgame-politics.svg","war":"./assets/endgame-war.svg"};
+  const PRISON={"appeal":"./assets/prison-appeal.svg","guardbribe":"./assets/prison-bribe.svg","network":"./assets/prison-network.svg","contraband":"./assets/prison-contraband.svg","tunnel":"./assets/prison-tunnel.svg","delegate":"./assets/prison-delegate.svg","escape":"./assets/prison-escape.svg"};
+  const COURT={"fight":"./assets/court-fight.svg","deal":"./assets/court-deal.svg","corrupt":"./assets/court-corrupt.svg"};
+  const SPECIALIZATION={"lowprofile":"./assets/spec-lowprofile.svg","highroller":"./assets/spec-highroller.svg","discreet":"./assets/spec-discreet.svg","premium":"./assets/spec-premium.svg","lounge":"./assets/spec-lounge.svg","speakeasy":"./assets/spec-speakeasy.svg","sportsbook":"./assets/spec-sportsbook.svg","bookmaking":"./assets/spec-bookmaking.svg","family":"./assets/spec-family.svg","night":"./assets/spec-night.svg","vip":"./assets/spec-vip.svg","backroom":"./assets/spec-backroom.svg","elite":"./assets/spec-elite.svg","discretion":"./assets/spec-discretion.svg","resort":"./assets/spec-resort.svg","highstakes":"./assets/spec-highstakes.svg","luxuryhotel":"./assets/spec-luxuryhotel.svg","conference":"./assets/spec-conference.svg","legit":"./assets/spec-legit.svg","shells":"./assets/spec-shells.svg"};
+  const PROTECTION={"Kiosk":"./assets/protection-kiosk.svg","Friseursalon":"./assets/protection-friseursalon.svg","Späti":"./assets/protection-spati.svg","Taxi-Zentrale":"./assets/protection-taxi-zentrale.svg","Werkstatt":"./assets/protection-werkstatt.svg","Pfandleihe":"./assets/protection-pfandleihe.svg","Gemüsehändler":"./assets/protection-gemusehandler.svg","Nachtcafé":"./assets/protection-nachtcafe.svg","Lagerbetrieb":"./assets/protection-lagerbetrieb.svg","Billardsalon":"./assets/protection-billardsalon.svg","Schneiderei":"./assets/protection-schneiderei.svg","Tabakladen":"./assets/protection-tabakladen.svg"};
+  const ACHIEVEMENT={"Erstes Standbein":"./assets/achievement-first_biz.svg","Die Familie":"./assets/achievement-crew.svg","Millionär":"./assets/achievement-million.svg","Großkapital":"./assets/achievement-ten_million.svg","Unser Viertel":"./assets/achievement-district.svg","Stadtmacht":"./assets/achievement-three_districts.svg","Saubere Arbeit":"./assets/achievement-operations.svg","Unantastbar":"./assets/achievement-untouchable.svg","Rechte Hand":"./assets/achievement-underboss.svg","Das Syndikat":"./assets/achievement-syndicate.svg"};
+  const PERSON={"Alessio Marchetti":"./assets/person-alessio-marchetti.svg","Bianca Serra":"./assets/person-bianca-serra.svg","Matteo Ricci":"./assets/person-matteo-ricci.svg","Clara Venturi":"./assets/person-clara-venturi.svg","Paolo Gallo":"./assets/person-paolo-gallo.svg","Francesca Neri":"./assets/person-francesca-neri.svg","Stefano Riva":"./assets/person-stefano-riva.svg","Lucia Ferraro":"./assets/person-lucia-ferraro.svg","Bruno Amato":"./assets/person-bruno-amato.svg","Rosa Mancini":"./assets/person-rosa-mancini.svg","Gabriel Esposito":"./assets/person-gabriel-esposito.svg","Nina Lombardi":"./assets/person-nina-lombardi.svg","Tomaso Greco":"./assets/person-tomaso-greco.svg","Adriana Vitale":"./assets/person-adriana-vitale.svg","Renato Leone":"./assets/person-renato-leone.svg","Camilla De Santis":"./assets/person-camilla-de-santis.svg","Emilio Caruso":"./assets/person-emilio-caruso.svg","Vera Romano":"./assets/person-vera-romano.svg","Silvio Morelli":"./assets/person-silvio-morelli.svg","Anita Bianchi":"./assets/person-anita-bianchi.svg","Massimo Fontana":"./assets/person-massimo-fontana.svg","Greta Costa":"./assets/person-greta-costa.svg","Dante Rizzo":"./assets/person-dante-rizzo.svg","Lea Conti":"./assets/person-lea-conti.svg"};
+  const ENDINGS={"empire":"./assets/ending-empire.svg","shadow":"./assets/ending-shadow.svg","crown":"./assets/ending-crown.svg","family":"./assets/ending-family.svg"};
+  const EXTRA_NAMES=["Alessio Marchetti","Bianca Serra","Matteo Ricci","Clara Venturi","Paolo Gallo","Francesca Neri","Stefano Riva","Lucia Ferraro","Bruno Amato","Rosa Mancini","Gabriel Esposito","Nina Lombardi","Tomaso Greco","Adriana Vitale","Renato Leone","Camilla De Santis","Emilio Caruso","Vera Romano","Silvio Morelli","Anita Bianchi","Massimo Fontana","Greta Costa","Dante Rizzo","Lea Conti"];
+  if(typeof STAFF_NAMES!=='undefined'){for(const n of EXTRA_NAMES)if(!STAFF_NAMES.includes(n))STAFF_NAMES.push(n);}
+  const story=window.SyndikatVisualStory&&window.SyndikatVisualStory.story;
+  if(story)for(const ch of story){const src=STORY[String(ch.chapter)];if(src)ch.image=src;}
+  const style=document.createElement('style');
+  style.textContent='.vx-thumb{width:112px;height:78px;object-fit:cover;border-radius:10px;border:1px solid rgba(213,179,107,.35);flex:0 0 auto;margin-right:.8rem}.crime-card>.vx-thumb{width:100%;height:118px;margin:0 0 .75rem 0}.achievement>.vx-ach{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;margin-bottom:.6rem;filter:saturate(.9)}.achievement.locked>.vx-ach{filter:grayscale(1) brightness(.55)}.vx-wide{width:100%;max-height:210px;object-fit:cover;border-radius:12px;margin-bottom:.85rem;border:1px solid rgba(213,179,107,.28)}.dialog-option{align-items:center}.v44-site-panel>.vx-wide{border-radius:0;margin:0 0 .75rem 0}';
+  document.head.appendChild(style);
+  function putImg(host,src,cls){if(!host||!src)return null;cls=cls||'vx-thumb';let img=host.querySelector('img.'+cls);if(!img){img=document.createElement('img');img.className=cls;img.alt='';host.insertBefore(img,host.firstChild);}if(img.getAttribute('src')!==src)img.src=src;return img;}
+  function current(){try{return typeof currentPlayer==='function'?currentPlayer():null}catch(_){return null}}
+  function decorate(){
+    const p=current();
+    if(p){const ev=p.deepEvent||(typeof state!=='undefined'&&state&&state.cityEvent);const eventImg=document.querySelector('.deep-event-card img');if(ev&&eventImg&&EVENTS[ev.id])eventImg.src=EVENTS[ev.id];}
+    document.querySelectorAll('#crimeGrid .crime-card').forEach(function(card,i){const prisonBtn=card.querySelector('[data-prison-final]');if(prisonBtn){putImg(card,PRISON[prisonBtn.dataset.prisonFinal],'vx-thumb');return;}const c=(typeof CRIMES!=='undefined'&&CRIMES[i])?CRIMES[i]:null;if(c&&CRIME_ART[c.id])putImg(card,CRIME_ART[c.id],'vx-thumb');});
+    document.querySelectorAll('[data-dd]').forEach(function(btn){putImg(btn.closest('.dialog-option'),DIPLOMACY[btn.dataset.dd]);});
+    document.querySelectorAll('[data-final-choice]').forEach(function(btn){putImg(btn.closest('.dialog-option'),ENDGAME[btn.dataset.finalChoice]);});
+    document.querySelectorAll('[data-court]').forEach(function(btn){putImg(btn.closest('.dialog-option'),COURT[btn.dataset.court]);});
+    document.querySelectorAll('[data-path]').forEach(function(btn){putImg(btn.closest('.dialog-option'),SPECIALIZATION[btn.dataset.path]);});
+    document.querySelectorAll('[data-pressure]').forEach(function(btn){if(!p)return;const c=(p.protectionContracts||[]).find(function(x){return x.id===btn.dataset.pressure});if(!c)return;const key=Object.keys(PROTECTION).find(function(k){return String(c.name||'').startsWith(k)});if(key)putImg(btn.closest('.dialog-option'),PROTECTION[key]);});
+    document.querySelectorAll('.achievement-grid .achievement').forEach(function(card){const txt=(card.querySelector('strong')&&card.querySelector('strong').textContent)||'';const key=Object.keys(ACHIEVEMENT).find(function(k){return txt.includes(k)});if(key)putImg(card,ACHIEVEMENT[key],'vx-ach');});
+    const prisonHero=document.querySelector('.prison-visual img');if(prisonHero)prisonHero.src='./assets/prison-cell.svg';
+    const root=document.querySelector('#dialogContent .dialog-wrap');
+    if(root){const heading=(root.querySelector('h2')&&root.querySelector('h2').textContent)||'';const banner=root.querySelector('.dialog-visual-banner img');if(banner&&heading.includes('Gerichtsakte'))banner.src='./assets/court-hearing.svg';if(banner&&p&&p.finalCrisis&&(heading.includes('Endgame')||heading.includes('Stadt schlägt zurück')||heading.includes('Stadt reagiert'))){const src=ENDGAME[p.finalCrisis.choice];if(src)banner.src=src;}if(heading.includes('Gerichtsakte')){root.querySelectorAll('.dialog-list .dialog-option').forEach(function(row){if(!row.querySelector('[data-court]'))putImg(row,'./assets/court-archive.svg');});}}
+  }
+  const previousRenderStaff=renderStaff;
+  renderStaff=function(){previousRenderStaff();const p=current();if(p){document.querySelectorAll('#staffGrid [data-staff-person]').forEach(function(btn){const person=(p.staffRoster||[]).find(function(x){return x.id===btn.dataset.staffPerson});if(!person||!PERSON[person.name])return;const card=btn.closest('.person-card');if(!card)return;const img=card.querySelector('.person-portrait');if(img)img.src=PERSON[person.name];});}decorate();};
+  const previousOpenStaffPerson=openStaffPerson;
+  openStaffPerson=function(id){previousOpenStaffPerson(id);const p=current();const person=p&&(p.staffRoster||[]).find(function(x){return x.id===id});if(person&&PERSON[person.name]){const root=document.querySelector('#dialogContent .dialog-wrap');const img=root&&root.querySelector('.dialog-person-hero');if(img)img.src=PERSON[person.name];}decorate();};
+  const previousBusinessDialog=openBusinessDialog;
+  openBusinessDialog=function(id){previousBusinessDialog(id);const p=current();const b=p&&(p.businesses||[]).find(function(x){return x.id===id});if(b&&b.specialization&&SPECIALIZATION[b.specialization]){const panel=document.querySelector('#dialogContent .v44-site-panel');if(panel)putImg(panel,SPECIALIZATION[b.specialization],'vx-wide');}decorate();};
+  const previousGameOver=showGameOver;
+  showGameOver=function(){previousGameOver();const p=(typeof state!=='undefined'&&state&&state.players)?state.players.find(function(x){return x.id===state.winnerId}):null;if(!p)return;const key=(p.story&&p.story.flags&&p.story.flags.ending)||(p.finalCrisis&&p.finalCrisis.choice==='legit'?'empire':p.finalCrisis&&p.finalCrisis.choice==='politics'?'shadow':p.finalCrisis&&p.finalCrisis.choice==='war'?'crown':'family');const img=document.querySelector('#dialogContent .ending-card img');if(img&&ENDINGS[key])img.src=ENDINGS[key];decorate();};
+  let scheduled=false;const observer=new MutationObserver(function(){if(scheduled)return;scheduled=true;queueMicrotask(function(){scheduled=false;decorate();});});
+  if(document.body)observer.observe(document.body,{childList:true,subtree:true});else document.addEventListener('DOMContentLoaded',function(){observer.observe(document.body,{childList:true,subtree:true});decorate();},{once:true});
+  setTimeout(decorate,0);
+  window.SyndikatVisualExpansion={story:STORY,events:EVENTS,crimes:CRIME_ART,diplomacy:DIPLOMACY,endgame:ENDGAME,prison:PRISON,court:COURT,specializations:SPECIALIZATION,protection:PROTECTION,achievements:ACHIEVEMENT,people:PERSON,endings:ENDINGS};
+})();
+/* SYNDIKAT_V54_VISUAL_EXPANSION_END */
 
 /* SYNDIKAT_V45_CLOUD_UI_BEGIN */
 (function SYNDIKAT_V45_CLOUD_UI(){
