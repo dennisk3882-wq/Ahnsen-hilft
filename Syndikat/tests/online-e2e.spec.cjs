@@ -25,6 +25,27 @@ test('two real browser clients: lobby, realtime, reconnect, turns and finish',as
     await expect.poll(()=>host.evaluate(()=>!!window.SyndikatCloud?.enabled),{timeout:10000}).toBe(true);
     await expect.poll(()=>guest.evaluate(()=>!!window.SyndikatCloud?.enabled),{timeout:10000}).toBe(true);
 
+    const vapid=await host.evaluate(async()=>{
+      const cfg=window.SYNDIKAT_CLOUD_CONFIG;
+      const r=await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/syndikat-turn-push',{
+        method:'POST',headers:{apikey:cfg.publishableKey,'Content-Type':'application/json'},
+        body:JSON.stringify({action:'vapid'})
+      });
+      return {status:r.status,data:await r.json()};
+    });
+    expect(vapid.status).toBe(200);
+    expect(typeof vapid.data.publicKey).toBe('string');
+    expect(vapid.data.publicKey.length).toBeGreaterThan(40);
+
+    const accountDeleteGuard=await host.evaluate(async()=>{
+      const cfg=window.SYNDIKAT_CLOUD_CONFIG;
+      const r=await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/syndikat-delete-account',{
+        method:'POST',headers:{apikey:cfg.publishableKey,'Content-Type':'application/json'},body:'{}'
+      });
+      return {status:r.status,data:await r.json()};
+    });
+    expect(accountDeleteGuard.status).toBeGreaterThanOrEqual(400);
+
     hs=await host.evaluate(()=>SyndikatCloud.createLobby({displayName:'E2E Host',family:'Leone',settings:{difficulty:'normal',length:'short',aiCount:0}}));
     const gs=await guest.evaluate(code=>SyndikatCloud.joinLobby(code,{displayName:'E2E Gast',family:'Moretti'}),hs.code);
     await guest.evaluate(s=>SyndikatCloud.setReady(s,true),gs);

@@ -35,6 +35,11 @@ test('mobile v5.6 core and management systems', async ({page})=>{
   await expect(page.locator('#gameDialog')).toBeVisible();
   await closeDialog(page);
 
+  await page.locator('[data-cloud-hub]').tap();
+  await expect(page.locator('#gameDialog')).toBeVisible();
+  await expect(page.locator('[data-account-reset-v56]')).toBeVisible();
+  await closeDialog(page);
+
   await page.locator('#newGameBtn').tap();
   await expect(page.locator('#setupScreen')).toHaveClass(/active/);
   await page.selectOption('#aiCount','1');
