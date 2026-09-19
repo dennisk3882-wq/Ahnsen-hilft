@@ -172,6 +172,9 @@ assert(src.includes('SYNDIKAT_V47_JUSTICE_BEGIN'));
   assert(sw.includes('SKIP_WAITING'));
   assert(index.includes('./cloud-config.js'));
   assert(index.includes('updateNotice'));
+  const css=fs.readFileSync('Syndikat/style.css','utf8');
+  assert(css.includes("./assets/start-user.webp"),'startup must use the user-provided artwork');
+  assert(sw.includes("./assets/start-user.webp"),'startup artwork must be available offline');
 }
 
 console.log('Syndikat regression suite: OK');
