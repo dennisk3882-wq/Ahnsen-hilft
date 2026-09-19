@@ -211,7 +211,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   const base=fs.readFileSync('Syndikat/src/core-base.js','utf8');
   const moduleNames=[
     '10-legacy-v3.js','20-organization-operations.js','30-meta-progression.js',
-    '40-ai-espionage-events.js','50-economy-property.js','55-visual-story.js','58-world-depth.js','59-visual-expansion.js','60-cloud-online.js',
+    '40-ai-espionage-events.js','50-economy-property.js','55-visual-story.js','58-world-depth.js','59-visual-expansion.js','60-cloud-online.js','65-ui-art.js',
     '70-decisions.js','80-justice.js','90-final-gameplay.js'
   ];
   assert(base.includes('__SYNDIKAT_MODULES__'),'modular core base must expose build marker');
@@ -240,6 +240,20 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(visualExpansion.includes('spec-highstakes.svg'),'specialization art mapping missing');
   const visualAssets=["story-01.svg","story-02.svg","story-03.svg","story-04.svg","story-05.svg","story-06.svg","story-07.svg","story-08.svg","story-09.svg","story-10.svg","story-11.svg","story-12.svg","story-13.svg","story-14.svg","story-15.svg","story-16.svg","story-17.svg","story-18.svg","story-19.svg","story-20.svg","event-blackout.svg","event-tourism.svg","event-scandal.svg","event-dockstrike.svg","crime-machine.svg","crime-mug.svg","crime-car.svg","crime-bar.svg","crime-bank.svg","diplomacy-tribute.svg","diplomacy-venture.svg","diplomacy-swap.svg","diplomacy-betray.svg","endgame-legit.svg","endgame-politics.svg","endgame-war.svg","prison-cell.svg","prison-appeal.svg","prison-bribe.svg","prison-network.svg","prison-contraband.svg","prison-tunnel.svg","prison-delegate.svg","prison-escape.svg","court-hearing.svg","court-fight.svg","court-deal.svg","court-corrupt.svg","court-archive.svg","spec-lowprofile.svg","spec-highroller.svg","spec-discreet.svg","spec-premium.svg","spec-lounge.svg","spec-speakeasy.svg","spec-sportsbook.svg","spec-bookmaking.svg","spec-family.svg","spec-night.svg","spec-vip.svg","spec-backroom.svg","spec-elite.svg","spec-discretion.svg","spec-resort.svg","spec-highstakes.svg","spec-luxuryhotel.svg","spec-conference.svg","spec-legit.svg","spec-shells.svg","protection-kiosk.svg","protection-friseursalon.svg","protection-spati.svg","protection-taxi-zentrale.svg","protection-werkstatt.svg","protection-pfandleihe.svg","protection-gemusehandler.svg","protection-nachtcafe.svg","protection-lagerbetrieb.svg","protection-billardsalon.svg","protection-schneiderei.svg","protection-tabakladen.svg","achievement-first_biz.svg","achievement-crew.svg","achievement-million.svg","achievement-ten_million.svg","achievement-district.svg","achievement-three_districts.svg","achievement-operations.svg","achievement-untouchable.svg","achievement-underboss.svg","achievement-syndicate.svg","person-alessio-marchetti.svg","person-bianca-serra.svg","person-matteo-ricci.svg","person-clara-venturi.svg","person-paolo-gallo.svg","person-francesca-neri.svg","person-stefano-riva.svg","person-lucia-ferraro.svg","person-bruno-amato.svg","person-rosa-mancini.svg","person-gabriel-esposito.svg","person-nina-lombardi.svg","person-tomaso-greco.svg","person-adriana-vitale.svg","person-renato-leone.svg","person-camilla-de-santis.svg","person-emilio-caruso.svg","person-vera-romano.svg","person-silvio-morelli.svg","person-anita-bianchi.svg","person-massimo-fontana.svg","person-greta-costa.svg","person-dante-rizzo.svg","person-lea-conti.svg","ending-empire.svg","ending-shadow.svg","ending-crown.svg","ending-family.svg"];
   for(const asset of visualAssets){assert(fs.existsSync('Syndikat/assets/'+asset),'missing v5.4 visual asset '+asset);}
+}
+
+// v5.4.1 menu and management artwork guards
+{
+  const uiArt=fs.readFileSync('Syndikat/src/modules/65-ui-art.js','utf8');
+  const sw=fs.readFileSync('Syndikat/sw.js','utf8');
+  assert(uiArt.includes('SYNDIKAT_V541_UI_ART_BEGIN'),'UI artwork module missing');
+  const uiAssets=["ui-mainmenu.webp","ui-saves-cloud.webp","ui-online-lobby.webp","ui-settings-help.webp","ui-finance.webp","ui-hall-fame.webp","ui-tutorial.webp","ui-stats-admin.webp"];
+  for(const asset of uiAssets){
+    assert(fs.existsSync('Syndikat/assets/'+asset),'missing UI artwork '+asset);
+    assert(sw.includes('./assets/'+asset),'UI artwork must be cached offline: '+asset);
+    assert(uiArt.includes(asset),'UI artwork must be mapped: '+asset);
+  }
+  assert(sw.includes('syndikat-v5-4-1'),'PWA cache must be bumped for final artwork pass');
 }
 
 console.log('Syndikat regression suite: OK');
