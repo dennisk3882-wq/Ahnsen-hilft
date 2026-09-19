@@ -431,41 +431,7 @@
     $('#gameDialog').addEventListener('click',e=>{if(e.target===$('#gameDialog'))closeDialog();});document.addEventListener('click',e=>{if(e.target.closest('button,.btn'))sfx();},{capture:true});window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;$('#installBtn').classList.remove('hidden');});$('#installBtn').onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('#installBtn').classList.add('hidden');};window.addEventListener('resize',()=>{if(currentView==='finance')drawChart();});
   }
   function init(){registerEvents();updateContinueButton();if(audioPrefs.music)setTimeout(startMusic,500);}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /* __SYNDIKAT_MODULES__ */
+/* __SYNDIKAT_MODULES__ */
 
   init();
 })();
