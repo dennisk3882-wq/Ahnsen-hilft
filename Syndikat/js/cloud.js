@@ -26,6 +26,19 @@
     if(!r.ok)throw new Error(text||('Cloud HTTP '+r.status));
     return text?JSON.parse(text):null;
   }
+  let realtimeClient=null,realtimeChannel=null;
+  function realtimeFactory(){
+    if(!window.supabase?.createClient)return null;
+    if(!realtimeClient)realtimeClient=window.supabase.createClient(cfg.url,cfg.publishableKey,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+      realtime:{params:{eventsPerSecond:10}}
+    });
+    return realtimeClient;
+  }
+  async function rpc(name,{code,token,body}){
+    return await req('rpc/'+name,{method:'POST',code,token,body});
+  }
+
   const api={
     enabled:!!(cfg.enabled&&cfg.url&&cfg.publishableKey),
     async createCloudSave(state){
@@ -64,10 +77,40 @@
     async setReady(session,ready){
       return await req('syndikat_online_players?participant_id=eq.'+encodeURIComponent(session.participantId),{method:'PATCH',code:session.code,token:session.token,body:{ready:!!ready,last_seen:new Date().toISOString()},prefer:'return=representation'});
     },
+    async startGame(session,revision,state,firstParticipantId){
+      return await rpc('syndikat_start_game',{code:session.code,token:session.token,body:{
+        p_game_code:session.code,p_revision:Number(revision),p_game_state:state,p_first_participant_id:firstParticipantId
+      }});
+    },
+    async submitTurn(session,revision,state,nextParticipantId,status='playing',winnerParticipantId=null){
+      return await rpc('syndikat_submit_turn',{code:session.code,token:session.token,body:{
+        p_game_code:session.code,p_revision:Number(revision),p_game_state:state,
+        p_next_participant_id:nextParticipantId||null,p_status:status,p_winner_participant_id:winnerParticipantId||null
+      }});
+    },
     async updateGame(session,revision,patch){
-      const rows=await req('syndikat_online_games?game_code=eq.'+encodeURIComponent(session.code)+'&revision=eq.'+Number(revision),{method:'PATCH',code:session.code,token:session.token,body:{...patch,revision:Number(revision)+1},prefer:'return=representation'});
-      if(!rows?.length)throw new Error('Online-Partie wurde bereits von einem anderen Zug aktualisiert.');
-      return rows[0];
+      if(patch?.game_state&&patch?.status==='playing')return this.submitTurn(session,revision,patch.game_state,patch.active_participant_id,'playing',patch.winner_participant_id||null);
+      throw new Error('Direkte Online-Spielstandsänderungen sind serverseitig gesperrt.');
+    },
+    watchGame(session,onSignal){
+      const client=realtimeFactory();if(!client)return null;
+      if(realtimeChannel){try{client.removeChannel(realtimeChannel)}catch{}realtimeChannel=null;}
+      const topic='syndikat-'+session.code;
+      realtimeChannel=client.channel(topic,{config:{broadcast:{self:false}}})
+        .on('broadcast',{event:'state'},msg=>{try{onSignal?.(msg?.payload||{});}catch{}})
+        .subscribe();
+      return ()=>{if(realtimeChannel){try{client.removeChannel(realtimeChannel)}catch{}realtimeChannel=null;}};
+    },
+    async signalGame(session,revision,kind='state'){
+      if(!realtimeChannel)return false;
+      try{
+        const r=await realtimeChannel.send({type:'broadcast',event:'state',payload:{revision:Number(revision)||0,kind,at:Date.now()}});
+        return r==='ok'||r==='timed out'||!!r;
+      }catch{return false;}
+    },
+    stopRealtime(){
+      if(realtimeClient&&realtimeChannel){try{realtimeClient.removeChannel(realtimeChannel)}catch{}}
+      realtimeChannel=null;
     },
     hashToken:hash
   };
