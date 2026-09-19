@@ -2622,7 +2622,7 @@
   const previousRenderStaff=renderStaff;
   renderStaff=function(){
     previousRenderStaff();const p=currentPlayer();
-    $$('#staffGrid [data-staff-person]').forEach(btn=>{
+    $$$('#staffGrid [data-staff-person]').forEach(btn=>{
       const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!s||!card)return;
       const top=card.querySelector('.shop-top');if(!top||top.querySelector('.person-portrait,.person-initial-avatar'))return;
       const img=staffPortrait(s);
@@ -2794,7 +2794,7 @@
   function decoratePropertyMarket(){
     const root=$('#dialogContent');if(!root)return;
     const kinds={Ladenlokal:'shop','Wohn- & Geschäftshaus':'block','Lagerhalle':'warehouse','Premium-Grundstück':'prime'};
-    $('.dialog-option',root).forEach(row=>{
+    $$('.dialog-option',root).forEach(row=>{
       if(row.querySelector('.property-thumb'))return;
       const txt=row.textContent||'';for(const [label,id] of Object.entries(kinds))if(txt.includes(label)){row.insertAdjacentHTML('afterbegin',`<img class="property-thumb" src="${PROPERTY_ART[id]}" alt="">`);break;}
     });
