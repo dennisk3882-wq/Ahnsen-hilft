@@ -30,7 +30,7 @@
           <span>Offline spielbar</span><span>1–8 Spieler</span><span>KI-Familien</span><span>Autosave</span>
         </div>
       </div>
-      <div class="menu-footer">Version 4.0 · Syndikat · Offline-PWA · Spielstand wird lokal gespeichert.</div>
+      <div class="menu-footer">Version 4.5 · Syndikat · Offline-PWA · Spielstand wird lokal gespeichert.</div>
     </section>
 
     <section id="setupScreen" class="screen">
@@ -167,10 +167,40 @@
   <div id="toast" class="toast" role="status"></div>
 
   <script src="./js/core.js"></script>
+<script src="./cloud-config.js"></script>
+<script src="./js/cloud.js"></script>
 <script>
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-}
+(function(){
+  if(!('serviceWorker' in navigator) || location.protocol!=='https:') return;
+  function updateNotice(reg){
+    let box=document.getElementById('updateNotice');
+    if(!box){
+      box=document.createElement('div');
+      box.id='updateNotice';
+      box.className='update-notice hidden';
+      box.innerHTML='<strong>Neue Syndikat-Version verfügbar</strong><span>Die neue Version kann jetzt geladen werden.</span><button>Aktualisieren</button>';
+      document.body.appendChild(box);
+      box.querySelector('button').addEventListener('click',()=>{
+        if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+      });
+    }
+    box.classList.remove('hidden');
+  }
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./sw.js');
+      if(reg.waiting) updateNotice(reg);
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        if(!nw) return;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed' && navigator.serviceWorker.controller) updateNotice(reg);
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
+    }catch{}
+  });
+})();
 </script>
 </body>
 </html>
