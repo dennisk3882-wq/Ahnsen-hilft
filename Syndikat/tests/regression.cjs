@@ -36,16 +36,17 @@ function element(){
   return {open:false,disabled:false,textContent:'',innerHTML:'',value:'',checked:false,dataset:{},style:{},
     classList:{add(){},remove(){},toggle(){},contains(){return false}},
     addEventListener(){},removeEventListener(){},querySelector(){return null},querySelectorAll(){return[]},
-    showModal(){this.open=true},close(){this.open=false},append(){},appendChild(){},insertAdjacentHTML(){},click(){},remove(){}};
+    showModal(){this.open=true},close(){this.open=false},append(){},appendChild(){},prepend(){},insertBefore(){},insertAdjacentHTML(){},insertAdjacentElement(){},click(){},remove(){},setAttribute(){},getAttribute(){return null},
+    getContext(){return {scale(){},clearRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fillText(){}}}};
 }
 const storage=new Map();
 const context={
   console,
   localStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},
-  document:{querySelector(){return element()},querySelectorAll(){return[]},createElement(){return element()},addEventListener(){},body:element()},
+  document:{querySelector(){return element()},querySelectorAll(){return[]},createElement(){return element()},addEventListener(){},body:element(),head:element(),documentElement:element()},
   navigator:{},location:{protocol:'https:'},confirm:()=>true,
   addEventListener(){},setTimeout(){return 0},clearTimeout(){},setInterval(){return 0},clearInterval(){},requestAnimationFrame(){return 0},
-  Blob:function(){},URL:{createObjectURL(){return'blob:'},revokeObjectURL(){}},
+  Blob:function(){},URL:{createObjectURL(){return'blob:'},revokeObjectURL(){}},FileReader:function(){},MutationObserver:class{constructor(cb){this.cb=cb}observe(){}disconnect(){}},queueMicrotask:fn=>fn(),devicePixelRatio:1,
   Date,Math,Object,Array,Set,Map,JSON,Number,String,Boolean,RegExp,Promise,parseInt,parseFloat,isNaN,Infinity,NaN
 };
 context.window=context;
@@ -155,7 +156,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(migrated.propertyMarket.length>=24,'property market should provide multiple lots per district');
   assert(Array.isArray(migrated.players[0].propertyIds),'player property ids must migrate');
   assert(Array.isArray(migrated.players[0].pendingDecisions),'decision queue must migrate');
-  assert.strictEqual(migrated.players[0].story.version,51,'story must migrate to visual 12-chapter campaign');
+  assert.strictEqual(migrated.players[0].story.version,51,'story must migrate to the visual campaign state');
 }
 
 // Prepared cloud adapter/schema must be syntactically valid and locked down by RLS.
@@ -219,16 +220,20 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
 }
 
 
-// v5.3.1 visual regression guards
+// v5.5 selector/runtime integration guards
 {
-  const worldDepthSource531=fs.readFileSync('Syndikat/src/modules/58-world-depth.js','utf8');
-  const runtimeSource531=fs.readFileSync('Syndikat/js/core.js','utf8');
-  assert(worldDepthSource531.includes("$('#staffGrid [data-staff-person]').forEach"),'named staff portrait renderer must iterate all staff buttons');
-  assert(worldDepthSource531.includes("$('.dialog-option',root).forEach"),'property artwork decorator must iterate all dialog options');
-  assert(!worldDepthSource531.includes("    $('#staffGrid [data-staff-person]').forEach"),'single-element selector must not be used as an iterable for staff portraits');
-  assert(!worldDepthSource531.includes("    $('.dialog-option',root).forEach"),'single-element selector must not be used as an iterable for property artwork');
-  assert(!runtimeSource531.includes("$$('#staffGrid"),'generated runtime must not contain a triple-dollar staff selector');
-  assert(!runtimeSource531.includes("$$('.dialog-option',root)"),'generated runtime must not contain a triple-dollar property selector');
+  const runtime=fs.readFileSync('Syndikat/js/core.js','utf8');
+  const moduleFiles=fs.readdirSync('Syndikat/src/modules').filter(x=>x.endsWith('.js'));
+  const badCollection=/(?<!\$)\$\(([^()\n]{1,260})\)\.(forEach|filter|map)\(/g;
+  assert.strictEqual([...runtime.matchAll(badCollection)].length,0,'runtime must never iterate a single-element $() selector');
+  for(const name of moduleFiles){
+    const mod=fs.readFileSync('Syndikat/src/modules/'+name,'utf8');
+    assert.strictEqual([...mod.matchAll(badCollection)].length,0,name+' contains a single-element selector used as a collection');
+  }
+  assert(!runtime.includes('const oldPlanner=v4OpenOperationPlanner'),'world-depth must not reach into the private V4 module scope');
+  assert(runtime.includes('const oldPlanner=window.SyndikatV4?.openOperation'),'operation artwork must decorate the exported V4 planner API');
+  assert(runtime.includes('storyVictoryTarget'),'chapter 20 must scale with the selected campaign victory rules');
+  assert(runtime.includes('data-freeplay'),'a human winner must be able to continue optional story/content after victory');
 }
 
 // v5.4 complete visual expansion guards
@@ -253,7 +258,29 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
     assert(sw.includes('./assets/'+asset),'UI artwork must be cached offline: '+asset);
     assert(uiArt.includes(asset),'UI artwork must be mapped: '+asset);
   }
-  assert(sw.includes('syndikat-v5-4-2'),'PWA cache must be bumped for final artwork pass');
+  assert(sw.includes('syndikat-v5-5-0'),'PWA cache must match the v5.5 stability release');
+}
+
+// Deterministic campaign soak: every finite mode must resolve repeatedly without exceptions.
+{
+  for(const length of ['short','normal','long']){
+    for(let seed=1;seed<=10;seed++){
+      context.Math.random=seeded(seed*7919+length.length);
+      const st=mk({ais:3,length,difficulty:'normal'});
+      let guard=0;
+      assert.doesNotThrow(()=>{
+        while(!st.gameOver&&guard++<1600){
+          const p=st.players[st.currentIndex];
+          if(p.type==='ai')T.aiTurn(p);
+          T.processEndOfTurn(p);
+          if(!st.gameOver)T.advanceIndex();
+        }
+      },length+' campaign simulation must not throw');
+      assert.strictEqual(st.gameOver,true,length+' campaign must resolve');
+    }
+  }
+  const endless=mk({ais:0,length:'endless'});endless.round=500;T.checkVictory();
+  assert.strictEqual(endless.gameOver,false,'endless mode must never auto-resolve');
 }
 
 console.log('Syndikat regression suite: OK');
