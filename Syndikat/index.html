@@ -842,7 +842,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
     if((p.businessPurchasesThisTurn||0)>=2)return toast('Maximal zwei Unternehmenskäufe pro Runde.');
     if(def.tier>unlockedTier(p))return toast(`Dieses Geschäft ist erst ab Geschäftsstufe ${def.tier} verfügbar.`);
     if(districtSlotsFree(districtId)<def.slotUse)return toast('In diesem Viertel sind nicht genug freie Standorte.');
-    const paid=def.tier>=2?spendClean(p,cost):(totalLiquid(p)>=cost&&spend(p,cost,false));
+    const paid=def.tier>=2?spendClean(p,cost):(totalLiquid(p)>=cost&&spendDirtyFirst(p,cost));
     if(!paid)return toast(def.tier>=2?`Du brauchst ${fmt(cost)} sauberes Kapital.`:'Nicht genug Kapital.');
     p.actionPoints--;p.businessPurchasesThisTurn=(p.businessPurchasesThisTurn||0)+1;markActivity(p,2);
     const b={id:uid(),type,district:districtId,health:100,level:1,name:def.name,acquiredRound:state.round,routeId:null};
@@ -1095,7 +1095,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 
   function aiClaimMissions(p){for(const m of [...p.missions]){if(missionProgress(p,m).done){p.clean+=m.reward;p.reputation+=m.rep;p.missions=p.missions.filter(x=>x.id!==m.id);ledger(p,`Auftrag: ${m.title}`,m.reward,'income');}}ensureMissions(p);}
   function aiCanBuy(p,type,did){const def=byBiz(type),cost=purchaseCost(type);return def.tier<=unlockedTier(p)&&districtSlotsFree(did)>=def.slotUse&&p.actionPoints>0&&(def.tier>=2?p.clean>=cost:totalLiquid(p)>=cost);}
-  function aiBuy(p,type,did){const def=byBiz(type),cost=purchaseCost(type);if(!aiCanBuy(p,type,did))return false;def.tier>=2?spendClean(p,cost):spend(p,cost,false);p.actionPoints--;p.businessPurchasesThisTurn++;markActivity(p,2);const b={id:uid(),type,district:did,health:100,level:1,name:def.name,acquiredRound:state.round,routeId:null};if(type==='machines')b.machines=createMachineUnits();p.businesses.push(b);p.reputation+=def.rep;return true;}
+  function aiBuy(p,type,did){const def=byBiz(type),cost=purchaseCost(type);if(!aiCanBuy(p,type,did))return false;def.tier>=2?spendClean(p,cost):spendDirtyFirst(p,cost);p.actionPoints--;p.businessPurchasesThisTurn++;markActivity(p,2);const b={id:uid(),type,district:did,health:100,level:1,name:def.name,acquiredRound:state.round,routeId:null};if(type==='machines')b.machines=createMachineUnits();p.businesses.push(b);p.reputation+=def.rep;return true;}
   function aiMaintainAndUpgrade(p){
     const damaged=p.businesses.filter(b=>b.health<70&&p.clean>=repairCost(b)).sort((a,b)=>a.health-b.health)[0];
     if(damaged&&chance(.55)){const c=repairCost(damaged);spendClean(p,c);damaged.health=100;p.stats.maintenance++;markActivity(p);return true;}
@@ -1184,7 +1184,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
   }
   function buy31(p,type,did){
     const def=BUSINESSES[type],price=cost31(type);if(!def||p.actionPoints<1||p.businessPurchasesThisTurn>=2||def.tier>tier31(p)||free31(did)<s31(type))return false;
-    if(def.tier>=2){if(!clean31(p,price))return false;}else{if(totalLiquid(p)<price||!spend(p,price,false))return false;}
+    if(def.tier>=2){if(!clean31(p,price))return false;}else{if(totalLiquid(p)<price||!dirtyFirst31(p,price))return false;}
     p.actionPoints--;p.businessPurchasesThisTurn++;activity31(p,2);
     const b={id:uid(),type,district:did,health:100,level:1,name:def.name,acquiredRound:state.round,routeId:null};if(type==='machines')b.machines=createMachineUnits();
     p.businesses.push(b);p.reputation+=def.rep;return true;
@@ -1325,7 +1325,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
   }
   function buy32(p,type,did){
     if(!canBuy32(p,type,did))return false;const d=BUSINESSES[type],price=cost32(type);
-    d.tier>=2?clean32(p,price):spend(p,price,false);p.actionPoints--;p.businessPurchasesThisTurn++;act32(p,2);
+    d.tier>=2?clean32(p,price):dirtyFirst32(p,price);p.actionPoints--;p.businessPurchasesThisTurn++;act32(p,2);
     const b={id:uid(),type,district:did,health:100,level:1,name:d.name,acquiredRound:state.round,routeId:null};if(type==='machines')b.machines=createMachineUnits();p.businesses.push(b);p.reputation+=d.rep;return true;
   }
   function redevelop32(p,did,need){
