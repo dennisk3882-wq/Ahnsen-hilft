@@ -73,6 +73,7 @@
     try{
       const game=await c.getGame(onlineSession.code,onlineSession.token),roster=await c.getPlayers(onlineSession.code,onlineSession.token);
       if(roster.length<2)return toast('Für Online-Multiplayer werden mindestens 2 menschliche Spieler benötigt.');
+      if(roster.some(r=>!r.ready))return toast('Alle Mitspieler müssen zuerst auf „Bereit“ stehen.');
       onlineRoster=roster;const st=v45BuildState(roster,game.settings||{}),first=roster[0];
       const row=await c.updateGame(onlineSession,game.revision,{status:'playing',game_state:st,active_participant_id:first.participant_id});
       onlineRevision=row.revision;v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();toast('Online-Partie gestartet.');
