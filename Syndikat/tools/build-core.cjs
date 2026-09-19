@@ -22,7 +22,7 @@ const base=fs.readFileSync(basePath,'utf8');
 if(!base.includes(marker)) throw new Error('Build marker missing in core-base.js');
 
 const joined=modules.map(rel=>fs.readFileSync(path.join(root,rel),'utf8').trim()).join('\n\n');
-const output=base.replace(marker,joined);
+const output=base.replace(marker,()=>joined);
 
 if(process.argv.includes('--check')){
   const current=fs.readFileSync(outPath,'utf8');
