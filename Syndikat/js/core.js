@@ -123,12 +123,22 @@
   ];
 
   const TUTORIAL = [
-    ['Willkommen bei Syndikat','Du startest klein. Verdiene Geld durch Aktionen und investiere es in Betriebe, damit dein Syndikat jede Runde automatisch wächst.'],
-    ['Die Stadt ist nicht leer','Jedes Viertel besitzt neutralen Grundbesitz. Ein einzelner Automat gibt dir nur wenige Prozent Einfluss. Erst mehrere und größere Betriebe bringen echte Kontrolle.'],
-    ['Ausspähen vor dem Handeln','Mit „Viertel auskundschaften“ deckst du Rivalen, Betriebe, Sicherheitslage und lukrative Möglichkeiten auf. Informanten erhöhen die Detailtiefe.'],
-    ['Organisation aufbauen','Personal sind jetzt individuelle Figuren mit Fähigkeit, Loyalität, Eigenschaft und Gehalt. Gute Leute machen einen spürbaren Unterschied.'],
-    ['Heat und Justiz','Kriminalität erhöht Heat. Kontakte, Untertauchen, Anwälte und Gefängnisaktionen helfen – hohe Aufmerksamkeit kann Razzien auslösen.'],
-    ['Gewinnen','Vermögen allein reicht nicht. Kontrolliere Stadtteile, baue Einfluss und Organisation aus und erreiche die notwendige Dominanz für deine gewählte Partielänge.']
+    ['Willkommen bei Syndikat','Du startest klein. Verdiene Geld durch Aktionen und investiere es in Betriebe, damit dein Syndikat jede Runde wächst.'],
+    ['Sauberes und schmutziges Geld','Kriminelle Aktionen liefern überwiegend schmutziges Geld. Viele Investitionen, Kredite, Immobilien und legale Ausgaben benötigen sauberes Kapital. Betriebe waschen pro Runde nur begrenzte Beträge.'],
+    ['Die Stadt und ihre Viertel','Jedes Viertel besitzt Nachfrage, Polizeidruck, begrenzte Standorte und neutralen Einfluss. Kontrolle entsteht durch Betriebe, Immobilien und weitere Einflussquellen.'],
+    ['Aufklärung','Mit „Viertel auskundschaften“ deckst du Rivalen, Betriebe, Sicherheitslage und Chancen auf. Informanten erhöhen die Detailtiefe und helfen bei Gegenaufklärung.'],
+    ['Personal und Loyalität','Mitarbeiter besitzen Rolle, Fähigkeit, Loyalität, Eigenschaft, Gehalt, Erfahrung und Level. Unzufriedene oder schlecht geführte Leute werden zum Risiko.'],
+    ['Crews und Unterboss','Stelle feste Einsatzcrews zusammen und ernenne geeignete Führungskräfte. Ein guter Unterboss hält die Organisation auch während deiner Haft handlungsfähig.'],
+    ['Arsenal und Fuhrpark','Waffen, Fahrzeuge und Spezialausrüstung beeinflussen geplante Operationen. Einsatzmittel verschleißen und müssen gewartet werden.'],
+    ['Operationen','Sabotage, Entführung, Auftragsmord und Bankoperationen werden geplant. Crew, Ziel, Ausrüstung, Timing, Gegenwehr und Intel verändern Erfolg, Heat und Beweislage.'],
+    ['Betriebe und Spezialisierungen','Betriebe können ausgebaut und spezialisiert werden. Marktsättigung, Sicherheit, Zustand, Standort und Immobilienzuordnung beeinflussen ihren Ertrag.'],
+    ['Immobilien und Schutzgeld','Eigene Grundstücke senken laufende Mietkosten und erzeugen zusätzlichen Einfluss. Schutzgeldverträge bringen schmutzige Einnahmen, erhöhen aber Risiko und Heat.'],
+    ['Diplomatie und Spionage','Geschenke, Pakte, Bündnisse, Handel, geheime Geschäfte, Gebietstausch und Verrat verändern Beziehungen. Spione können Informanten einschleusen oder Personal abwerben.'],
+    ['Heat, Ermittlungen und Gericht','Kriminalität erzeugt Heat und Beweise. Kontakte, Anwälte und Gegenaufklärung helfen. Hohe Beweise führen zu Anklage und Gerichtsverfahren mit mehreren Verteidigungswegen.'],
+    ['Gefängnis und Führung','In Haft kannst du Berufung, Kontakte, Schmuggel, Tunnel oder Flucht vorbereiten. Ohne verlässliche Stellvertretung leiden Betriebe und Loyalität.'],
+    ['Story und Entscheidungen','Die 20 Kapitel reagieren auf frühere Entscheidungen. Kapitelziele, Rivalenbeziehungen, Politik, Familie und Endgame formen das spätere Ende.'],
+    ['Endgame und Sieg','Dominanz- und Wirtschaftssieg richten sich nach der Partielänge. Die Endgame-Krise verlangt Legalisierung, politischen Einfluss oder offenen Machtkampf. Nach einem Sieg kannst du im freien Spiel weitermachen.'],
+    ['Speichern, Cloud und Online','Neben Autosave und lokalen Slots gibt es Export/Import, Cloud-Saves und Online-Lobbys. Online wird jeder Zug serverseitig mit Revision und aktivem Teilnehmer geprüft.']
   ];
 
   let state=null, selectedDistrict='oldtown', currentView='city', deferredInstallPrompt=null;
@@ -602,7 +612,7 @@
       <p class="muted">Freie Standorte: ${districtSlotsFree(d.id)} / ${d.slots} · Freigeschaltete Geschäftsstufe: ${tier}/6 · Kauf benötigt 1 AP. Ab Stufe 2 wird sauberes Kapital benötigt.</p>
       <div class="dialog-list">${entries.map(([k,b])=>{const cost=purchaseCost(k),locked=b.tier>tier,space=districtSlotsFree(d.id)<b.slotUse,clean=b.tier>=2?p.clean:totalLiquid(p),disabled=locked||space||clean<cost||p.actionPoints<1||p.businessPurchasesThisTurn>=2;
       return `<div class="dialog-option ${focusType===k?'highlight':''}"><div><strong>${b.icon} ${esc(b.name)}</strong><p>${esc(b.desc)}<br>ca. ${fmt(Math.round(b.baseIncome*d.demand))}/R · ${b.slotUse} Standort${b.slotUse===1?'':'e'} · Tier ${b.tier}${locked?' · GESPERRT':''}${b.tier>=2?' · sauberes Geld':''}${businessPerk(k)?`<br>${esc(businessPerk(k))}`:''}</p></div><button class="btn btn-primary" data-buy="${k}" ${disabled?'disabled':''}>${fmt(cost)}</button></div>`;}).join('')}</div></div>`);
-    $('[data-buy]').forEach(btn=>btn.onclick=()=>buyBusiness(btn.dataset.buy,districtId));
+    $$('[data-buy]').forEach(btn=>btn.onclick=()=>buyBusiness(btn.dataset.buy,districtId));
   };
 
   buyBusiness=function(type,districtId){
@@ -641,8 +651,8 @@
       <p class="muted">Ertrag und Risiko unterscheiden sich je Standort. Schlechter Zustand senkt den Umsatz und erhöht Störungsrisiken.</p>
       <div class="dialog-list">${b.machines.map(m=>{const loc=MACHINE_LOCATIONS.find(x=>x.id===m.location),repair=machineRepairCost(m);return `<div class="dialog-option"><div><strong>${esc(m.name)}</strong><p>Zustand ${m.condition}% · Risiko x${(loc?.risk||1).toFixed(2)}${m.condition<75?' · Wartung empfohlen':''}</p></div><div class="mini-actions"><select data-machine-loc="${m.id}">${MACHINE_LOCATIONS.map(l=>`<option value="${l.id}" ${m.location===l.id?'selected':''}>${esc(l.name)} · Ertrag x${l.mult.toFixed(2)} · Risiko x${l.risk.toFixed(2)}</option>`).join('')}</select><button class="btn btn-secondary" data-machine-repair="${m.id}" ${m.condition>=100||p.clean<repair?'disabled':''}>Warten ${fmt(repair)}</button></div></div>`;}).join('')}</div>
       <div class="dialog-footer"><button class="btn btn-secondary" data-route-manager>Automatenroute zuweisen</button></div></div>`);
-    $('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{const m=b.machines.find(x=>x.id===sel.dataset.machineLoc);if(p.clean<300){sel.value=m.location;return toast('Du brauchst 300 $ sauberes Geld für den Standortwechsel.');}spendClean(p,300);m.location=sel.value;markActivity(p);ledger(p,'Automat umgesetzt',-300,'expense');saveGame();renderAll();toast('Standort geändert.');});
-    $('[data-machine-repair]').forEach(btn=>btn.onclick=()=>{const m=b.machines.find(x=>x.id===btn.dataset.machineRepair),cost=machineRepairCost(m);if(!spendClean(p,cost))return toast('Nicht genug sauberes Geld.');m.condition=100;p.stats.maintenance++;markActivity(p);ledger(p,'Automat gewartet',-cost,'expense');openMachineManager(bid);});
+    $$('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{const m=b.machines.find(x=>x.id===sel.dataset.machineLoc);if(p.clean<300){sel.value=m.location;return toast('Du brauchst 300 $ sauberes Geld für den Standortwechsel.');}spendClean(p,300);m.location=sel.value;markActivity(p);ledger(p,'Automat umgesetzt',-300,'expense');saveGame();renderAll();toast('Standort geändert.');});
+    $$('[data-machine-repair]').forEach(btn=>btn.onclick=()=>{const m=b.machines.find(x=>x.id===btn.dataset.machineRepair),cost=machineRepairCost(m);if(!spendClean(p,cost))return toast('Nicht genug sauberes Geld.');m.condition=100;p.stats.maintenance++;markActivity(p);ledger(p,'Automat gewartet',-cost,'expense');openMachineManager(bid);});
     $('[data-route-manager]').onclick=()=>openRoutesDialog(bid);
   };
 
@@ -654,8 +664,8 @@
       ${p.routes.length?p.routes.map(r=>`<div class="route-card"><div><strong>${esc(r.name)}</strong><p>Stufe ${r.level} · ${bundles.filter(b=>b.routeId===r.id).length} Pakete · Bonus +${r.level*7}%</p></div><button class="btn btn-secondary" data-up-route="${r.id}" ${r.level>=3||p.clean<5000*r.level?'disabled':''}>Verbessern ${fmt(5000*r.level)}</button></div>`).join(''):'<div class="empty-state">Noch keine Route angelegt.</div>'}
       <h3>Pakete zuweisen</h3><div class="dialog-list">${bundles.map(b=>`<div class="dialog-option"><div><strong>${esc(byDistrict(b.district).name)} · ${esc(b.name)}</strong></div><select data-route-biz="${b.id}"><option value="">Keine Route</option>${p.routes.map(r=>`<option value="${r.id}" ${b.routeId===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`).join('')}</div></div>`);
     $('[data-new-route]')?.addEventListener('click',()=>{if(!spendClean(p,2500))return;p.routes.push({id:uid(),name:`Route ${p.routes.length+1}`,level:1});markActivity(p);ledger(p,'Automatenroute eingerichtet',-2500,'asset');saveGame();openRoutesDialog(focusBiz);});
-    $('[data-up-route]').forEach(btn=>btn.onclick=()=>{const r=p.routes.find(x=>x.id===btn.dataset.upRoute),cost=5000*r.level;if(!spendClean(p,cost))return toast('Nicht genug sauberes Kapital.');r.level++;markActivity(p);ledger(p,'Automatenroute verbessert',-cost,'asset');saveGame();openRoutesDialog(focusBiz);});
-    $('[data-route-biz]').forEach(sel=>sel.onchange=()=>{const b=p.businesses.find(x=>x.id===sel.dataset.routeBiz);b.routeId=sel.value||null;markActivity(p);saveGame();renderAll();});
+    $$('[data-up-route]').forEach(btn=>btn.onclick=()=>{const r=p.routes.find(x=>x.id===btn.dataset.upRoute),cost=5000*r.level;if(!spendClean(p,cost))return toast('Nicht genug sauberes Kapital.');r.level++;markActivity(p);ledger(p,'Automatenroute verbessert',-cost,'asset');saveGame();openRoutesDialog(focusBiz);});
+    $$('[data-route-biz]').forEach(sel=>sel.onchange=()=>{const b=p.businesses.find(x=>x.id===sel.dataset.routeBiz);b.routeId=sel.value||null;markActivity(p);saveGame();renderAll();});
   };
 
   doCrime=function(id){
@@ -680,7 +690,7 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Aufklärung Stufe ${level}</p><h2>${esc(d.name)}</h2></div><button class="icon-btn" data-close>✕</button></div>
       <div class="intel-summary"><span>Intel: Runde ${intel.round}${age>2?' · veraltet':''}</span><span>Neutral: ${Math.round(neutralShare(did))}%</span><span>Polizei: ${pct(d.police*100)}</span><span>Risiko: ${pct((d.risk||1)*100)}</span><span>Standorte frei: ${districtSlotsFree(did)}/${d.slots}</span></div>
       <div class="intel-list">${rows}</div><h3>Lukrative Möglichkeiten</h3><div class="dialog-list">${roi.map(x=>`<div class="dialog-option"><div><strong>${x.b.icon} ${esc(x.b.name)}</strong><p>Marktsättigung ${Math.round(marketSaturation(x.k,did)*100)}% · erwarteter Basisertrag ${fmt(x.b.baseIncome*d.demand)}/R · ${x.b.slotUse} Standorte</p></div><button class="btn btn-primary" data-intel-buy="${x.k}">${fmt(purchaseCost(x.k))}</button></div>`).join('')}</div></div>`);
-    $('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
+    $$('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
   };
 
   hireStaff=function(key){
@@ -722,7 +732,7 @@
     const max=Math.max(30000,Math.round(netWorth(p)*.55+p.reputation*3000)),out=outstandingLoans(p),rate=loanRate(p),opts=[25000,100000,500000,1000000,2500000].filter(x=>x+out<=max);
     if(!opts.length)return toast(`Deine Kreditlinie ist ausgeschöpft (${fmt(max)}).`);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Bank</p><h2>Kredit aufnehmen</h2></div><button class="icon-btn" data-close>✕</button></div><p class="muted">Kreditlinie: ${fmt(max)} · offen ${fmt(out)} · Zinssatz ${Math.round(rate*1000)/10}%/R · Ausfälle: ${p.creditDefaults}.</p><div class="dialog-list">${opts.map(a=>`<div class="dialog-option"><div><strong>${fmt(a)}</strong><p>Mindesttilgung ${fmt(Math.max(1500,Math.round(a/10)))}/R · Auszahlung ist sauberes Kapital.</p></div><button class="btn btn-primary" data-loan-amt="${a}">Aufnehmen</button></div>`).join('')}</div></div>`);
-    $('[data-loan-amt]').forEach(b=>b.onclick=()=>takeLoan(+b.dataset.loanAmt));
+    $$('[data-loan-amt]').forEach(b=>b.onclick=()=>takeLoan(+b.dataset.loanAmt));
   };
   takeLoan=function(amount){const p=currentPlayer(),rate=loanRate(p);p.clean+=amount;p.loans.push({id:uid(),original:amount,remaining:amount,rate,payment:Math.max(1500,Math.round(amount/10)),started:state.round,missed:0,status:'active'});markActivity(p);ledger(p,'Bankkredit',amount,'loan');recordChronicle(`${p.family} finanziert Expansion über einen Bankkredit.`);closeDialog();saveGame();renderAll();toast(`${fmt(amount)} sauberes Kapital ausgezahlt.`);};
   function repayLoan(id,amount=null){const p=currentPlayer(),l=p.loans.find(x=>x.id===id);if(!l)return;const pay=Math.min(l.remaining,amount||Math.max(5000,Math.round(l.remaining*.25)),p.clean);if(pay<=0)return toast('Kein sauberes Kapital zur Tilgung.');spendClean(p,pay);l.remaining-=pay;l.missed=0;markActivity(p);p.stats.loansRepaid++;ledger(p,'Sondertilgung Bankkredit',-pay,'loan');if(l.remaining<=50)p.loans=p.loans.filter(x=>x.id!==id);saveGame();renderAll();toast(`${fmt(pay)} Kredit getilgt.`);}
@@ -750,7 +760,7 @@
     $('#ledgerList').innerHTML=`<div class="finance-actions"><button class="btn btn-primary" data-loan>Kredit aufnehmen</button><button class="btn btn-secondary" data-export>Spielstand exportieren</button></div>
       <div class="panel" style="padding:1rem;margin:.8rem 0"><strong>Geldkreislauf</strong><p class="muted">Betriebe ab Tier 2, Ausbauten, Reparaturen und Bankraten benötigen sauberes Geld. Illegale Aktionen und Bestechung nutzen vor allem schmutziges Geld. Deine Betriebe waschen pro Runde nur eine begrenzte Summe.</p></div>
       ${p.debt>0?`<div class="debt-repay"><div><strong>Sonstige Schulden: ${fmt(p.debt)}</strong><div class="muted">Sauber verfügbar: ${fmt(p.clean)}</div></div><button class="btn btn-primary" data-repay ${p.clean<=0?'disabled':''}>Tilgen</button></div>`:''}${loanRows}${p.ledger.length?p.ledger.slice(0,20).map(x=>`<div class="ledger-row"><span class="muted">Runde ${x.round}</span><span>${esc(x.label)}</span><strong class="${x.amount>=0?'plus':'minus'}">${x.amount>=0?'+':''}${fmt(x.amount)}</strong></div>`).join(''):'<div class="empty-state">Noch keine Buchungen.</div>'}`;
-    $('[data-repay]')?.addEventListener('click',repayDebt);$('[data-loan]')?.addEventListener('click',openLoanDialog);$('[data-export]')?.addEventListener('click',exportSave);$('[data-repay-loan]').forEach(b=>b.onclick=()=>repayLoan(b.dataset.repayLoan));if(currentView==='finance')requestAnimationFrame(drawChart);
+    $('[data-repay]')?.addEventListener('click',repayDebt);$('[data-loan]')?.addEventListener('click',openLoanDialog);$('[data-export]')?.addEventListener('click',exportSave);$$('[data-repay-loan]').forEach(b=>b.onclick=()=>repayLoan(b.dataset.repayLoan));if(currentView==='finance')requestAnimationFrame(drawChart);
   };
 
   makeMission=function(p){
@@ -913,7 +923,7 @@
   }
   openMoreMenu=function(){
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Navigation</p><h2>Mehr</h2></div><button class="icon-btn" data-close>✕</button></div><div class="more-grid"><button class="btn btn-secondary" data-go="staff">♟ Personal</button><button class="btn btn-secondary" data-go="corruption">⚖ Einfluss</button><button class="btn btn-secondary" data-go="finance">▥ Finanzen</button><button class="btn btn-secondary" data-go="missions">◎ Aufträge</button><button class="btn btn-secondary" data-go="ranking">♛ Rangliste</button><button class="btn btn-secondary" data-more-diplomacy>🤝 Diplomatie</button><button class="btn btn-secondary" data-more-routes>♣ Automatenrouten</button><button class="btn btn-secondary" data-chronicle>▤ Stadtchronik</button></div></div>`);
-    $('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-chronicle]').onclick=openChronicleDialog;
+    $$('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-chronicle]').onclick=openChronicleDialog;
   };
 
   const baseOpenGameMenu=openGameMenu;
@@ -1063,7 +1073,7 @@
   };
 
   renderCorruption=function(){
-    const p=currentPlayer();$('#corruptionGrid').innerHTML=Object.entries(CORRUPTION).map(([k,c])=>`<article class="shop-card"><div class="shop-top"><div><small class="eyebrow">Einfluss</small><h3>${esc(c.name)}</h3></div><span class="owned">${p.bribes[k]?'✓':'–'}</span></div><p>${esc(c.desc)}</p><footer><span class="price">${fmt(c.cost)} schmutzig</span><button class="btn ${p.bribes[k]?'btn-ghost':'btn-secondary'}" data-bribe="${k}" ${p.bribes[k]||p.jailed||p.dirty<c.cost?'disabled':''}>${p.bribes[k]?'Aktiv':'Bestechen'}</button></footer></article>`).join('');$('#corruptionGrid [data-bribe]').forEach(b=>b.onclick=()=>buyBribe(b.dataset.bribe));
+    const p=currentPlayer();$('#corruptionGrid').innerHTML=Object.entries(CORRUPTION).map(([k,c])=>`<article class="shop-card"><div class="shop-top"><div><small class="eyebrow">Einfluss</small><h3>${esc(c.name)}</h3></div><span class="owned">${p.bribes[k]?'✓':'–'}</span></div><p>${esc(c.desc)}</p><footer><span class="price">${fmt(c.cost)} schmutzig</span><button class="btn ${p.bribes[k]?'btn-ghost':'btn-secondary'}" data-bribe="${k}" ${p.bribes[k]||p.jailed||p.dirty<c.cost?'disabled':''}>${p.bribes[k]?'Aktiv':'Bestechen'}</button></footer></article>`).join('');$$('#corruptionGrid [data-bribe]').forEach(b=>b.onclick=()=>buyBribe(b.dataset.bribe));
   };
 })();
 /* SYNDIKAT_REVISION_3_1_END */
@@ -1568,7 +1578,7 @@
     const p=currentPlayer();v4EnsurePlayer(p);
     const sections=Object.entries(V4_ITEMS).map(([type,items])=>`<h3>${type==='weapons'?'Waffen':type==='vehicles'?'Fahrzeuge':'Ausrüstung'}</h3><div class="dialog-list">${Object.entries(items).map(([id,d])=>{const own=v4Owns(p,type,id),currency=type==='weapons'?'schmutzig':'sauber';return `<div class="dialog-option"><div><strong>${esc(d.name)}</strong><p>${esc(d.desc)} · Stärke ${d.power>=0?'+':''}${d.power} · Heat ${d.heat>=0?'+':''}${d.heat} · Spuren ${d.evidence>=0?'+':''}${d.evidence}</p></div><button class="btn ${own?'btn-ghost':'btn-primary'}" data-buy-item="${type}:${id}" ${own?'disabled':''}>${own?'Besitzt':fmt(d.cost)+' '+currency}</button></div>`;}).join('')}</div>`).join('');
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Logistik & Einsatzmittel</p><h2>Arsenal & Fuhrpark</h2></div><button class="icon-btn" data-close>✕</button></div>${sections}</div>`);
-    $('[data-buy-item]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.buyItem.split(':'),d=v4Item(type,id);const clean=type!=='weapons';if((clean?p.clean:p.dirty)<d.cost)return toast(`Nicht genug ${clean?'sauberes':'schmutziges'} Geld.`);if(clean)p.clean-=d.cost;else p.dirty-=d.cost;v4AddItem(p,type,id);ledger(p,`${d.name} gekauft`,-d.cost,'asset');saveGame();v4OpenArsenal();});
+    $$('[data-buy-item]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.buyItem.split(':'),d=v4Item(type,id);const clean=type!=='weapons';if((clean?p.clean:p.dirty)<d.cost)return toast(`Nicht genug ${clean?'sauberes':'schmutziges'} Geld.`);if(clean)p.clean-=d.cost;else p.dirty-=d.cost;v4AddItem(p,type,id);ledger(p,`${d.name} gekauft`,-d.cost,'asset');saveGame();v4OpenArsenal();});
   }
   function v4OpenCrewManager(){
     const p=currentPlayer();v4EnsurePlayer(p);
@@ -1577,7 +1587,7 @@
       <div class="dialog-footer"><button class="btn btn-primary" data-new-crew ${p.crews.length>=4?'disabled':''}>Neue Crew gründen</button></div>
       <div class="dialog-list">${p.crews.length?p.crews.map(c=>`<div class="dialog-option"><div><strong>${esc(c.name)}</strong><p>${c.memberIds.length} Mitglieder · Bilanz ${c.wins}/${c.losses} · ${c.underbossId?'geführt':'ohne Capo'}</p></div><button class="btn btn-secondary" data-edit-crew="${c.id}">Bearbeiten</button></div>`).join(''):'<div class="empty-state">Noch keine feste Crew.</div>'}</div></div>`);
     $('[data-new-crew]')?.addEventListener('click',()=>{const c={id:uid(),name:`Crew ${p.crews.length+1}`,memberIds:[],underbossId:null,wins:0,losses:0};p.crews.push(c);saveGame();v4EditCrew(c.id);});
-    $('[data-edit-crew]').forEach(b=>b.onclick=()=>v4EditCrew(b.dataset.editCrew));
+    $$('[data-edit-crew]').forEach(b=>b.onclick=()=>v4EditCrew(b.dataset.editCrew));
   }
   function v4EditCrew(id){
     const p=currentPlayer(),c=p.crews.find(x=>x.id===id);if(!c)return;
@@ -1587,7 +1597,7 @@
       <h3>Mitglieder</h3><div class="check-grid">${candidates.map(s=>`<label class="check-card"><input type="checkbox" data-crew-member="${s.id}" ${c.memberIds.includes(s.id)?'checked':''}><span><strong>${esc(s.name)}</strong><small>${esc(STAFF[s.role].name)} · L${s.level} · ${s.skill}</small></span></label>`).join('')}</div>
       <label class="field"><span>Capo / Crew-Leitung</span><select id="crewBoss"><option value="">Keiner</option>${candidates.filter(s=>s.level>=2&&s.loyalty>=55).map(s=>`<option value="${s.id}" ${c.underbossId===s.id?'selected':''}>${esc(s.name)} · L${s.level}</option>`).join('')}</select></label>
       <div class="dialog-footer"><button class="btn btn-danger" data-delete-crew>Auflösen</button><button class="btn btn-primary" data-save-crew>Speichern</button></div></div>`);
-    $('[data-save-crew]').onclick=()=>{c.name=$('#crewName').value.trim()||c.name;c.memberIds=$('[data-crew-member]').filter(x=>x.checked).map(x=>x.dataset.crewMember).slice(0,5);c.underbossId=$('#crewBoss').value||null;p.staffRoster.forEach(s=>{if(c.memberIds.includes(s.id))s.crewId=c.id;else if(s.crewId===c.id)s.crewId=null;});saveGame();closeDialog();renderAll();toast('Crew gespeichert.');};
+    $('[data-save-crew]').onclick=()=>{c.name=$('#crewName').value.trim()||c.name;c.memberIds=$$('[data-crew-member]').filter(x=>x.checked).map(x=>x.dataset.crewMember).slice(0,5);c.underbossId=$('#crewBoss').value||null;p.staffRoster.forEach(s=>{if(c.memberIds.includes(s.id))s.crewId=c.id;else if(s.crewId===c.id)s.crewId=null;});saveGame();closeDialog();renderAll();toast('Crew gespeichert.');};
     $('[data-delete-crew]').onclick=()=>{p.staffRoster.forEach(s=>{if(s.crewId===c.id)s.crewId=null;});p.crews=p.crews.filter(x=>x.id!==c.id);saveGame();v4OpenCrewManager();};
   }
 
@@ -1596,7 +1606,7 @@
     const p=currentPlayer();v4EnsurePlayer(p);
     $('#staffGrid').innerHTML=`<article class="shop-card staff-recruit"><div class="shop-top"><div><small class="eyebrow">Organisation</small><h3>Personal & Crews</h3></div><span class="owned">${activeStaff(p).length}</span></div><p>Rekrutiere, trainiere, spezialisiere und organisiere deine Leute in festen Crews.</p><footer><div class="mini-actions"><button class="btn btn-primary" data-recruit>Rekrutieren</button><button class="btn btn-secondary" data-crews>Crews</button><button class="btn btn-secondary" data-arsenal>Arsenal</button></div></footer></article>`+
       (p.staffRoster.length?p.staffRoster.map(s=>{v4EnsurePerson(s);const held=s.heldUntil>state.round,crew=p.crews.find(c=>c.id===s.crewId),assigned=p.businesses.find(b=>b.id===s.assignedBusinessId),need=v4XpNeed(s.level);return `<article class="shop-card person-card ${held?'held':''}"><div class="shop-top"><div><small class="eyebrow">${STAFF[s.role].icon} ${esc(STAFF[s.role].name)} · Level ${s.level}</small><h3>${esc(s.name)}</h3></div><span class="owned">${held?'ENTFÜHRT':s.skill}</span></div><p>${esc(s.specialty||traitName(s.trait))} · Loyalität ${s.loyalty}/100${crew?` · ${esc(crew.name)}`:''}${assigned?` · ${esc(BUSINESSES[assigned.type].name)}`:''}</p><div class="loyalty"><i style="width:${s.loyalty}%"></i></div><div class="xpbar"><i style="width:${Math.min(100,s.xp/need*100)}%"></i></div><footer><span class="price">${fmt(s.salary)}/R · XP ${s.xp}/${need}</span><button class="btn btn-secondary" data-staff-person="${s.id}">Details</button></footer></article>`;}).join(''):'');
-    $('[data-recruit]')?.addEventListener('click',openRecruitDialog);$('[data-crews]')?.addEventListener('click',v4OpenCrewManager);$('[data-arsenal]')?.addEventListener('click',v4OpenArsenal);$('[data-staff-person]').forEach(b=>b.onclick=()=>openStaffPerson(b.dataset.staffPerson));
+    $('[data-recruit]')?.addEventListener('click',openRecruitDialog);$('[data-crews]')?.addEventListener('click',v4OpenCrewManager);$('[data-arsenal]')?.addEventListener('click',v4OpenArsenal);$$('[data-staff-person]').forEach(b=>b.onclick=()=>openStaffPerson(b.dataset.staffPerson));
   };
 
   openStaffPerson=function(id){
@@ -1643,7 +1653,7 @@
       <button class="btn btn-secondary" data-go="staff">♟ Personal</button><button class="btn btn-secondary" data-go="corruption">⚖ Einfluss</button><button class="btn btn-secondary" data-go="finance">▥ Finanzen</button><button class="btn btn-secondary" data-go="missions">◎ Aufträge</button><button class="btn btn-secondary" data-go="ranking">♛ Rangliste</button>
       <button class="btn btn-secondary" data-more-diplomacy>🤝 Diplomatie</button><button class="btn btn-secondary" data-more-routes>♣ Automatenrouten</button><button class="btn btn-secondary" data-v4-crew>♟ Crews</button><button class="btn btn-secondary" data-v4-arsenal>▣ Arsenal</button><button class="btn btn-secondary" data-v4-case>⌕ Ermittlungen</button><button class="btn btn-secondary" data-chronicle>▤ Stadtchronik</button>
       </div></div>`);
-    $('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-v4-crew]').onclick=v4OpenCrewManager;$('[data-v4-arsenal]').onclick=v4OpenArsenal;$('[data-v4-case]').onclick=v4OpenInvestigation;$('[data-chronicle]').onclick=()=>{closeDialog();if(typeof openChronicleDialog==='function')openChronicleDialog();};
+    $$('[data-go]').forEach(b=>b.onclick=()=>{closeDialog();setView(b.dataset.go);});$('[data-more-diplomacy]').onclick=()=>{closeDialog();openDiplomacyDialog();};$('[data-more-routes]').onclick=()=>{closeDialog();openRoutesDialog();};$('[data-v4-crew]').onclick=v4OpenCrewManager;$('[data-v4-arsenal]').onclick=v4OpenArsenal;$('[data-v4-case]').onclick=v4OpenInvestigation;$('[data-chronicle]').onclick=()=>{closeDialog();if(typeof openChronicleDialog==='function')openChronicleDialog();};
   };
 
   const v4BaseRenderAll=renderAll;
@@ -1740,8 +1750,8 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Spielstände</p><h2>Speichern & Wiederherstellen</h2></div><button class="icon-btn" data-close>✕</button></div>
       <h3>Manuelle Slots</h3><div class="dialog-list">${slots.map((s,i)=>`<div class="dialog-option"><div><strong>Slot ${i+1}</strong><p>${s?`${esc(s.family)} · Runde ${s.round} · ${new Date(s.savedAt).toLocaleString('de-DE')}`:'Leer'}</p></div><div class="mini-actions">${state?`<button class="btn btn-secondary" data-slot-save="${i}">Speichern</button>`:''}${s?`<button class="btn btn-primary" data-slot-load="${i}">Laden</button><button class="btn btn-danger" data-slot-delete="${i}">Löschen</button>`:''}</div></div>`).join('')}</div>
       <h3>Automatische Backups</h3><div class="dialog-list">${backs.length?backs.map((b,i)=>`<div class="dialog-option"><div><strong>${esc(b.family)} · Runde ${b.round}</strong><p>${new Date(b.savedAt).toLocaleString('de-DE')}</p></div><button class="btn btn-secondary" data-backup-load="${i}">Wiederherstellen</button></div>`).join(''):'<div class="empty-state">Noch keine 10-Runden-Backups.</div>'}</div></div>`);
-    $('[data-slot-save]').forEach(b=>b.onclick=()=>v42SaveSlot(+b.dataset.slotSave));$('[data-slot-load]').forEach(b=>b.onclick=()=>v42LoadSlot(+b.dataset.slotLoad));$('[data-slot-delete]').forEach(b=>b.onclick=()=>v42DeleteSlot(+b.dataset.slotDelete));
-    $('[data-backup-load]').forEach(b=>b.onclick=()=>{const x=backs[+b.dataset.backupLoad];if(!x)return;state=migrateState(JSON.parse(JSON.stringify(x.state)));showScreen('gameScreen');saveGame();renderAll();closeDialog();toast('Backup wiederhergestellt.');});
+    $$('[data-slot-save]').forEach(b=>b.onclick=()=>v42SaveSlot(+b.dataset.slotSave));$$('[data-slot-load]').forEach(b=>b.onclick=()=>v42LoadSlot(+b.dataset.slotLoad));$$('[data-slot-delete]').forEach(b=>b.onclick=()=>v42DeleteSlot(+b.dataset.slotDelete));
+    $$('[data-backup-load]').forEach(b=>b.onclick=()=>{const x=backs[+b.dataset.backupLoad];if(!x)return;state=migrateState(JSON.parse(JSON.stringify(x.state)));showScreen('gameScreen');saveGame();renderAll();closeDialog();toast('Backup wiederhergestellt.');});
   }
 
   function v42Unlocked(){return v42GetJSON(ACH_KEY,{})}
@@ -1842,8 +1852,8 @@
   function v42OpenPendingOffers(){
     const p=currentPlayer();v42Ensure(p);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Diplomatie</p><h2>Offene Angebote</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-list">${p.pendingOffers.length?p.pendingOffers.map(o=>{const from=state.players.find(x=>x.id===o.from);return `<div class="dialog-option"><div><strong>${esc(from?.family||'Unbekannt')}</strong><p>${o.type==='alliance'?'Bündnis':'Nichtangriff'} · ${o.duration} Runden · Zahlung ${fmt(o.cash)}</p></div><div class="mini-actions"><button class="btn btn-primary" data-offer-yes="${o.id}">Annehmen</button><button class="btn btn-danger" data-offer-no="${o.id}">Ablehnen</button></div></div>`;}).join(''):'<div class="empty-state">Keine offenen Angebote.</div>'}</div></div>`);
-    $('[data-offer-yes]').forEach(b=>b.onclick=()=>{const o=p.pendingOffers.find(x=>x.id===b.dataset.offerYes),from=state.players.find(x=>x.id===o?.from);if(o&&from&&v42ApplyDeal(from,p,o.type,o.duration,o.cash)){p.pendingOffers=p.pendingOffers.filter(x=>x.id!==o.id);saveGame();v42OpenPendingOffers();}});
-    $('[data-offer-no]').forEach(b=>b.onclick=()=>{p.pendingOffers=p.pendingOffers.filter(x=>x.id!==b.dataset.offerNo);saveGame();v42OpenPendingOffers();});
+    $$('[data-offer-yes]').forEach(b=>b.onclick=()=>{const o=p.pendingOffers.find(x=>x.id===b.dataset.offerYes),from=state.players.find(x=>x.id===o?.from);if(o&&from&&v42ApplyDeal(from,p,o.type,o.duration,o.cash)){p.pendingOffers=p.pendingOffers.filter(x=>x.id!==o.id);saveGame();v42OpenPendingOffers();}});
+    $$('[data-offer-no]').forEach(b=>b.onclick=()=>{p.pendingOffers=p.pendingOffers.filter(x=>x.id!==b.dataset.offerNo);saveGame();v42OpenPendingOffers();});
   }
 
   openDiplomacyDialog=function(){
@@ -1852,7 +1862,7 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Beziehungen</p><h2>Diplomatie & Handel</h2></div><button class="icon-btn" data-close>✕</button></div>
       ${p.pendingOffers.length?`<div class="dialog-footer"><button class="btn btn-primary" data-pending>${p.pendingOffers.length} offene${p.pendingOffers.length===1?'s':''} Angebot${p.pendingOffers.length===1?'':'e'}</button></div>`:''}
       <div class="dialog-list">${rivals.map(r=>{const active=pactActive(p,r)||allianceActive(p,r);return `<div class="diplomacy-card"><div><strong>${esc(r.family)}</strong><p>Beziehung ${relation(p,r)} · Macht ${pct(powerIndex(r))}${pactActive(p,r)?` · NAP bis R${p.pacts[r.id]}`:''}${allianceActive(p,r)?` · Bündnis bis R${p.alliances[r.id]}`:''}${r.casusbelli?.[p.id]>=state.round?' · FEHDE':''}</p></div><div class="mini-actions"><button class="btn btn-secondary" data-gift="${r.id}">Geschenk</button><button class="btn btn-primary" data-negotiate="${r.id}">Verhandeln</button><button class="btn btn-secondary" data-trade="${r.id}">Handel</button>${active?`<button class="btn btn-danger" data-break="${r.id}">Abkommen brechen</button>`:''}</div></div>`;}).join('')}</div></div>`);
-    $('[data-gift]').forEach(b=>b.onclick=()=>diplomaticGift(b.dataset.gift));$('[data-negotiate]').forEach(b=>b.onclick=()=>v42OpenNegotiation(b.dataset.negotiate));$('[data-trade]').forEach(b=>b.onclick=()=>openTradeDialog(b.dataset.trade));$('[data-break]').forEach(b=>b.onclick=()=>v42BreakAgreement(b.dataset.break));$('[data-pending]')?.addEventListener('click',v42OpenPendingOffers);
+    $$('[data-gift]').forEach(b=>b.onclick=()=>diplomaticGift(b.dataset.gift));$$('[data-negotiate]').forEach(b=>b.onclick=()=>v42OpenNegotiation(b.dataset.negotiate));$$('[data-trade]').forEach(b=>b.onclick=()=>openTradeDialog(b.dataset.trade));$$('[data-break]').forEach(b=>b.onclick=()=>v42BreakAgreement(b.dataset.break));$('[data-pending]')?.addEventListener('click',v42OpenPendingOffers);
   };
 
   const v42BaseCreate=createGame;
@@ -1888,6 +1898,8 @@
       <div class="dialog-option"><div><strong>Spielstände</strong><p>Slots laden, sichern oder Backup wiederherstellen.</p></div><button class="btn btn-secondary" data-slots>Öffnen</button></div>
       <div class="dialog-option"><div><strong>Tutorial / Hilfe</strong><p>Grundlagen erneut anzeigen oder geführten Einstieg aktivieren.</p></div><button class="btn btn-secondary" data-tutorial>Tutorial</button></div>
       <div class="dialog-option"><div><strong>Anzeige & Barrierefreiheit</strong><p>Schriftgröße, Kontrast, Bewegungen und kompakte Ansicht.</p></div><button class="btn btn-secondary" data-display>Öffnen</button></div>
+      <div class="dialog-option"><div><strong>Soundeffekte</strong><p>Kurze Rückmeldungen bei Bedienung und Aktionen.</p></div><button class="btn btn-secondary" data-sfx>${audioPrefs.sfx?'An':'Aus'}</button></div>
+      <div class="dialog-option"><div><strong>Noir-Musik</strong><p>Leise synthetische Hintergrundatmosphäre.</p></div><button class="btn btn-secondary" data-music>${audioPrefs.music?'An':'Aus'}</button></div>
       <div class="dialog-option"><div><strong>Erfolge & Hall of Fame</strong><p>Karriereziele und abgeschlossene Partien.</p></div><div class="mini-actions"><button class="btn btn-secondary" data-ach>Erfolge</button><button class="btn btn-secondary" data-hall>Hall of Fame</button></div></div>
       <div class="dialog-option"><div><strong>Stadtchronik</strong><p>Wichtige Ereignisse, Angriffe, Pfändungen und politische Entwicklungen.</p></div><button class="btn btn-secondary" data-news>Chronik</button></div>
       <div class="dialog-option"><div><strong>Spielstand übertragen</strong><p>Export/Import für ein anderes Gerät.</p></div><button class="btn btn-secondary" data-transfer>Öffnen</button></div>
@@ -1898,8 +1910,8 @@
 
   const v42BaseInit=init;
   init=function(){
-    audioPrefs.music=false;audioPrefs.sfx=false;try{stopMusic()}catch{}
     v42BaseInit();v42ApplyUi();
+    if(audioPrefs.music)try{startMusic()}catch{}
     $('#saveSlotsBtn')?.addEventListener('click',v42OpenSlots);$('#hallBtn')?.addEventListener('click',v42OpenHall);$('#settingsBtn')?.addEventListener('click',v42OpenSettings);
   };
 
@@ -2009,8 +2021,8 @@
     if(!people.length)return toast('Kein geeignetes Ziel.');
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Spionage & Abwerbung</p><h2>Menschen sind die Schwachstelle</h2></div><button class="icon-btn" data-close>✕</button></div>
       <p class="muted">Niedrige Loyalität, starke Informanten und schlechte Beziehungen zum eigenen Boss erhöhen deine Chance.</p><div class="dialog-list">${people.slice(0,18).map(({t,s})=>`<div class="dialog-option"><div><strong>${esc(t.family)} · ${esc(s.name)}</strong><p>${esc(STAFF[s.role].name)} · Loyalität ${s.loyalty} · Fähigkeit ${s.skill}</p></div><div class="mini-actions"><button class="btn btn-secondary" data-mole="${t.id}:${s.id}">Doppelagent · ${fmt(8000)}</button><button class="btn btn-primary" data-defect="${t.id}:${s.id}">Abwerben · ${fmt(12000)}</button></div></div>`).join('')}</div></div>`);
-    $('[data-mole]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.mole,'mole'));
-    $('[data-defect]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.defect,'defect'));
+    $$('[data-mole]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.mole,'mole'));
+    $$('[data-defect]').forEach(b=>b.onclick=()=>v43TurnPerson(b.dataset.defect,'defect'));
   }
   function v43TurnPerson(data,mode){
     const p=currentPlayer(),[tid,sid]=data.split(':'),t=state.players.find(x=>x.id===tid),s=t?.staffRoster.find(x=>x.id===sid),cost=mode==='mole'?8000:12000;
@@ -2081,7 +2093,7 @@
   const v43Business=renderBusinesses;
   renderBusinesses=function(){
     v43Business();const p=currentPlayer();
-    $('#businessList .business-card').forEach((el,i)=>{const b=p.businesses[i];if(!b)return;let site=el.querySelector('.v43-site');if(!site){site=document.createElement('small');site.className='v43-site';site.textContent=b.siteName||'';el.querySelector('.title')?.appendChild(site);}});
+    $$('#businessList .business-card').forEach((el,i)=>{const b=p.businesses[i];if(!b)return;let site=el.querySelector('.v43-site');if(!site){site=document.createElement('small');site.className='v43-site';site.textContent=b.siteName||'';el.querySelector('.title')?.appendChild(site);}});
   };
 
   const v43City=renderCity;
@@ -2234,7 +2246,7 @@
     </div>
     ${!path&&(b.level||1)>=2?`<div class="dialog-list">${(PATHS[b.type]||[]).map(x=>`<div class="dialog-option"><div><strong>${esc(x.name)}</strong><p>${esc(x.desc)}<br>Ertrag ×${x.income.toFixed(2)} · Wäsche ×${x.launder.toFixed(2)} · Risiko ×${x.risk.toFixed(2)}</p></div><button class="btn btn-secondary" data-path="${x.id}">${fmt(Math.round(BUSINESSES[b.type].cost*.12))}</button></div>`).join('')}</div>`:''}</div>`;
     const footer=root.querySelector('.dialog-footer');if(footer)root.insertBefore(box,footer);else root.appendChild(box);
-    $('[data-path]',box).forEach(btn=>btn.onclick=()=>v44ChoosePath(p,b,btn.dataset.path));
+    $$('[data-path]',box).forEach(btn=>btn.onclick=()=>v44ChoosePath(p,b,btn.dataset.path));
   };
 
   const v44Buy=buyBusiness;
@@ -2249,9 +2261,9 @@
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Grundbesitz · ${esc(d.name)}</p><h2>Immobilien & Grundstücke</h2></div><button class="icon-btn" data-close>✕</button></div>
       <p class="muted">Eigene Immobilien ersetzen Mietkosten, bringen legalen Mietertrag und zusätzlichen Viertel-Einfluss. Freie Kapazität kann für deine Betriebe genutzt werden.</p>
       <div class="dialog-list">${lots.map(l=>{const k=v44Kind(l),mine=l.ownerId===p.id,owner=state.players.find(x=>x.id===l.ownerId);return `<div class="dialog-option"><div><strong>${esc(l.name)} · ${esc(k.name)}</strong><p>Wert ${fmt(v44PropertyValue(l))} · Zustand ${Math.round(l.condition)}% · Kapazität ${v44UsedCapacity(l)}/${l.capacity} · Einfluss ${k.influence}<br>${mine?`Dein Eigentum · externer Mietertrag ca. ${fmt(v44PropertyIncome(p,l))}/R`:owner?`Eigentümer: ${esc(owner.family)}`:'Zum Verkauf'}</p></div><div class="mini-actions">${!l.ownerId?`<button class="btn btn-primary" data-buy-land="${l.id}" ${p.clean<l.value||p.actionPoints<1?'disabled':''}>Kaufen ${fmt(l.value)}</button>`:''}${mine?`<button class="btn btn-secondary" data-assign-land="${l.id}">Betriebe zuweisen</button><button class="btn btn-danger" data-sell-land="${l.id}" ${v44UsedCapacity(l)>0?'disabled':''}>Verkaufen</button>`:''}</div></div>`}).join('')}</div></div>`);
-    $('[data-buy-land]').forEach(b=>b.onclick=()=>v44BuyLand(b.dataset.buyLand));
-    $('[data-assign-land]').forEach(b=>b.onclick=()=>v44AssignLandDialog(b.dataset.assignLand));
-    $('[data-sell-land]').forEach(b=>b.onclick=()=>v44SellLand(b.dataset.sellLand));
+    $$('[data-buy-land]').forEach(b=>b.onclick=()=>v44BuyLand(b.dataset.buyLand));
+    $$('[data-assign-land]').forEach(b=>b.onclick=()=>v44AssignLandDialog(b.dataset.assignLand));
+    $$('[data-sell-land]').forEach(b=>b.onclick=()=>v44SellLand(b.dataset.sellLand));
   }
   function v44BuyLand(id){
     const p=currentPlayer(),lot=state.propertyMarket.find(x=>x.id===id);if(!lot||lot.ownerId)return;if(p.actionPoints<1)return toast('Du brauchst 1 AP.');if(p.clean<lot.value)return toast('Nicht genug sauberes Kapital.');
@@ -2267,7 +2279,7 @@
     const p=currentPlayer(),lot=state.propertyMarket.find(x=>x.id===id);if(!lot||lot.ownerId!==p.id)return;
     const biz=p.businesses.filter(b=>b.district===lot.district);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">${esc(lot.name)}</p><h2>Betriebe zuweisen</h2></div><button class="icon-btn" data-close>✕</button></div><p class="muted">Kapazität ${v44UsedCapacity(lot)}/${lot.capacity}. Ein Betrieb im eigenen Objekt zahlt keine Standortmiete.</p><div class="dialog-list">${biz.map(b=>{const here=b.propertyId===lot.id,need=Math.min(4,BUSINESSES[b.type].slotUse||1);return `<div class="dialog-option"><div><strong>${esc(BUSINESSES[b.type].name)}</strong><p>Benötigt ${need} Kapazität · ${b.propertyId?'bereits im Eigentum':'aktuell gemietet'}</p></div><button class="btn btn-secondary" data-move-biz="${b.id}" ${!here&&v44FreeCapacity(lot)<need?'disabled':''}>${here?'Aus Objekt lösen':'Hier einziehen'}</button></div>`}).join('')}</div></div>`);
-    $('[data-move-biz]').forEach(btn=>btn.onclick=()=>{const b=p.businesses.find(x=>x.id===btn.dataset.moveBiz);if(!b)return;if(b.propertyId===lot.id){b.propertyId=null;b.leaseCost=v44LeaseFor(b);}else{b.propertyId=lot.id;b.leaseCost=0;b.siteName=lot.name;}saveGame();v44AssignLandDialog(id);});
+    $$('[data-move-biz]').forEach(btn=>btn.onclick=()=>{const b=p.businesses.find(x=>x.id===btn.dataset.moveBiz);if(!b)return;if(b.propertyId===lot.id){b.propertyId=null;b.leaseCost=v44LeaseFor(b);}else{b.propertyId=lot.id;b.leaseCost=0;b.siteName=lot.name;}saveGame();v44AssignLandDialog(id);});
   }
 
   function v44AddProtectionContract(p,did,level){
@@ -2288,7 +2300,7 @@
   openProtectionDialog=function(){
     v44ProtectionDialog();const p=currentPlayer(),root=$('#dialogContent .dialog-wrap');if(!root)return;
     const contracts=p.protectionContracts||[];
-    if(contracts.length){const box=document.createElement('div');box.innerHTML=`<h3>Einzelne Schutzverträge</h3><div class="dialog-list">${contracts.map(c=>`<div class="dialog-option"><div><strong>${esc(c.name)} · ${esc(DISTRICTS.find(d=>d.id===c.district).name)}</strong><p>Ertrag ${fmt(Math.round(c.income*c.loyalty/100))}/R · Loyalität ${c.loyalty}% · Risiko ${c.risk}</p></div><button class="btn btn-secondary" data-pressure="${c.id}">Druck erhöhen</button></div>`).join('')}</div>`;root.appendChild(box);$('[data-pressure]',box).forEach(btn=>btn.onclick=()=>{const c=contracts.find(x=>x.id===btn.dataset.pressure);if(!c||p.actionPoints<1)return toast('Du brauchst 1 AP.');p.actionPoints--;c.income=Math.round(c.income*1.15);c.loyalty=clamp(c.loyalty-rand(7,14),20,100);p.heat=clamp(p.heat+rand(2,6),0,100);if(c.loyalty<35&&chance(.25)){p.protectionContracts=p.protectionContracts.filter(x=>x.id!==c.id);toast('Der Betrieb verweigert weitere Zahlungen.');}else toast('Zahlung erhöht – Widerstand wächst.');saveGame();closeDialog();renderAll();});}
+    if(contracts.length){const box=document.createElement('div');box.innerHTML=`<h3>Einzelne Schutzverträge</h3><div class="dialog-list">${contracts.map(c=>`<div class="dialog-option"><div><strong>${esc(c.name)} · ${esc(DISTRICTS.find(d=>d.id===c.district).name)}</strong><p>Ertrag ${fmt(Math.round(c.income*c.loyalty/100))}/R · Loyalität ${c.loyalty}% · Risiko ${c.risk}</p></div><button class="btn btn-secondary" data-pressure="${c.id}">Druck erhöhen</button></div>`).join('')}</div>`;root.appendChild(box);$$('[data-pressure]',box).forEach(btn=>btn.onclick=()=>{const c=contracts.find(x=>x.id===btn.dataset.pressure);if(!c||p.actionPoints<1)return toast('Du brauchst 1 AP.');p.actionPoints--;c.income=Math.round(c.income*1.15);c.loyalty=clamp(c.loyalty-rand(7,14),20,100);p.heat=clamp(p.heat+rand(2,6),0,100);if(c.loyalty<35&&chance(.25)){p.protectionContracts=p.protectionContracts.filter(x=>x.id!==c.id);toast('Der Betrieb verweigert weitere Zahlungen.');}else toast('Zahlung erhöht – Widerstand wächst.');saveGame();closeDialog();renderAll();});}
   };
 
   function v44IntelAccuracy(p,did){
@@ -2306,7 +2318,7 @@
     const rows=state.players.filter(x=>!x.eliminated).map(r=>{const sh=districtShare(r,did),biz=r.businesses.filter(b=>b.district===did);let detail=`Einfluss ${noise(sh)}%`;if(level>=2)detail+=` · ${noise(biz.length)} Betriebe${biz.length&&!noisy?`: ${biz.slice(0,4).map(b=>BUSINESSES[b.type].name).join(', ')}`:''}`;if(level>=3&&biz.length)detail+=` · Sicherheit ca. ${noise(biz.reduce((s,b)=>s+businessSecurity(r,b),0)/biz.length)}%`;return `<div class="intel-row"><strong>${esc(r.family)}${r.id===p.id?' (du)':''}</strong><span>${esc(detail)}</span></div>`;}).join('');
     const roi=Object.entries(BUSINESSES).map(([k,b])=>({k,b,roi:b.baseIncome*d.demand/b.cost})).sort((a,b)=>b.roi-a.roi).slice(0,3);
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Aufklärung Stufe ${level}</p><h2>${esc(d.name)}</h2></div><button class="icon-btn" data-close>✕</button></div><div class="intel-summary"><span>Intel Runde ${intel.round}${age>2?' · veraltet':''}</span><span>Zuverlässigkeit ${Math.round(acc*100)}%</span><span>${noisy?'⚠ Gegenaufklärung möglich':'✓ Daten konsistent'}</span><span>Neutral ca. ${noise(neutralShare(did))}%</span></div><div class="intel-list">${rows}</div><h3>Lukrative Möglichkeiten</h3><div class="dialog-list">${roi.map(x=>`<div class="dialog-option"><div><strong>${x.b.icon} ${esc(x.b.name)}</strong><p>Erwarteter Basisertrag ${fmt(x.b.baseIncome*d.demand)}/R · Einfluss ${x.b.influence}</p></div><button class="btn btn-primary" data-intel-buy="${x.k}">${fmt(x.b.cost)}</button></div>`).join('')}</div></div>`);
-    $('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
+    $$('[data-intel-buy]').forEach(b=>b.onclick=()=>{closeDialog();openBuyDialog(did,b.dataset.intelBuy);});
   };
 
   const v44End=processEndOfTurn;
@@ -2585,7 +2597,7 @@
       <div class="story-prose">${narrative}</div>
       ${ch.choices?.length?'<p class="muted">Diese Entscheidung wird in deiner Storychronik gespeichert.</p>':''}${choices}</div>`);
     $('[data-story-finish]')?.addEventListener('click',()=>finalizeStory(p,ch));
-    $('[data-story-choice]').forEach(b=>b.onclick=()=>finalizeStory(p,ch,b.dataset.storyChoice));
+    $$('[data-story-choice]').forEach(b=>b.onclick=()=>finalizeStory(p,ch,b.dataset.storyChoice));
   }
   function openStoryArchive(){
     const p=currentPlayer();ensureStoryV51(p);
@@ -2603,7 +2615,7 @@
     el.querySelectorAll('.story-card').forEach(x=>x.remove());
     const ch=currentStory(p);
     if(!ch){
-      el.insertAdjacentHTML('afterbegin',`<article class="mission-card panel story-v51-card story-complete"><img class="story-card-image" src="${ASSETS.city}" alt=""><div class="story-card-copy"><p class="eyebrow">Storykampagne · 12/12</p><h3>Die Stadt kennt deinen Namen</h3><p>Alle zwölf Kapitel sind abgeschlossen. Deine Entscheidungen bleiben in der Chronik erhalten.</p><footer><button class="btn btn-secondary" data-story-archive>Kapitelarchiv</button></footer></div></article>`);
+      el.insertAdjacentHTML('afterbegin',`<article class="mission-card panel story-v51-card story-complete"><img class="story-card-image" src="${ASSETS.city}" alt=""><div class="story-card-copy"><p class="eyebrow">Storykampagne · ${STORY_V51.length}/${STORY_V51.length}</p><h3>Die Stadt kennt deinen Namen</h3><p>Alle ${STORY_V51.length} Kapitel sind abgeschlossen. Deine Entscheidungen bleiben in der Chronik erhalten.</p><footer><button class="btn btn-secondary" data-story-archive>Kapitelarchiv</button></footer></div></article>`);
       $('[data-story-archive]',el)?.addEventListener('click',openStoryArchive);return;
     }
     const done=storyDone(ch,p);
@@ -2622,7 +2634,7 @@
   const previousRenderStaff=renderStaff;
   renderStaff=function(){
     previousRenderStaff();const p=currentPlayer();
-    $('#staffGrid [data-staff-person]').forEach(btn=>{
+    $$('#staffGrid [data-staff-person]').forEach(btn=>{
       const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!s||!card)return;
       const top=card.querySelector('.shop-top');if(!top||top.querySelector('.person-portrait,.person-initial-avatar'))return;
       const img=staffPortrait(s);
@@ -2670,7 +2682,7 @@
       <svg class="city-hotspots" viewBox="0 0 1672 941" aria-label="Anklickbare Stadtviertel">${DISTRICTS.map(d=>`<polygon tabindex="0" role="button" aria-label="${esc(d.name)}" class="city-hotspot ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" points="${HOTSPOTS[d.id]}" style="--district-accent:${d.accent}"></polygon>`).join('')}</svg>
       ${DISTRICTS.map(d=>{const v=DISTRICT_VISUALS[d.id],share=Math.round(districtShare(p,d.id)),owner=districtOwner(d.id);return `<button class="city-map-tag ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" style="left:${v.tag[0]}%;top:${v.tag[1]}%;--district-accent:${d.accent}"><strong>${esc(d.name)}</strong><span>${share}% · ${esc(owner.player?owner.player.family:'Neutral')}</span></button>`;}).join('')}
     </div></div>`;
-    $('[data-map-district]',grid).forEach(el=>{
+    $$('[data-map-district]',grid).forEach(el=>{
       const open=()=>{selectedDistrict=el.dataset.mapDistrict;renderCity();};
       el.onclick=open;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
     });
@@ -2749,8 +2761,8 @@
   function mapMarkers(p){return DISTRICTS.map(d=>{const [x,y]=POS[d.id],biz=districtBusinessCount(p,d.id),props=(state.propertyMarket||[]).filter(l=>l.ownerId===p.id&&l.district===d.id).length,r=districtTopRival(p,d.id);const rival=mapMode==='rivals'&&r&&r.s>5?`<span class="map-marker rival" style="left:${x+4}%;top:${y+7}%">♛ ${esc(r.p.family)}</span>`:'';const mine=biz||props?`<span class="map-marker mine" style="left:${x-4}%;top:${y+7}%">▣ ${biz}${props?' · ⌂ '+props:''}</span>`:'';return mine+rival;}).join('')}
   function decorateMap(){
     const p=currentPlayer(),grid=$('#districtGrid'),map=grid?.querySelector('.city-art-map');if(!grid||!map)return;
-    let bar=$('#cityOverlayBar');if(!bar){grid.insertAdjacentHTML('beforebegin',`<div id="cityOverlayBar" class="map-mode-bar">${[['normal','Übersicht'],['ownership','Besitz'],['police','Polizei'],['income','Einkommen'],['rivals','Rivalen']].map(([id,n])=>`<button class="map-mode ${mapMode===id?'active':''}" data-map-mode="${id}">${n}</button>`).join('')}</div>`);bar=$('#cityOverlayBar');$('[data-map-mode]',bar).forEach(b=>b.onclick=()=>{mapMode=b.dataset.mapMode;renderCity();});}else $('[data-map-mode]',bar).forEach(b=>b.classList.toggle('active',b.dataset.mapMode===mapMode));
-    $('.city-map-tag',map).forEach(tag=>{const d=DISTRICTS.find(x=>x.id===tag.dataset.mapDistrict),span=tag.querySelector('span');if(d&&span)span.textContent=overlayText(p,d);});
+    let bar=$('#cityOverlayBar');if(!bar){grid.insertAdjacentHTML('beforebegin',`<div id="cityOverlayBar" class="map-mode-bar">${[['normal','Übersicht'],['ownership','Besitz'],['police','Polizei'],['income','Einkommen'],['rivals','Rivalen']].map(([id,n])=>`<button class="map-mode ${mapMode===id?'active':''}" data-map-mode="${id}">${n}</button>`).join('')}</div>`);bar=$('#cityOverlayBar');$$('[data-map-mode]',bar).forEach(b=>b.onclick=()=>{mapMode=b.dataset.mapMode;renderCity();});}else $$('[data-map-mode]',bar).forEach(b=>b.classList.toggle('active',b.dataset.mapMode===mapMode));
+    $$('.city-map-tag',map).forEach(tag=>{const d=DISTRICTS.find(x=>x.id===tag.dataset.mapDistrict),span=tag.querySelector('span');if(d&&span)span.textContent=overlayText(p,d);});
     map.querySelectorAll('.map-marker').forEach(x=>x.remove());map.insertAdjacentHTML('beforeend',mapMarkers(p));
     const d=DISTRICTS.find(x=>x.id===selectedDistrict),detail=$('#districtDetail');if(d&&detail&&!detail.querySelector('.district-visual'))detail.insertAdjacentHTML('afterbegin',`<div class="district-visual"><img src="${DISTRICT_ART[d.id]}" alt=""><div><strong>${esc(d.name)}</strong><span>${esc(d.desc)}</span></div></div>`);
   }
@@ -2759,9 +2771,9 @@
   function decorateEvent(){const p=currentPlayer(),list=$('#situationList');if(!list||list.querySelector('.deep-event-card'))return;const ev=p.deepEvent||state?.cityEvent;if(!ev)return;const art=EVENT_ART[ev.id]||A+'event-press.svg';list.insertAdjacentHTML('afterbegin',`<div class="deep-event-card"><img src="${art}" alt=""><div><small>Stadtgeschehen</small><strong>${esc(ev.name||p.eventText||'Ereignis')}</strong><span>${esc(ev.desc||ev.text||'Die Lage verändert sich.')}</span></div></div>`);}
 
   const oldBiz=renderBusinesses;
-  renderBusinesses=function(){oldBiz();const p=currentPlayer();$('#businessList .business-card').forEach((card,i)=>{const b=p.businesses[i];if(b&&!card.querySelector('.business-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="business-thumb" src="${BUSINESS_ART[b.type]}" alt="">`);});};
+  renderBusinesses=function(){oldBiz();const p=currentPlayer();$$('#businessList .business-card').forEach((card,i)=>{const b=p.businesses[i];if(b&&!card.querySelector('.business-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="business-thumb" src="${BUSINESS_ART[b.type]}" alt="">`);});};
   const oldBuy=openBuyDialog;
-  openBuyDialog=function(did=selectedDistrict,focus=null){oldBuy(did,focus);$('#dialogContent .dialog-option [data-buy]').forEach(btn=>{const row=btn.closest('.dialog-option'),type=btn.dataset.buy;if(row&&!row.querySelector('.business-buy-thumb'))row.insertAdjacentHTML('afterbegin',`<img class="business-buy-thumb" src="${BUSINESS_ART[type]}" alt="">`);});};
+  openBuyDialog=function(did=selectedDistrict,focus=null){oldBuy(did,focus);$$('#dialogContent .dialog-option [data-buy]').forEach(btn=>{const row=btn.closest('.dialog-option'),type=btn.dataset.buy;if(row&&!row.querySelector('.business-buy-thumb'))row.insertAdjacentHTML('afterbegin',`<img class="business-buy-thumb" src="${BUSINESS_ART[type]}" alt="">`);});};
   const oldBizDialog=openBusinessDialog;
   openBusinessDialog=function(id){const p=currentPlayer(),b=p.businesses.find(x=>x.id===id);oldBizDialog(id);const root=$('#dialogContent .dialog-wrap');if(b&&root&&!root.querySelector('.business-detail-art'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="business-detail-art" src="${BUSINESS_ART[b.type]}" alt="">`);};
 
@@ -2769,7 +2781,7 @@
   const oldStaff=renderStaff;
   renderStaff=function(){
     oldStaff();const p=currentPlayer();
-    $('#staffGrid [data-staff-person]').forEach(btn=>{
+    $$('#staffGrid [data-staff-person]').forEach(btn=>{
       const person=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!person||!card)return;
       const img=card.querySelector('.person-portrait'),initial=card.querySelector('.person-initial-avatar'),src=staffVisual(person);
       if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="person-portrait role-portrait" src="${src}" alt="">`;
@@ -2794,7 +2806,7 @@
   function decoratePropertyMarket(){
     const root=$('#dialogContent');if(!root)return;
     const kinds={Ladenlokal:'shop','Wohn- & Geschäftshaus':'block','Lagerhalle':'warehouse','Premium-Grundstück':'prime'};
-    $('.dialog-option',root).forEach(row=>{
+    $$('.dialog-option',root).forEach(row=>{
       if(row.querySelector('.property-thumb'))return;
       const txt=row.textContent||'';for(const [label,id] of Object.entries(kinds))if(txt.includes(label)){row.insertAdjacentHTML('afterbegin',`<img class="property-thumb" src="${PROPERTY_ART[id]}" alt="">`);break;}
     });
@@ -2807,7 +2819,7 @@
     $('[data-deep-diplomacy]')?.addEventListener('click',()=>openDeepDiplomacy(r.id));
   }
   const oldRanking=renderRanking;
-  renderRanking=function(){oldRanking();const sorted=[...state.players].sort((a,b)=>powerIndex(b)-powerIndex(a));$('#rankingList .rank-row').forEach((row,i)=>{const r=sorted[i];if(!r||row.querySelector('.rival-rank-portrait'))return;row.insertAdjacentHTML('afterbegin',`<img class="rival-rank-portrait" src="${rivalPortrait(r)}" alt="">`);if(r.id!==currentPlayer().id){row.classList.add('clickable-rival');row.onclick=()=>openRivalProfile(r.id);}});};
+  renderRanking=function(){oldRanking();const sorted=[...state.players].sort((a,b)=>powerIndex(b)-powerIndex(a));$$('#rankingList .rank-row').forEach((row,i)=>{const r=sorted[i];if(!r||row.querySelector('.rival-rank-portrait'))return;row.insertAdjacentHTML('afterbegin',`<img class="rival-rank-portrait" src="${rivalPortrait(r)}" alt="">`);if(r.id!==currentPlayer().id){row.classList.add('clickable-rival');row.onclick=()=>openRivalProfile(r.id);}});};
 
   function deepAccept(p,t,base){if(t.type==='human')return confirm(`${t.family}: Angebot annehmen?`);let v=base+relation(p,t)/220-(t.rivalMemory?.grudges?.[p.id]||0)/600;if(t.family==='Moretti')v+=.08;return chance(clamp(v,.08,.9))}
   function openDeepDiplomacy(tid){
@@ -2818,7 +2830,7 @@
       <div class="dialog-option"><div><strong>Gebietstausch</strong><p>Einen Betrieb gegen einen Rivalenbetrieb tauschen.</p></div><button class="btn btn-secondary" data-dd="swap">Tausch öffnen</button></div>
       <div class="dialog-option"><div><strong>Abkommen brechen</strong><p>Pakte und Bündnisse sofort beenden. Ruf und Beziehung leiden dauerhaft.</p></div><button class="btn btn-danger" data-dd="betray">Verraten</button></div>
     </div></div>`);
-    $('[data-dd]').forEach(b=>b.onclick=()=>doDeepDiplomacy(t,b.dataset.dd));
+    $$('[data-dd]').forEach(b=>b.onclick=()=>doDeepDiplomacy(t,b.dataset.dd));
   }
   function doDeepDiplomacy(t,kind){
     const p=currentPlayer();ensureDepth(p);ensureDepth(t);
@@ -2830,15 +2842,16 @@
   }
 
   const oldActions=renderActions;
-  renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
+  renderActions=function(){oldActions();const panel=$('#actionsView .action-panel .button-grid');if(panel&&!panel.querySelector('[data-deep-dip]')){panel.insertAdjacentHTML('beforeend','<button class="btn btn-secondary" data-deep-dip>Geheime Diplomatie</button>');$('[data-deep-dip]',panel).onclick=()=>{const r=state.players.find(x=>x.id!==currentPlayer().id&&!x.eliminated);if(r)openRivalProfile(r.id);};}const crimeArt={machine:BUSINESS_ART.machines,mug:A+'event-betrayal.svg',car:A+'item-coupe.svg',bar:BUSINESS_ART.bar,bank:OP_ART.bank};$$('#crimeGrid .crime-card').forEach((card,i)=>{const c=CRIMES[i];if(c&&!card.querySelector('.crime-thumb'))card.insertAdjacentHTML('afterbegin',`<img class="crime-thumb" src="${crimeArt[c.id]||OP_ART.sabotage}" alt="">`);});};
 
-  const oldPlanner=v4OpenOperationPlanner;
-  v4OpenOperationPlanner=function(kind,...args){
+  const oldPlanner=window.SyndikatV4?.openOperation;
+  const decoratedPlanner=function(kind,...args){
+    if(!oldPlanner)return toast('Operationsplanung ist nicht verfügbar.');
     oldPlanner(kind,...args);
     setTimeout(()=>{const root=$('#dialogContent .v4-operation');if(root&&!root.querySelector('.operation-hero'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="operation-hero" src="${OP_ART[kind]||OP_ART.sabotage}" alt="">`);},10);
   };
-  if(window.SyndikatV4)window.SyndikatV4.openOperation=v4OpenOperationPlanner;
-  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
+  if(window.SyndikatV4&&oldPlanner)window.SyndikatV4.openOperation=decoratedPlanner;
+  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
   document.addEventListener('click',e=>{const b=e.target.closest?.('[data-v4-arsenal],[data-arsenal]');if(b)setTimeout(decorateArsenal,30);});
 
   const EVENTS2=[
@@ -2856,6 +2869,17 @@
   const oldAi=aiTurn;
   aiTurn=function(p){ensureDepth(p);if(p.family==='Costa'&&p.clean>25000){for(const k of ['officer','inspector','prosecutor'])if(!p.bribes[k]&&p.clean>CORRUPTION[k].cost*2){p.clean-=CORRUPTION[k].cost;p.bribes[k]=true;break;}}if(p.family==='Conti')for(const b of p.businesses)if(b.health<80&&p.clean>10000){const c=Math.min(p.clean,Math.round(BUSINESSES[b.type].cost*.025));p.clean-=c;b.health=clamp(b.health+10,0,100);break;}oldAi(p);};
 
+  function storyVictoryTarget(p){
+    const cfg={
+      short:{power:52,districts:2,econ:5000000,econDistricts:1},
+      normal:{power:62,districts:3,econ:20000000,econDistricts:2},
+      long:{power:72,districts:4,econ:50000000,econDistricts:3},
+      endless:{power:72,districts:3,econ:50000000,econDistricts:3}
+    }[state?.settings?.length||'normal'];
+    const dominance=powerIndex(p)>=cfg.power&&controlledDistricts(p)>=cfg.districts;
+    const economy=netWorth(p)>=cfg.econ&&controlledDistricts(p)>=cfg.econDistricts;
+    return (dominance||economy)&&p.finalCrisis?.resolved;
+  }
   function addStory(){
     const story=window.SyndikatVisualStory?.story;if(!story||story.some(x=>x.chapter===13))return;const V=window.SyndikatVisualStory.assets;
     story.push(
@@ -2866,7 +2890,7 @@
       {chapter:17,kicker:'Kapitel XVII',title:'Die Stadtverwaltung',speaker:'Alessandro Costa',portrait:RIVAL_INFO.Costa.art,image:A+'event-corruption.svg',desc:'Erreiche politischen Einfluss oder beweise, dass du ohne ihn auskommst.',narrative:['Costa lädt dich in ein Büro mit Tageslicht. Das ist seine Art von Machtdemonstration.','Er behauptet, eine Stadt werde nicht auf der Straße regiert, sondern in Sitzungszimmern, in denen niemand seinen echten Preis nennt.'],done:p=>corruptionCount(p)>=3||p.clean>=2500000,reward:290000,rep:11,choices:[{id:'network',label:'Einflussnetzwerk ausbauen',text:'Kontakte werden stärker, aber öffentliche Kontrolle nimmt zu.',apply:p=>{p.story.flags.politics='network';if(p.investigation)p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+8,0,100);p.politicalShield=6;}},{id:'independent',label:'Unabhängig bleiben',text:'Kostet Kapital, bringt aber Reputation.',apply:p=>{spend(p,80000);p.reputation+=7;p.story.flags.politics='independent';}}]},
       {chapter:18,kicker:'Kapitel XVIII',title:'Die Stadt steht still',speaker:'Sofia Moretti',portrait:V.sofia,image:A+'event-gangwar.svg',desc:'Beende eine schwere Rivalitätsphase durch Stärke oder Verhandlung.',narrative:['Mehrere Familien ziehen gleichzeitig Grenzen neu. Lieferanten warten ab, Geschäftsleute schließen früher, alte Verträge werden plötzlich wichtig.','Du kannst die Lage weiter eskalieren oder zeigen, dass die Stadt auch durch Absprachen kontrolliert werden kann.'],done:p=>(p.stats?.operationsSuccess||0)>=7||state.players.some(x=>x.id!==p.id&&relation(p,x)>=35),reward:330000,rep:12,choices:[{id:'pressure',label:'Härte zeigen',text:'Mehr Ruf, schlechtere Rivalenbeziehungen.',apply:p=>{state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,-8));p.reputation+=6;p.story.flags.cityCrisis='pressure';}},{id:'settle',label:'Einigung suchen',text:'40.000 $ für eine stadtweite Deeskalation.',apply:p=>{spend(p,40000);state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,8));p.heat=clamp(p.heat-10,0,100);p.story.flags.cityCrisis='settle';}}]},
       {chapter:19,kicker:'Kapitel XIX',title:'Das Erbe',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Bereite deine Organisation auf eine Zukunft ohne dich vor.',narrative:['Vittorio spricht zum ersten Mal nicht über den nächsten Monat, sondern über die nächsten zehn Jahre. Ein Imperium, das an einer Person hängt, ist kein Imperium.','Crews, Unterboss und Betriebe müssen auch dann funktionieren, wenn du nicht mehr jede Entscheidung selbst triffst.'],done:p=>!!p.underbossId&&(p.crews||[]).length>=2&&activeStaff(p).length>=8,reward:380000,rep:13,choices:[{id:'family',label:'Familienmodell',text:'Loyalität aller Mitarbeiter steigt.',apply:p=>{activeStaff(p).forEach(s=>s.loyalty=clamp(s.loyalty+7,0,100));p.story.flags.legacy='family';}},{id:'corporate',label:'Konzernmodell',text:'Betriebe werden effizienter.',apply:p=>{p.permanentIncomeBonus=(p.permanentIncomeBonus||0)+.035;p.story.flags.legacy='corporate';}}]},
-      {chapter:20,kicker:'Epilog',title:'Welche Stadt bleibt?',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Erreiche endgültige Dominanz und bestimme, welches Syndikat du hinterlässt.',narrative:['Die Stadt ist ruhig – nicht friedlich. Das ist ein Unterschied, den du besser kennst als jeder andere.','Alles, was du früher entschieden hast, liegt jetzt unter diesem Moment: Moretti, Keller, Marco, Politik und Geld.'],done:p=>powerIndex(p)>=72&&controlledDistricts(p)>=3&&p.finalCrisis?.resolved,reward:500000,rep:18,choices:[{id:'empire',label:'Das legale Imperium',text:'Dein Syndikat tritt als Konzern in die Zukunft.',apply:p=>{p.story.flags.ending='empire';p.clean+=150000;}},{id:'shadow',label:'Der unsichtbare Staat',text:'Kontakte und Abhängigkeiten bleiben deine wichtigste Währung.',apply:p=>{p.story.flags.ending='shadow';p.politicalShield=(p.politicalShield||0)+10;}},{id:'crown',label:'Krone aus Neon',text:'Die Stadt soll deinen Namen nie vergessen.',apply:p=>{p.story.flags.ending='crown';p.reputation=clamp(p.reputation+10,0,100);}}]}
+      {chapter:20,kicker:'Epilog',title:'Welche Stadt bleibt?',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Erreiche endgültige Dominanz und bestimme, welches Syndikat du hinterlässt.',narrative:['Die Stadt ist ruhig – nicht friedlich. Das ist ein Unterschied, den du besser kennst als jeder andere.','Alles, was du früher entschieden hast, liegt jetzt unter diesem Moment: Moretti, Keller, Marco, Politik und Geld.'],done:p=>storyVictoryTarget(p),reward:500000,rep:18,choices:[{id:'empire',label:'Das legale Imperium',text:'Dein Syndikat tritt als Konzern in die Zukunft.',apply:p=>{p.story.flags.ending='empire';p.clean+=150000;}},{id:'shadow',label:'Der unsichtbare Staat',text:'Kontakte und Abhängigkeiten bleiben deine wichtigste Währung.',apply:p=>{p.story.flags.ending='shadow';p.politicalShield=(p.politicalShield||0)+10;}},{id:'crown',label:'Krone aus Neon',text:'Die Stadt soll deinen Namen nie vergessen.',apply:p=>{p.story.flags.ending='crown';p.reputation=clamp(p.reputation+10,0,100);}}]}
     );
   }
   addStory();
@@ -3101,7 +3125,7 @@
       <div class="form-grid"><label><span>Cloud-Code</span><input id="cloudLoadCode"></label><label><span>Schlüssel</span><input id="cloudLoadToken"></label></div><div class="dialog-footer"><button class="btn btn-secondary" data-cloud-load>Laden</button></div></div>`);
     $('[data-cloud-create]').onclick=v45CreateLobby;$('[data-cloud-join]').onclick=v45JoinLobby;$('[data-cloud-save-new]')?.addEventListener('click',v45CloudSaveNew);$('[data-cloud-save-update]')?.addEventListener('click',v45CloudSaveUpdate);$('[data-cloud-load]').onclick=v45CloudLoad;
     $('[data-account-login]')?.addEventListener('click',()=>v45AccountSignIn(false));$('[data-account-register]')?.addEventListener('click',()=>v45AccountSignIn(true));$('[data-account-signout]')?.addEventListener('click',v45AccountSignOut);
-    $('[data-account-save]').forEach(b=>b.onclick=()=>v45AccountSave(+b.dataset.accountSave));$('[data-account-load]').forEach(b=>b.onclick=()=>v45AccountLoad(+b.dataset.accountLoad));$('[data-account-delete]').forEach(b=>b.onclick=()=>v45AccountDelete(+b.dataset.accountDelete));
+    $$('[data-account-save]').forEach(b=>b.onclick=()=>v45AccountSave(+b.dataset.accountSave));$$('[data-account-load]').forEach(b=>b.onclick=()=>v45AccountLoad(+b.dataset.accountLoad));$$('[data-account-delete]').forEach(b=>b.onclick=()=>v45AccountDelete(+b.dataset.accountDelete));
   }
 
   const v45EndTurn=endHumanTurn;
@@ -3126,7 +3150,7 @@
       const p=currentPlayer(),mine=p?.onlineParticipantId===onlineSession.participantId||p?.type==='ai';
       if(p?.type==='remote'||!mine){
         const b=$('#statusBanner');b.className='status-banner';b.textContent=`Online: ${p?.name||p?.family||'Mitspieler'} ist am Zug. Die Ansicht aktualisiert sich automatisch.`;
-        $('#gameScreen .content-area button').forEach(x=>x.disabled=true);
+        $$('#gameScreen .content-area button').forEach(x=>x.disabled=true);
       }
     }
   };
@@ -3332,7 +3356,7 @@
     const spec=DECISIONS[dec.type];if(!spec)return;
     const d=dec.data?.district?DISTRICTS.find(x=>x.id===dec.data.district):null;
     openDialog(`<div class="dialog-wrap decision-dialog"><div class="dialog-head"><div><p class="eyebrow">Entscheidung · Runde ${dec.round}</p><h2>${esc(spec.title)}</h2></div><button class="icon-btn" data-close>✕</button></div><p>${esc(spec.intro(d))}</p><div class="dialog-list">${spec.options.map(o=>{const enough=o.cost===0||p.clean>=o.cost||p.dirty>=o.cost;return `<div class="dialog-option"><div><strong>${esc(o.name)}</strong><p>${esc(o.desc)}${o.cost?` · Kosten ${fmt(o.cost)}`:''}</p></div><button class="btn btn-primary" data-decision="${o.id}" ${enough?'':'disabled'}>Wählen</button></div>`}).join('')}</div></div>`);
-    $('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
+    $$('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
   }
 
   function v46AiTrade(p){
@@ -3583,7 +3607,7 @@
       :'<div class="empty-state">Noch keine abgeschlossenen Verfahren.</div>';
 
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Justiz & Verteidigung</p><h2>Gerichtsakte</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-visual-banner"><img src="./assets/event-court.webp" alt="Gerichtssaal im Noir-Stil"><div><small>STAATSANWALTSCHAFT</small><strong>Jede Akte erzählt eine Geschichte. Sorge dafür, dass sie nicht mit deiner Verurteilung endet.</strong></div></div>${activeHtml}<h3>Fallarchiv</h3><div class="dialog-list">${history}</div></div>`);
-    $('[data-court]').forEach(btn=>btn.onclick=()=>resolveCase(p,c,btn.dataset.court,false));
+    $$('[data-court]').forEach(btn=>btn.onclick=()=>resolveCase(p,c,btn.dataset.court,false));
   }
 
   function resolveAiCase(p,c){
@@ -3751,8 +3775,8 @@
       }).join('')}</div>`;
     }).join('');
     openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Logistik & Wartung</p><h2>Arsenal & Fuhrpark</h2></div><button class="icon-btn" data-close>✕</button></div><p class="muted">Einsatzmittel verschleißen bei Operationen. Schlechter Zustand reduziert ihre Wirkung und kann zusätzliche Spuren erzeugen.</p>${sections}</div>`);
-    $('[data-final-buy]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalBuy.split(':');buyEquipment(type,id);});
-    $('[data-final-repair]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalRepair.split(':');repairEquipment(type,id);});
+    $$('[data-final-buy]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalBuy.split(':');buyEquipment(type,id);});
+    $$('[data-final-repair]').forEach(btn=>btn.onclick=()=>{const [type,id]=btn.dataset.finalRepair.split(':');repairEquipment(type,id);});
   }
 
   openMachineManager=function(bid){
@@ -3762,12 +3786,12 @@
       const cond=Math.round(m.condition),cost=Math.max(180,Math.round((100-cond)*18));
       return `<div class="dialog-option"><div><strong>${esc(m.name)}</strong><p>Zustand ${cond}% · aktueller Ort: ${esc(MACHINE_LOCATIONS.find(x=>x.id===m.location)?.name||'Unbekannt')}</p><div class="healthbar"><i style="width:${cond}%"></i></div></div><div class="mini-actions"><select data-machine-loc="${m.id}">${MACHINE_LOCATIONS.map(l=>`<option value="${l.id}" ${m.location===l.id?'selected':''}>${esc(l.name)} · x${l.mult.toFixed(2)}</option>`).join('')}</select><button class="btn btn-secondary" data-machine-maintain="${m.id}" ${cond>=100?'disabled':''}>Warten ${fmt(cost)}</button></div></div>`;
     }).join('')}</div><div class="dialog-footer"><button class="btn btn-secondary" data-route-manager>Automatenroute zuweisen</button></div></div>`);
-    $('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{
+    $$('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{
       const m=b.machines.find(x=>x.id===sel.dataset.machineLoc);
       if(totalLiquid(p)<300){sel.value=m.location;return toast('Du brauchst 300 $ für den Standortwechsel.');}
       m.location=sel.value;spend(p,300,false);ledger(p,'Automat umgesetzt',-300,'expense');saveGame();openMachineManager(bid);
     });
-    $('[data-machine-maintain]').forEach(btn=>btn.onclick=()=>{
+    $$('[data-machine-maintain]').forEach(btn=>btn.onclick=()=>{
       const m=b.machines.find(x=>x.id===btn.dataset.machineMaintain);if(!m)return;
       const cost=Math.max(180,Math.round((100-m.condition)*18));
       if(p.clean<cost)return toast('Nicht genug sauberes Geld.');
@@ -3864,7 +3888,7 @@
         ['Stellvertreter',leader?esc(leader.name):'Keiner',leader?'positive':'negative'],
         ['Organisationseffizienz',`${eff}%`,eff>=90?'positive':eff<80?'negative':'']
       ])}</div>`;
-    $('[data-prison-final]').forEach(b=>b.onclick=()=>prisonAction(b.dataset.prisonFinal));
+    $$('[data-prison-final]').forEach(b=>b.onclick=()=>prisonAction(b.dataset.prisonFinal));
     return true;
   }
 
@@ -3962,7 +3986,7 @@
       <div class="dialog-option"><div><strong>Politisches Schutzschild</strong><p>180.000 $ schmutziges Geld. Korruption und Informanten helfen, können aber auffliegen.</p></div><button class="btn btn-secondary" data-final-choice="politics">Netzwerk nutzen</button></div>
       <div class="dialog-option"><div><strong>Offener Machtkampf</strong><p>Mindestens 2 Revolverhelden. Brutal, schnell und sehr auffällig.</p></div><button class="btn btn-danger" data-final-choice="war">Krieg</button></div>
     </div></div>`);
-    $('[data-final-choice]').forEach(b=>b.onclick=()=>{closeDialog();applyFinalChoice(p,b.dataset.finalChoice,false);});
+    $$('[data-final-choice]').forEach(b=>b.onclick=()=>{closeDialog();applyFinalChoice(p,b.dataset.finalChoice,false);});
   }
 
   const basePower=powerIndex;
@@ -4065,6 +4089,20 @@
       list.insertAdjacentHTML('afterbegin',`<div class="situation-item" data-final-city><span>Endgame</span><button class="btn ${p.finalCrisis.active?'btn-danger':'btn-secondary'}" data-open-final>${esc(p.finalCrisis.resolved?p.finalCrisis.outcome:'Krise aktiv')}</button></div>`);
       $('[data-open-final]',list).onclick=openFinalCrisis;
     }
+  };
+
+  const finalBaseGameOver=showGameOver;
+  showGameOver=function(){
+    finalBaseGameOver();
+    const winner=state?.players?.find(x=>x.id===state.winnerId);
+    const root=$('#dialogContent');
+    if(!state?.gameOver||winner?.type!=='human'||!root||root.querySelector('[data-freeplay]'))return;
+    root.insertAdjacentHTML('beforeend',`<div class="dialog-footer post-victory-actions"><button class="btn btn-secondary" data-freeplay>Nach dem Sieg weiterspielen</button></div>`);
+    $('[data-freeplay]')?.addEventListener('click',()=>{
+      state.gameOver=false;state.winnerId=null;state.endReason='';
+      state.postVictory=true;state.settings=state.settings||{};state.settings.length='endless';
+      closeDialog();saveGame();renderAll();toast('Freies Spiel aktiviert. Story, Betriebe und Rivalen bleiben vollständig erhalten.');
+    });
   };
 
   window.SyndikatFinalSystems={openArsenal:openArsenalFinal,openFinalCrisis};
