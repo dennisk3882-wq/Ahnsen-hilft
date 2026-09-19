@@ -53,7 +53,23 @@
   }
   function v43CrewScore(p){
     const crew=p.crews[0],members=crew?crew.memberIds.map(id=>p.staffRoster.find(s=>s.id===id)).filter(Boolean):activeStaff(p).filter(s=>['gunman','bodyguard','informant'].includes(s.role)).slice(0,4);
-    return members.length?members.reduce((a,s)=>a+s.skill+s.level*4,0)/members.length:0;
+    const staffScore=members.length?members.reduce((a,s)=>a+s.skill+s.level*4,0)/members.length:0;
+    const defs=v43ItemDefs();
+    let gearBonus=0;
+    for(const type of ['weapons','vehicles','gear']){
+      const best=(p.inventory?.[type]||[]).map(item=>{
+        const def=defs[type]?.[item.id],condition=clamp(Number(item.condition)||100,15,100);
+        return def?def.power*(condition/100):0;
+      }).sort((a,b)=>b-a)[0]||0;
+      gearBonus+=best;
+    }
+    return staffScore+gearBonus*.7;
+  }
+  function v43WearAiEquipment(p){
+    for(const type of ['weapons','vehicles','gear']){
+      const item=(p.inventory?.[type]||[]).sort((a,b)=>(b.condition||100)-(a.condition||100))[0];
+      if(item)item.condition=clamp((Number(item.condition)||100)-rand(2,type==='gear'?7:5),15,100);
+    }
   }
   function v43AiSpecialOp(p){
     if(p.actionPoints<2||p.staff.gunman<1||p.dirty<5000)return false;
@@ -66,13 +82,13 @@
       const b=[...t.businesses].sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0],def=businessSecurity(t,b);
       p.dirty-=3500;p.actionPoints-=2;p.roundActivity=(p.roundActivity||0)+4;p.heat=clamp(p.heat+13,0,100);
       if(chance(clamp(.38+(score-def)/160,.12,.83))){b.health=clamp(b.health-rand(30,58),0,100);if(!b.health)t.businesses=t.businesses.filter(x=>x.id!==b.id);p.stats.operationsSuccess=(p.stats.operationsSuccess||0)+1;if(p.crews[0])p.crews[0].wins++;}else{p.stats.operationsFailed=(p.stats.operationsFailed||0)+1;if(p.crews[0])p.crews[0].losses++;}
-      adjustRelation(p,t,-20);return true;
+      adjustRelation(p,t,-20);v43WearAiEquipment(p);return true;
     }
     if(activeStaff(t).length&&p.staff.informant>=1&&chance(feud?.28:.08)){
       const target=[...activeStaff(t)].sort((a,b)=>a.loyalty-b.loyalty)[0];
       p.dirty-=5000;p.actionPoints-=2;p.roundActivity=(p.roundActivity||0)+4;p.heat=clamp(p.heat+18,0,100);
       if(chance(clamp(.25+score/300+(55-target.loyalty)/180,.08,.72))){target.heldUntil=state.round+2;p.stats.operationsSuccess=(p.stats.operationsSuccess||0)+1;}else p.stats.operationsFailed=(p.stats.operationsFailed||0)+1;
-      adjustRelation(p,t,-28);return true;
+      adjustRelation(p,t,-28);v43WearAiEquipment(p);return true;
     }
     return false;
   }
