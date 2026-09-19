@@ -21,12 +21,12 @@ function watchErrors(page){
 test.use({ viewport:{width:390,height:844}, hasTouch:true, isMobile:true });
 test.setTimeout(60000);
 
-test('mobile v5.5 core and management systems', async ({page})=>{
+test('mobile v5.6 core and management systems', async ({page})=>{
   const errors=watchErrors(page);
   await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());
   await page.goto('http://127.0.0.1:4173/index-source.html',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#menuScreen')).toBeVisible();
-  await expect(page.locator('.v4-badge')).toContainText('v5.5');
+  await expect(page.locator('.v4-badge')).toContainText('v5.6');
 
   await page.locator('#settingsBtn').tap();
   await expect(page.locator('#gameDialog')).toBeVisible();
@@ -113,20 +113,20 @@ test('mobile v5.5 core and management systems', async ({page})=>{
   expect(errors).toEqual([]);
 });
 
-test('offline shell declares complete v5.5 PWA', async ({page})=>{
+test('offline shell declares complete v5.6 PWA', async ({page})=>{
   const errors=watchErrors(page);
   await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());
   await page.goto('http://127.0.0.1:4173/index-source.html',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('.v4-badge')).toContainText('v5.5');
+  await expect(page.locator('.v4-badge')).toContainText('v5.6');
   const manifest=await page.locator('link[rel="manifest"]').getAttribute('href');
   expect(manifest).toBe('./manifest.webmanifest');
-  const cache=await page.request.get('http://127.0.0.1:4173/index-source.htmlsw.js');
-  expect(await cache.text()).toContain("syndikat-v5-5-0");
+  const cache=await page.request.get('http://127.0.0.1:4173/sw.js');
+  expect(await cache.text()).toContain("syndikat-v5-6-0");
   expect(errors).toEqual([]);
 });
 
 
-test('advanced v5.5 systems open and render without browser errors', async ({page})=>{
+test('advanced v5.6 systems open and render without browser errors', async ({page})=>{
   const errors=watchErrors(page);
   await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());
   await page.goto('http://127.0.0.1:4173/index-source.html',{waitUntil:'domcontentloaded'});
