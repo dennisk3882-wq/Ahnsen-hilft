@@ -108,3 +108,8 @@ body.high-contrast{--bg:#000;--bg2:#050505;--panel:#0b0b0b;--panel2:#111;--line:
 body.reduce-motion *,body.reduce-motion *:before,body.reduce-motion *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.compact-ui .business-card,body.compact-ui .crime-card{padding:.68rem}body.compact-ui .dialog-option{padding:.62rem}
 @media(max-width:620px){.achievement-grid{grid-template-columns:1fr}.guide-coach{right:14px;bottom:92px}}
+
+/* Syndikat v4.3 depth */
+.v43-site{display:block;color:#778391;margin-top:.18rem;font-size:.72rem}
+.city-event-row{background:linear-gradient(90deg,rgba(217,173,84,.1),transparent);margin:0 -.2rem;padding-left:.2rem;padding-right:.2rem}
+.final-summary{margin-top:1rem}
