@@ -198,7 +198,7 @@ assert(src.includes('SYNDIKAT_V56_RUNTIME_FACADE_BEGIN'));
 // Offline shell must include the modular/cloud files and update path.
 {
   const sw=fs.readFileSync('Syndikat/sw.js','utf8');
-  const index=fs.readFileSync('Syndikat/index.html','utf8');
+  const index=fs.readFileSync('Syndikat/index-source.html','utf8');
   assert(sw.includes('./js/cloud.js'));
   assert(sw.includes('SKIP_WAITING'));
   assert(index.includes('./cloud-config.js'));
