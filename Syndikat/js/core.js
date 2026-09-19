@@ -1130,8 +1130,8 @@
   function violence32(p,diff){
     const reserve=reserve32(p);if(p.actionPoints<2||p.staff.gunman<1||p.dirty<2500||totalLiquid(p)<reserve)return;
     const targets=state.players.filter(t=>t.id!==p.id&&!t.eliminated&&!pactActive(p,t)&&!allianceActive(p,t));if(!targets.length)return;const t=[...targets].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
-    if(p.staff.gunman>=2&&activeStaff(t).length&&p.dirty>=5000&&chance(.035*diff)){const s=[...activeStaff(t)].sort((a,b)=>b.skill-a.skill)[0];dirty32(p,5000);p.actionPoints-=2;act32(p,4);const ok=chance(clamp(.25+roleSkill(p,'gunman')/550+roleSkill(p,'informant')/950-roleSkill(t,'guard')/650,.06,.72));p.heat=clamp(p.heat+32,0,100);adjustRelation(p,t,-50);if(ok){t.staffRoster=t.staffRoster.filter(x=>x.id!==s.id);syncStaffCounts(t);p.reputation+=5;p.stats.attacksSuccess++;}return;}
-    if(t.businesses.length&&chance(.12*diff)){const b=[...t.businesses].sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0];dirty32(p,2500);p.actionPoints-=2;act32(p,3);const ok=chance(clamp(.40+(roleSkill(p,'gunman')*.42-businessSecurity(t,b))/120,.08,.85));p.heat=clamp(p.heat+15,0,100);adjustRelation(p,t,-20);if(ok){b.health=clamp(b.health-rand(25,50),0,100);if(!b.health)t.businesses=t.businesses.filter(x=>x.id!==b.id);p.stats.attacksSuccess++;}}
+    if(p.staff.gunman>=2&&activeStaff(t).length&&p.dirty>=5000&&chance(.02)){const s=[...activeStaff(t)].sort((a,b)=>b.skill-a.skill)[0];dirty32(p,5000);p.actionPoints-=2;act32(p,4);const ok=chance(clamp(.25+roleSkill(p,'gunman')/550+roleSkill(p,'informant')/950-roleSkill(t,'guard')/650,.06,.72));p.heat=clamp(p.heat+32,0,100);adjustRelation(p,t,-50);if(ok){t.staffRoster=t.staffRoster.filter(x=>x.id!==s.id);syncStaffCounts(t);p.reputation+=5;p.stats.attacksSuccess++;}return;}
+    if(t.businesses.length&&chance(.075)){const b=[...t.businesses].sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0];dirty32(p,2500);p.actionPoints-=2;act32(p,3);const ok=chance(clamp(.40+(roleSkill(p,'gunman')*.42-businessSecurity(t,b))/120,.08,.85));p.heat=clamp(p.heat+15,0,100);adjustRelation(p,t,-20);if(ok){b.health=clamp(b.health-rand(18,42),0,100);if(!b.health)t.businesses=t.businesses.filter(x=>x.id!==b.id);p.stats.attacksSuccess++;}}
   }
 
   aiTurn=function(p){
@@ -1153,7 +1153,14 @@
     while(p.actionPoints>0&&p.businessPurchasesThisTurn<2&&buys<2){
       const f=focus32(p).map((did,i)=>({did,i,share:districtShare(p,did),controlled:districtShare(p,did)>=50})).sort((a,b)=>(a.controlled-b.controlled)||(b.share-a.share)||a.i-b.i),did=f[0]?.did||DISTRICTS[0].id;
       const options=Object.entries(BUSINESSES).filter(([type,b])=>b.tier<=tier32(p)).sort((a,b)=>{
-        const score=x=>{const [type,d]=x,roi=(d.baseIncome-d.upkeep)/Math.max(1,cost32(type)),inf=d.influence/(d.slotUse||1);return inf*2.4+roi*360+(d.tier===tier32(p)?10:0);};return score(b)-score(a);
+        const score=x=>{const [type,d]=x,roi=(d.baseIncome-d.upkeep)/Math.max(1,cost32(type)),inf=d.influence/(d.slotUse||1),top=d.tier===tier32(p)?10:0;
+          if(p.profile==='economic')return inf*2.05+roi*560+top*1.15;
+          if(p.profile==='corrupt')return inf*2.65+roi*430+top+(did==='center'?8:0);
+          if(p.profile==='defensive')return inf*2.50+roi*380+top+(d.upkeep<2500?4:0);
+          if(p.profile==='smuggler')return inf*2.35+roi*420+top+(did==='harbor'||did==='industrial'?7:0);
+          if(p.profile==='balanced')return inf*2.35+roi*440+top;
+          return inf*2.40+roi*350+top;
+        };return score(b)-score(a);
       });
       let pick=options.find(([type])=>canBuy32(p,type,did));
       if(!pick&&tier32(p)>=3&&options.length){const affordable=options.filter(([type,d])=>d.tier>=2?p.clean>=cost32(type)+reserve:totalLiquid(p)>=cost32(type)+reserve);if(affordable.length){const high=affordable.filter(([type,d])=>d.tier>=Math.max(3,tier32(p)-1));const target=(high.length?high:affordable)[0];const need=BUSINESSES[target[0]].slotUse||1;redevelop32(p,did,need);if(canBuy32(p,target[0],did))pick=target;}}
@@ -2079,7 +2086,9 @@
   const v43Ai=aiTurn;
   aiTurn=function(p){
     v43Ensure(p);v43BuyAiGear(p);v43BuildAiCrew(p);
-    if(p.profile==='aggressive'||(p.casusbelli&&Object.values(p.casusbelli).some(r=>r>=state.round))){if(v43AiSpecialOp(p)){p.lastAction='Geplante Operation';return;}}
+    const hasCause=!!(p.casusbelli&&Object.values(p.casusbelli).some(r=>r>=state.round));
+    const triesSpecial=hasCause||(p.profile==='aggressive'&&chance(.32));
+    if(triesSpecial&&v43AiSpecialOp(p)){p.lastAction='Geplante Operation';return;}
     v43Ai(p);
   };
 
