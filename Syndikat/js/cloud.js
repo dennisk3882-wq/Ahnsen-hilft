@@ -45,6 +45,24 @@
   async function rpc(name,{code,token,body}){
     return await req('rpc/'+name,{method:'POST',code,token,body});
   }
+  async function edge(name,body,{auth=false}={}){
+    if(!api.enabled)throw new Error('Syndikat Cloud ist nicht konfiguriert.');
+    const headers={apikey:cfg.publishableKey,'Content-Type':'application/json'};
+    if(auth){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
+      const {data,error}=await client.auth.getSession();if(error)throw error;
+      const access=data?.session?.access_token;if(!access)throw new Error('authentication required');
+      headers.Authorization='Bearer '+access;
+    }
+    const r=await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/'+name,{method:'POST',headers,body:JSON.stringify(body||{})});
+    const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch{data={error:text}};
+    if(!r.ok)throw new Error(data?.error||text||('Edge HTTP '+r.status));
+    return data;
+  }
+  function vapidBytes(key){
+    const pad='='.repeat((4-key.length%4)%4),base=(key+pad).replace(/-/g,'+').replace(/_/g,'/');
+    const raw=atob(base);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+  }
 
   const api={
     enabled:!!(cfg.enabled&&cfg.url&&cfg.publishableKey),
@@ -135,6 +153,47 @@
     async signOutAccount(){
       const client=accountFactory();if(!client)return;
       const {error}=await client.auth.signOut();if(error)throw error;
+    },
+    async resetPasswordAccount(email){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
+      const redirectTo=location.origin+location.pathname+'?account-reset=1';
+      const {data,error}=await client.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;return data;
+    },
+    async updatePasswordAccount(password){
+      const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
+      const {data,error}=await client.auth.updateUser({password});if(error)throw error;return data;
+    },
+    async deleteAccount(){
+      const data=await edge('syndikat-delete-account',{}, {auth:true});
+      try{await accountFactory()?.auth.signOut()}catch{}
+      return data;
+    },
+    async getTurnPushStatus(session){
+      if(!session||!('serviceWorker' in navigator)||!('PushManager' in window))return false;
+      const reg=await navigator.serviceWorker.ready;return !!(await reg.pushManager.getSubscription());
+    },
+    async enableTurnPush(session){
+      if(!session)throw new Error('Keine Online-Partie aktiv.');
+      if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window))throw new Error('Push-Benachrichtigungen werden auf diesem Gerät nicht unterstützt.');
+      const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Benachrichtigungen wurden nicht erlaubt.');
+      const key=await edge('syndikat-turn-push',{action:'vapid'});
+      const reg=await navigator.serviceWorker.ready;
+      let sub=await reg.pushManager.getSubscription();
+      if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:vapidBytes(key.publicKey)});
+      await edge('syndikat-turn-push',{action:'subscribe',gameCode:session.code,participantId:session.participantId,token:session.token,subscription:sub.toJSON()});
+      return true;
+    },
+    async disableTurnPush(session){
+      if(!session||!('serviceWorker' in navigator))return false;
+      const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+      if(!sub)return false;
+      try{await edge('syndikat-turn-push',{action:'unsubscribe',gameCode:session.code,participantId:session.participantId,token:session.token,endpoint:sub.endpoint})}catch{}
+      await sub.unsubscribe();return true;
+    },
+    async notifyActiveTurn(session){
+      if(!session)return 0;
+      const r=await edge('syndikat-turn-push',{action:'notify-active',gameCode:session.code,participantId:session.participantId,token:session.token});
+      return Number(r?.sent||0);
     },
     async accountListSaves(){
       const client=accountFactory();if(!client)throw new Error('Kontofunktion ist nicht verfügbar.');
