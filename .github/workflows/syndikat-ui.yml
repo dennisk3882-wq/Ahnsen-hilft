@@ -1,0 +1,33 @@
+name: Syndikat mobile UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Syndikat/**'
+      - '.github/workflows/syndikat-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local PWA
+        run: |
+          python3 -m http.server 4173 --directory Syndikat > /tmp/syndikat-http.log 2>&1 &
+          for i in {1..20}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Run Android-size touch smoke test
+        run: npx playwright test Syndikat/tests/ui.spec.cjs --reporter=line --workers=1
