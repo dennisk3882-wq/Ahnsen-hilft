@@ -11,14 +11,22 @@ on:
 
 jobs:
   deep-balance:
+    strategy:
+      fail-fast: false
+      matrix:
+        difficulty: [easy, normal, hard, boss]
+        length: [short, normal, long]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
+    env:
+      SYNDIKAT_DIFFICULTY: ${{ matrix.difficulty }}
+      SYNDIKAT_LENGTH: ${{ matrix.length }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build canonical core bundle
-        run: node Syndikat/tools/build-core.cjs
-      - name: Run 240-campaign deep balance matrix
-        run: node Syndikat/tests/deep-balance.cjs
+      - name: Verify canonical core bundle
+        run: node Syndikat/tools/build-core.cjs --check
+      - name: Run 20 full-table campaigns
+        run: node Syndikat/tests/deep-balance-shard.cjs
