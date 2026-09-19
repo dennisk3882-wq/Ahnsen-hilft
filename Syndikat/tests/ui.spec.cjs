@@ -1,5 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
+async function expectImageLoaded(locator){
+  await expect(locator).toBeVisible();
+  await expect.poll(async()=>locator.evaluate(img=>img.complete?img.naturalWidth:0),{timeout:5000}).toBeGreaterThan(0);
+}
+
 async function closeDialog(page){
   const d=page.locator('#gameDialog');
   if(await d.isVisible().catch(()=>false)){
@@ -27,21 +32,18 @@ test('mobile PWA core journey and visual assets', async ({page})=>{
 
   await expect(page.locator('#gameScreen')).toHaveClass(/active/);
   const map=page.locator('.city-art-map img').first();
-  await expect(map).toBeVisible();
-  expect(await map.evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
+  await expectImageLoaded(map);
   await expect(page.locator('.city-hotspot')).toHaveCount(8);
   await expect(page.locator('.city-map-tag')).toHaveCount(8);
   await expect(page.locator('[data-map-mode]')).toHaveCount(5);
 
   await page.locator('[data-map-mode="ownership"]').tap();
   await page.locator('.city-hotspot[data-map-district="oldtown"]').tap();
-  await expect(page.locator('.district-visual img')).toBeVisible();
-  expect(await page.locator('.district-visual img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
+  await expectImageLoaded(page.locator('.district-visual img'));
 
   await page.locator('.bottom-bar [data-view="businesses"]').tap();
   await page.locator('[data-action="open-buy"]').tap();
-  await expect(page.locator('.business-buy-thumb').first()).toBeVisible();
-  expect(await page.locator('.business-buy-thumb').first().evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
+  await expectImageLoaded(page.locator('.business-buy-thumb').first());
   await page.locator('[data-buy="machines"]').tap();
   await expect(page.locator('#businessList .business-card')).toHaveCount(1);
   await expect(page.locator('#businessList .business-thumb')).toHaveCount(1);
@@ -52,8 +54,7 @@ test('mobile PWA core journey and visual assets', async ({page})=>{
   await page.locator('[data-hire="informant"]').tap();
   await expect(page.locator('#staffGrid .person-card')).toHaveCount(1);
   const staffImg=page.locator('#staffGrid .person-card img').first();
-  await expect(staffImg).toBeVisible();
-  expect(await staffImg.evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
+  await expectImageLoaded(staffImg);
 
   await page.locator('.bottom-bar [data-action="more"]').tap();
   await page.locator('#gameDialog [data-go="missions"]').tap();
