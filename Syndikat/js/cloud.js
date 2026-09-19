@@ -117,6 +117,11 @@
       if(patch?.game_state&&patch?.status==='playing')return this.submitTurn(session,revision,patch.game_state,patch.active_participant_id,'playing',patch.winner_participant_id||null);
       throw new Error('Direkte Online-Spielstandsänderungen sind serverseitig gesperrt.');
     },
+    async deleteOnlineGame(session){
+      if(!session?.host)throw new Error('Nur der Host kann die Online-Partie löschen.');
+      await req('syndikat_online_games?game_code=eq.'+encodeURIComponent(session.code),{method:'DELETE',code:session.code,token:session.token,prefer:'return=minimal'});
+      return true;
+    },
     watchGame(session,onSignal){
       const client=realtimeFactory();if(!client)return null;
       if(realtimeChannel){try{client.removeChannel(realtimeChannel)}catch{}realtimeChannel=null;}

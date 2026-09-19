@@ -690,3 +690,13 @@ alter table public.syndikat_push_config enable row level security; revoke all on
 create table if not exists public.syndikat_push_subscriptions(id uuid primary key default gen_random_uuid(),game_code text not null references public.syndikat_online_games(game_code) on delete cascade,participant_id uuid not null references public.syndikat_online_players(participant_id) on delete cascade,endpoint text not null,p256dh text not null,auth text not null,user_agent text not null default '',created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(game_code,participant_id,endpoint));
 alter table public.syndikat_push_subscriptions enable row level security; revoke all on public.syndikat_push_subscriptions from anon,authenticated;
 create index if not exists syndikat_push_target_idx on public.syndikat_push_subscriptions(game_code,participant_id);
+
+-- v5.6 host cleanup for abandoned/test online games.
+grant delete on public.syndikat_online_games to anon;
+drop policy if exists syndikat_game_delete on public.syndikat_online_games;
+create policy syndikat_game_delete on public.syndikat_online_games
+for delete to anon
+using (
+  game_code = syndikat_private.request_header('x-syndikat-game')
+  and syndikat_private.is_host(game_code)
+);
