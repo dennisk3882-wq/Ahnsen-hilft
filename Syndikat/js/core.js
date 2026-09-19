@@ -2622,7 +2622,7 @@
   const previousRenderStaff=renderStaff;
   renderStaff=function(){
     previousRenderStaff();const p=currentPlayer();
-    $$$('#staffGrid [data-staff-person]').forEach(btn=>{
+    $$$$('#staffGrid [data-staff-person]').forEach(btn=>{
       const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!s||!card)return;
       const top=card.querySelector('.shop-top');if(!top||top.querySelector('.person-portrait,.person-initial-avatar'))return;
       const img=staffPortrait(s);
@@ -2769,7 +2769,7 @@
   const oldStaff=renderStaff;
   renderStaff=function(){
     oldStaff();const p=currentPlayer();
-    $('#staffGrid [data-staff-person]').forEach(btn=>{
+    $$('#staffGrid [data-staff-person]').forEach(btn=>{
       const person=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!person||!card)return;
       const img=card.querySelector('.person-portrait'),initial=card.querySelector('.person-initial-avatar'),src=staffVisual(person);
       if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="person-portrait role-portrait" src="${src}" alt="">`;
@@ -2794,7 +2794,7 @@
   function decoratePropertyMarket(){
     const root=$('#dialogContent');if(!root)return;
     const kinds={Ladenlokal:'shop','Wohn- & Geschäftshaus':'block','Lagerhalle':'warehouse','Premium-Grundstück':'prime'};
-    $$('.dialog-option',root).forEach(row=>{
+    $$$('.dialog-option',root).forEach(row=>{
       if(row.querySelector('.property-thumb'))return;
       const txt=row.textContent||'';for(const [label,id] of Object.entries(kinds))if(txt.includes(label)){row.insertAdjacentHTML('afterbegin',`<img class="property-thumb" src="${PROPERTY_ART[id]}" alt="">`);break;}
     });
@@ -2838,7 +2838,7 @@
     setTimeout(()=>{const root=$('#dialogContent .v4-operation');if(root&&!root.querySelector('.operation-hero'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="operation-hero" src="${OP_ART[kind]||OP_ART.sabotage}" alt="">`);},10);
   };
   if(window.SyndikatV4)window.SyndikatV4.openOperation=v4OpenOperationPlanner;
-  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
+  function decorateArsenal(){const root=$('#dialogContent');if(!root)return;$$$('.dialog-option',root).forEach(row=>{if(row.querySelector('.item-thumb'))return;const txt=row.textContent||'';for(const group of Object.values(window.SyndikatV4?.items||{}))for(const [id,def] of Object.entries(group))if(txt.includes(def.name)&&ITEM_ART[id]){row.insertAdjacentHTML('afterbegin',`<img class="item-thumb" src="${ITEM_ART[id]}" alt="">`);return;}});}
   document.addEventListener('click',e=>{const b=e.target.closest?.('[data-v4-arsenal],[data-arsenal]');if(b)setTimeout(decorateArsenal,30);});
 
   const EVENTS2=[
