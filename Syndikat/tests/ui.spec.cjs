@@ -86,7 +86,7 @@ test('mobile v5.5 core and management systems', async ({page})=>{
   await page.locator('[data-action="bank"]').tap();
   await expect(page.locator('[data-loan-amt]').first()).toBeVisible();
   await page.locator('[data-loan-amt]').first().tap();
-  await expect(page.locator('#loanList')).not.toBeEmpty();
+  await expect(page.locator('#ledgerList [data-repay-loan]').first()).toBeVisible();
 
   await page.locator('.bottom-bar [data-action="more"]').tap();
   await page.locator('#gameDialog [data-go="missions"]').tap();

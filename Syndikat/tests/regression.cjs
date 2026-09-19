@@ -238,6 +238,8 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(runtime.includes('const oldPlanner=window.SyndikatV4?.openOperation'),'operation artwork must decorate the exported V4 planner API');
   assert(runtime.includes('storyVictoryTarget'),'chapter 20 must scale with the selected campaign victory rules');
   assert(runtime.includes('data-freeplay'),'a human winner must be able to continue optional story/content after victory');
+  assert(runtime.includes("['Speichern, Cloud und Online'"),'full 16-topic tutorial must cover cloud/online');
+  assert(runtime.includes('data-sfx')&&runtime.includes('data-music'),'audio controls must remain available in the final game menu');
 }
 
 // v5.4 complete visual expansion guards
@@ -265,24 +267,34 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   assert(sw.includes('syndikat-v5-5-0'),'PWA cache must match the v5.5 stability release');
 }
 
-// Deterministic campaign soak: every finite mode must resolve repeatedly without exceptions.
+// Deterministic balance/soak matrix: 240 finite campaigns across all difficulties and lengths.
 {
-  for(const length of ['short','normal','long']){
-    for(let seed=1;seed<=10;seed++){
-      context.Math.random=seeded(seed*7919+length.length);
-      const st=mk({ais:3,length,difficulty:'normal'});
-      let guard=0;
-      assert.doesNotThrow(()=>{
-        while(!st.gameOver&&guard++<1600){
-          const p=st.players[st.currentIndex];
-          if(p.type==='ai')T.aiTurn(p);
-          T.processEndOfTurn(p);
-          if(!st.gameOver)T.advanceIndex();
-        }
-      },length+' campaign simulation must not throw');
-      assert.strictEqual(st.gameOver,true,length+' campaign must resolve');
+  const balanceWins={};
+  let totalRuns=0;
+  for(const difficulty of ['easy','normal','hard','boss']){
+    balanceWins[difficulty]={};
+    for(const length of ['short','normal','long']){
+      for(let seed=1;seed<=20;seed++){
+        context.Math.random=seeded(seed*7919+length.length+difficulty.length*101);
+        const st=mk({ais:3,length,difficulty});
+        let guard=0;
+        assert.doesNotThrow(()=>{
+          while(!st.gameOver&&guard++<1800){
+            const p=st.players[st.currentIndex];
+            if(p.type==='ai')T.aiTurn(p);
+            T.processEndOfTurn(p);
+            if(!st.gameOver)T.advanceIndex();
+          }
+        },difficulty+' '+length+' campaign simulation must not throw');
+        assert.strictEqual(st.gameOver,true,difficulty+' '+length+' campaign must resolve');
+        const winner=st.players.find(p=>p.id===st.winnerId)?.family||'none';
+        balanceWins[difficulty][winner]=(balanceWins[difficulty][winner]||0)+1;
+        totalRuns++;
+      }
     }
   }
+  assert.strictEqual(totalRuns,240,'balance matrix must execute 240 finite campaigns');
+  console.log('Syndikat balance matrix:',JSON.stringify(balanceWins));
   const endless=mk({ais:0,length:'endless'});endless.round=500;T.checkVictory();
   assert.strictEqual(endless.gameOver,false,'endless mode must never auto-resolve');
 }
