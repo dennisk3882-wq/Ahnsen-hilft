@@ -1,0 +1,138 @@
+const assert=require('assert');
+const fs=require('fs');
+const vm=require('vm');
+
+const path='Syndikat/js/core.js';
+let src=fs.readFileSync(path,'utf8');
+new Function(src);
+
+const inject=`
+renderAll=function(){};
+renderCity=function(){};
+renderBusinesses=function(){};
+renderActions=function(){};
+renderStaff=function(){};
+renderCorruption=function(){};
+renderFinance=function(){};
+renderMissions=function(){};
+renderRanking=function(){};
+toast=function(){};
+openDialog=function(){};
+closeDialog=function(){};
+showScreen=function(){};
+updateContinueButton=function(){};
+showHandoff=function(){};
+showGameOver=function(){};
+saveGame=function(){};
+window.__TEST__={
+  DISTRICTS,BUSINESSES,AI_PROFILES,blankPlayer,initPlayer,ensureMissions,processEndOfTurn,advanceIndex,aiTurn,
+  powerIndex,rankName,controlledDistricts,netWorth,districtShare,checkVictory,buyBusiness,
+  getState:()=>state,setState:v=>{state=v;}
+};
+`;
+src=src.replace(/\n\s*init\(\);\s*\n\}\)\(\);\s*$/m,'\n'+inject+'\n})();');
+
+function element(){
+  return {open:false,disabled:false,textContent:'',innerHTML:'',value:'',checked:false,dataset:{},style:{},
+    classList:{add(){},remove(){},toggle(){},contains(){return false}},
+    addEventListener(){},removeEventListener(){},querySelector(){return null},querySelectorAll(){return[]},
+    showModal(){this.open=true},close(){this.open=false},append(){},appendChild(){},insertAdjacentHTML(){},click(){},remove(){}};
+}
+const storage=new Map();
+const context={
+  console,
+  localStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},
+  document:{querySelector(){return element()},querySelectorAll(){return[]},createElement(){return element()},addEventListener(){},body:element()},
+  navigator:{},location:{protocol:'https:'},confirm:()=>true,
+  addEventListener(){},setTimeout(){return 0},clearTimeout(){},setInterval(){return 0},clearInterval(){},requestAnimationFrame(){return 0},
+  Blob:function(){},URL:{createObjectURL(){return'blob:'},revokeObjectURL(){}},
+  Date,Math,Object,Array,Set,Map,JSON,Number,String,Boolean,RegExp,Promise,parseInt,parseFloat,isNaN,Infinity,NaN
+};
+context.window=context;
+vm.createContext(context);
+vm.runInContext(src,context,{filename:path});
+const T=context.__TEST__;
+
+function seeded(seed){let x=seed>>>0;return()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296}}
+function mk({ais=0,length='normal',difficulty='normal'}={}){
+  const ps=[T.blankPlayer('Tester','Leone','human')];
+  for(let i=0;i<ais;i++){
+    const pr=T.AI_PROFILES[i%T.AI_PROFILES.length],p=T.blankPlayer(pr.family,pr.family,'ai',pr.style);
+    const m={easy:.85,normal:1,hard:1.2,boss:1.45}[difficulty]||1;
+    p.clean=Math.round(p.clean*m);p.dirty=Math.round(p.dirty*m);ps.push(p);
+  }
+  const st={version:4,round:1,currentIndex:0,players:ps,settings:{difficulty,length},log:[],winnerId:null,gameOver:false,initialPlayerCount:ps.length,initialHumanCount:1};
+  T.setState(st);ps.forEach(p=>{T.initPlayer(p);T.ensureMissions(p)});return st;
+}
+
+// Start progression.
+{
+  const st=mk(),p=st.players[0];
+  assert.strictEqual(T.rankName(p),'Niemand');
+  assert(T.powerIndex(p)<5,'new player power must stay low');
+  assert(p.inventory&&p.investigation&&p.story&&Array.isArray(p.crews),'v4 systems must migrate/init');
+}
+
+// No solo auto-win.
+{
+  const st=mk();st.round=22;T.checkVictory();
+  assert.strictEqual(st.gameOver,false,'solo game must not auto-win at round 22');
+}
+
+// All eliminated should end cleanly.
+{
+  const st=mk({ais:1});st.players.forEach(p=>p.eliminated=true);
+  assert.doesNotThrow(()=>T.checkVictory());
+  assert.strictEqual(st.gameOver,true);
+  assert.strictEqual(st.winnerId,null);
+}
+
+// Human elimination cannot hang on AI turn.
+{
+  const st=mk({ais:3});st.players[0].eliminated=true;T.checkVictory();
+  assert.strictEqual(st.gameOver,true);
+  assert(st.winnerId,'an AI winner should be resolved');
+}
+
+// 100 empty turns must not create wealth.
+{
+  context.Math.random=seeded(7);
+  const st=mk({length:'long'}),p=st.players[0],before=T.netWorth(p);
+  for(let i=0;i<100&&!st.gameOver;i++){T.processEndOfTurn(p);if(!st.gameOver)T.advanceIndex();}
+  assert(T.netWorth(p)<=before*1.05,'idle turns must not be a wealth generator');
+}
+
+// A single machine bundle plus pure idling must not snowball.
+{
+  context.Math.random=seeded(11);
+  const st=mk({length:'long'}),p=st.players[0];
+  T.buyBusiness('machines','oldtown');
+  const afterBuy=T.netWorth(p);
+  for(let i=0;i<100&&!st.gameOver;i++){T.processEndOfTurn(p);if(!st.gameOver)T.advanceIndex();}
+  assert(T.netWorth(p)<=afterBuy*1.15,'single-business idle farming must not snowball');
+}
+
+// Tier 2 business requires clean capital.
+{
+  const st=mk(),p=st.players[0];p.clean=0;p.dirty=250000;p.actionPoints=3;
+  const before=p.businesses.length;T.buyBusiness('bar','oldtown');
+  assert.strictEqual(p.businesses.length,before,'bar must be blocked without clean money');
+}
+
+// Finite campaigns always resolve by deadline, even if human idles.
+{
+  context.Math.random=seeded(19);
+  const st=mk({ais:3,length:'short'});let guard=0;
+  while(!st.gameOver&&guard++<2000){
+    const p=st.players[st.currentIndex];
+    if(p.type==='ai')T.aiTurn(p);
+    T.processEndOfTurn(p);
+    if(!st.gameOver)T.advanceIndex();
+  }
+  assert.strictEqual(st.gameOver,true,'short campaign must resolve');
+  assert(st.round<=92,'short campaign should resolve around round 90');
+}
+
+assert(src.includes('SYNDIKAT_V4_SYSTEMS_BEGIN'));
+assert(src.includes('SYNDIKAT_V42_META_BEGIN'));
+console.log('Syndikat regression suite: OK');
