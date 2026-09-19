@@ -2,7 +2,7 @@
 (function SYNDIKAT_V45_CLOUD_UI(){
   const ONLINE_KEY='syndikat_online_session_v1';
   const CLOUD_SAVE_KEY='syndikat_cloud_save_session_v1';
-  let onlineSession=null,onlineRevision=0,onlinePoll=null,onlineRoster=[];
+  let onlineSession=null,onlineRevision=0,onlinePoll=null,onlineRoster=[],onlineStopWatch=null,onlineTransport='Fallback';
 
   function v45LoadSession(){try{onlineSession=JSON.parse(localStorage.getItem(ONLINE_KEY)||'null')}catch{onlineSession=null}return onlineSession}
   function v45StoreSession(v){onlineSession=v;if(v)localStorage.setItem(ONLINE_KEY,JSON.stringify(v));else localStorage.removeItem(ONLINE_KEY)}
@@ -36,13 +36,20 @@
   }
   function v45StartPolling(){
     if(onlinePoll)clearInterval(onlinePoll);
+    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}
     if(!onlineSession||!v45Cloud()?.enabled)return;
+    onlineTransport='Fallback';
+    onlineStopWatch=v45Cloud().watchGame?.(onlineSession,async signal=>{
+      onlineTransport='Realtime';
+      const rev=Number(signal?.revision)||0;
+      if(signal?.kind==='lobby'||rev>onlineRevision)await v45RefreshOnline(true);
+    })||null;
     onlinePoll=setInterval(async()=>{
       try{
         const game=await v45Cloud().getGame(onlineSession.code,onlineSession.token);
         if(game&&Number(game.revision)>onlineRevision){onlineRevision=Number(game.revision);if(game.game_state)v45ApplyCloudState(game.game_state);}
       }catch{}
-    },5000);
+    },30000);
   }
     function v45BuildState(roster,settings){
     const players=roster.map(r=>{const p=blankPlayer(r.display_name,r.family,'human');p.onlineParticipantId=r.participant_id;return p;});
@@ -65,7 +72,7 @@
     const code=$('#joinCode').value.trim().toUpperCase(),name=$('#joinName').value.trim()||'Spieler',family=$('#joinFamily').value.trim()||'Familie';
     if(!code)return toast('Bitte Spielcode eingeben.');
     try{
-      const s=await c.joinLobby(code,{displayName:name,family});v45StoreSession(s);v45StartPolling();await v45OpenCloudHub();toast('Lobby beigetreten.');
+      const s=await c.joinLobby(code,{displayName:name,family});v45StoreSession(s);v45StartPolling();setTimeout(()=>c.signalGame?.(s,0,'lobby'),700);await v45OpenCloudHub();toast('Lobby beigetreten.');
     }catch(e){toast('Cloud: '+e.message);}
   }
   async function v45StartLobbyGame(){
@@ -75,12 +82,12 @@
       if(roster.length<2)return toast('Für Online-Multiplayer werden mindestens 2 menschliche Spieler benötigt.');
       if(roster.some(r=>!r.ready))return toast('Alle Mitspieler müssen zuerst auf „Bereit“ stehen.');
       onlineRoster=roster;const st=v45BuildState(roster,game.settings||{}),first=roster[0];
-      const row=await c.updateGame(onlineSession,game.revision,{status:'playing',game_state:st,active_participant_id:first.participant_id});
-      onlineRevision=row.revision;v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();toast('Online-Partie gestartet.');
+      const row=await c.startGame(onlineSession,game.revision,st,first.participant_id);
+      onlineRevision=Number(row.revision);v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();await c.signalGame?.(onlineSession,onlineRevision,'state');toast('Online-Partie gestartet.');
     }catch(e){toast('Cloud: '+e.message);}
   }
   async function v45LeaveOnline(){
-    v45StoreSession(null);onlineRoster=[];onlineRevision=0;if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}toast('Online-Verbindung getrennt.');closeDialog();
+    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}v45Cloud()?.stopRealtime?.();v45StoreSession(null);onlineRoster=[];onlineRevision=0;if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}toast('Online-Verbindung getrennt.');closeDialog();
   }
   async function v45CloudSaveNew(){
     const c=v45Cloud();if(!c?.enabled||!state)return toast('Keine Partie für Cloud-Speicherung.');
@@ -107,7 +114,7 @@
           <p class="muted">Status: ${esc(game?.status||'unbekannt')} · Revision ${onlineRevision}. Teile den Spielcode nur mit Mitspielern.</p>
           <div class="dialog-list">${onlineRoster.map((r,i)=>`<div class="dialog-option"><div><strong>${i+1}. ${esc(r.display_name)} · ${esc(r.family)}</strong><p>${r.participant_id===onlineSession.participantId?'Dieses Gerät':''}${r.ready?' · bereit':''}</p></div><span class="pill">${r.ready?'Bereit':'Wartet'}</span></div>`).join('')}</div>
           <div class="dialog-footer">${game?.status==='lobby'?`<button class="btn btn-secondary" data-ready>Bereit umschalten</button>${onlineSession.host?'<button class="btn btn-primary" data-online-start>Partie starten</button>':''}`:'<button class="btn btn-primary" data-online-open>Spiel aktualisieren</button>'}<button class="btn btn-danger" data-online-leave>Verbindung trennen</button></div></div>`);
-        $('[data-ready]')?.addEventListener('click',async()=>{const me=onlineRoster.find(x=>x.participant_id===onlineSession.participantId);await c.setReady(onlineSession,!me?.ready);v45OpenCloudHub();});
+        $('[data-ready]')?.addEventListener('click',async()=>{const me=onlineRoster.find(x=>x.participant_id===onlineSession.participantId);await c.setReady(onlineSession,!me?.ready);await c.signalGame?.(onlineSession,onlineRevision,'lobby');v45OpenCloudHub();});
         $('[data-online-start]')?.addEventListener('click',v45StartLobbyGame);$('[data-online-open]')?.addEventListener('click',()=>v45RefreshOnline(false));$('[data-online-leave]')?.addEventListener('click',v45LeaveOnline);return;
       }catch(e){toast('Cloud: '+e.message);}
     }
@@ -129,7 +136,7 @@
         if(!onlineRoster.length)onlineRoster=await v45Cloud().getPlayers(onlineSession.code,onlineSession.token);
         const next=currentPlayer(),nextPid=next?.onlineParticipantId||null;
         const patch={game_state:v45CanonicalState(),status:state.gameOver?'finished':'playing',active_participant_id:nextPid,winner_participant_id:state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null};
-        const row=await v45Cloud().updateGame(onlineSession,onlineRevision,patch);onlineRevision=row.revision;
+        const row=await v45Cloud().submitTurn(onlineSession,onlineRevision,patch.game_state,nextPid,patch.status,patch.winner_participant_id);onlineRevision=Number(row.revision);await v45Cloud().signalGame?.(onlineSession,onlineRevision,'state');
       }catch(e){toast('Online-Synchronisation fehlgeschlagen: '+e.message);}
     })();
   };
