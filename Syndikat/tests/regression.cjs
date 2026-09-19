@@ -139,6 +139,7 @@ assert(src.includes('SYNDIKAT_V42_META_BEGIN'));
 assert(src.includes('SYNDIKAT_V43_DEPTH_BEGIN'));
 assert(src.includes('SYNDIKAT_V44_ECONOMY_DEPTH_BEGIN'));
 assert(src.includes('SYNDIKAT_V51_VISUAL_STORY_BEGIN'));
+assert(src.includes('SYNDIKAT_V52_WORLD_DEPTH_BEGIN'));
 assert(src.includes('SYNDIKAT_V45_CLOUD_UI_BEGIN'));
 assert(src.includes('SYNDIKAT_V46_DECISIONS_BEGIN'));
 assert(src.includes('SYNDIKAT_V47_JUSTICE_BEGIN'));
@@ -183,6 +184,8 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   const css=fs.readFileSync('Syndikat/style.css','utf8');
   assert(css.includes("./assets/start-user.webp"),'startup must use the user-provided artwork');
   assert(sw.includes("./assets/start-user.webp"),'startup artwork must be available offline');
+  assert(sw.includes("./assets/business-casino.svg"),'business art must be cached');
+  assert(sw.includes("./assets/rival-moretti.svg"),'rival art must be cached');
   for(const asset of ['city-map.webp','portrait-vittorio.webp','portrait-marco.webp','portrait-sofia.webp','portrait-keller.webp','event-raid.webp','event-court.webp','event-prison-break.webp']){
     assert(fs.existsSync('Syndikat/assets/'+asset),'missing visual asset '+asset);
     assert(sw.includes('./assets/'+asset),'visual asset must be cached offline: '+asset);
@@ -193,7 +196,7 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
   const base=fs.readFileSync('Syndikat/src/core-base.js','utf8');
   const moduleNames=[
     '10-legacy-v3.js','20-organization-operations.js','30-meta-progression.js',
-    '40-ai-espionage-events.js','50-economy-property.js','55-visual-story.js','60-cloud-online.js',
+    '40-ai-espionage-events.js','50-economy-property.js','55-visual-story.js','58-world-depth.js','60-cloud-online.js',
     '70-decisions.js','80-justice.js','90-final-gameplay.js'
   ];
   assert(base.includes('__SYNDIKAT_MODULES__'),'modular core base must expose build marker');
