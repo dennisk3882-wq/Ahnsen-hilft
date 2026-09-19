@@ -1474,6 +1474,18 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 })();
 /* SYNDIKAT_REVISION_3_11_END */
 
+/* SYNDIKAT_REVISION_3_12_BEGIN */
+(function REVISION312_PATCH(){
+  const incomeV311=estimateIncome;
+  estimateIncome=function(p,b){
+    const base=incomeV311(p,b);
+    if(p?.type!=='ai'||!state?.settings)return base;
+    const mult={easy:.88,normal:1,hard:1.08,boss:1.16}[state.settings.difficulty]||1;
+    return base*mult;
+  };
+})();
+/* SYNDIKAT_REVISION_3_12_END */
+
   init();
 })();
 
