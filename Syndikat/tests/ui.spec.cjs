@@ -29,12 +29,12 @@ test('mobile PWA core journey and visual assets', async ({page})=>{
   const map=page.locator('.city-art-map img').first();
   await expect(map).toBeVisible();
   expect(await map.evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
-  await expect(page.locator('.city-map-hit')).toHaveCount(8);
+  await expect(page.locator('.city-hotspot')).toHaveCount(8);
   await expect(page.locator('.city-map-tag')).toHaveCount(8);
   await expect(page.locator('[data-map-mode]')).toHaveCount(5);
 
   await page.locator('[data-map-mode="ownership"]').tap();
-  await page.locator('.city-map-hit[data-map-district="oldtown"]').tap();
+  await page.locator('.city-hotspot[data-map-district="oldtown"]').tap();
   await expect(page.locator('.district-visual img')).toBeVisible();
   expect(await page.locator('.district-visual img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBeTruthy();
 
