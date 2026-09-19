@@ -1448,6 +1448,32 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 })();
 /* SYNDIKAT_REVISION_3_10_END */
 
+/* SYNDIKAT_REVISION_3_11_BEGIN */
+(function REVISION311_PATCH(){
+  function victoryCfg311(){
+    return {short:{min:12,target:52,districts:2,econ:5000000,econDistricts:1},normal:{min:22,target:62,districts:3,econ:20000000,econDistricts:2},long:{min:35,target:72,districts:4,econ:50000000,econDistricts:3}}[state.settings.length]||{min:22,target:62,districts:3,econ:20000000,econDistricts:2};
+  }
+  checkVictory=function(){
+    if(!state||state.gameOver)return;
+    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
+    if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
+    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
+    if(state.settings.length==='endless')return;
+    const cfg=victoryCfg311();if(state.round<cfg.min)return;
+    if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){const s=active[0];if(powerIndex(s)>=38&&controlledDistricts(s)>=1){state.gameOver=true;state.winnerId=s.id;state.endReason='Alle Rivalen sind ausgeschieden und das verbleibende Syndikat besitzt eine gefestigte Stadtbasis.';}return;}
+    const ranked=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a));
+    for(const p of ranked){
+      if(powerIndex(p)>=cfg.target&&controlledDistricts(p)>=cfg.districts){state.gameOver=true;state.winnerId=p.id;state.endReason=`Dominanzsieg: mindestens ${cfg.target}% Macht und ${cfg.districts} kontrollierte Viertel.`;return;}
+      if(netWorth(p)>=cfg.econ&&controlledDistricts(p)>=cfg.econDistricts){state.gameOver=true;state.winnerId=p.id;state.endReason=`Wirtschaftssieg: ${fmt(cfg.econ)} Nettovermögen und ${cfg.econDistricts} kontrollierte Viertel.`;return;}
+    }
+  };
+  const renderCity311=renderCity;
+  renderCity=function(){
+    renderCity311();if(!state||state.settings.length==='endless')return;const stats=$('#districtDetail .district-stats'),cfg=victoryCfg311(),p=currentPlayer();if(stats&&!stats.querySelector('[data-victory-progress]'))stats.insertAdjacentHTML('beforeend',`<div class="mini-metric" data-victory-progress><small>Dominanzziel</small><strong>${Math.round(powerIndex(p))}/${cfg.target} Macht · ${controlledDistricts(p)}/${cfg.districts} Viertel</strong></div><div class="mini-metric"><small>Wirtschaftssieg</small><strong>${fmt(netWorth(p))} / ${fmt(cfg.econ)} · ${controlledDistricts(p)}/${cfg.econDistricts} Viertel</strong></div>`);
+  };
+})();
+/* SYNDIKAT_REVISION_3_11_END */
+
   init();
 })();
 
