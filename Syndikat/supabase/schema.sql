@@ -453,3 +453,82 @@ grant execute on function public.syndikat_start_game(text,bigint,jsonb,uuid) to 
 grant execute on function public.syndikat_submit_turn(text,bigint,jsonb,uuid,text,uuid) to anon;
 revoke update on public.syndikat_online_games from anon;
 
+
+-- v5.3: optional authenticated cloud account with five cross-device save slots.
+create table if not exists public.syndikat_account_saves (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  slot smallint not null check (slot between 1 and 5),
+  family text not null default '',
+  round integer not null default 1 check (round > 0),
+  revision bigint not null default 1 check (revision > 0),
+  game_state jsonb not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key(user_id,slot)
+);
+alter table public.syndikat_account_saves enable row level security;
+revoke all on table public.syndikat_account_saves from anon, authenticated;
+
+create or replace function public.syndikat_account_list_saves()
+returns jsonb language plpgsql security definer set search_path=pg_catalog,public,auth
+as $$
+declare u uuid:=auth.uid(); result jsonb;
+begin
+  if u is null then raise exception 'authentication required'; end if;
+  select coalesce(jsonb_agg(jsonb_build_object('slot',slot,'family',family,'round',round,'revision',revision,'created_at',created_at,'updated_at',updated_at) order by slot),'[]'::jsonb)
+  into result from public.syndikat_account_saves where user_id=u;
+  return result;
+end;
+$$;
+
+create or replace function public.syndikat_account_load_save(p_slot smallint)
+returns jsonb language plpgsql security definer set search_path=pg_catalog,public,auth
+as $$
+declare u uuid:=auth.uid(); s public.syndikat_account_saves;
+begin
+  if u is null then raise exception 'authentication required'; end if;
+  select * into s from public.syndikat_account_saves where user_id=u and slot=p_slot;
+  if not found then return null; end if;
+  return jsonb_build_object('slot',s.slot,'family',s.family,'round',s.round,'revision',s.revision,'game_state',s.game_state,'updated_at',s.updated_at);
+end;
+$$;
+
+create or replace function public.syndikat_account_save_slot(p_slot smallint,p_game_state jsonb,p_expected_revision bigint default null)
+returns jsonb language plpgsql security definer set search_path=pg_catalog,public,auth
+as $$
+declare u uuid:=auth.uid(); s public.syndikat_account_saves; fam text; rnd integer;
+begin
+  if u is null then raise exception 'authentication required'; end if;
+  if p_slot<1 or p_slot>5 or jsonb_typeof(p_game_state)<>'object' or jsonb_typeof(p_game_state->'players')<>'array' or length(p_game_state::text)>1500000 then raise exception 'invalid save'; end if;
+  rnd:=greatest(1,coalesce((p_game_state->>'round')::integer,1));
+  fam:=coalesce(p_game_state->'players'->coalesce((p_game_state->>'currentIndex')::integer,0)->>'family','Syndikat');
+  select * into s from public.syndikat_account_saves where user_id=u and slot=p_slot for update;
+  if found then
+    if p_expected_revision is not null and s.revision<>p_expected_revision then raise exception 'revision conflict'; end if;
+    update public.syndikat_account_saves set family=fam,round=rnd,revision=s.revision+1,game_state=p_game_state,updated_at=now() where user_id=u and slot=p_slot returning * into s;
+  else
+    insert into public.syndikat_account_saves(user_id,slot,family,round,revision,game_state) values(u,p_slot,fam,rnd,1,p_game_state) returning * into s;
+  end if;
+  return jsonb_build_object('slot',s.slot,'family',s.family,'round',s.round,'revision',s.revision,'updated_at',s.updated_at);
+end;
+$$;
+
+create or replace function public.syndikat_account_delete_save(p_slot smallint)
+returns boolean language plpgsql security definer set search_path=pg_catalog,public,auth
+as $$
+declare u uuid:=auth.uid();
+begin
+  if u is null then raise exception 'authentication required'; end if;
+  delete from public.syndikat_account_saves where user_id=u and slot=p_slot;
+  return found;
+end;
+$$;
+
+revoke all on function public.syndikat_account_list_saves() from public;
+revoke all on function public.syndikat_account_load_save(smallint) from public;
+revoke all on function public.syndikat_account_save_slot(smallint,jsonb,bigint) from public;
+revoke all on function public.syndikat_account_delete_save(smallint) from public;
+grant execute on function public.syndikat_account_list_saves() to authenticated;
+grant execute on function public.syndikat_account_load_save(smallint) to authenticated;
+grant execute on function public.syndikat_account_save_slot(smallint,jsonb,bigint) to authenticated;
+grant execute on function public.syndikat_account_delete_save(smallint) to authenticated;
