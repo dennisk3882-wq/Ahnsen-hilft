@@ -223,8 +223,11 @@ console.log('Syndikat regression suite: OK');
 // v5.3.1 visual regression guards
 {
   const worldDepthSource531=fs.readFileSync('Syndikat/src/modules/58-world-depth.js','utf8');
-  assert(worldDepthSource531.includes("$$('#staffGrid [data-staff-person]').forEach"),'named staff portrait renderer must iterate all staff buttons');
-  assert(worldDepthSource531.includes("$$('.dialog-option',root).forEach"),'property artwork decorator must iterate all dialog options');
-  assert(!worldDepthSource531.includes("$('#staffGrid [data-staff-person]').forEach"),'single-element selector must not be used as an iterable for staff portraits');
-  assert(!worldDepthSource531.includes("$('.dialog-option',root).forEach"),'single-element selector must not be used as an iterable for property artwork');
+  const runtimeSource531=fs.readFileSync('Syndikat/js/core.js','utf8');
+  assert(worldDepthSource531.includes("$('#staffGrid [data-staff-person]').forEach"),'named staff portrait renderer must iterate all staff buttons');
+  assert(worldDepthSource531.includes("$('.dialog-option',root).forEach"),'property artwork decorator must iterate all dialog options');
+  assert(!worldDepthSource531.includes("    $('#staffGrid [data-staff-person]').forEach"),'single-element selector must not be used as an iterable for staff portraits');
+  assert(!worldDepthSource531.includes("    $('.dialog-option',root).forEach"),'single-element selector must not be used as an iterable for property artwork');
+  assert(!runtimeSource531.includes("$$('#staffGrid"),'generated runtime must not contain a triple-dollar staff selector');
+  assert(!runtimeSource531.includes("$$('.dialog-option',root)"),'generated runtime must not contain a triple-dollar property selector');
 }
