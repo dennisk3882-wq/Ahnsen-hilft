@@ -538,3 +538,12 @@ revoke execute on function public.syndikat_account_list_saves() from anon;
 revoke execute on function public.syndikat_account_load_save(smallint) from anon;
 revoke execute on function public.syndikat_account_save_slot(smallint,jsonb,bigint) from anon;
 revoke execute on function public.syndikat_account_delete_save(smallint) from anon;
+  
+-- Explicit deny-all direct table access. Account/audit data is accessible only through validated RPCs.
+drop policy if exists syndikat_account_saves_no_direct on public.syndikat_account_saves;
+create policy syndikat_account_saves_no_direct on public.syndikat_account_saves
+for all to anon, authenticated using (false) with check (false);
+
+drop policy if exists syndikat_turn_audit_no_direct on public.syndikat_turn_audit;
+create policy syndikat_turn_audit_no_direct on public.syndikat_turn_audit
+for all to anon, authenticated using (false) with check (false);
