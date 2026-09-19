@@ -13,7 +13,8 @@ const modules=[
   "src/modules/60-cloud-online.js",
   "src/modules/70-decisions.js",
   "src/modules/80-justice.js",
-  "src/modules/90-final-gameplay.js"
+  "src/modules/90-final-gameplay.js",
+  "src/modules/95-visual-story.js"
 ];
 
 const basePath=path.join(root,'src','core-base.js');
