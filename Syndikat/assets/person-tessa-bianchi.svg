@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800">
+<defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#05070a"/><stop offset=".58" stop-color="#151e29"/><stop offset="1" stop-color="#080a0e"/></linearGradient><radialGradient id="g"><stop stop-color="#648da0" stop-opacity=".28"/><stop offset="1" stop-color="#648da0" stop-opacity="0"/></radialGradient></defs>
+<rect width="600" height="800" fill="url(#b)"/><circle cx="335" cy="210" r="250" fill="url(#g)"/>
+<path d="M118 800c18-210 95-310 182-310s164 100 182 310" fill="#181818"/>
+<path d="M250 510l50 95 52-95" fill="#e5dfd2"/><path d="M288 565l12 40 13-40 22 150h-70z" fill="#b18a45"/>
+<ellipse cx="300" cy="310" rx="132" ry="152" fill="#a77a60"/>
+<path d="M180 245q38-142 120-140 90 2 130 143-125-34-250-3z" fill="#181818"/>
+<path d="M220 305h50M330 305h50" stroke="#648da0" stroke-width="8" stroke-linecap="round" opacity=".72"/>
+<path d="M277 398q25 -10 50 0" fill="none" stroke="#4b352c" stroke-width="7"/>
+<path d="M75 650h450" stroke="#648da0" stroke-opacity=".28" stroke-width="2"/>
+<text x="42" y="696" fill="#f4f0e8" font-family="Arial,Helvetica,sans-serif" font-size="31" font-weight="800">Tessa Bianchi</text>
+<text x="44" y="735" fill="#648da0" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" letter-spacing="3">PERSONALAKTE</text>
+</svg>
