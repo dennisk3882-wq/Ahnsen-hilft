@@ -1153,6 +1153,151 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 })();
 /* SYNDIKAT_REVISION_3_END */
 
+/* SYNDIKAT_REVISION_3_1_BEGIN */
+(function REVISION31_PATCH(){
+  function s31(type){return BUSINESSES[type]?.slotUse||1;}
+  function used31(did){return state.players.filter(x=>!x.eliminated).reduce((sum,p)=>sum+p.businesses.filter(b=>b.district===did).reduce((a,b)=>a+s31(b.type),0),0);}
+  function free31(did){const d=DISTRICTS.find(x=>x.id===did);return Math.max(0,(d.slots||14)-used31(did));}
+  function inf31(){return 1+Math.min(.65,Math.max(0,(state?.round||1)-1)*.005);}
+  function cost31(type){return Math.round(BUSINESSES[type].cost*inf31());}
+  function tier31(p){const n=netWorth(p),r=p.reputation||0,c=controlledDistricts(p);if(n>=7500000&&r>=55&&c>=2)return 6;if(n>=2500000&&r>=35&&c>=1)return 5;if(n>=750000&&r>=20)return 4;if(n>=200000&&r>=10)return 3;if(n>=60000||r>=6)return 2;return 1;}
+  function clean31(p,a){a=Math.round(a);if(p.clean<a)return false;p.clean-=a;return true;}
+  function dirty31(p,a){a=Math.round(a);if(p.dirty<a)return false;p.dirty-=a;return true;}
+  function dirtyFirst31(p,a){a=Math.round(a);const d=Math.min(p.dirty,a);p.dirty-=d;a-=d;const c=Math.min(p.clean,a);p.clean-=c;a-=c;return a===0;}
+  function activity31(p,n=1){p.roundActivity=(p.roundActivity||0)+n;}
+  function focus31(p){
+    if(Array.isArray(p.aiFocus)&&p.aiFocus.length)return p.aiFocus;
+    const profiles={
+      aggressive:['redlight','station','oldtown','harbor'],
+      economic:['center','west','oldtown','south'],
+      corrupt:['center','oldtown','west','redlight'],
+      smuggler:['harbor','station','industrial','south'],
+      defensive:['west','south','industrial','oldtown'],
+      balanced:['oldtown','south','center','station']
+    };
+    p.aiFocus=[...(profiles[p.profile]||profiles.balanced)];return p.aiFocus;
+  }
+  function aiMission31(p){
+    let claimed=0;
+    for(const m of [...p.missions])if(missionProgress(p,m).done){p.clean+=m.reward;p.reputation+=m.rep;p.missions=p.missions.filter(x=>x.id!==m.id);ledger(p,`Auftrag: ${m.title}`,m.reward,'income');claimed++;}
+    ensureMissions(p);return claimed;
+  }
+  function buy31(p,type,did){
+    const def=BUSINESSES[type],price=cost31(type);if(!def||p.actionPoints<1||p.businessPurchasesThisTurn>=2||def.tier>tier31(p)||free31(did)<s31(type))return false;
+    if(def.tier>=2){if(!clean31(p,price))return false;}else{if(totalLiquid(p)<price||!spend(p,price,false))return false;}
+    p.actionPoints--;p.businessPurchasesThisTurn++;activity31(p,2);
+    const b={id:uid(),type,district:did,health:100,level:1,name:def.name,acquiredRound:state.round,routeId:null};if(type==='machines')b.machines=createMachineUnits();
+    p.businesses.push(b);p.reputation+=def.rep;return true;
+  }
+  function redevelop31(p,did,minSlots){
+    if(free31(did)>=minSlots)return true;
+    const own=p.businesses.filter(b=>b.district===did).sort((a,b)=>(BUSINESSES[a.type].influence/s31(a.type))-(BUSINESSES[b.type].influence/s31(b.type)));
+    while(free31(did)<minSlots&&own.length){
+      const b=own.shift(),value=Math.round(BUSINESSES[b.type].cost*.50*(b.health/100));p.businesses=p.businesses.filter(x=>x.id!==b.id);p.clean+=value;ledger(p,`KI-Neuentwicklung: ${BUSINESSES[b.type].name}`,value,'clean');
+    }
+    return free31(did)>=minSlots;
+  }
+  function aiUpgrade31(p){
+    const candidates=p.businesses.filter(b=>b.level<3).sort((a,b)=>(BUSINESSES[b.type].influence/s31(b.type))-(BUSINESSES[a.type].influence/s31(a.type)));
+    const b=candidates[0];if(!b)return false;const c=Math.round(BUSINESSES[b.type].cost*.20*b.level*inf31());if(p.clean<c*1.4)return false;p.clean-=c;b.level++;p.stats.upgrades=(p.stats.upgrades||0)+1;activity31(p);return true;
+  }
+  function aiRoute31(p){
+    const packs=p.businesses.filter(b=>b.type==='machines');
+    if(packs.length>=2&&!p.routes.length&&p.clean>=2500){p.clean-=2500;p.routes.push({id:uid(),name:'Automatenroute',level:1});packs.forEach(b=>b.routeId=p.routes[0].id);activity31(p);}
+    if(p.routes.length&&p.routes[0].level<3&&p.clean>=5000*p.routes[0].level&&chance(.16)){p.clean-=5000*p.routes[0].level;p.routes[0].level++;activity31(p);}
+  }
+  function aiPolitics31(p){
+    const others=state.players.filter(t=>t.id!==p.id&&!t.eliminated);
+    if(!others.length)return;
+    const t=others[rand(0,others.length-1)];
+    if(p.profile!=='aggressive'&&!pactActive(p,t)&&relation(p,t)>5&&p.clean>=5000&&chance(.10)){p.clean-=5000;p.pacts[t.id]=state.round+5;t.pacts[p.id]=state.round+5;adjustRelation(p,t,6);activity31(p);}
+    if(!allianceActive(p,t)&&relation(p,t)>25&&p.clean>=15000&&chance(.05)){p.clean-=15000;p.alliances[t.id]=state.round+7;t.alliances[p.id]=state.round+7;p.pacts[t.id]=state.round+7;t.pacts[p.id]=state.round+7;adjustRelation(p,t,9);activity31(p);}
+    if(relation(p,t)>20&&t.businesses.length&&p.clean>150000&&chance(.045)){
+      const wanted=t.businesses.filter(b=>focus31(p).includes(b.district)).sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0];
+      if(wanted){const price=Math.round(BUSINESSES[wanted.type].cost*1.30*(wanted.health/100)*inf31());if(p.clean>=price&&free31(wanted.district)>=0){p.clean-=price;t.clean+=price;t.businesses=t.businesses.filter(b=>b.id!==wanted.id);wanted.routeId=null;p.businesses.push(wanted);adjustRelation(p,t,3);p.stats.trades=(p.stats.trades||0)+1;activity31(p);}}
+    }
+  }
+  function aiViolence31(p,diff){
+    if(p.actionPoints<2||p.staff.gunman<1||p.dirty<2500)return;
+    const targets=state.players.filter(t=>t.id!==p.id&&!t.eliminated&&!pactActive(p,t)&&!allianceActive(p,t));
+    if(!targets.length)return;
+    const t=[...targets].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
+    if(p.staff.gunman>=2&&t.staffRoster.length&&p.dirty>=5000&&chance(.055*diff)){
+      const s=activeStaff(t).sort((a,b)=>b.skill-a.skill)[0];if(s){dirty31(p,5000);p.actionPoints-=2;activity31(p,4);const ok=chance(clamp(.25+roleSkill(p,'gunman')/550+roleSkill(p,'informant')/950-roleSkill(t,'guard')/650,.06,.72));p.heat=clamp(p.heat+32,0,100);adjustRelation(p,t,-50);if(ok){t.staffRoster=t.staffRoster.filter(x=>x.id!==s.id);syncStaffCounts(t);p.reputation+=5;p.stats.attacksSuccess++;}return;}
+    }
+    if(t.staffRoster.length&&p.dirty>=3000&&chance(.08*diff)){
+      const s=activeStaff(t)[rand(0,Math.max(0,activeStaff(t).length-1))];if(s){dirty31(p,3000);p.actionPoints-=2;activity31(p,3);const ok=chance(clamp(.42+roleSkill(p,'gunman')/480+roleSkill(p,'informant')/750-roleSkill(t,'guard')/700,.1,.82));p.heat=clamp(p.heat+18,0,100);adjustRelation(p,t,-28);if(ok){s.heldUntil=state.round+3;syncStaffCounts(t);const ransom=Math.min(totalLiquid(t),Math.round(STAFF[s.role].cost*1.8));spend(t,ransom,false);p.dirty+=ransom;}return;}
+    }
+    if(t.businesses.length&&chance(.20*diff)){
+      const b=t.businesses.sort((a,b)=>BUSINESSES[b.type].influence-BUSINESSES[a.type].influence)[0];dirty31(p,2500);p.actionPoints-=2;activity31(p,3);const ok=chance(clamp(.40+(roleSkill(p,'gunman')*.42-businessSecurity(t,b))/120,.08,.85));p.heat=clamp(p.heat+15,0,100);adjustRelation(p,t,-20);if(ok){b.health=clamp(b.health-rand(28,58),0,100);if(!b.health)t.businesses=t.businesses.filter(x=>x.id!==b.id);p.stats.attacksSuccess++;}}
+  }
+
+  aiTurn=function(p){
+    if(p.eliminated)return;initPlayer(p);aiMission31(p);const diff={easy:.82,normal:1,hard:1.12,boss:1.28}[state.settings.difficulty]||1;
+    if(p.jailed>0){if(p.actionPoints>0&&chance(.45))doAiPrison(p);activity31(p);p.lastAction='Organisation aus der Haft geführt';return;}
+    if(p.debt>0&&p.clean>Math.max(5000,p.debt*.25)){const pay=Math.min(p.debt,Math.round(p.clean*.45));p.clean-=pay;p.debt-=pay;ledger(p,'Schulden getilgt',-pay,'debt');}
+    if(p.heat>55&&p.actionPoints>0){p.actionPoints--;p.heat=clamp(p.heat-rand(11,19),0,100);activity31(p);}
+    const roster=p.profile==='aggressive'?[['gunman',4],['guard',2],['informant',2],['bodyguard',2],['lawyer',1],['manager',2]]:
+      p.profile==='economic'?[['manager',4],['guard',2],['lawyer',2],['informant',1],['bodyguard',1],['gunman',1]]:
+      p.profile==='defensive'?[['guard',4],['bodyguard',3],['lawyer',2],['manager',2],['informant',1],['gunman',1]]:
+      [['manager',3],['guard',2],['gunman',2],['informant',2],['lawyer',1],['bodyguard',1]];
+    for(const [role,target] of roster){if(p.staff[role]>=target)continue;const c=STAFF[role].cost,legal=role==='manager'||role==='lawyer';if((legal?p.clean:totalLiquid(p))<c*1.4)continue;legal?clean31(p,c):dirtyFirst31(p,c);p.staffRoster.push(createStaffPerson(role));syncStaffCounts(p);activity31(p);break;}
+    if((p.profile==='corrupt'||p.heat>42)&&p.dirty>4000){const next=Object.entries(CORRUPTION).find(([k,c])=>!p.bribes[k]&&p.dirty>=c.cost*1.1);if(next&&chance(.48)){dirty31(p,next[1].cost);p.bribes[next[0]]=true;p.reputation+=2;activity31(p);}}
+    if(p.staff.informant&&chance(.25)){const did=focus31(p)[rand(0,focus31(p).length-1)];p.scouting[did]={round:state.round,level:clamp(1+Math.floor(roleSkill(p,'informant')/35),1,3)};p.stats.scouts++;activity31(p);}
+    if(p.clean>50000&&chance(.35))aiUpgrade31(p);
+
+    // Focus expansion: finish one district before spreading out.
+    let buys=0;
+    while(p.actionPoints>0&&p.businessPurchasesThisTurn<2&&buys<2){
+      const focus=focus31(p).map((did,i)=>({did,i,share:districtShare(p,did),controlled:districtShare(p,did)>=50})).sort((a,b)=>(a.controlled-b.controlled)||(b.share-a.share)||a.i-b.i);
+      let did=focus[0]?.did||DISTRICTS[0].id;
+      const available=Object.entries(BUSINESSES).filter(([type,b])=>b.tier<=tier31(p)&&(b.tier>=2?p.clean>=cost31(type):totalLiquid(p)>=cost31(type)));
+      available.sort((a,b)=>{
+        const score=x=>{const [type,d]=x,roi=(d.baseIncome-d.upkeep)/Math.max(1,cost31(type)),influence=d.influence/s31(type);return influence*2.2+roi*420+(d.tier===tier31(p)?8:0);};
+        return score(b)-score(a);
+      });
+      let pick=available.find(([type,b])=>free31(did)>=s31(type));
+      if(!pick&&available.length&&tier31(p)>=3){const need=Math.min(...available.map(x=>s31(x[0])));redevelop31(p,did,need);pick=available.find(([type,b])=>free31(did)>=s31(type));}
+      if(!pick)break;
+      if(buy31(p,pick[0],did))buys++;else break;
+    }
+
+    // Protection reinforces the current territorial focus.
+    if(p.staff.gunman>0&&p.actionPoints>0&&p.dirty>=2500&&chance(.25)){
+      const did=focus31(p).filter(x=>districtShare(p,x)<50).sort((a,b)=>districtShare(p,b)-districtShare(p,a))[0]||focus31(p)[0],lv=p.protection[did]?.level||0,c=2500*(lv+1);
+      if(lv<3&&p.dirty>=c){dirty31(p,c);p.protection[did]={level:lv+1,started:state.round};p.actionPoints--;p.stats.protection++;activity31(p,2);}
+    }
+    aiRoute31(p);aiPolitics31(p);if(p.profile==='aggressive')aiViolence31(p,diff);
+
+    while(p.actionPoints>0&&!p.jailed){
+      const pool=CRIMES.filter(c=>p.actionPoints>=c.ap),c=p.heat>55?pool[0]:pool[Math.min(pool.length-1,Math.floor(netWorth(p)/180000)%pool.length)];if(!c)break;
+      p.actionPoints-=c.ap;activity31(p,2);if(chance(clamp(crimeSuccess(p,c)*diff,.05,.96))){const take=Math.round(rand(c.min,c.max)*diff);p.dirty+=take;p.reputation++;p.stats.crimesSuccess++;}else if(chance(.25))p.jailed=Math.max(1,c.jail-(p.bribes.judge?1:0));p.heat=clamp(p.heat+c.heat*(1-shield(p)/100),0,100);
+    }
+    if(p.clean<20000&&netWorth(p)>120000&&p.creditDefaults<1&&outstandingLoans(p)<netWorth(p)*.28&&chance(.13)){const amount=Math.min(100000,Math.max(25000,Math.round(netWorth(p)*.16)));p.clean+=amount;p.loans.push({id:uid(),original:amount,remaining:amount,rate:.03,payment:Math.max(1500,Math.round(amount/10)),started:state.round,missed:0,status:'active'});}
+    aiMission31(p);p.lastAction='Syndikat strategisch geführt';
+  };
+
+  tradeSellBusiness=function(tid,bid){
+    const p=currentPlayer(),t=state.players.find(x=>x.id===tid),b=p.businesses.find(x=>x.id===bid);if(!t||!b)return;const price=Math.round(BUSINESSES[b.type].cost*.80*(b.health/100)*inf31());
+    if(t.clean<price||!targetAccepts(p,t,.55+relation(p,t)/250))return toast(`${t.family} kann oder will dieses Geschäft nicht mit sauberem Kapital kaufen.`);
+    t.clean-=price;p.clean+=price;p.businesses=p.businesses.filter(x=>x.id!==bid);b.routeId=null;t.businesses.push(b);adjustRelation(p,t,5);p.stats.trades++;activity31(p);ledger(p,`Betrieb an ${t.family} verkauft`,price,'clean');closeDialog();saveGame();renderAll();toast('Handel abgeschlossen.');
+  };
+
+  doPrisonAction=function(kind){
+    const p=currentPlayer();if(p.jailed<=0)return;const need=kind==='escape'?2:1;if(p.actionPoints<need)return toast('Nicht genug AP.');
+    if(kind==='appeal'){const cost=3000+Math.max(0,p.jailed-1)*1000;if(p.clean<cost)return toast(`Für die Berufung brauchst du ${fmt(cost)} sauberes Geld.`);p.clean-=cost;p.actionPoints-=need;activity31(p);const cut=chance(.45+roleSkill(p,'lawyer')/180+(p.bribes.judge?.15:0))?rand(1,2):0;p.jailed=Math.max(0,p.jailed-cut);ledger(p,'Berufung',-cost,'expense');toast(cut?`Haft um ${cut} Runde(n) reduziert.`:'Berufung ohne Erfolg.');}
+    if(kind==='guardbribe'){const cost=7500;if(p.dirty<cost)return toast(`Für die Wache brauchst du ${fmt(cost)} schmutziges Geld.`);p.dirty-=cost;p.actionPoints-=need;activity31(p);if(chance(.55+shield(p)/250)){p.jailed=Math.max(0,p.jailed-1);toast('Die Wache hilft dir – 1 Runde weniger.');}else{p.heat=clamp(p.heat+8,0,100);toast('Bestechung scheitert.');}}
+    if(kind==='network'){p.actionPoints-=need;activity31(p);p.reputation+=3;if(chance(.35)){const person=createStaffPerson('informant');person.loyalty=clamp(person.loyalty+8,0,100);p.staffRoster.push(person);syncStaffCounts(p);toast(`Kontakt gewonnen: ${person.name} wird Informant.`);}else toast('Du stärkst dein Netzwerk und deinen Ruf.');}
+    if(kind==='escape'){p.actionPoints-=need;activity31(p,3);const ok=chance(.14+roleSkill(p,'informant')/500+roleSkill(p,'gunman')/600+shield(p)/500);if(ok){p.jailed=0;p.heat=clamp(p.heat+20,0,100);toast('Flucht gelungen. Die Polizei sucht dich jedoch intensiv.');}else{p.jailed+=2;p.heat=clamp(p.heat+12,0,100);toast('Flucht gescheitert: +2 Runden Haft.');}}
+    p.lastAction='Gefängnisaktion';saveGame();renderAll();
+  };
+
+  renderCorruption=function(){
+    const p=currentPlayer();$('#corruptionGrid').innerHTML=Object.entries(CORRUPTION).map(([k,c])=>`<article class="shop-card"><div class="shop-top"><div><small class="eyebrow">Einfluss</small><h3>${esc(c.name)}</h3></div><span class="owned">${p.bribes[k]?'✓':'–'}</span></div><p>${esc(c.desc)}</p><footer><span class="price">${fmt(c.cost)} schmutzig</span><button class="btn ${p.bribes[k]?'btn-ghost':'btn-secondary'}" data-bribe="${k}" ${p.bribes[k]||p.jailed||p.dirty<c.cost?'disabled':''}>${p.bribes[k]?'Aktiv':'Bestechen'}</button></footer></article>`).join('');$('#corruptionGrid [data-bribe]').forEach(b=>b.onclick=()=>buyBribe(b.dataset.bribe));
+  };
+})();
+/* SYNDIKAT_REVISION_3_1_END */
+
   init();
 })();
 
