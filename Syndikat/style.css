@@ -113,3 +113,10 @@ body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.c
 .v43-site{display:block;color:#778391;margin-top:.18rem;font-size:.72rem}
 .city-event-row{background:linear-gradient(90deg,rgba(217,173,84,.1),transparent);margin:0 -.2rem;padding-left:.2rem;padding-right:.2rem}
 .final-summary{margin-top:1rem}
+
+/* Syndikat v4.4 economy depth */
+.v44-business-depth{margin:1rem 0}
+.v44-site-panel{box-shadow:none;background:#0b1118}
+#businessSummary{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(max-width:900px){#businessSummary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){#businessSummary{grid-template-columns:repeat(2,minmax(0,1fr))}}
