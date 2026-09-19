@@ -532,3 +532,9 @@ grant execute on function public.syndikat_account_list_saves() to authenticated;
 grant execute on function public.syndikat_account_load_save(smallint) to authenticated;
 grant execute on function public.syndikat_account_save_slot(smallint,jsonb,bigint) to authenticated;
 grant execute on function public.syndikat_account_delete_save(smallint) to authenticated;
+
+-- syndikat_account_revoke_anon
+revoke execute on function public.syndikat_account_list_saves() from anon;
+revoke execute on function public.syndikat_account_load_save(smallint) from anon;
+revoke execute on function public.syndikat_account_save_slot(smallint,jsonb,bigint) from anon;
+revoke execute on function public.syndikat_account_delete_save(smallint) from anon;
