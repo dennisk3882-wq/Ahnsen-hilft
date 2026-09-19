@@ -4,6 +4,16 @@
   const BUSINESS_ART=Object.fromEntries(Object.keys(BUSINESSES).map(k=>[k,A+'business-'+k+'.svg']));
   const DISTRICT_ART=Object.fromEntries(DISTRICTS.map(d=>[d.id,A+'district-'+d.id+'.svg']));
   const STAFF_ART={informant:A+'staff-informant.svg',guard:A+'staff-guard.svg',bodyguard:A+'staff-bodyguard.svg',gunman:A+'staff-gunman.svg',lawyer:A+'staff-lawyer.svg',manager:A+'staff-manager.svg'};
+  const PERSON_ART={
+    'Marco Bellini':A+'portrait-marco.webp',
+    'Julia Costa':A+'person-julia-costa.svg','Vito Serra':A+'person-vito-serra.svg','Mara Conti':A+'person-mara-conti.svg',
+    'Enzo Vitale':A+'person-enzo-vitale.svg','Giulia Rizzo':A+'person-giulia-rizzo.svg','Luca Ferraro':A+'person-luca-ferraro.svg',
+    'Sofia Greco':A+'person-sofia-greco.svg','Carlo De Luca':A+'person-carlo-de-luca.svg','Elena Marino':A+'person-elena-marino.svg',
+    'Nico Romano':A+'person-nico-romano.svg','Tessa Bianchi':A+'person-tessa-bianchi.svg','Rico Falcone':A+'person-rico-falcone.svg',
+    'Valentina Moretti':A+'person-valentina-moretti.svg','Dario Russo':A+'person-dario-russo.svg','Mina Leone':A+'person-mina-leone.svg'
+  };
+  const CONTACT_ART={officer:A+'contact-officer.svg',inspector:A+'contact-inspector.svg',judge:A+'contact-judge.svg',prosecutor:A+'contact-prosecutor.svg',mayor:A+'contact-mayor.svg'};
+  const PROPERTY_ART={shop:A+'property-shop.svg',block:A+'property-block.svg',warehouse:A+'property-warehouse.svg',prime:A+'property-prime.svg'};
   const RIVAL_INFO={
     Romano:{boss:'Don Enzo Romano',art:A+'rival-romano.svg',motto:'Respekt wird genommen.',style:'Druck & Tempo',desc:'Romano wächst schnell und setzt Rivalen früh unter Druck.'},
     Moretti:{boss:'Sofia Moretti',art:A+'rival-moretti.svg',motto:'Jeder Konflikt hat einen Preis.',style:'Ökonomie & Diplomatie',desc:'Moretti bevorzugt profitable Geschäfte, Verträge und kontrollierte Expansion.'},
@@ -67,10 +77,41 @@
   const oldBizDialog=openBusinessDialog;
   openBusinessDialog=function(id){const p=currentPlayer(),b=p.businesses.find(x=>x.id===id);oldBizDialog(id);const root=$('#dialogContent .dialog-wrap');if(b&&root&&!root.querySelector('.business-detail-art'))root.querySelector('.dialog-head')?.insertAdjacentHTML('afterend',`<img class="business-detail-art" src="${BUSINESS_ART[b.type]}" alt="">`);};
 
+  function staffVisual(s){return PERSON_ART[s?.name]||STAFF_ART[s?.role]||A+'staff-manager.svg'}
   const oldStaff=renderStaff;
-  renderStaff=function(){oldStaff();const p=currentPlayer();$$('#staffGrid [data-staff-person]').forEach(btn=>{const s=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');const old=card?.querySelector('.person-initial-avatar');if(s&&old)old.outerHTML=`<img class="person-portrait role-portrait" src="${STAFF_ART[s.role]}" alt="">`;});};
+  renderStaff=function(){
+    oldStaff();const p=currentPlayer();
+    $('#staffGrid [data-staff-person]').forEach(btn=>{
+      const person=p.staffRoster.find(x=>x.id===btn.dataset.staffPerson),card=btn.closest('.person-card');if(!person||!card)return;
+      const img=card.querySelector('.person-portrait'),initial=card.querySelector('.person-initial-avatar'),src=staffVisual(person);
+      if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="person-portrait role-portrait" src="${src}" alt="">`;
+    });
+  };
   const oldPerson=openStaffPerson;
-  openStaffPerson=function(id){const p=currentPlayer(),s=p.staffRoster.find(x=>x.id===id);oldPerson(id);const root=$('#dialogContent .dialog-wrap');if(s&&root?.querySelector('.dialog-person-initial'))root.querySelector('.dialog-person-initial').outerHTML=`<img class="dialog-person-hero" src="${STAFF_ART[s.role]}" alt="">`;};
+  openStaffPerson=function(id){
+    const p=currentPlayer(),person=p.staffRoster.find(x=>x.id===id);oldPerson(id);if(!person)return;
+    const root=$('#dialogContent .dialog-wrap'),src=staffVisual(person),img=root?.querySelector('.dialog-person-hero'),initial=root?.querySelector('.dialog-person-initial');
+    if(img)img.src=src;else if(initial)initial.outerHTML=`<img class="dialog-person-hero" src="${src}" alt="">`;
+  };
+
+  const oldCorruption=renderCorruption;
+  renderCorruption=function(){
+    oldCorruption();
+    for(const [key,src] of Object.entries(CONTACT_ART)){
+      const card=$('#corruptionGrid [data-bribe="'+key+'"]')?.closest('.shop-card');if(!card)continue;
+      let img=card.querySelector('.contact-portrait');if(img)img.src=src;else card.insertAdjacentHTML('afterbegin',`<img class="contact-portrait" src="${src}" alt="">`);
+    }
+  };
+
+  function decoratePropertyMarket(){
+    const root=$('#dialogContent');if(!root)return;
+    const kinds={Ladenlokal:'shop','Wohn- & Geschäftshaus':'block','Lagerhalle':'warehouse','Premium-Grundstück':'prime'};
+    $('.dialog-option',root).forEach(row=>{
+      if(row.querySelector('.property-thumb'))return;
+      const txt=row.textContent||'';for(const [label,id] of Object.entries(kinds))if(txt.includes(label)){row.insertAdjacentHTML('afterbegin',`<img class="property-thumb" src="${PROPERTY_ART[id]}" alt="">`);break;}
+    });
+  }
+  document.addEventListener('click',e=>{if(e.target.closest?.('[data-land],[data-buy-land],[data-assign-land],[data-sell-land]'))setTimeout(decoratePropertyMarket,35);});
 
   function openRivalProfile(pid){
     const p=currentPlayer(),r=state.players.find(x=>x.id===pid);if(!r)return;ensureDepth(p);ensureDepth(r);const info=rivalInfo(r),gr=p.rivalMemory.grudges[r.id]||0,fav=p.rivalMemory.favors[r.id]||0;
