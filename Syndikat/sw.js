@@ -1,5 +1,5 @@
-const CACHE='syndikat-v5-0';
-const CORE=['./','./index.html','./style.css','./js/core.js','./cloud-config.js','./js/cloud.js','./assets/start-user.webp','./assets/start-noir.svg','./manifest.webmanifest','./icon.svg','./icon-192.svg','./icon-512.svg'];
+const CACHE='syndikat-v5-1';
+const CORE=['./','./index.html','./style.css','./js/core.js','./cloud-config.js','./js/cloud.js','./assets/city-map.webp','./assets/portrait-vittorio.webp','./assets/portrait-marco.webp','./assets/portrait-sofia.webp','./assets/portrait-keller.webp','./assets/event-raid.webp','./assets/event-court.webp','./assets/event-prison-break.webp','./assets/start-user.webp','./assets/start-noir.svg','./manifest.webmanifest','./icon.svg','./icon-192.svg','./icon-512.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('syndikat-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
