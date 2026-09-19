@@ -1,0 +1,21 @@
+name: Syndikat regression
+
+on:
+  push:
+    paths:
+      - 'Syndikat/**'
+      - '.github/workflows/syndikat-regression.yml'
+  pull_request:
+    paths:
+      - 'Syndikat/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Syndikat regression suite
+        run: node Syndikat/tests/regression.cjs
