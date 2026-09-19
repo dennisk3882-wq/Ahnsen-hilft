@@ -1067,7 +1067,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
     if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
     if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
     if(state.settings.length==='endless')return;
-    const cfg={short:{min:12,target:60,districts:2},normal:{min:22,target:72,districts:3},long:{min:35,target:82,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
+    const cfg={short:{min:12,target:52,districts:2},normal:{min:22,target:62,districts:3},long:{min:35,target:72,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
     if(state.round<cfg.min)return;
     if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){state.gameOver=true;state.winnerId=active[0].id;state.endReason='Alle Rivalen sind ausgeschieden.';return;}
     const leader=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
@@ -1404,7 +1404,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
     if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
     if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
     if(state.settings.length==='endless')return;
-    const cfg={short:{min:12,target:60,districts:2},normal:{min:22,target:72,districts:3},long:{min:35,target:82,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
+    const cfg={short:{min:12,target:52,districts:2},normal:{min:22,target:62,districts:3},long:{min:35,target:72,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
     if(state.round<cfg.min)return;
     if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){
       const survivor=active[0];
