@@ -370,7 +370,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
       businesses:[],staff:{informant:0,guard:0,bodyguard:0,gunman:0,lawyer:0,manager:0},staffRoster:[],
       bribes:{officer:false,inspector:false,judge:false,prosecutor:false,mayor:false},pacts:{},alliances:{},relations:{},
       scouting:{},protection:{},routes:[],loans:[],missions:[],stats:{crimesSuccess:0,attacksSuccess:0,scouts:0,protection:0,trades:0},
-      jailed:0,actionPoints:2,intel:0,ledger:[],history:[],lastIncome:0,lastExpenses:0,lastLaundered:0,
+      jailed:0,actionPoints:3,intel:0,ledger:[],history:[],lastIncome:0,lastExpenses:0,lastLaundered:0,
       eliminated:false,temporaryIncomeMultiplier:1,eventText:'',turnsInDebt:0,lastAction:'Noch keine Aktion',tutorialDone:false
     };
     return p;
@@ -398,7 +398,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
     p.staffRoster=Array.isArray(p.staffRoster)?p.staffRoster:[];p.bribes=p.bribes||{officer:false,inspector:false,judge:false,prosecutor:false,mayor:false};
     p.pacts=p.pacts||{};p.alliances=p.alliances||{};p.relations=p.relations||{};p.scouting=p.scouting||{};p.protection=p.protection||{};p.routes=Array.isArray(p.routes)?p.routes:[];p.loans=Array.isArray(p.loans)?p.loans:[];
     p.missions=Array.isArray(p.missions)?p.missions:[];p.stats=p.stats||{crimesSuccess:0,attacksSuccess:0,scouts:0,protection:0,trades:0};
-    p.ledger=Array.isArray(p.ledger)?p.ledger:[];p.history=Array.isArray(p.history)?p.history:[];p.actionPoints=Number.isFinite(p.actionPoints)?p.actionPoints:2;p.intel=p.intel||0;
+    p.ledger=Array.isArray(p.ledger)?p.ledger:[];p.history=Array.isArray(p.history)?p.history:[];p.actionPoints=Number.isFinite(p.actionPoints)?p.actionPoints:3;p.intel=p.intel||0;
     p.temporaryIncomeMultiplier=p.temporaryIncomeMultiplier||1;p.turnsInDebt=p.turnsInDebt||0;p.lastAction=p.lastAction||'Noch keine Aktion';p.eventText=p.eventText||'';p.tutorialDone=!!p.tutorialDone;
     // Migrate old staff counters into individual people.
     if(!p.staffRoster.length && Object.values(p.staff).some(v=>v>0)){
@@ -605,7 +605,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
     if(p.debt>0){p.turnsInDebt++;const interest=Math.max(250,Math.round(p.debt*.025));p.debt+=interest;ledger(p,'Schuldzinsen',-interest,'debt');if(p.turnsInDebt>=6)foreclose(p);}else p.turnsInDebt=0;
     p.heat=clamp(p.heat-(5+shield(p)/10+roleSkill(p,'lawyer')/55),0,100);if(p.heat>=72&&chance((p.heat-60)/110*(1-shield(p)/100)))policeRaid(p);
     if(p.jailed>0){let reduce=1;if(p.staff.lawyer>=2&&chance(.25))reduce++;p.jailed=Math.max(0,p.jailed-reduce);}
-    manageStaffLoyalty(p);if(chance(.24))triggerEvent(p);else p.eventText='Ruhige Lage';p.history.push(netWorth(p));if(p.history.length>24)p.history.shift();p.actionPoints=2;p.intel=0;p.temporaryIncomeMultiplier=1;ensureMissions(p);checkVictory();saveGame();
+    manageStaffLoyalty(p);if(chance(.24))triggerEvent(p);else p.eventText='Ruhige Lage';p.history.push(netWorth(p));if(p.history.length>24)p.history.shift();p.actionPoints=3;p.intel=0;p.temporaryIncomeMultiplier=1;ensureMissions(p);checkVictory();saveGame();
   }
   function randomizedIncome(p,b){return Math.max(0,Math.round(estimateIncome(p,b)*(.78+Math.random()*.5)));}
   function incomeBoost(p,types,mult){const eligible=p.businesses.filter(b=>types.includes(b.type)),bonus=Math.round(eligible.reduce((s,b)=>s+estimateIncome(p,b),0)*(mult-1));if(bonus>0){p.clean+=bonus;ledger(p,'Ereignisbonus',bonus,'income');}p.eventText=bonus>0?`Sonderumsatz +${fmt(bonus)}`:'Ereignis ohne passende Betriebe';}
@@ -1052,7 +1052,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
     if(p.jailed>0){let reduce=1;if(p.staff.lawyer>=2&&chance(.25))reduce++;p.jailed=Math.max(0,p.jailed-reduce);}
     manageStaffLoyalty(p);if(chance(.26))triggerEvent(p);else p.eventText=wasIdle?'Geschäfte laufen, Führung fehlt':'Ruhige Lage';
     p.history.push(netWorth(p));if(p.history.length>24)p.history.shift();
-    p.actionPoints=2;p.intel=0;p.temporaryIncomeMultiplier=1;p.businessPurchasesThisTurn=0;p.roundActivity=0;delete p._turnIncomeFactor;
+    p.actionPoints=3;p.intel=0;p.temporaryIncomeMultiplier=1;p.businessPurchasesThisTurn=0;p.roundActivity=0;delete p._turnIncomeFactor;
     ensureMissions(p);checkVictory();saveGame();
   };
 
@@ -1432,6 +1432,21 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
   DISTRICTS.forEach(d=>{if(neutralV36[d.id])d.neutral=neutralV36[d.id];});
 })();
 /* SYNDIKAT_REVISION_3_6_END */
+
+/* SYNDIKAT_REVISION_3_10_BEGIN */
+(function REVISION310_PATCH(){
+  const investor=EVENTS.find(e=>e.name==='Diskreter Investor');
+  if(investor)investor.apply=p=>{
+    if((p.roundActivity||0)<=0||p.reputation<10||p.businesses.length<2){p.eventText='Kein Investor ohne sichtbare Aktivität';return;}
+    const v=rand(3000,12000);p.clean+=v;ledger(p,'Investor',v,'clean');p.eventText=`Investor +${fmt(v)}`;
+  };
+  if(!TUTORIAL.some(x=>x[0]==='Sauberes und schmutziges Geld'))TUTORIAL.splice(2,0,
+    ['Sauberes und schmutziges Geld','Kleine Unterweltgeschäfte können mit Bargeld finanziert werden. Ab Tier 2, für Ausbauten und Bankgeschäfte brauchst du sauberes Kapital. Betriebe waschen pro Runde nur eine begrenzte Summe.'],
+    ['Nicht einfach Zeit vorspulen','Betriebe verdienen passiv, aber Führung zählt: Leere Runden senken die Betriebseffizienz, erhöhen Verschleiß und verursachen zusätzliche Verwaltungskosten. Zwei Käufe pro Runde sind das Maximum.'],
+    ['Standorte und Marktsättigung','Jedes Viertel besitzt nur begrenzte Standorte. Viele gleiche Betriebe im selben Viertel drücken ihren Ertrag. Ausbauen oder höherwertig neu entwickeln ist deshalb oft besser als Masse.']
+  );
+})();
+/* SYNDIKAT_REVISION_3_10_END */
 
   init();
 })();
