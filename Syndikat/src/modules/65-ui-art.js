@@ -92,20 +92,28 @@
     decorateDialog();
   }
 
-  const observer=new MutationObserver(()=>{
+  const schedule=()=>{
     if(queued)return;
     queued=true;
-    queueMicrotask(decorate);
-  });
+    if(typeof queueMicrotask==='function')queueMicrotask(decorate);
+    else setTimeout(decorate,0);
+  };
 
-  if(document.body){
-    observer.observe(document.body,{childList:true,subtree:true});
-    decorate();
-  }else{
-    document.addEventListener('DOMContentLoaded',()=>{
+  if(typeof MutationObserver!=='undefined'){
+    const observer=new MutationObserver(schedule);
+    if(document.body){
       observer.observe(document.body,{childList:true,subtree:true});
       decorate();
-    },{once:true});
+    }else{
+      document.addEventListener('DOMContentLoaded',()=>{
+        observer.observe(document.body,{childList:true,subtree:true});
+        decorate();
+      },{once:true});
+    }
+  }else if(document.body){
+    decorate();
+  }else{
+    document.addEventListener('DOMContentLoaded',decorate,{once:true});
   }
 
   window.SyndikatUiArt=ART;
