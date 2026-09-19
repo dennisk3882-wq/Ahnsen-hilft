@@ -213,3 +213,9 @@ body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.c
   .map-marker{font-size:.62rem;padding:.2rem .35rem}
   .ending-card{grid-template-columns:1fr}.ending-card img{width:100%;height:150px}
 }
+
+/* Syndikat v5.3 unique people / authorities / property */
+.property-thumb{width:96px;height:64px;object-fit:cover;border-radius:9px;border:1px solid rgba(217,173,84,.22);flex:0 0 auto}
+#corruptionGrid .contact-portrait{object-position:center 24%}
+.person-portrait.role-portrait{object-position:center 22%}
+@media(max-width:620px){.property-thumb{width:78px;height:56px}}
