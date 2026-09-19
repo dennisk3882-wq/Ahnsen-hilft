@@ -13,6 +13,7 @@ const modules=[
   "src/modules/58-world-depth.js",
   "src/modules/59-visual-expansion.js",
   "src/modules/60-cloud-online.js",
+  "src/modules/62-account-push.js",
   "src/modules/65-ui-art.js",
   "src/modules/70-decisions.js",
   "src/modules/80-justice.js",
