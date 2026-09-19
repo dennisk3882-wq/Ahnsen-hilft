@@ -179,3 +179,37 @@ body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.c
 @media(max-width:420px){
   .city-art-map{min-height:270px}.city-map-tag{min-width:62px}.city-map-tag strong{font-size:.55rem}.city-map-tag span{display:none}
 }
+
+/* Syndikat v5.2 world depth */
+.map-mode-bar{display:flex;gap:.45rem;overflow-x:auto;padding:.1rem 0 .8rem;scrollbar-width:none}
+.map-mode-bar::-webkit-scrollbar{display:none}
+.map-mode{border:1px solid var(--line);background:#0b1118;color:var(--muted);padding:.55rem .8rem;border-radius:999px;font-weight:800;white-space:nowrap}
+.map-mode.active{color:#171006;background:linear-gradient(135deg,#ebc86d,#b88932);border-color:#e6c267}
+.map-marker{position:absolute;z-index:8;transform:translate(-50%,-50%);font-size:.72rem;font-weight:900;padding:.28rem .48rem;border-radius:999px;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.45);white-space:nowrap}
+.map-marker.mine{background:rgba(9,16,22,.92);border:1px solid rgba(229,191,100,.6);color:#f0d38f}
+.map-marker.rival{background:rgba(71,20,24,.92);border:1px solid rgba(232,97,99,.58);color:#ffd6d7}
+.district-visual{display:grid;grid-template-columns:118px 1fr;gap:.9rem;align-items:center;margin-bottom:1rem;padding:.6rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,11,16,.68)}
+.district-visual img{width:118px;height:78px;object-fit:cover;border-radius:9px}.district-visual div{display:grid;gap:.25rem}.district-visual span{color:var(--muted);font-size:.82rem;line-height:1.35}
+.business-card{overflow:hidden}.business-thumb{width:118px;height:86px;object-fit:cover;border-radius:10px;border:1px solid rgba(217,173,84,.2)}
+.business-buy-thumb{width:96px;height:64px;object-fit:cover;border-radius:9px;border:1px solid rgba(217,173,84,.22);flex:0 0 auto}
+.business-detail-art{width:100%;height:220px;object-fit:cover;border-radius:15px;margin-bottom:1rem;border:1px solid rgba(217,173,84,.25)}
+.rival-rank-portrait{width:58px;height:72px;object-fit:cover;border-radius:10px;border:1px solid rgba(217,173,84,.22)}
+.clickable-rival{cursor:pointer}.clickable-rival:hover{border-color:rgba(217,173,84,.5)}
+.rival-hero{display:grid;grid-template-columns:180px 1fr;gap:1rem;align-items:center;margin-bottom:1rem}.rival-hero img{width:180px;height:235px;object-fit:cover;border-radius:14px;border:1px solid rgba(217,173,84,.28)}
+.rival-hero small,.rival-mini span{color:var(--gold2);text-transform:uppercase;letter-spacing:.08em}.rival-hero p{color:var(--muted);line-height:1.5}.rival-hero blockquote{margin:.5rem 0 0;padding:.7rem;border-left:3px solid var(--gold);background:rgba(217,173,84,.06);font-family:Georgia,serif;font-style:italic}
+.rival-mini{display:grid;grid-template-columns:72px 1fr;gap:.75rem;align-items:center;margin-bottom:1rem;padding:.65rem;border:1px solid var(--line);border-radius:12px}.rival-mini img{width:72px;height:88px;object-fit:cover;border-radius:9px}.rival-mini div{display:grid;gap:.2rem}
+.crime-thumb{width:calc(100% + 2rem);height:105px;object-fit:cover;margin:-1rem -1rem .75rem;border-bottom:1px solid rgba(217,173,84,.18)}
+.item-thumb{width:90px;height:62px;object-fit:cover;border-radius:9px;border:1px solid rgba(217,173,84,.2);flex:0 0 auto}
+.operation-hero{width:100%;height:220px;object-fit:cover;border-radius:14px;margin-bottom:1rem;border:1px solid rgba(217,173,84,.25)}
+.deep-event-card{display:grid;grid-template-columns:112px 1fr;gap:.75rem;align-items:center;padding:.6rem;border:1px solid rgba(217,173,84,.24);border-radius:14px;background:linear-gradient(90deg,rgba(217,173,84,.07),rgba(7,11,16,.32))}
+.deep-event-card img{width:112px;height:78px;object-fit:cover;border-radius:9px}.deep-event-card div{display:grid;gap:.2rem}.deep-event-card small{color:var(--gold2);text-transform:uppercase;letter-spacing:.08em}.deep-event-card span{color:var(--muted);font-size:.78rem}
+.ending-card{display:grid;grid-template-columns:190px 1fr;gap:1rem;align-items:center;margin-top:1rem;padding:1rem;border:1px solid rgba(217,173,84,.35);border-radius:16px;background:linear-gradient(135deg,rgba(217,173,84,.09),rgba(8,12,18,.96))}
+.ending-card img{width:190px;height:125px;object-fit:cover;border-radius:11px}.ending-card small{color:var(--gold2);text-transform:uppercase;letter-spacing:.1em}.ending-card h3{margin:.25rem 0 .4rem}.ending-card p{margin:0;color:var(--muted);line-height:1.45}
+.role-portrait{object-position:center 25%}
+@media(max-width:760px){
+  .business-card{grid-template-columns:86px 1fr auto}.business-thumb{width:86px;height:70px}
+  .rival-hero{grid-template-columns:110px 1fr}.rival-hero img{width:110px;height:148px}
+  .district-visual{grid-template-columns:92px 1fr}.district-visual img{width:92px;height:66px}
+  .map-marker{font-size:.62rem;padding:.2rem .35rem}
+  .ending-card{grid-template-columns:1fr}.ending-card img{width:100%;height:150px}
+}
