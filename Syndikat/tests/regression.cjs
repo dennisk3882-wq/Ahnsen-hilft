@@ -278,15 +278,16 @@ assert(src.includes('SYNDIKAT_V49_FINAL_GAMEPLAY_BEGIN'));
         context.Math.random=seeded(seed*7919+length.length+difficulty.length*101);
         const st=mk({ais:7,length,difficulty});
         let guard=0;
+        const maxTurns=(length==='short'?120:length==='normal'?250:380)*st.players.length;
         assert.doesNotThrow(()=>{
-          while(!st.gameOver&&guard++<1800){
+          while(!st.gameOver&&guard++<maxTurns){
             const p=st.players[st.currentIndex];
             if(p.type==='ai')T.aiTurn(p);
             T.processEndOfTurn(p);
             if(!st.gameOver)T.advanceIndex();
           }
         },difficulty+' '+length+' campaign simulation must not throw');
-        assert.strictEqual(st.gameOver,true,difficulty+' '+length+' campaign must resolve');
+        assert.strictEqual(st.gameOver,true,difficulty+' '+length+' campaign must resolve by its configured deadline');
         const winner=st.players.find(p=>p.id===st.winnerId)?.family||'none';
         balanceWins[difficulty][winner]=(balanceWins[difficulty][winner]||0)+1;
         totalRuns++;
