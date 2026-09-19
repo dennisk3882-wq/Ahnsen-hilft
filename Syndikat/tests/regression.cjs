@@ -26,7 +26,7 @@ showGameOver=function(){};
 saveGame=function(){};
 window.__TEST__={
   DISTRICTS,BUSINESSES,AI_PROFILES,blankPlayer,initPlayer,ensureMissions,processEndOfTurn,advanceIndex,aiTurn,
-  powerIndex,rankName,controlledDistricts,netWorth,districtShare,checkVictory,buyBusiness,
+  powerIndex,rankName,controlledDistricts,netWorth,districtShare,checkVictory,buyBusiness,migrateState,
   getState:()=>state,setState:v=>{state=v;}
 };
 `;
@@ -135,4 +135,42 @@ function mk({ais=0,length='normal',difficulty='normal'}={}){
 
 assert(src.includes('SYNDIKAT_V4_SYSTEMS_BEGIN'));
 assert(src.includes('SYNDIKAT_V42_META_BEGIN'));
+assert(src.includes('SYNDIKAT_V43_DEPTH_BEGIN'));
+assert(src.includes('SYNDIKAT_V44_ECONOMY_DEPTH_BEGIN'));
+assert(src.includes('SYNDIKAT_V45_CLOUD_UI_BEGIN'));
+assert(src.includes('SYNDIKAT_V46_DECISIONS_BEGIN'));
+
+// New-state migration must create the v4 economy/meta structures without losing the save.
+{
+  const st=mk();
+  const migrated=T.migrateState(JSON.parse(JSON.stringify(st)));
+  T.setState(migrated);
+  assert(Array.isArray(migrated.propertyMarket),'property market must exist after migration');
+  assert(migrated.propertyMarket.length>=24,'property market should provide multiple lots per district');
+  assert(Array.isArray(migrated.players[0].propertyIds),'player property ids must migrate');
+  assert(Array.isArray(migrated.players[0].pendingDecisions),'decision queue must migrate');
+}
+
+// Prepared cloud adapter/schema must be syntactically valid and locked down by RLS.
+{
+  const cloud=fs.readFileSync('Syndikat/js/cloud.js','utf8');
+  const cfg=fs.readFileSync('Syndikat/cloud-config.js','utf8');
+  const schema=fs.readFileSync('Syndikat/supabase/schema.sql','utf8');
+  new Function(cloud);new Function(cfg);
+  assert(schema.includes('enable row level security'));
+  assert(schema.includes('private.syndikat_token_hash'));
+  assert(schema.includes('grant select, insert, update, delete'));
+  assert(!cloud.includes('service_role'),'public client must never contain a service-role key');
+}
+
+// Offline shell must include the modular/cloud files and update path.
+{
+  const sw=fs.readFileSync('Syndikat/sw.js','utf8');
+  const index=fs.readFileSync('Syndikat/index.html','utf8');
+  assert(sw.includes('./js/cloud.js'));
+  assert(sw.includes('SKIP_WAITING'));
+  assert(index.includes('./cloud-config.js'));
+  assert(index.includes('updateNotice'));
+}
+
 console.log('Syndikat regression suite: OK');
