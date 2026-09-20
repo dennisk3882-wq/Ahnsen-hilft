@@ -5,6 +5,8 @@ const vm=require('vm');
 const path='Syndikat/js/core.js';
 let src=fs.readFileSync(path,'utf8');
 new Function(src);
+src=src.replace('  function finalizeStory(p,ch,choiceId=null){','  window.__finalizeStory=finalizeStory;\n  function finalizeStory(p,ch,choiceId=null){');
+src=src.replace('  function v42CheckAchievements(p){','  window.__checkAchievements=v42CheckAchievements;\n  function v42CheckAchievements(p){');
 
 const inject=`
 renderAll=function(){};
@@ -64,6 +66,36 @@ function mk({ais=0,length='normal',difficulty='normal'}={}){
   }
   const st={version:4,round:1,currentIndex:0,players:ps,settings:{difficulty,length},log:[],winnerId:null,gameOver:false,initialPlayerCount:ps.length,initialHumanCount:1};
   T.setState(st);ps.forEach(p=>{T.initPlayer(p);T.ensureMissions(p)});return st;
+}
+
+// Remote players remain human participants after the local host is eliminated.
+{
+  const st=mk({ais:1});st.players[0].eliminated=true;st.players[1].type='remote';
+  T.checkVictory();assert.strictEqual(st.gameOver,false);
+}
+
+// Personal achievements must never be awarded for an AI or remote family.
+{
+  const st=mk({ais:1}),p=st.players[1];p.clean=2000000;
+  storage.delete('syndikat_achievements_v4');
+  context.__checkAchievements(p);
+  assert.strictEqual(storage.has('syndikat_achievements_v4'),false);
+  p.type='remote';context.__checkAchievements(p);
+  assert.strictEqual(storage.has('syndikat_achievements_v4'),false);
+}
+
+// An unaffordable story choice must not spend money, create debt, or claim rewards.
+{
+  const st=mk(),p=st.players[0],ch=context.SyndikatVisualStory.story.find(c=>c.chapter===17);
+  p.story={version:51,chapter:17,claimed:[],archive:[],flags:{}};
+  p.bribes={officer:true,inspector:true,judge:true};p.clean=100;p.dirty=0;
+  const before=JSON.stringify(p);
+  context.__finalizeStory(p,ch,'independent');
+  assert.strictEqual(JSON.stringify(p),before);
+  p.clean=80000;context.__finalizeStory(p,ch,'independent');
+  assert.strictEqual(p.clean,ch.reward);
+  assert.strictEqual(p.story.chapter,18);
+  assert.strictEqual(p.story.flags.politics,'independent');
 }
 
 // Start progression.
@@ -270,7 +302,7 @@ assert(src.includes('SYNDIKAT_V56_RUNTIME_FACADE_BEGIN'));
     assert(sw.includes('./assets/'+asset),'UI artwork must be cached offline: '+asset);
     assert(uiArt.includes(asset),'UI artwork must be mapped: '+asset);
   }
-  assert(sw.includes('syndikat-v5-6-0'),'PWA cache must match the v5.6 completion release');
+  assert(sw.includes('syndikat-v5-6-1'),'PWA cache must match the v5.6 completion release');
 }
 
 // Required CI soak: 12 full-table campaigns (7 rival AIs), one per difficulty/length combination.

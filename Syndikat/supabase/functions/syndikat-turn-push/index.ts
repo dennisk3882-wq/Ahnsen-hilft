@@ -48,6 +48,35 @@ Deno.serve(async req=>{
       return new Response(JSON.stringify({publicKey:k.public_key}),{headers:cors});
     }
 
+    if(action==='dispatch'){
+      const {data:job,error}=await admin.from('syndikat_push_jobs').update({status:'processing',updated_at:new Date().toISOString()})
+        .eq('id',String(body.jobId||'')).eq('token',String(body.jobToken||'')).eq('status','pending').select().maybeSingle();
+      if(error)throw error;
+      if(!job)return new Response(JSON.stringify({error:'invalid or already claimed job'}),{status:403,headers:cors});
+      const {data:game,error:ge}=await admin.from('syndikat_online_games').select('status,revision,active_participant_id').eq('game_code',job.game_code).single();
+      if(ge)throw ge;
+      if(game.status!=='playing'||game.revision!==job.revision||game.active_participant_id!==job.participant_id){
+        await admin.from('syndikat_push_jobs').update({status:'obsolete'}).eq('id',job.id);
+        return new Response(JSON.stringify({ok:true,sent:0,obsolete:true}),{headers:cors});
+      }
+      const {data:subs,error:se}=await admin.from('syndikat_push_subscriptions').select('id,endpoint,p256dh,auth').eq('game_code',job.game_code).eq('participant_id',job.participant_id);
+      if(se)throw se;
+      const k=await keys();webpush.setVapidDetails('mailto:noreply@syndikat.game',k.public_key,k.private_key);
+      let sent=0,failed=0;
+      for(const sub of subs||[]){
+        try{
+          await webpush.sendNotification({endpoint:sub.endpoint,keys:{p256dh:sub.p256dh,auth:sub.auth}},
+            JSON.stringify({title:'Syndikat',body:'Du bist am Zug.',url:'/live/?online='+encodeURIComponent(job.game_code),gameCode:job.game_code,revision:job.revision}),{TTL:3600,urgency:'high',timeout:8000});
+          sent++;
+        }catch(e:any){
+          if([404,410].includes(Number(e?.statusCode)))await admin.from('syndikat_push_subscriptions').delete().eq('id',sub.id);
+          else failed++;
+        }
+      }
+      await admin.from('syndikat_push_jobs').update({status:failed?'failed':'sent',updated_at:new Date().toISOString()}).eq('id',job.id);
+      return new Response(JSON.stringify({ok:!failed,sent}),{headers:cors});
+    }
+
     const gameCode=String(body.gameCode||"").toUpperCase();
     const participantId=String(body.participantId||"");
     const token=String(body.token||"");
@@ -58,6 +87,8 @@ Deno.serve(async req=>{
     if(action==="subscribe"){
       const s=body.subscription||{};
       if(!s.endpoint||!s.keys?.p256dh||!s.keys?.auth)throw new Error("invalid subscription");
+      const endpoint=new URL(String(s.endpoint));
+      if(endpoint.protocol!=='https:'||endpoint.username||endpoint.password||endpoint.port||!['fcm.googleapis.com','updates.push.services.mozilla.com','web.push.apple.com','notify.windows.com'].some(h=>endpoint.hostname===h||endpoint.hostname.endsWith('.'+h)))throw new Error('unsupported push endpoint');
       const {error}=await admin.from("syndikat_push_subscriptions").upsert({
         game_code:gameCode,participant_id:participantId,endpoint:String(s.endpoint),
         p256dh:String(s.keys.p256dh),auth:String(s.keys.auth),
@@ -77,36 +108,13 @@ Deno.serve(async req=>{
       return new Response(JSON.stringify({ok:true}),{headers:cors});
     }
 
-    if(action==="notify-active"){
-      const {data:game,error:gerr}=await admin.from("syndikat_online_games")
-        .select("active_participant_id,status,revision").eq("game_code",gameCode).maybeSingle();
-      if(gerr)throw gerr;
-      if(!game||game.status!=="playing"||!game.active_participant_id){
-        return new Response(JSON.stringify({ok:true,sent:0}),{headers:cors});
-      }
-      const target=String(game.active_participant_id);
-      if(target===participantId)return new Response(JSON.stringify({ok:true,sent:0}),{headers:cors});
-      const {data:subs,error:serr}=await admin.from("syndikat_push_subscriptions")
-        .select("id,endpoint,p256dh,auth").eq("game_code",gameCode).eq("participant_id",target);
-      if(serr)throw serr;
-      const k=await keys();
-      webpush.setVapidDetails("mailto:noreply@syndikat.game",k.public_key,k.private_key);
-      let sent=0;
-      for(const sub of subs||[]){
-        try{
-          await webpush.sendNotification(
-            {endpoint:sub.endpoint,keys:{p256dh:sub.p256dh,auth:sub.auth}},
-            JSON.stringify({title:"Syndikat",body:"Du bist am Zug.",url:"/?online="+encodeURIComponent(gameCode),gameCode,revision:game.revision}),
-            {TTL:3600,urgency:"high"}
-          );
-          sent++;
-        }catch(e:any){
-          const status=Number(e?.statusCode||e?.status||0);
-          if(status===404||status===410)await admin.from("syndikat_push_subscriptions").delete().eq("id",sub.id);
-        }
-      }
-      return new Response(JSON.stringify({ok:true,sent}),{headers:cors});
+    if(action==='status'){
+      const {data,error}=await admin.from('syndikat_push_subscriptions').select('id').eq('game_code',gameCode).eq('participant_id',participantId).eq('endpoint',String(body.endpoint||'')).maybeSingle();
+      if(error)throw error;
+      return new Response(JSON.stringify({subscribed:!!data}),{headers:cors});
     }
+    // Older clients may still call this. Only committed server transitions enqueue pushes.
+    if(action==='notify-active')return new Response(JSON.stringify({ok:true,sent:0,serverManaged:true}),{headers:cors});
     return new Response(JSON.stringify({error:"unknown action"}),{status:400,headers:cors});
   }catch(e){
     return new Response(JSON.stringify({error:String(e?.message||e)}),{status:400,headers:cors});

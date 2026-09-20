@@ -398,18 +398,7 @@
     else if(totalLiquid(p)<=0&&p.debt>50000){p.eliminated=true;recordChronicle(`${p.family} ist zahlungsunfähig und scheidet aus.`);}
   };
 
-  checkVictory=function(){
-    if(!state||state.gameOver)return;
-    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
-    if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
-    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
-    if(state.settings.length==='endless')return;
-    const cfg={short:{min:12,target:52,districts:2},normal:{min:22,target:62,districts:3},long:{min:35,target:72,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
-    if(state.round<cfg.min)return;
-    if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){state.gameOver=true;state.winnerId=active[0].id;state.endReason='Alle Rivalen sind ausgeschieden.';return;}
-    const leader=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
-    if(leader&&powerIndex(leader)>=cfg.target&&controlledDistricts(leader)>=cfg.districts){state.gameOver=true;state.winnerId=leader.id;state.endReason=`Dominanzziel erreicht: ${cfg.target}% Macht und ${cfg.districts} Viertel.`;}
-  };
+
   showGameOver=function(){
     if(!state?.gameOver)return;const w=state.players.find(p=>p.id===state.winnerId),human=w?.type==='human';
     if($('#gameDialog').open&&$('#dialogContent').dataset.gameover)return;$('#dialogContent').dataset.gameover='1';
@@ -741,23 +730,7 @@
     claim32(p);p.lastAction='Syndikat strategisch geführt';
   };
 
-  const victoryV3=checkVictory;
-  checkVictory=function(){
-    if(!state||state.gameOver)return;
-    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
-    if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
-    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
-    if(state.settings.length==='endless')return;
-    const cfg={short:{min:12,target:52,districts:2},normal:{min:22,target:62,districts:3},long:{min:35,target:72,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
-    if(state.round<cfg.min)return;
-    if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){
-      const survivor=active[0];
-      if(powerIndex(survivor)>=38&&controlledDistricts(survivor)>=1){state.gameOver=true;state.winnerId=survivor.id;state.endReason='Alle Rivalen sind ausgeschieden und das verbleibende Syndikat besitzt eine gefestigte Stadtbasis.';}
-      return;
-    }
-    const leader=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
-    if(leader&&powerIndex(leader)>=cfg.target&&controlledDistricts(leader)>=cfg.districts){state.gameOver=true;state.winnerId=leader.id;state.endReason=`Dominanzziel erreicht: ${cfg.target}% Macht und ${cfg.districts} Viertel.`;}
-  };
+
 })();
 /* SYNDIKAT_REVISION_3_2_END */
 
@@ -799,9 +772,9 @@
   }
   checkVictory=function(){
     if(!state||state.gameOver)return;
-    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
+    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>(p.type==='human'||p.type==='remote'));
     if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
-    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
+    if((state.initialHumanCount||state.players.filter(p=>(p.type==='human'||p.type==='remote')).length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
     if(state.settings.length==='endless')return;
     const cfg=victoryCfg311();if(state.round<cfg.min)return;
     if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){const s=active[0];if(powerIndex(s)>=38&&controlledDistricts(s)>=1){state.gameOver=true;state.winnerId=s.id;state.endReason='Alle Rivalen sind ausgeschieden und das verbleibende Syndikat besitzt eine gefestigte Stadtbasis.';}return;}

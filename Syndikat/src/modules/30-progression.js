@@ -85,6 +85,7 @@
 
   function v42Unlocked(){return v42GetJSON(ACH_KEY,{})}
   function v42CheckAchievements(p){
+    if(!p||p.type!=='human')return;
     const all=v42Unlocked();let changed=false;
     for(const a of ACHIEVEMENTS){if(!all[a.id]&&a.test(p)){all[a.id]={date:Date.now(),family:p.family};changed=true;toast(`Erfolg freigeschaltet: ${a.name}`);}}
     if(changed)v42SetJSON(ACH_KEY,all);
@@ -140,7 +141,7 @@
   }
   function v42RenderGuide(){
     let box=$('#guideCoach');
-    if(!box){box=document.createElement('div');box.id='guideCoach';box.className='guide-coach hidden';document.body.appendChild(box);}
+    if(!box){box=document.createElement('div');box.id='guideCoach';box.className='guide-coach hidden';($('#gameScreen .content-area')||document.body).prepend(box);}
     const p=currentPlayer?.();if(!p||!state){box.classList.add('hidden');return;}
     const txt=v42GuideText(p);if(!txt){box.classList.add('hidden');return;}
     box.innerHTML=`<strong>Geführter Einstieg</strong><span>${esc(txt)}</span><button aria-label="Tutorial schließen">×</button>`;box.classList.remove('hidden');box.querySelector('button').onclick=()=>{p.guide.done=true;saveGame();box.classList.add('hidden');};

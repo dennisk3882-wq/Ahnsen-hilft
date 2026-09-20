@@ -1,6 +1,7 @@
 name: Syndikat gated release
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -21,6 +22,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: syndikat-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   regression:
     runs-on: ubuntu-latest
@@ -32,12 +37,16 @@ jobs:
           node-version: '22'
       - name: Verify canonical core
         run: node Syndikat/tools/build-core.cjs --check
+      - name: Decode every image
+        run: |
+          python3 -m pip install Pillow==11.3.0
+          python3 Syndikat/tests/assets.py
       - name: Run regression
         run: node Syndikat/tests/regression.cjs
 
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,18 +54,38 @@ jobs:
           node-version: '22'
       - name: Install Playwright
         run: |
-          npm install --no-save @playwright/test@1.55.0
-          npx playwright install --with-deps chromium
+          npm install --no-save playwright@1.55.0 axe-core@4.10.3
+          npx playwright install --with-deps chromium firefox webkit
       - name: Start source PWA
         run: |
-          python3 -m http.server 4173 --directory Syndikat > /tmp/syndikat-http.log 2>&1 &
+          python3 Syndikat/tools/serve-candidate.py > /tmp/syndikat-http.log 2>&1 &
           for i in {1..20}; do curl -fsS http://127.0.0.1:4173/index-source.html >/dev/null && exit 0; sleep 1; done
           exit 1
       - name: Mobile and online E2E
-        run: npx playwright test Syndikat/tests/ui.spec.cjs Syndikat/tests/online-e2e.spec.cjs --reporter=line --workers=1
+        run: npx playwright test --config Syndikat/tests/playwright.config.cjs
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-results
+          path: test-results
+
+  strategies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node Syndikat/tests/active-strategies.cjs > active-strategies.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: active-strategies
+          path: active-strategies.json
 
   release:
-    needs: [regression,browser]
+    needs: [regression,browser,strategies]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,6 +93,11 @@ jobs:
           fetch-depth: 0
       - name: Publish tested snapshot
         run: |
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+            echo "A newer commit exists; this candidate will not be published."
+            exit 0
+          fi
           rm -rf Syndikat/live
           mkdir -p Syndikat/live
           cp -R Syndikat/assets Syndikat/js Syndikat/live/

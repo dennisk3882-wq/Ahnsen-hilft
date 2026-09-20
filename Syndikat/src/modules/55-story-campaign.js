@@ -87,7 +87,7 @@
     },
     {
       chapter:5,kicker:'Kapitel V',title:'Kellers Akte',speaker:'Kommissar Ernst Keller',portrait:ASSETS.keller,image:ASSETS.raid,
-      desc:'Halte Heat bei höchstens 45 und die Beweislage bei höchstens 40. Ein Anwalt oder Polizeikontakt hilft.',
+      desc:'Halte Heat bei höchstens 45 und die Beweislage bei höchstens 40. Beschäftige außerdem einen Anwalt oder unterhalte einen Kontakt zu einem Polizisten oder Inspektor.',
       narrative:[
         'Kommissar Ernst Keller klebt Fotos an eine Wand, zieht rote Linien zwischen Namen und Konten und lässt deinen Familiennamen genau in der Mitte stehen.',
         'Du kannst die Akte nicht verschwinden lassen. Aber du kannst dafür sorgen, dass aus Vermutungen keine Anklage wird. Dafür brauchst du Disziplin – oder Kontakte.'
@@ -141,12 +141,12 @@
     },
     {
       chapter:10,kicker:'Kapitel X',title:'Drei Familien am Tisch',speaker:'Sofia Moretti',portrait:ASSETS.sofia,image:ASSETS.sofia,
-      desc:'Erreiche mindestens 20 Ruf und halte einen aktiven Pakt oder ein Bündnis mit einer anderen Familie.',
+      desc:'Erreiche mindestens 20 Ruf und halte einen aktiven Pakt oder ein Bündnis mit einer anderen Familie. Gibt es keine andere aktive Familie mehr, genügt die Kontrolle über zwei Viertel.',
       narrative:[
         'Im Obergeschoss eines Restaurants stehen drei Teller auf dem Tisch und vier bewaffnete Männer vor der Tür. Sofia hat die Sitzordnung festgelegt. Niemand sitzt mit dem Rücken zum Fenster.',
         'Jetzt geht es nicht mehr darum, ob du zur Stadt gehörst. Es geht darum, ob die anderen Familien akzeptieren, dass wichtige Entscheidungen ohne dich nicht mehr möglich sind.'
       ],
-      done:p=>(p.reputation||0)>=20&&state.players.some(x=>x.id!==p.id&&!x.eliminated&&(pactActive(p,x)||allianceActive(p,x))),reward:140000,rep:9
+      done:p=>{const rivals=state.players.filter(x=>x.id!==p.id&&!x.eliminated);return (p.reputation||0)>=20&&(rivals.length?rivals.some(x=>pactActive(p,x)||allianceActive(p,x)):controlledDistricts(p)>=2);},reward:140000,rep:9
     },
     {
       chapter:11,kicker:'Kapitel XI',title:'Die Stadt gehört uns',speaker:'Don Vittorio Leone',portrait:ASSETS.vittorio,image:ASSETS.city,
@@ -190,6 +190,11 @@
     if(!storyDone(ch,p))return toast('Kapitelziel noch nicht erfüllt.');
     if(p.story.claimed.includes(ch.chapter))return;
     if(ch.choices?.length&&!choiceId)return;
+    const selected=choiceId?(ch.choices||[]).find(c=>c.id===choiceId):null;
+    if(choiceId&&!selected)return;
+    const cost=typeof selected?.cost==='function'?selected.cost(p):(selected?.cost||0);
+    if(cost>p.clean+p.dirty)return toast(`Diese Entscheidung kostet ${fmt(cost)} verfügbares Kapital.`);
+    if(cost>0)spend(p,cost,false);
     const choice=choiceId?storyChoiceApply(p,ch,choiceId):null;
     if(ch.onClaim)ch.onClaim(p);
     p.story.claimed.push(ch.chapter);
@@ -295,7 +300,7 @@
     grid.innerHTML=`<div class="city-map-scroll"><div class="city-art-map"><img src="${ASSETS.city}" alt="Nächtliche Stadtkarte von Syndikat">
       <svg class="city-hotspots" viewBox="0 0 1672 941" aria-label="Anklickbare Stadtviertel">${DISTRICTS.map(d=>`<polygon tabindex="0" role="button" aria-label="${esc(d.name)}" class="city-hotspot ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" points="${HOTSPOTS[d.id]}" style="--district-accent:${d.accent}"></polygon>`).join('')}</svg>
       ${DISTRICTS.map(d=>{const v=DISTRICT_VISUALS[d.id],share=Math.round(districtShare(p,d.id)),owner=districtOwner(d.id);return `<button class="city-map-tag ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" style="left:${v.tag[0]}%;top:${v.tag[1]}%;--district-accent:${d.accent}"><strong>${esc(d.name)}</strong><span>${share}% · ${esc(owner.player?owner.player.family:'Neutral')}</span></button>`;}).join('')}
-    </div></div>`;
+    </div></div><p class="city-map-hint">Karte seitlich verschieben · Viertel antippen</p>`;
     $$('[data-map-district]',grid).forEach(el=>{
       const open=()=>{selectedDistrict=el.dataset.mapDistrict;renderCity();};
       el.onclick=open;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};

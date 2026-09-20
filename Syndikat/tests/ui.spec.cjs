@@ -1,8 +1,9 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('playwright/test');
 
 async function expectImageLoaded(locator){
   await expect(locator).toBeVisible();
   await expect.poll(async()=>locator.evaluate(img=>img.complete?img.naturalWidth:0),{timeout:5000}).toBeGreaterThan(0);
+  await locator.evaluate(img=>img.decode());
 }
 async function closeDialog(page){
   const d=page.locator('#gameDialog');
@@ -18,7 +19,7 @@ function watchErrors(page){
   return errors;
 }
 
-test.use({ viewport:{width:390,height:844}, hasTouch:true, isMobile:true });
+test.use({ viewport:{width:390,height:844}, hasTouch:true });
 test.setTimeout(60000);
 
 test('mobile v5.6 core and management systems', async ({page})=>{
@@ -126,7 +127,7 @@ test('offline shell declares complete v5.6 PWA', async ({page})=>{
   const manifest=await page.locator('link[rel="manifest"]').getAttribute('href');
   expect(manifest).toBe('./manifest.webmanifest');
   const cache=await page.request.get('http://127.0.0.1:4173/sw.js');
-  expect(await cache.text()).toContain("syndikat-v5-6-0");
+  expect(await cache.text()).toContain("syndikat-v5-6-1");
   expect(errors).toEqual([]);
 });
 

@@ -1,4 +1,4 @@
-const {test,expect}=require('@playwright/test');
+const {test,expect}=require('playwright/test');
 test.setTimeout(90000);
 
 function gameState(host,guest,idx=0,round=1){

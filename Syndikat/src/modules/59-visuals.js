@@ -22,6 +22,7 @@
   function putImg(host,src,cls){if(!host||!src)return null;cls=cls||'vx-thumb';let img=host.querySelector('img.'+cls);if(!img){img=document.createElement('img');img.className=cls;img.alt='';host.insertBefore(img,host.firstChild);}if(img.getAttribute('src')!==src)img.src=src;return img;}
   function current(){try{return typeof currentPlayer==='function'?currentPlayer():null}catch(_){return null}}
   function decorate(){
+    document.querySelectorAll('#crimeGrid .crime-thumb').forEach(img=>img.remove());
     const p=current();
     if(p){const ev=p.deepEvent||(typeof state!=='undefined'&&state&&state.cityEvent);const eventImg=document.querySelector('.deep-event-card img');if(ev&&eventImg&&EVENTS[ev.id])eventImg.src=EVENTS[ev.id];}
     document.querySelectorAll('#crimeGrid .crime-card').forEach(function(card,i){const prisonBtn=card.querySelector('[data-prison-final]');if(prisonBtn){putImg(card,PRISON[prisonBtn.dataset.prisonFinal],'vx-thumb');return;}const c=(typeof CRIMES!=='undefined'&&CRIMES[i])?CRIMES[i]:null;if(c&&CRIME_ART[c.id])putImg(card,CRIME_ART[c.id],'vx-thumb');});

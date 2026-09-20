@@ -101,13 +101,13 @@ button,input,select{font:inherit}.hidden{display:none!important}.screen{display:
 .achievement{padding:1rem;border-radius:14px;border:1px solid var(--line);background:#0e141c}
 .achievement.unlocked{border-color:rgba(217,173,84,.55);background:linear-gradient(135deg,rgba(217,173,84,.1),#0e141c)}
 .achievement.locked{opacity:.62}.achievement p{color:var(--muted);margin:.45rem 0}.achievement small{color:#7f8994}
-.guide-coach{position:fixed;right:18px;bottom:24px;z-index:85;width:min(360px,calc(100vw - 28px));padding:1rem 2.6rem 1rem 1rem;border:1px solid rgba(217,173,84,.55);border-radius:16px;background:rgba(11,15,21,.96);box-shadow:0 18px 55px rgba(0,0,0,.5);display:grid;gap:.35rem}
+.guide-coach{position:relative;width:100%;margin-bottom:1rem;padding:.75rem 2.6rem .75rem 1rem;border:1px solid rgba(217,173,84,.55);border-radius:12px;background:rgba(11,15,21,.96);display:grid;gap:.35rem}
 .guide-coach strong{color:var(--gold2)}.guide-coach span{color:#d1d7de;font-size:.86rem;line-height:1.45}.guide-coach button{position:absolute;right:8px;top:8px;border:0;background:transparent;color:#a9b1ba;font-size:1.25rem;cursor:pointer}
 body[data-font-scale="large"]{font-size:112%}body[data-font-scale="xlarge"]{font-size:124%}
 body.high-contrast{--bg:#000;--bg2:#050505;--panel:#0b0b0b;--panel2:#111;--line:#666;--line2:#aaa;--text:#fff;--muted:#d7d7d7;--gold:#ffd45c;--gold2:#ffe59c}
 body.reduce-motion *,body.reduce-motion *:before,body.reduce-motion *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.compact-ui .business-card,body.compact-ui .crime-card{padding:.68rem}body.compact-ui .dialog-option{padding:.62rem}
-@media(max-width:620px){.achievement-grid{grid-template-columns:1fr}.guide-coach{right:14px;bottom:92px}}
+@media(max-width:620px){.achievement-grid{grid-template-columns:1fr}}
 
 /* Syndikat v4.3 depth */
 .v43-site{display:block;color:#778391;margin-top:.18rem;font-size:.72rem}
@@ -146,8 +146,10 @@ body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.c
 
 /* Syndikat v5.1 visual city, characters and story */
 .city-art-stage{padding:0!important;background:#05070a!important;border:1px solid rgba(217,173,84,.22);border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.42)}
-.city-map-scroll{width:100%;overflow:hidden;background:#05070a}
-.city-art-map{position:relative;width:100%;aspect-ratio:1672/941;min-height:260px;background:#080b10;isolation:isolate}
+.city-map-scroll{width:100%;overflow-x:auto;background:#05070a}
+.city-map-hint{display:none;margin:.5rem .75rem;color:var(--muted);font-size:.75rem}
+@media(max-width:620px){.city-map-hint{display:block}}
+.city-art-map{position:relative;width:100%;min-width:560px;aspect-ratio:1672/941;background:#080b10;isolation:isolate}
 .city-art-map>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.92) contrast(1.04)}
 .city-art-map:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,8,.08),transparent 40%,rgba(3,5,8,.32));z-index:1}
 .city-hotspots{position:absolute;inset:0;width:100%;height:100%;z-index:2}
@@ -172,12 +174,12 @@ body.compact-ui .content-area{padding-top:10px}body.compact-ui .shop-card,body.c
 .event-feature{display:grid;grid-template-columns:92px 1fr;gap:.8rem;align-items:stretch;border:1px solid rgba(217,173,84,.28);background:linear-gradient(100deg,rgba(217,173,84,.09),rgba(9,14,20,.78));border-radius:12px;overflow:hidden;margin-bottom:.65rem}.event-feature img{width:92px;height:100%;min-height:78px;object-fit:cover}.event-feature>div{padding:.65rem .65rem .65rem 0;display:grid;align-content:center;gap:.14rem}.event-feature small{color:var(--gold2);font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.event-feature strong{font-size:.88rem}.event-feature span{color:var(--muted);font-size:.72rem;line-height:1.35}
 .dialog-visual-banner,.prison-visual{position:relative;overflow:hidden;border-radius:14px;border:1px solid rgba(217,173,84,.28);margin-bottom:1rem;min-height:170px}.dialog-visual-banner img,.prison-visual img{width:100%;height:190px;object-fit:cover;display:block;filter:saturate(.88)}.dialog-visual-banner:after,.prison-visual:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(5,7,10,.94));pointer-events:none}.dialog-visual-banner>div,.prison-visual>div{position:absolute;z-index:1;left:1rem;right:1rem;bottom:.85rem;display:grid;gap:.15rem}.dialog-visual-banner small,.prison-visual small{color:var(--gold2);font-weight:900;letter-spacing:.1em}.dialog-visual-banner strong,.prison-visual strong{text-shadow:0 2px 8px #000}
 @media(max-width:760px){
-  .city-art-map{min-height:300px}.city-map-tag{min-width:70px;padding:.31rem .38rem;border-radius:8px}.city-map-tag strong{font-size:.61rem}.city-map-tag span{font-size:.49rem}
+  .city-map-tag{min-width:70px;min-height:44px;padding:.31rem .38rem;border-radius:8px}.city-map-tag strong{font-size:.7rem}.city-map-tag span{font-size:.6rem}
   .story-v51-card{grid-template-columns:1fr}.story-card-image{height:190px;min-height:190px}.story-card-copy{padding:.9rem}.story-speaker>img{width:58px;height:58px}.story-scene-hero{height:280px}
   .event-feature{grid-template-columns:78px 1fr}.event-feature img{width:78px}.dialog-visual-banner img,.prison-visual img{height:165px}
 }
 @media(max-width:420px){
-  .city-art-map{min-height:270px}.city-map-tag{min-width:62px}.city-map-tag strong{font-size:.55rem}.city-map-tag span{display:none}
+  .city-map-tag span{display:none}
 }
 
 /* Syndikat v5.2 world depth */

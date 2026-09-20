@@ -662,6 +662,8 @@ as $$
 declare oldp jsonb; newp jsonb; pid text; old_count integer; new_count integer; current_online text; state_winner_online text;
 begin
   if p_old_state is null then return; end if;
+  if p_new_state->'settings' is distinct from p_old_state->'settings' then raise exception 'game settings changed'; end if;
+  if p_old_state->'players'->((p_old_state->>'currentIndex')::integer)->>'onlineParticipantId' is distinct from p_actor::text then raise exception 'actor does not match active player'; end if;
   if jsonb_array_length(p_old_state->'players')<>jsonb_array_length(p_new_state->'players') then raise exception 'player count changed'; end if;
   for oldp in select value from jsonb_array_elements(p_old_state->'players') loop
     pid:=oldp->>'id'; select value into newp from jsonb_array_elements(p_new_state->'players') where value->>'id'=pid;
@@ -678,7 +680,12 @@ begin
     current_online:=p_new_state->'players'->((p_new_state->>'currentIndex')::integer)->>'onlineParticipantId';
     if current_online is distinct from p_next::text then raise exception 'next participant mismatch'; end if;
   elsif p_status='finished' then
-    if not coalesce((p_new_state->>'gameOver')::boolean,false) or p_winner is null then raise exception 'invalid finished state'; end if;
+    if not coalesce((p_new_state->>'gameOver')::boolean,false) then raise exception 'invalid finished state'; end if;
+    if p_new_state->>'winnerId' is null then
+      if p_winner is not null or exists(select 1 from jsonb_array_elements(p_new_state->'players') e where not coalesce((e->>'eliminated')::boolean,false)) then raise exception 'invalid draw'; end if;
+      return;
+    end if;
+    if not exists(select 1 from jsonb_array_elements(p_new_state->'players') e where e->>'id'=p_new_state->>'winnerId' and not coalesce((e->>'eliminated')::boolean,false)) then raise exception 'invalid winner'; end if;
     select e->>'onlineParticipantId' into state_winner_online from jsonb_array_elements(p_new_state->'players') e where e->>'id'=p_new_state->>'winnerId';
     if state_winner_online is distinct from p_winner::text then raise exception 'winner does not match game state'; end if;
   end if;

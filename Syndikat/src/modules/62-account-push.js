@@ -67,19 +67,6 @@
   const schedule=()=>{if(q)return;q=true;queueMicrotask(async()=>{q=false;await decorateCloudDialog()})};
   if(typeof MutationObserver!=='undefined'&&document.body)new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});
 
-  const baseEnd=endHumanTurn;
-  endHumanTurn=function(...args){
-    const s=getSession();
-    const r=baseEnd.apply(this,args);
-    if(s&&cloud()?.enabled)setTimeout(async()=>{
-      try{
-        const game=await cloud().getGame(s.code,s.token);
-        if(game?.status==='playing'&&game.active_participant_id&&game.active_participant_id!==s.participantId)await cloud().notifyActiveTurn(s);
-      }catch{}
-    },1400);
-    return r;
-  };
-
   window.SyndikatAccountPush={decorate:decorateCloudDialog,togglePush};
 })();
 /* SYNDIKAT_V56_ACCOUNT_PUSH_END */

@@ -2,6 +2,7 @@
 (function SYNDIKAT_V45_CLOUD_UI(){
   const ONLINE_KEY='syndikat_online_session_v1';
   const CLOUD_SAVE_KEY='syndikat_cloud_save_session_v1';
+  let onlineSubmitting=false;
   let onlineSession=null,onlineRevision=0,onlinePoll=null,onlineRoster=[],onlineStopWatch=null,onlineTransport='Fallback';
 
   function v45LoadSession(){try{onlineSession=JSON.parse(localStorage.getItem(ONLINE_KEY)||'null')}catch{onlineSession=null}return onlineSession}
@@ -24,7 +25,7 @@
     showScreen('gameScreen');currentView='city';saveGame();renderAll();
   }
   async function v45RefreshOnline(silent=false){
-    const c=v45Cloud();if(!c?.enabled||!onlineSession)return;
+    const c=v45Cloud();if(!c?.enabled||!onlineSession||onlineSubmitting)return;
     try{
       const game=await c.getGame(onlineSession.code,onlineSession.token);
       if(!game)return;
@@ -47,7 +48,7 @@
     onlinePoll=setInterval(async()=>{
       try{
         const game=await v45Cloud().getGame(onlineSession.code,onlineSession.token);
-        if(game&&Number(game.revision)>onlineRevision){onlineRevision=Number(game.revision);if(game.game_state)v45ApplyCloudState(game.game_state);}
+        if(!onlineSubmitting&&game&&Number(game.revision)>onlineRevision){onlineRevision=Number(game.revision);if(game.game_state)v45ApplyCloudState(game.game_state);}
       }catch{}
     },30000);
   }
@@ -170,18 +171,26 @@
   }
 
   const v45EndTurn=endHumanTurn;
-  endHumanTurn=function(){
+  endHumanTurn=async function(){
     if(!onlineSession||!v45Cloud()?.enabled)return v45EndTurn();
+    if(onlineSubmitting)return;
     const p=currentPlayer();if(!p||p.onlineParticipantId!==onlineSession.participantId)return toast('Du bist in dieser Online-Partie gerade nicht am Zug.');
-    v45EndTurn();
-    (async()=>{
-      try{
-        if(!onlineRoster.length)onlineRoster=await v45Cloud().getPlayers(onlineSession.code,onlineSession.token);
-        const next=currentPlayer(),nextPid=next?.onlineParticipantId||null;
-        const patch={game_state:v45CanonicalState(),status:state.gameOver?'finished':'playing',active_participant_id:nextPid,winner_participant_id:state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null};
-        const row=await v45Cloud().submitTurn(onlineSession,onlineRevision,patch.game_state,nextPid,patch.status,patch.winner_participant_id);onlineRevision=Number(row.revision);await v45Cloud().signalGame?.(onlineSession,onlineRevision,'state');
-      }catch(e){toast('Online-Synchronisation fehlgeschlagen: '+e.message);}
-    })();
+    const before=JSON.parse(JSON.stringify(state));
+    onlineSubmitting=true;
+    try{
+      v45EndTurn();renderAll();
+      const next=currentPlayer(),nextPid=next?.onlineParticipantId||null;
+      const row=await v45Cloud().submitTurn(onlineSession,onlineRevision,v45CanonicalState(),nextPid,state.gameOver?'finished':'playing',state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null);
+      onlineRevision=Number(row.revision);
+      onlineSubmitting=false;v45ApplyCloudState(row.game_state);
+      if(state.gameOver)showGameOver();
+      // Realtime is advisory. A failed broadcast must not roll back an accepted turn.
+      try{await v45Cloud().signalGame?.(onlineSession,onlineRevision,'state')}catch{}
+    }catch(e){
+      onlineSubmitting=false;state=before;saveGame();closeDialog();renderAll();
+      await v45RefreshOnline(true);
+      toast('Zug nicht übertragen. Bestätigter Spielstand wiederhergestellt: '+e.message);
+    }finally{onlineSubmitting=false;renderAll();}
   };
 
   const v45Render=renderAll;
@@ -189,9 +198,9 @@
     v45Render();
     if(onlineSession&&v45Cloud()?.enabled){
       const p=currentPlayer(),mine=p?.onlineParticipantId===onlineSession.participantId||p?.type==='ai';
-      if(p?.type==='remote'||!mine){
-        const b=$('#statusBanner');b.className='status-banner';b.textContent=`Online: ${p?.name||p?.family||'Mitspieler'} ist am Zug. Die Ansicht aktualisiert sich automatisch.`;
-        $$('#gameScreen .content-area button').forEach(x=>x.disabled=true);
+      if(onlineSubmitting||p?.type==='remote'||!mine){
+        const b=$('#statusBanner');b.className='status-banner';b.textContent=onlineSubmitting?'Zug wird übertragen …':`Online: ${p?.name||p?.family||'Mitspieler'} ist am Zug. Die Ansicht aktualisiert sich automatisch.`;
+        $$('#gameScreen .content-area button, #endTurnBtn, #endTurnDesktop').forEach(x=>x.disabled=true);
       }
     }
   };
