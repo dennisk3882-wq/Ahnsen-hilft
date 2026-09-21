@@ -127,7 +127,7 @@ test('offline shell declares complete v5.6 PWA', async ({page})=>{
   const manifest=await page.locator('link[rel="manifest"]').getAttribute('href');
   expect(manifest).toBe('./manifest.webmanifest');
   const cache=await page.request.get('http://127.0.0.1:4173/sw.js');
-  expect(await cache.text()).toContain("syndikat-v5-6-1");
+  expect(await cache.text()).toContain("syndikat-v5-6-2");
   expect(errors).toEqual([]);
 });
 

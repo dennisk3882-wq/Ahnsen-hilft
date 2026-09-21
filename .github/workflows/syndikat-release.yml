@@ -64,6 +64,7 @@ jobs:
       - name: Browser quality and mobile UI
         run: npx playwright test --config Syndikat/tests/playwright.config.cjs '/(quality|ui)\.spec\.cjs$'
       - name: Online protocol and complete UI match
+        if: ${{ !cancelled() }}
         run: npx playwright test --config Syndikat/tests/playwright.config.cjs --project=chromium online-e2e.spec.cjs online-ui.spec.cjs
 
       - uses: actions/upload-artifact@v4
