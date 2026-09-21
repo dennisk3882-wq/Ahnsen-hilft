@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Any
+import os
+from datetime import datetime
 
 from admin_access import can_access
 from community_crud import update_municipality_config
@@ -32,12 +34,22 @@ def normalize_platform_payload(values: dict[str, Any]) -> dict[str, str]:
     return {key: str(values.get(key) or "").strip()[:limit] for key, limit in PLATFORM_LIMITS.items()}
 
 
-def apply_platform_payload(values: dict[str, Any]):
-    data = normalize_platform_payload(values)
-    config = update_municipality_config({key: data[key] for key in (
-        "platform_name", "municipality_name", "claim", "postal_code",
-        "primary_color", "accent_color", "warning_terms",
-    )})
+def apply_platform_payload(values: dict[str, Any], db=None):
+    if db is None:
+        with SessionLocal() as session:
+            result = apply_platform_payload(values, db=session)
+            session.commit(); session.refresh(result)
+            return result
+    from platform_runtime import get_platform_snapshot
+    from community_models import MunicipalityConfig
+    data = normalize_platform_payload({**get_platform_snapshot(), **values})
+    config = db.query(MunicipalityConfig).first()
+    if config is None:
+        config = MunicipalityConfig()
+        db.add(config)
+    for key in ("platform_name", "municipality_name", "claim", "postal_code", "primary_color", "accent_color", "warning_terms"):
+        setattr(config, key, data[key])
+    config.aktualisiert_am = datetime.utcnow()
     settings = {
         "plattform_kurzname": data["short_name"],
         "plattform_beschreibung": data["description"],
@@ -78,24 +90,86 @@ def apply_platform_payload(values: dict[str, Any]):
         "akzentfarbe": config.accent_color,
     }
     for key, value in settings.items():
-        set_gemeinde_einstellung(key, value)
+        _set_setting(db, key, value)
     return config
 
 
-def apply_content_payload(area: str, payload: dict[str, Any]) -> None:
+def _set_setting(db, key, value):
+    from gemeinde_models import GemeindeEinstellung
+    item = db.query(GemeindeEinstellung).filter(GemeindeEinstellung.schluessel == key).first()
+    if item is None:
+        item = GemeindeEinstellung(schluessel=key)
+        db.add(item)
+    item.wert = str(value or "").strip()
+    item.aktualisiert_am = datetime.utcnow()
+
+
+def content_permission(area):
+    return "events" if area == "veranstaltungen" else "content"
+
+
+def apply_content_payload(area: str, payload: dict[str, Any], db=None):
+    if not isinstance(payload, dict):
+        raise ValueError("Inhalt muss ein Objekt sein.")
+    if db is None:
+        with SessionLocal() as session:
+            result = apply_content_payload(area, payload, db=session)
+            session.commit()
+            return result
     if area == "gemeindeseite":
-        update_gemeinde_einstellungen(payload)
+        from gemeinde_crud import DEFAULT_GEMEINDE_EINSTELLUNGEN
+        for key, value in payload.items():
+            if key in DEFAULT_GEMEINDE_EINSTELLUNGEN:
+                _set_setting(db, key, value)
         return
     if area == "plattform":
-        apply_platform_payload(payload)
-        return
+        return apply_platform_payload(payload, db=db)
+    if area == "veranstaltungen":
+        from veranstaltungen_models import Veranstaltung
+        event_id = payload.get("id")
+        event = db.get(Veranstaltung, int(event_id)) if event_id else None
+        if payload.get("_delete"):
+            if event: db.delete(event)
+            return
+        if event is None:
+            event = Veranstaltung()
+            if event_id: event.id = int(event_id)
+            db.add(event)
+        for column in Veranstaltung.__table__.columns:
+            key = column.name
+            if key not in {"id", "erstellt_am"} and key in payload:
+                setattr(event, key, payload[key])
+        db.flush()
+        return event.id
     raise ValueError("Dieser Inhaltsbereich unterstützt noch keine automatische Wiederherstellung.")
 
 
-def content_approval_available(actor_username: str) -> bool:
-    db = SessionLocal()
-    try:
-        accounts = db.query(AdminUser).filter(AdminUser.active.is_(True), AdminUser.username != actor_username).all()
-        return any(can_access(item.role, "content", method="POST") for item in accounts)
-    finally:
-        db.close()
+def content_approval_available(actor_username: str, area="gemeindeseite", db=None) -> bool:
+    if os.getenv("CONTENT_APPROVAL_MODE", "auto").casefold() == "required":
+        return True
+    if db is None:
+        with SessionLocal() as session:
+            return content_approval_available(actor_username, area, db=session)
+    accounts = db.query(AdminUser).filter(AdminUser.active.is_(True)).all()
+    return any(item.username.casefold() != actor_username.casefold() and can_access(item.role, content_permission(area), method="POST") for item in accounts)
+
+
+def submit_content(area, object_id, title, payload, actor):
+    """Persist the version and its publication in one transaction."""
+    import json
+    from db_coordination import transaction_lock
+    from governance_models import ContentRevision
+    with SessionLocal() as db:
+        transaction_lock(db, "content-workflow")
+        pending = content_approval_available(actor, area, db=db)
+        latest = db.query(ContentRevision).filter(ContentRevision.area == area, ContentRevision.object_id == object_id).order_by(ContentRevision.version.desc()).first()
+        now = datetime.utcnow()
+        values = dict(payload)
+        if not pending:
+            event_id = apply_content_payload(area, values, db=db)
+            if area == "veranstaltungen" and event_id:
+                values["id"] = event_id
+                object_id = str(event_id)
+        revision = ContentRevision(area=area, object_id=object_id, title=title[:200], payload_json=json.dumps(values, ensure_ascii=False), actor=actor, version=latest.version + 1 if latest else 1, state="Prüfung" if pending else "Freigegeben", reviewed_by="" if pending else actor, reviewed_at=None if pending else now, applied_at=None if pending else now)
+        db.add(revision); db.commit(); db.refresh(revision)
+        return revision

@@ -1,6 +1,8 @@
 from platform_runtime import get_platform_snapshot
 import mimetypes
 import smtplib
+import os
+import ssl
 from datetime import datetime
 from email.message import EmailMessage
 
@@ -10,11 +12,16 @@ from config import EMAIL_PASSWORD, EMAIL_TO, EMAIL_USER
 def _send_message(message: EmailMessage) -> None:
     if not EMAIL_USER or not EMAIL_PASSWORD or not message.get("To"):
         raise RuntimeError("E-Mail-Umgebungsvariablen fehlen")
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
+    host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    use_ssl = os.getenv("SMTP_SSL", "false").lower() == "true"
+    port = int(os.getenv("SMTP_PORT", "465" if use_ssl else "587"))
+    factory = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+    with factory(host, port, timeout=30, **({"context": ssl.create_default_context()} if use_ssl else {})) as smtp:
         smtp.ehlo()
-        smtp.starttls()
-        smtp.ehlo()
-        smtp.login(EMAIL_USER, EMAIL_PASSWORD)
+        if not use_ssl:
+            smtp.starttls(context=ssl.create_default_context())
+            smtp.ehlo()
+        smtp.login(os.getenv("SMTP_USER", EMAIL_USER), EMAIL_PASSWORD)
         smtp.send_message(message)
 
 

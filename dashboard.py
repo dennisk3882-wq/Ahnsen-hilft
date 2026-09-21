@@ -443,7 +443,12 @@ def meldung_detail_page(ticket):
                 <aside>
                     <section class="admin-detail-card">
                         <h2>Status ändern</h2>
-                        <form class="admin-note-form" method="post" action="/intern/meldung/{escape(m.ticket)}/workflow">
+                        <form method="post" action="/intern/meldung/{escape(m.ticket)}/kartenfreigabe">
+                            <p>Öffentliche Karte: Es werden nur Kategorie, Status und gerundete Koordinaten gezeigt. Vor Freigabe Standort auf private Grundstücke prüfen.</p>
+                            <input type="hidden" name="public_visible" value="{'nein' if getattr(m, 'public_visible', False) else 'ja'}">
+                            <button type="submit">{'Von Karte entfernen' if getattr(m, 'public_visible', False) else 'Für öffentliche Karte freigeben'}</button>
+                            </form>
+                            <form class="admin-note-form" method="post" action="/intern/meldung/{escape(m.ticket)}/workflow">
                             <label>Status<select name="status"><option {"selected" if m.status == "Offen" else ""}>Offen</option><option {"selected" if m.status == "In Bearbeitung" else ""}>In Bearbeitung</option><option {"selected" if m.status == "Warten auf Rückmeldung" else ""}>Warten auf Rückmeldung</option><option {"selected" if m.status == "Erledigt" else ""}>Erledigt</option><option {"selected" if m.status == "Abgelehnt" else ""}>Abgelehnt</option></select></label>
                             <label>Priorität<select name="priority">{"".join(f'<option value="{x}"{" selected" if (m.priority or "Normal") == x else ""}>{x}</option>' for x in ("Niedrig","Normal","Hoch","Dringend"))}</select></label>
                             <label>Zuständiger Bereich<input name="responsibility" maxlength="120" value="{escape(m.responsibility or '')}" placeholder="z. B. Bauhof"></label>

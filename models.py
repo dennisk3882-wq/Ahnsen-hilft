@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
 from database import Base
 
@@ -28,6 +28,11 @@ class Meldung(Base):
     responsibility = Column(String(120), default="")
     priority = Column(String(20), default="Normal")
     due_at = Column(DateTime, nullable=True)
+    public_visible = Column(Boolean, default=False, nullable=False)
+    public_reviewed_by = Column(String(120), default="")
+    public_reviewed_at = Column(DateTime, nullable=True)
+    first_response_at = Column(DateTime, nullable=True)
+    closed_at = Column(DateTime, nullable=True)
     public_note = Column(Text, default="")
     updated_at = Column(DateTime, default=datetime.utcnow)
     erstellt_am = Column(DateTime, default=datetime.utcnow)

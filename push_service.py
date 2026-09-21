@@ -40,14 +40,15 @@ def send_user_notification(
         return 0
     if category and not user_wants_push(user_id, category):
         return 0
-    if category and not _force_immediate:
+    if not _force_immediate:
         try:
             from smart_push import enqueue_digest_notification, notification_strategy
             if notification_strategy(user_id, category) != "sofort":
-                enqueue_digest_notification(user_id, category, title, body, url, tag)
-                return 1
+                enqueue_digest_notification(user_id, category or "", title, body, url, tag)
+                return 0
         except Exception as error:
-            print("Smart-Push konnte nicht geprüft werden; Nachricht wird sofort versendet:", repr(error))
+            print("Smart-Push-Einstellungen konnten nicht geprüft werden; Versand zurückgestellt.")
+            return 0
 
     payload = json.dumps(
         {

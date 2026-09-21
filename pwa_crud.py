@@ -67,9 +67,14 @@ OFFICIAL_WARNING_CATEGORIES = {
 
 
 def init_pwa_db() -> None:
+    import email_verification  # register token storage before create_all
     Base.metadata.create_all(bind=engine)
 
     existing = {column["name"] for column in inspect(engine).get_columns("pwa_users")}
+    for name, sql_type in (("email_verification_required", "BOOLEAN NOT NULL DEFAULT FALSE"), ("email_verified_at", "TIMESTAMP")):
+        if name not in existing:
+            with engine.begin() as conn:
+                conn.exec_driver_sql(f"ALTER TABLE pwa_users ADD COLUMN {name} {sql_type}")
     for column, default in PUSH_PREFERENCE_DEFAULTS.items():
         if column in existing:
             continue
@@ -128,11 +133,12 @@ def verify_password(password: str, encoded: str) -> bool:
         return False
 
 
-def create_user(email: str, password: str, name: str, telefon: str = "") -> PWAUser:
+def create_user(email: str, password: str, name: str, telefon: str = "", *, verification_required: bool = False) -> PWAUser:
     db = SessionLocal()
     try:
         user = PWAUser(
             email=normalize_email(email),
+            email_verification_required=verification_required,
             password_hash=hash_password(password),
             name=str(name or "").strip()[:120],
             telefon=str(telefon or "").strip()[:60],

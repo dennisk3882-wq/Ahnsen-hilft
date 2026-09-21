@@ -12,7 +12,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, inspect, text
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, MetaData, inspect, text
 
 from database import Base, SessionLocal, engine
 
@@ -73,6 +73,11 @@ def run_migrations() -> None:
     """Apply and record small, idempotent production schema migrations."""
     Base.metadata.create_all(bind=engine)
     steps = (
+        ("2026-09-10-map-approval", "Kartenfreigabe", "meldungen", "public_visible", "BOOLEAN NOT NULL DEFAULT FALSE"),
+        ("2026-09-10-map-reviewer", "Kartenprüfer", "meldungen", "public_reviewed_by", "VARCHAR(120) DEFAULT ''"),
+        ("2026-09-10-map-review-time", "Kartenprüfung", "meldungen", "public_reviewed_at", "TIMESTAMP"),
+        ("2026-09-10-first-response", "Erste öffentliche Rückmeldung", "meldungen", "first_response_at", "TIMESTAMP"),
+        ("2026-09-10-case-closed", "Abschlusszeitpunkt", "meldungen", "closed_at", "TIMESTAMP"),
         ("2026-08-14-pwa-session-v1", "Bürgersitzungen widerrufbar", "pwa_users", "session_version", "INTEGER NOT NULL DEFAULT 1"),
         ("2026-08-14-admin-session-v1", "Verwaltungssitzungen widerrufbar", "admin_users", "session_version", "INTEGER NOT NULL DEFAULT 1"),
         ("2026-08-14-admin-2fa-pending", "Bestätigte 2FA-Einrichtung", "admin_users", "totp_pending_secret", "VARCHAR(64) NOT NULL DEFAULT ''"),
@@ -91,6 +96,10 @@ def run_migrations() -> None:
             applied = _add_column(table, column, sql_type)
             if applied and not db.query(SchemaMigration).filter(SchemaMigration.version == version).first():
                 db.add(SchemaMigration(version=version, description=description))
+        cleanup_version = "2026-09-10-public-translation-cache"
+        if "translation_cache" in inspect(engine).get_table_names() and not db.query(SchemaMigration).filter_by(version=cleanup_version).first():
+            db.execute(text("DELETE FROM translation_cache"))
+            db.add(SchemaMigration(version=cleanup_version, description="Ungeprüften alten Übersetzungscache verwerfen"))
         db.commit()
     finally:
         db.close()
@@ -127,12 +136,19 @@ def get_asset(key: str) -> dict[str, Any] | None:
 
 def create_backup() -> dict[str, Any]:
     """Create a portable JSON snapshot without pg_dump or paid storage."""
-    inspector = inspect(engine)
     tables: dict[str, list[dict[str, Any]]] = {}
     with engine.connect() as connection:
+        if engine.dialect.name == "postgresql":
+            connection = connection.execution_options(isolation_level="REPEATABLE READ")
+            connection.exec_driver_sql("SET TRANSACTION READ ONLY")
+        elif engine.dialect.name == "sqlite":
+            connection.exec_driver_sql("BEGIN")
+        inspector = inspect(connection)
+        metadata = MetaData()
+        metadata.reflect(bind=connection)
         for table_name in sorted(set(inspector.get_table_names()) - {"rate_limit_events"}):
             encoded_rows = []
-            for row in connection.execute(text(f'SELECT * FROM "{table_name}"')).mappings():
+            for row in connection.execute(metadata.tables[table_name].select()).mappings():
                 encoded = {}
                 for key, value in row.items():
                     if isinstance(value, bytes):
@@ -154,12 +170,17 @@ def create_backup() -> dict[str, Any]:
 
 
 def validate_backup(payload: dict[str, Any]) -> dict[str, Any]:
-    candidate = dict(payload or {})
+    candidate = dict(payload) if isinstance(payload, dict) else {}
     provided = str(candidate.pop("sha256", ""))
     canonical = json.dumps(candidate, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     valid_hash = bool(provided) and hashlib.sha256(canonical).hexdigest() == provided
     tables = candidate.get("tables") if isinstance(candidate.get("tables"), dict) else {}
-    return {"valid": candidate.get("format") == BACKUP_FORMAT and valid_hash and bool(tables), "format": candidate.get("format"), "created_at": candidate.get("created_at"), "tables": len(tables), "rows": sum(len(value) for value in tables.values() if isinstance(value, list)), "checksum": valid_hash}
+    structure_valid = bool(tables) and all(
+        isinstance(name, str) and isinstance(rows, list)
+        and all(isinstance(row, dict) and all(isinstance(key, str) for key in row) for row in rows)
+        for name, rows in tables.items()
+    )
+    return {"valid": candidate.get("format") == BACKUP_FORMAT and valid_hash and structure_valid, "format": candidate.get("format"), "created_at": candidate.get("created_at"), "tables": len(tables), "rows": sum(len(value) for value in tables.values() if isinstance(value, list)), "checksum": valid_hash}
 
 
 def _backup_key(passphrase: str, salt: bytes) -> bytes:
@@ -218,7 +239,19 @@ def scheduled_backup_status() -> dict[str, Any]:
     key_configured = len(str(os.getenv("BACKUP_ENCRYPTION_KEY") or "")) >= 12
     files = sorted(directory.glob("ahnsen-automatik-*.ahnsenbak"), reverse=True) if directory and directory.exists() else []
     latest = files[0] if files else None
+    from backup_offsite import configured as offsite_configured
+    receipt = latest.with_suffix(latest.suffix + ".receipt.json") if latest else None
+    verified = False
+    if receipt and receipt.exists() and offsite_configured():
+        try:
+            info = json.loads(receipt.read_text())
+            destination = os.environ["BACKUP_WEBDAV_URL"].rstrip("/") + "/"
+            verified = info.get("destination") == hashlib.sha256(destination.encode()).hexdigest() and receipt.stat().st_mtime >= latest.stat().st_mtime
+        except (OSError, ValueError, KeyError):
+            pass
     return {
+        "offsite_configured": offsite_configured(),
+        "offsite_verified": verified,
         "configured": bool(directory and key_configured),
         "directory": str(directory or ""),
         "key_configured": key_configured,
@@ -230,6 +263,13 @@ def scheduled_backup_status() -> dict[str, Any]:
 
 
 def run_scheduled_backup(*, force: bool = False) -> dict[str, Any]:
+    from db_coordination import transaction_lock
+    with SessionLocal() as db:
+        transaction_lock(db, "backup-files")
+        return _run_scheduled_backup_locked(force=force)
+
+
+def _run_scheduled_backup_locked(*, force: bool = False) -> dict[str, Any]:
     directory = backup_directory()
     passphrase = str(os.getenv("BACKUP_ENCRYPTION_KEY") or "")
     if not directory or len(passphrase) < 12:
@@ -238,20 +278,26 @@ def run_scheduled_backup(*, force: bool = False) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     filename = f"ahnsen-automatik-{now:%Y-%m-%d}.ahnsenbak"
     target = directory / filename
+    from backup_offsite import sync_encrypted_backup, delete_expired_copy
     if target.exists() and not force:
-        return {"status": "current", **scheduled_backup_status()}
+        offsite = sync_encrypted_backup(target)
+        return {"status": "current", **offsite, **scheduled_backup_status()}
     raw = encrypt_backup(create_backup(), passphrase)
     temporary = directory / f".{filename}.tmp"
-    temporary.write_bytes(raw)
-    os.chmod(temporary, 0o600)
+    with os.fdopen(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb") as handle:
+        handle.write(raw)
+        handle.flush()
+        os.fsync(handle.fileno())
     temporary.replace(target)
+    offsite = sync_encrypted_backup(target)
     cutoff = now - timedelta(days=backup_retention_days())
     removed = 0
     for item in directory.glob("ahnsen-automatik-*.ahnsenbak"):
         if datetime.fromtimestamp(item.stat().st_mtime, tz=timezone.utc) < cutoff:
+            delete_expired_copy(item)
             item.unlink()
             removed += 1
-    return {"status": "created", "filename": filename, "bytes": len(raw), "removed": removed, **scheduled_backup_status()}
+    return {"status": "created", "filename": filename, "bytes": len(raw), "removed": removed, **offsite, **scheduled_backup_status()}
 
 
 def restore_table_order(table_names: list[str]) -> list[str]:

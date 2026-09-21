@@ -709,33 +709,13 @@ async def neue_veranstaltung(
         _mime, bild_bytes = _sanitize_image(await bild.read(), max_bytes=MAX_EVENT_RECAP_IMAGE_BYTES, output_format="JPEG")
     recap_images = await _read_event_recap_images(rueckblick_bilder)
 
-    event = save_veranstaltung(
-        titel=titel,
-        datum=datum,
-        uhrzeit=uhrzeit,
-        ort=ort,
-        kategorie=kategorie,
-        beschreibung=beschreibung,
-        ansprechpartner=ansprechpartner,
-        bild_bytes=bild_bytes,
-        rueckblick_text=rueckblick_text,
-        rueckblick_bilder=recap_images,
-    )
-    if event:
-        save_content_revision("veranstaltungen", str(event.id), "Freigegeben" if event.aktiv == "Ja" else "Entwurf", event.titel, {"datum":event.datum,"uhrzeit":event.uhrzeit,"ort":event.ort,"kategorie":event.kategorie,"beschreibung":event.beschreibung}, admin["display_name"])
-        from community_crud import audit_event
-        audit_event(admin["username"], "Veranstaltung angelegt", "veranstaltung", str(event.id), event.titel)
-    if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
-        background_tasks.add_task(
-            send_category_notification,
-            "push_veranstaltungen",
-            f"Neue Veranstaltung: {event.titel}",
-            f"{event.datum or 'Termin folgt'} · {event.uhrzeit or 'Uhrzeit folgt'} · {event.ort or 'Ahnsen'}",
-            "/veranstaltungen",
-            f"veranstaltung-{event.id}",
-        )
-
-    return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
+    from event_workflow import submit_event
+    revision = submit_event(None, dict(titel=titel, datum=datum, uhrzeit=uhrzeit, ort=ort, kategorie=kategorie, beschreibung=beschreibung, ansprechpartner=ansprechpartner, rueckblick_text=rueckblick_text), admin["username"], image=bild_bytes, gallery=recap_images, clear_gallery=False)
+    from community_crud import audit_event
+    audit_event(admin["username"], "Veranstaltung zur Veröffentlichung gespeichert", "content_revision", str(revision.id), revision.state)
+    if revision.state == "Freigegeben":
+        background_tasks.add_task(send_category_notification, "push_veranstaltungen", "Veranstaltung: " + titel, datum + " · " + ort, "/veranstaltungen", "event-revision-" + str(revision.id))
+    return RedirectResponse(url="/intern/inhalte/versionen" if revision.state == "Prüfung" else "/intern/veranstaltungen", status_code=303)
 
 
 @app.post("/veranstaltungen/bearbeiten/{veranstaltung_id}")
@@ -761,35 +741,13 @@ async def veranstaltung_bearbeiten(
         _mime, bild_bytes = _sanitize_image(await bild.read(), max_bytes=MAX_EVENT_RECAP_IMAGE_BYTES, output_format="JPEG")
     recap_images = await _read_event_recap_images(rueckblick_bilder)
 
-    event = update_veranstaltung(
-        veranstaltung_id=veranstaltung_id,
-        titel=titel,
-        datum=datum,
-        uhrzeit=uhrzeit,
-        ort=ort,
-        kategorie=kategorie,
-        beschreibung=beschreibung,
-        ansprechpartner=ansprechpartner,
-        bild_bytes=bild_bytes,
-        rueckblick_text=rueckblick_text,
-        rueckblick_bilder=recap_images,
-        rueckblick_bilder_loeschen=rueckblick_bilder_loeschen == "ja",
-    )
-    if event:
-        save_content_revision("veranstaltungen", str(event.id), "Freigegeben" if event.aktiv == "Ja" else "Entwurf", event.titel, {"datum":event.datum,"uhrzeit":event.uhrzeit,"ort":event.ort,"kategorie":event.kategorie,"beschreibung":event.beschreibung}, admin["display_name"])
-        from community_crud import audit_event
-        audit_event(admin["username"], "Veranstaltung bearbeitet", "veranstaltung", str(event.id), event.titel)
-    if event and event.aktiv == "Ja" and _veranstaltung_ist_kommend(event):
-        background_tasks.add_task(
-            send_category_notification,
-            "push_veranstaltungen",
-            f"Veranstaltung aktualisiert: {event.titel}",
-            f"{event.datum or 'Termin folgt'} · {event.uhrzeit or 'Uhrzeit folgt'} · {event.ort or 'Ahnsen'}",
-            "/veranstaltungen",
-            f"veranstaltung-update-{event.id}",
-        )
-
-    return RedirectResponse(url="/intern/veranstaltungen", status_code=303)
+    from event_workflow import submit_event
+    revision = submit_event(veranstaltung_id, dict(titel=titel, datum=datum, uhrzeit=uhrzeit, ort=ort, kategorie=kategorie, beschreibung=beschreibung, ansprechpartner=ansprechpartner, rueckblick_text=rueckblick_text), admin["username"], image=bild_bytes, gallery=recap_images, clear_gallery=rueckblick_bilder_loeschen == 'ja')
+    from community_crud import audit_event
+    audit_event(admin["username"], "Veranstaltung zur Veröffentlichung gespeichert", "content_revision", str(revision.id), revision.state)
+    if revision.state == "Freigegeben":
+        background_tasks.add_task(send_category_notification, "push_veranstaltungen", "Veranstaltung: " + titel, datum + " · " + ort, "/veranstaltungen", "event-revision-" + str(revision.id))
+    return RedirectResponse(url="/intern/inhalte/versionen" if revision.state == "Prüfung" else "/intern/veranstaltungen", status_code=303)
 
 
 @app.post("/veranstaltungen/aktiv/{veranstaltung_id}/{aktiv}")
@@ -798,7 +756,10 @@ async def veranstaltung_aktiv(
     aktiv: str,
     admin=Depends(check_dashboard_login),
 ):
-    set_veranstaltung_aktiv(veranstaltung_id, aktiv)
+    from event_workflow import submit_event
+    if aktiv not in {"Ja", "Nein"}:
+        raise HTTPException(status_code=400, detail="Ungültiger Status")
+    submit_event(veranstaltung_id, {"aktiv": aktiv}, admin["username"])
     from community_crud import audit_event
     audit_event(admin["username"], "Veranstaltung geschaltet", "veranstaltung", str(veranstaltung_id), aktiv)
 
@@ -810,7 +771,8 @@ async def veranstaltung_loeschen(
     veranstaltung_id: int,
     admin=Depends(check_dashboard_login),
 ):
-    delete_veranstaltung(veranstaltung_id)
+    from event_workflow import submit_event
+    submit_event(veranstaltung_id, {"_delete": True}, admin["username"])
     from community_crud import audit_event
     audit_event(admin["username"], "Veranstaltung gelöscht", "veranstaltung", str(veranstaltung_id))
 
@@ -1084,16 +1046,11 @@ async def gemeindeseite_speichern(
 ):
     form = await request.form()
     values = dict(form)
+    from admin_content import submit_content
     from community_crud import audit_event
-    if content_approval_available(admin["username"]):
-        revision = save_content_revision("gemeindeseite", "standard", "Prüfung", "Gemeindeseite", values, admin["username"])
-        audit_event(admin["username"], "Gemeindeseite zur Prüfung eingereicht", "content_revision", str(revision.id))
-        message = "Änderungen wurden gespeichert und warten auf Freigabe durch ein zweites berechtigtes Konto."
-    else:
-        update_gemeinde_einstellungen(values)
-        save_content_revision("gemeindeseite", "standard", "Freigegeben", "Gemeindeseite", values, admin["username"])
-        audit_event(admin["username"], "Gemeindeseite gespeichert (Einzelbetrieb)", "content", "standard")
-        message = "Gemeindeseite wurde gespeichert. Für ein Vier-Augen-Verfahren wird ein zweites Inhaltskonto benötigt."
+    revision = submit_content("gemeindeseite", "standard", "Gemeindeseite", values, admin["username"])
+    audit_event(admin["username"], "Gemeindeseite gespeichert", "content_revision", str(revision.id), revision.state)
+    message = "Änderungen warten auf zweite Freigabe." if revision.state == "Prüfung" else "Gemeindeseite gespeichert (Einzelbetrieb)."
 
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis=" + quote(message),
@@ -1137,14 +1094,17 @@ async def gemeindeseite_upload(
             status_code=303,
         )
     safe_extension = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[content_type]
-    save_asset(feld, _sicherer_dateiname(originalname) + safe_extension, content_type, inhalt)
-    set_gemeinde_einstellung(feld, f"/media/{feld}")
+    from admin_content import submit_content
+    import hashlib
+    asset_key = f"{feld}-{hashlib.sha256(inhalt).hexdigest()[:20]}"
+    save_asset(asset_key, _sicherer_dateiname(originalname) + safe_extension, content_type, inhalt)
+    revision = submit_content("gemeindeseite", "standard", "Gemeindebild: " + feld, {feld: f"/media/{asset_key}"}, admin["username"])
     from community_crud import audit_event
     audit_event(admin["username"], "Gemeindebild hochgeladen", "asset", feld, originalname)
 
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis="
-        + quote("Bild wurde hochgeladen und übernommen."),
+        + quote("Bild wartet auf zweite Freigabe." if revision.state == "Prüfung" else "Bild wurde übernommen."),
         status_code=303,
     )
 
@@ -1162,12 +1122,8 @@ async def gemeindeseite_alt_import(
         )
     try:
         daten = lade_alte_homepage_inhalte(url)
-        update_gemeinde_einstellungen(
-            {
-                **get_gemeinde_einstellungen(),
-                **daten,
-            }
-        )
+        from admin_content import submit_content
+        revision = submit_content("gemeindeseite", "standard", "Import der alten Homepage", daten, admin["username"])
     except Exception as error:
         print("Import alte Homepage fehlgeschlagen:", repr(error))
         return RedirectResponse(
@@ -1180,7 +1136,7 @@ async def gemeindeseite_alt_import(
     audit_event(admin["username"], "Alte Gemeindeseite importiert", "content", "legacy-homepage", url)
     return RedirectResponse(
         url="/intern/gemeindeseite?hinweis="
-        + quote("Inhalte der alten Homepage wurden übernommen."),
+        + quote("Import wartet auf zweite Freigabe." if revision.state == "Prüfung" else "Inhalte wurden übernommen."),
         status_code=303,
     )
 

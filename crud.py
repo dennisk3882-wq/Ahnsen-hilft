@@ -15,6 +15,11 @@ def init_db():
     }
 
     migrationen = {
+        "public_visible": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "public_reviewed_by": "VARCHAR(120) DEFAULT ''",
+        "public_reviewed_at": "TIMESTAMP",
+        "first_response_at": "TIMESTAMP",
+        "closed_at": "TIMESTAMP",
         "foto_base64": "TEXT",
         "interne_notiz": "TEXT DEFAULT ''",
         "pwa_user_id": "INTEGER",
@@ -223,10 +228,16 @@ def update_status(ticket, neuer_status):
     try:
         meldung = db.query(Meldung).filter(Meldung.ticket == ticket).first()
         if meldung:
+            if meldung.status != neuer_status:
+                meldung.closed_at = datetime.utcnow() if neuer_status == "Erledigt" else None
+                meldung.updated_at = datetime.utcnow()
             meldung.status = neuer_status
             # Bei zusammengeführten Vorgängen gilt der Status des Hauptvorgangs
             # auch für die gebündelten Doppelmeldungen.
             for child in db.query(Meldung).filter(Meldung.duplicate_of_ticket == ticket).all():
+                if child.status != neuer_status:
+                    child.closed_at = datetime.utcnow() if neuer_status == "Erledigt" else None
+                    child.updated_at = datetime.utcnow()
                 child.status = neuer_status
             db.commit()
             db.refresh(meldung)

@@ -13,6 +13,8 @@ class PWAUser(Base):
     password_hash = Column(Text, nullable=False)
     name = Column(String(120), nullable=False)
     telefon = Column(String(60), default="")
+    email_verification_required = Column(Boolean, default=False, nullable=False)
+    email_verified_at = Column(DateTime, nullable=True)
     aktiv = Column(Boolean, default=True, nullable=False)
     push_muell = Column(Boolean, default=False, nullable=False)
     push_meldungen = Column(Boolean, default=True, nullable=False)

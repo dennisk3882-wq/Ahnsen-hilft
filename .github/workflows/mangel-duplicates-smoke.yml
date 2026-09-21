@@ -151,8 +151,14 @@ jobs:
               sent=True; return {'type':'http.request','body':body,'more_body':False}
           request._receive=receive
           payload=json.loads(asyncio.run(duplicate_preflight(request)).body)
+          assert payload['matches'] == [], payload
+          db = SessionLocal()
+          db.query(Meldung).update({Meldung.public_visible: True})
+          db.commit(); db.close()
+          payload=json.loads(asyncio.run(duplicate_preflight(request)).body)
           assert payload['matches'], payload
-          assert payload['matches'][0]['ticket'] in {'AHN-LICHT-001','AHN-LICHT-002'}
+          assert payload['matches'][0]['ticket'] == 'Öffentlich geprüft'
+          assert 'In der Flöte 19' not in json.dumps(payload, ensure_ascii=False)
           assert all('beschreibung' not in item for item in payload['matches'])
 
           mark_duplicate_suspicion('AHN-LICHT-002','AHN-LICHT-001',91)
