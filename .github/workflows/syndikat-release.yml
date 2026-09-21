@@ -61,8 +61,10 @@ jobs:
           python3 Syndikat/tools/serve-candidate.py > /tmp/syndikat-http.log 2>&1 &
           for i in {1..20}; do curl -fsS http://127.0.0.1:4173/index-source.html >/dev/null && exit 0; sleep 1; done
           exit 1
-      - name: Mobile and online E2E
-        run: npx playwright test --config Syndikat/tests/playwright.config.cjs
+      - name: Browser quality and mobile UI
+        run: npx playwright test --config Syndikat/tests/playwright.config.cjs quality.spec.cjs ui.spec.cjs
+      - name: Online protocol and complete UI match
+        run: npx playwright test --config Syndikat/tests/playwright.config.cjs --project=chromium online-e2e.spec.cjs online-ui.spec.cjs
 
       - uses: actions/upload-artifact@v4
         if: always()

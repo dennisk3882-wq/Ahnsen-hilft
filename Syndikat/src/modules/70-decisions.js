@@ -15,7 +15,7 @@
       intro:()=>`Ein Reporter verbindet mehrere Vorfälle mit deiner Familie. Eine falsche Reaktion kann Ermittlungen beschleunigen.`,
       options:[
         {id:'lawyer',name:'Anwälte vorschicken',desc:'Sauber, teuer und kontrolliert.',cost:9000,apply:p=>{p.clean=Math.max(0,p.clean-9000);if(p.investigation)p.investigation.evidence=clamp(p.investigation.evidence-9,0,100);p.reputation=clamp(p.reputation+2,0,100);}},
-        {id:'bribe',name:'Redaktion schmieren',desc:'Billiger, aber ein weiteres Korruptionsrisiko.',cost:6000,apply:p=>{p.dirty=Math.max(0,p.dirty-6000);if(p.investigation){p.investigation.evidence=clamp(p.investigation.evidence-6,0,100);p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+12,0,100);}p.heat=clamp(p.heat+2,0,100);}},
+        {id:'bribe',name:'Redaktion schmieren',desc:'Billiger, aber ein weiteres Korruptionsrisiko.',cost:6000,currency:'dirty',apply:p=>{p.dirty=Math.max(0,p.dirty-6000);if(p.investigation){p.investigation.evidence=clamp(p.investigation.evidence-6,0,100);p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+12,0,100);}p.heat=clamp(p.heat+2,0,100);}},
         {id:'ignore',name:'Ignorieren',desc:'Kein Geld ausgeben, dafür steigt die öffentliche Aufmerksamkeit.',cost:0,apply:p=>{p.heat=clamp(p.heat+8,0,100);if(p.investigation)p.investigation.evidence=clamp(p.investigation.evidence+5,0,100);}}
       ]
     },
@@ -58,15 +58,15 @@
     if(d.type==='press'){option=p.profile==='corrupt'?spec.options[1]:p.profile==='economic'?spec.options[0]:spec.options[2];}
     if(d.type==='labor'){option=p.profile==='aggressive'?spec.options[2]:p.profile==='economic'?spec.options[1]:spec.options[0];}
     const district=d.data?.district?DISTRICTS.find(x=>x.id===d.data.district):null;
-    const pool=option.cost?Math.max(p.clean,p.dirty):Infinity;if(pool<option.cost)option=spec.options.find(x=>x.cost===0)||spec.options[0];
+    const pool=option.cost?p[option.currency||'clean']:Infinity;if(pool<option.cost)option=spec.options.find(x=>x.cost===0)||spec.options[0];
     option.apply(p,district);p.stats.decisions++;log(`${p.family}: Entscheidung „${option.name}“.`);
   }
   function v46OpenDecision(id=null){
     const p=currentPlayer();v46Ensure(p);const dec=id?p.pendingDecisions.find(x=>x.id===id):p.pendingDecisions[0];if(!dec)return toast('Keine Entscheidung offen.');
     const spec=DECISIONS[dec.type];if(!spec)return;
     const d=dec.data?.district?DISTRICTS.find(x=>x.id===dec.data.district):null;
-    openDialog(`<div class="dialog-wrap decision-dialog"><div class="dialog-head"><div><p class="eyebrow">Entscheidung · Runde ${dec.round}</p><h2>${esc(spec.title)}</h2></div><button class="icon-btn" data-close>✕</button></div><p>${esc(spec.intro(d))}</p><div class="dialog-list">${spec.options.map(o=>{const enough=o.cost===0||p.clean>=o.cost||p.dirty>=o.cost;return `<div class="dialog-option"><div><strong>${esc(o.name)}</strong><p>${esc(o.desc)}${o.cost?` · Kosten ${fmt(o.cost)}`:''}</p></div><button class="btn btn-primary" data-decision="${o.id}" ${enough?'':'disabled'}>Wählen</button></div>`}).join('')}</div></div>`);
-    $$('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
+    openDialog(`<div class="dialog-wrap decision-dialog"><div class="dialog-head"><div><p class="eyebrow">Entscheidung · Runde ${dec.round}</p><h2>${esc(spec.title)}</h2></div><button class="icon-btn" data-close>✕</button></div><p>${esc(spec.intro(d))}</p><div class="dialog-list">${spec.options.map(o=>{const enough=o.cost===0||p[o.currency||'clean']>=o.cost;return `<div class="dialog-option"><div><strong>${esc(o.name)}</strong><p>${esc(o.desc)}${o.cost?` · Kosten ${fmt(o.cost)}`:''}</p></div><button class="btn btn-primary" data-decision="${o.id}" ${enough?'':'disabled'}>Wählen</button></div>`}).join('')}</div></div>`);
+    $$('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;if(p[o.currency||'clean']<o.cost)return toast('Nicht genügend '+(o.currency==='dirty'?'schmutziges':'sauberes')+' Geld.');o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
   }
 
   function v46AiTrade(p){

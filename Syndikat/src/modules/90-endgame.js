@@ -398,7 +398,7 @@
     finalBaseGameOver();
     const winner=state?.players?.find(x=>x.id===state.winnerId);
     const root=$('#dialogContent');
-    if(!state?.gameOver||winner?.type!=='human'||!root||root.querySelector('[data-freeplay]'))return;
+    if(!state?.gameOver||state.online||winner?.type!=='human'||!root||root.querySelector('[data-freeplay]'))return;
     root.insertAdjacentHTML('beforeend',`<div class="dialog-footer post-victory-actions"><button class="btn btn-secondary" data-freeplay>Nach dem Sieg weiterspielen</button></div>`);
     $('[data-freeplay]')?.addEventListener('click',()=>{
       state.gameOver=false;state.winnerId=null;state.endReason='';

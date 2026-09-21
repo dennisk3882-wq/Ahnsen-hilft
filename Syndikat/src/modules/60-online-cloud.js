@@ -87,8 +87,15 @@
       onlineRevision=Number(row.revision);v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();await c.signalGame?.(onlineSession,onlineRevision,'state');toast('Online-Partie gestartet.');
     }catch(e){toast('Cloud: '+e.message);}
   }
+  function disconnectOnlineSession(){
+    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}
+    v45Cloud()?.stopRealtime?.();v45StoreSession(null);onlineRoster=[];onlineRevision=0;
+    if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}
+  }
+  const createLocalGame=createGame;
+  createGame=function(...args){disconnectOnlineSession();return createLocalGame.apply(this,args);};
   async function v45LeaveOnline(){
-    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}v45Cloud()?.stopRealtime?.();v45StoreSession(null);onlineRoster=[];onlineRevision=0;if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}toast('Online-Verbindung getrennt.');closeDialog();
+    disconnectOnlineSession();toast('Online-Verbindung getrennt.');closeDialog();
   }
   async function v45CloudSaveNew(){
     const c=v45Cloud();if(!c?.enabled||!state)return toast('Keine Partie für Cloud-Speicherung.');

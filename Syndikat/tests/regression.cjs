@@ -6,6 +6,7 @@ const path='Syndikat/js/core.js';
 let src=fs.readFileSync(path,'utf8');
 new Function(src);
 src=src.replace('  function finalizeStory(p,ch,choiceId=null){','  window.__finalizeStory=finalizeStory;\n  function finalizeStory(p,ch,choiceId=null){');
+src=src.replace('  function v46Ensure(p){','  window.__decisionSpecs=DECISIONS;\n  function v46Ensure(p){');
 src=src.replace('  function v42CheckAchievements(p){','  window.__checkAchievements=v42CheckAchievements;\n  function v42CheckAchievements(p){');
 
 const inject=`
@@ -96,6 +97,37 @@ function mk({ais=0,length='normal',difficulty='normal'}={}){
   assert.strictEqual(p.clean,ch.reward);
   assert.strictEqual(p.story.chapter,18);
   assert.strictEqual(p.story.flags.politics,'independent');
+}
+
+// All chapter transitions, including every ending, remain reachable in solo and eliminated-rival saves.
+for(const rivals of [0,1])for(const ending of ['empire','shadow','crown']){
+  const st=mk({ais:rivals,length:'endless'}),p=st.players[0];st.round=80;
+  if(rivals)st.players[1].eliminated=true;
+  p.clean=100000000;p.dirty=1000000;p.reputation=100;p.heat=0;
+  p.businesses=T.DISTRICTS.flatMap(d=>Array.from({length:3},(_,i)=>({id:d.id+i,type:'holding',district:d.id,level:3,health:100,name:'Story fixture',propertyId:'lot-'+d.id})));
+  p.staffRoster=Array.from({length:10},(_,i)=>({id:'story-staff-'+i,name:'Fixture '+i,role:i===0?'lawyer':'manager',skill:95,loyalty:95,level:5,xp:500,salary:500,heldUntil:0}));
+  p.staff.lawyer=1;p.propertyIds=['lot-harbor'];p.scouting={harbor:{},center:{}};
+  p.stats.crimesSuccess=10;p.stats.operationsSuccess=10;p.stats.launderedTotal=100000;
+  p.underbossId=p.staffRoster[1].id;p.crews=[{id:'crew1',members:[]},{id:'crew2',members:[]}];
+  p.finalCrisis.resolved=true;p.investigation.evidence=0;
+  p.story={version:51,chapter:1,claimed:[],archive:[],flags:{}};
+  for(const ch of context.SyndikatVisualStory.story){
+    assert(ch.done(p),'reachable chapter '+ch.chapter+' with '+rivals+' eliminated rivals');
+    const choice=ch.chapter===20?ending:ch.choices?.[0]?.id||null;
+    context.__finalizeStory(p,ch,choice);
+    assert.strictEqual(p.story.chapter,ch.chapter+1,'advance chapter '+ch.chapter);
+  }
+  assert.strictEqual(p.story.archive.length,20);assert.strictEqual(p.story.flags.ending,ending);
+}
+
+// Decision prices use the same currency as their effect, never the other balance.
+{
+ const specs=context.__decisionSpecs;
+ assert.strictEqual(specs.press.options.find(o=>o.id==='bribe').currency,'dirty');
+ for(const spec of Object.values(specs))for(const o of spec.options)if(o.cost){
+  const st=mk(),p=st.players[0],currency=o.currency||'clean';p.clean=50000;p.dirty=50000;
+  const before=p[currency];o.apply(p,T.DISTRICTS[0]);assert(p[currency]<=before-o.cost,'decision must pay full advertised cost');
+ }
 }
 
 // Start progression.
