@@ -334,7 +334,7 @@ assert(src.includes('SYNDIKAT_V56_RUNTIME_FACADE_BEGIN'));
     assert(sw.includes('./assets/'+asset),'UI artwork must be cached offline: '+asset);
     assert(uiArt.includes(asset),'UI artwork must be mapped: '+asset);
   }
-  assert(sw.includes('syndikat-v5-6-1'),'PWA cache must match the v5.6 completion release');
+  assert(sw.includes('syndikat-v5-6-2'),'PWA cache must match the v5.6 completion release');
 }
 
 // Required CI soak: 12 full-table campaigns (7 rival AIs), one per difficulty/length combination.
