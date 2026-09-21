@@ -3145,12 +3145,14 @@
 
   const v45Render=renderAll;
   renderAll=function(){
+    // Release only controls locked by online waiting; renderers reapply gameplay restrictions.
+    $$('[data-online-locked]').forEach(x=>{x.disabled=false;x.removeAttribute('data-online-locked');});
     v45Render();
     if(onlineSession&&v45Cloud()?.enabled){
       const p=currentPlayer(),mine=p?.onlineParticipantId===onlineSession.participantId||p?.type==='ai';
       if(onlineSubmitting||p?.type==='remote'||!mine){
         const b=$('#statusBanner');b.className='status-banner';b.textContent=onlineSubmitting?'Zug wird übertragen …':`Online: ${p?.name||p?.family||'Mitspieler'} ist am Zug. Die Ansicht aktualisiert sich automatisch.`;
-        $$('#gameScreen .content-area button, #endTurnBtn, #endTurnDesktop').forEach(x=>x.disabled=true);
+        $$('#gameScreen .content-area button, #endTurnBtn, #endTurnDesktop').forEach(x=>{if(!x.disabled){x.setAttribute('data-online-locked','');x.disabled=true;}});
       }
     }
   };

@@ -1,1 +1,1 @@
-v5.6-parallel-r1
+Syndikat audit verification 2026-09-21: current rules and online control fixes
