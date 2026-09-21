@@ -175,7 +175,9 @@
     },
     async getTurnPushStatus(session){
       if(!session||!('serviceWorker' in navigator)||!('PushManager' in window))return false;
-      const reg=await navigator.serviceWorker.ready;return !!(await reg.pushManager.getSubscription());
+      const reg=await navigator.serviceWorker.getRegistration();if(!reg)return false;
+      const sub=await reg.pushManager.getSubscription();if(!sub)return false;
+      const result=await edge('syndikat-turn-push',{action:'status',gameCode:session.code,participantId:session.participantId,token:session.token,endpoint:sub.endpoint});return !!result.subscribed;
     },
     async enableTurnPush(session){
       if(!session)throw new Error('Keine Online-Partie aktiv.');
@@ -192,8 +194,8 @@
       if(!session||!('serviceWorker' in navigator))return false;
       const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
       if(!sub)return false;
-      try{await edge('syndikat-turn-push',{action:'unsubscribe',gameCode:session.code,participantId:session.participantId,token:session.token,endpoint:sub.endpoint})}catch{}
-      await sub.unsubscribe();return true;
+      await edge('syndikat-turn-push',{action:'unsubscribe',gameCode:session.code,participantId:session.participantId,token:session.token,endpoint:sub.endpoint});
+      return true;
     },
     async notifyActiveTurn(session){
       if(!session)return 0;

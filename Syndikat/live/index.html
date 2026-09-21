@@ -167,11 +167,12 @@
   <div id="toast" class="toast" role="status"></div>
 
   <script src="./js/core.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="./cloud-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./cloud-config.js"></script>
 <script src="./js/cloud.js"></script>
 <script>
 (function(){
-  if(!('serviceWorker' in navigator) || location.protocol!=='https:') return;
+  if(!('serviceWorker' in navigator) || !window.isSecureContext) return;
   function updateNotice(reg){
     let box=document.getElementById('updateNotice');
     if(!box){
@@ -188,6 +189,7 @@
   }
   window.addEventListener('load',async()=>{
     try{
+      const hadController=!!navigator.serviceWorker.controller;
       const reg=await navigator.serviceWorker.register('./sw.js');
       if(reg.waiting) updateNotice(reg);
       reg.addEventListener('updatefound',()=>{
@@ -197,7 +199,7 @@
           if(nw.state==='installed' && navigator.serviceWorker.controller) updateNotice(reg);
         });
       });
-      navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadController)location.reload();});
     }catch{}
   });
 })();

@@ -169,7 +169,7 @@
     players.forEach(p=>{initPlayer(p);ensureMissions(p);});
     saveGame();showScreen('gameScreen');currentView='city';renderAll();
     toast('Neue Partie gestartet. Die Stadt ist zunächst überwiegend neutral.');
-    setTimeout(()=>startTutorial(0),250);
+    if($('#guidedTutorial')?.value!=='off')setTimeout(()=>startTutorial(0),250);
   }
 
   function initPlayer(p){
@@ -212,13 +212,8 @@
   function controlledDistricts(p){return DISTRICTS.filter(d=>districtShare(p,d.id)>=50).length;}
   function districtOwner(did){let best=null,bestShare=neutralShare(did);for(const p of state.players.filter(x=>!x.eliminated)){const s=districtShare(p,did);if(s>bestShare){best=p;bestShare=s;}}return bestShare>=50?{player:best,share:bestShare}:{player:null,share:bestShare};}
   function corruptionCount(p){return Object.values(p.bribes).filter(Boolean).length;}
-  function powerIndex(p){
-    const active=state.players.filter(x=>!x.eliminated), maxNW=Math.max(1,...active.map(netWorth));
-    const wealth=(netWorth(p)/maxNW)*32, territory=DISTRICTS.reduce((s,d)=>s+districtShare(p,d.id),0)/(DISTRICTS.length*100)*32;
-    const influence=corruptionCount(p)/5*12, org=Math.min(1,activeStaff(p).length/18)*14, rep=Math.min(1,p.reputation/100)*10;
-    return clamp(wealth+territory+influence+org+rep,0,100);
-  }
-  function rankName(p){const n=netWorth(p),pow=powerIndex(p);if(pow>=82||n>=25000000)return'Syndikatschef';if(pow>=65||n>=10000000)return'Pate';if(pow>=48||n>=3000000)return'Unterweltboss';if(pow>=32||n>=1000000)return'Bandenchef';if(pow>=16||n>=250000)return'Geschäftsmann';if(n>=60000)return'Kleinganove';return'Niemand';}
+  let powerIndex; // Implemented by the rules module before init.
+  let rankName; // Implemented by the rules module before init.
   function currentPlayer(){return state?.players[state.currentIndex];}
   function ledger(p,label,amount,type='misc'){p.ledger.unshift({round:state.round,label,amount,type});if(p.ledger.length>60)p.ledger.length=60;}
   function log(msg){state.log.unshift({round:state.round,msg});if(state.log.length>50)state.log.length=50;}
@@ -313,7 +308,7 @@
   function shield(p){let s=0;for(const [k,v] of Object.entries(p.bribes))if(v)s+=CORRUPTION[k].shield;return Math.min(65,s);}
   function crimeSuccess(p,c){const info=Math.min(.18,roleSkill(p,'informant')/500+p.intel*.02),gun=c.id==='bank'?roleSkill(p,'gunman')/800:0,heatPenalty=Math.max(0,(p.heat-35)/300);return clamp(c.success+info+gun-heatPenalty,.05,.97);}
 
-  function doCrime(id){const p=currentPlayer(),c=CRIMES.find(x=>x.id===id);if(!p||p.type!=='human'||p.jailed||p.actionPoints<c.ap)return;p.actionPoints-=c.ap;const success=chance(crimeSuccess(p,c)),shieldFactor=1-shield(p)/100;p.heat=clamp(p.heat+c.heat*shieldFactor,0,100);if(success){let take=rand(c.min,c.max);if(c.id==='bank')take=Math.round(take*(1+p.staff.gunman*.04));p.dirty+=take;p.reputation+=Math.max(1,Math.round(c.heat/5));p.stats.crimesSuccess++;p.lastAction=`${c.name}: erfolgreich`;ledger(p,c.name,take,'dirty');toast(`${c.name} erfolgreich: +${fmt(take)}.`);}else{const jailChance=clamp(.24+c.heat/100+p.heat/180-shield(p)/160-roleSkill(p,'lawyer')/900,.08,.82);if(chance(jailChance)){let rounds=Math.max(1,c.jail-Math.floor(p.staff.lawyer/2)-(p.bribes.judge?1:0));p.jailed=Math.max(p.jailed,rounds);p.lastAction=`${c.name}: festgenommen`;toast(`Festgenommen: ${rounds} Runde${rounds===1?'':'n'} Haft.`);}else{p.lastAction=`${c.name}: gescheitert`;toast('Gescheitert, aber entkommen.');}}saveGame();renderAll();}
+  let doCrime; // Implemented by the rules module before init.
 
   function openRecruitDialog(){const p=currentPlayer();if(p.jailed)return toast('Aus der Haft kannst du niemanden regulär anwerben.');openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Personalmarkt</p><h2>Rolle auswählen</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-list">${Object.entries(STAFF).map(([k,s])=>`<div class="dialog-option"><div><strong>${s.icon} ${esc(s.name)}</strong><p>${esc(s.desc)}<br>Grundgehalt etwa ${fmt(s.salary)}/R</p></div><button class="btn btn-primary" data-hire="${k}" ${totalLiquid(p)<s.cost?'disabled':''}>${fmt(s.cost)}</button></div>`).join('')}</div></div>`);$$('[data-hire]').forEach(b=>b.onclick=()=>hireStaff(b.dataset.hire));}
   function hireStaff(key){const p=currentPlayer(),s=STAFF[key];if(!s||p.jailed)return;if(totalLiquid(p)<s.cost)return toast('Nicht genug Kapital.');spend(p,s.cost);const person=createStaffPerson(key);p.staffRoster.push(person);syncStaffCounts(p);p.lastAction=`${person.name} angeworben`;ledger(p,`${s.name} angeworben`,-s.cost,'expense');closeDialog();saveGame();renderAll();toast(`${person.name} (${s.name}) ist jetzt Teil deiner Organisation.`);}
@@ -344,8 +339,8 @@
   function tradeBuyBusiness(tid,bid){const p=currentPlayer(),t=state.players.find(x=>x.id===tid),b=t.businesses.find(x=>x.id===bid),price=Math.round(BUSINESSES[b.type].cost*1.25*(b.health/100));if(totalLiquid(p)<price)return toast('Nicht genug Kapital.');if(!targetAccepts(p,t,.42+relation(p,t)/260))return toast(`${t.family} lehnt dein Kaufangebot ab.`);spend(p,price);t.clean+=price;t.businesses=t.businesses.filter(x=>x.id!==bid);b.routeId=null;p.businesses.push(b);adjustRelation(p,t,4);p.stats.trades++;ledger(p,`Betrieb von ${t.family} gekauft`,-price,'asset');closeDialog();saveGame();renderAll();toast('Kauf abgeschlossen.');}
   function openSwapDialog(tid){const p=currentPlayer(),t=state.players.find(x=>x.id===tid);openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Gebietstausch</p><h2>Betrieb gegen Betrieb</h2></div><button class="icon-btn" data-close>✕</button></div><div class="form-grid"><label><span>Dein Betrieb</span><select id="swapOwn">${p.businesses.map(b=>`<option value="${b.id}">${esc(BUSINESSES[b.type].name)} · ${esc(DISTRICTS.find(d=>d.id===b.district).name)}</option>`).join('')}</select></label><label><span>${esc(t.family)}</span><select id="swapTheir">${t.businesses.map(b=>`<option value="${b.id}">${esc(BUSINESSES[b.type].name)} · ${esc(DISTRICTS.find(d=>d.id===b.district).name)}</option>`).join('')}</select></label></div><div class="dialog-footer"><button class="btn btn-primary" data-confirm-swap>Tausch anbieten</button></div></div>`);$('[data-confirm-swap]').onclick=()=>{const a=p.businesses.find(b=>b.id===$('#swapOwn').value),b=t.businesses.find(b=>b.id===$('#swapTheir').value),va=BUSINESSES[a.type].cost*a.health/100,vb=BUSINESSES[b.type].cost*b.health/100,acceptBase=.58-Math.max(0,(vb-va)/Math.max(vb,1))*.5+relation(p,t)/300;if(!targetAccepts(p,t,acceptBase))return toast('Tausch abgelehnt.');p.businesses=p.businesses.filter(x=>x.id!==a.id);t.businesses=t.businesses.filter(x=>x.id!==b.id);a.routeId=null;b.routeId=null;p.businesses.push(b);t.businesses.push(a);adjustRelation(p,t,6);p.stats.trades++;closeDialog();saveGame();renderAll();toast('Gebietstausch abgeschlossen.');};}
 
-  function openBuyDialog(districtId=selectedDistrict,focusType=null){const p=currentPlayer(),d=DISTRICTS.find(x=>x.id===districtId);if(p.jailed)return toast('Im Gefängnis kannst du keine neuen Geschäfte kaufen.');const entries=Object.entries(BUSINESSES).sort((a,b)=>focusType===a[0]?-1:focusType===b[0]?1:a[1].cost-b[1].cost);openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Investition · ${esc(d.name)}</p><h2>Geschäft kaufen</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-list">${entries.map(([k,b])=>`<div class="dialog-option ${focusType===k?'highlight':''}"><div><strong>${b.icon} ${esc(b.name)}</strong><p>${esc(b.desc)}<br>Ertrag ca. ${fmt(Math.round(b.baseIncome*d.demand))}/R · Einfluss ${b.influence}</p></div><button class="btn btn-primary" data-buy="${k}" ${totalLiquid(p)<b.cost?'disabled':''}>${fmt(b.cost)}</button></div>`).join('')}</div></div>`);$$('[data-buy]').forEach(btn=>btn.onclick=()=>buyBusiness(btn.dataset.buy,districtId));}
-  function buyBusiness(type,districtId){const p=currentPlayer(),def=BUSINESSES[type];if(totalLiquid(p)<def.cost)return toast('Nicht genug Kapital.');spend(p,def.cost);const d=DISTRICTS.find(x=>x.id===districtId),b={id:uid(),type,district:districtId,health:100,level:1,name:def.name,acquiredRound:state.round,routeId:null};if(type==='machines')b.machines=createMachineUnits();p.businesses.push(b);p.reputation+=def.rep;ledger(p,`${def.name} gekauft`,-def.cost,'asset');p.lastAction=`${def.name} gekauft`;closeDialog();saveGame();renderAll();toast(`${def.name} in ${d.name} gekauft.`);}
+  let openBuyDialog; // Implemented by the rules module before init.
+  let buyBusiness; // Implemented by the rules module before init.
   function openBusinessDialog(id){const p=currentPlayer(),b=p.businesses.find(x=>x.id===id);if(!b)return;const def=BUSINESSES[b.type],repair=Math.round(def.cost*(100-b.health)/100*.18),upgrade=Math.round(def.cost*.35*(b.level||1));openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">${esc(DISTRICTS.find(d=>d.id===b.district).name)}</p><h2>${def.icon} ${esc(b.name)}</h2></div><button class="icon-btn" data-close>✕</button></div><div class="finance-grid">${metricCards([['Zustand',pct(b.health),''],['Stufe',b.level||1,''],['Ertrag',fmt(estimateIncome(p,b)),'positive'],['Sicherheit',pct(businessSecurity(p,b)),''],['Einfluss',Math.round(businessInfluence(b)),'']])}</div>${b.type==='machines'?`<div class="dialog-footer"><button class="btn btn-primary" data-machines>Automaten verwalten</button></div>`:''}<div class="dialog-footer"><button class="btn btn-secondary" data-upgrade ${(b.level||1)>=3||totalLiquid(p)<upgrade?'disabled':''}>Ausbauen ${fmt(upgrade)}</button><button class="btn btn-secondary" data-repair ${b.health>=100||totalLiquid(p)<repair?'disabled':''}>Reparieren ${fmt(repair)}</button><button class="btn btn-danger" data-sell>Verkaufen ${fmt(def.cost*.55*(b.health/100))}</button></div></div>`);$('[data-machines]')?.addEventListener('click',()=>openMachineManager(id));$('[data-upgrade]')?.addEventListener('click',()=>{spend(p,upgrade);b.level++;ledger(p,`${def.name} ausgebaut`,-upgrade,'asset');closeDialog();saveGame();renderAll();toast(`Betrieb auf Stufe ${b.level}.`);});$('[data-repair]')?.addEventListener('click',()=>{spend(p,repair);b.health=100;ledger(p,`${def.name} repariert`,-repair,'expense');closeDialog();saveGame();renderAll();toast('Betrieb repariert.');});$('[data-sell]').onclick=()=>{const val=Math.round(def.cost*.55*(b.health/100));p.clean+=val;p.businesses=p.businesses.filter(x=>x.id!==id);ledger(p,`${def.name} verkauft`,val,'clean');closeDialog();saveGame();renderAll();toast(`Verkauft: ${fmt(val)}.`);};}
   function openMachineManager(bid){const p=currentPlayer(),b=p.businesses.find(x=>x.id===bid);if(!b)return;b.machines=b.machines||createMachineUnits();openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Automatenstandorte</p><h2>${esc(DISTRICTS.find(d=>d.id===b.district).name)}</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-list">${b.machines.map(m=>`<div class="dialog-option"><div><strong>${esc(m.name)}</strong><p>Zustand ${m.condition}% · aktueller Ort: ${esc(MACHINE_LOCATIONS.find(x=>x.id===m.location)?.name||'Unbekannt')}</p></div><select data-machine-loc="${m.id}">${MACHINE_LOCATIONS.map(l=>`<option value="${l.id}" ${m.location===l.id?'selected':''}>${esc(l.name)} · x${l.mult.toFixed(2)}</option>`).join('')}</select></div>`).join('')}</div><div class="dialog-footer"><button class="btn btn-secondary" data-route-manager>Automatenroute zuweisen</button></div></div>`);$$('[data-machine-loc]').forEach(sel=>sel.onchange=()=>{const m=b.machines.find(x=>x.id===sel.dataset.machineLoc);if(totalLiquid(p)<300){sel.value=m.location;return toast('Du brauchst 300 $ für den Standortwechsel.');}m.location=sel.value;spend(p,300,false);ledger(p,'Automat umgesetzt',-300,'expense');saveGame();renderAll();toast('Standort geändert.');});$('[data-route-manager]').onclick=()=>openRoutesDialog(bid);}
   function openRoutesDialog(focusBiz=null){const p=currentPlayer(),bundles=p.businesses.filter(b=>b.type==='machines');openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Logistik</p><h2>Automatenrouten</h2></div><button class="icon-btn" data-close>✕</button></div><div class="dialog-footer"><button class="btn btn-primary" data-new-route>Neue Route ${fmt(2500)}</button></div>${p.routes.length?p.routes.map(r=>`<div class="route-card"><div><strong>${esc(r.name)}</strong><p>Stufe ${r.level} · ${bundles.filter(b=>b.routeId===r.id).length} Pakete · Bonus +${r.level*7}%</p></div><button class="btn btn-secondary" data-up-route="${r.id}" ${r.level>=3?'disabled':''}>Verbessern ${fmt(5000*r.level)}</button></div>`).join(''):'<div class="empty-state">Noch keine Route angelegt.</div>'}<h3>Pakete zuweisen</h3><div class="dialog-list">${bundles.map(b=>`<div class="dialog-option"><div><strong>${esc(DISTRICTS.find(d=>d.id===b.district).name)} · ${esc(b.name)}</strong></div><select data-route-biz="${b.id}"><option value="">Keine Route</option>${p.routes.map(r=>`<option value="${r.id}" ${b.routeId===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`).join('')}</div></div>`);$('[data-new-route]')?.addEventListener('click',()=>{if(totalLiquid(p)<2500)return toast('Nicht genug Kapital.');spend(p,2500);p.routes.push({id:uid(),name:`Route ${p.routes.length+1}`,level:1});saveGame();openRoutesDialog(focusBiz);});$$('[data-up-route]').forEach(btn=>btn.onclick=()=>{const r=p.routes.find(x=>x.id===btn.dataset.upRoute),cost=5000*r.level;if(totalLiquid(p)<cost)return toast('Nicht genug Kapital.');spend(p,cost);r.level++;saveGame();openRoutesDialog(focusBiz);});$$('[data-route-biz]').forEach(sel=>sel.onchange=()=>{const b=p.businesses.find(x=>x.id===sel.dataset.routeBiz);b.routeId=sel.value||null;saveGame();renderAll();});}
@@ -405,7 +400,7 @@
   }
   function doAiPrison(p){p.actionPoints--;if(p.staff.lawyer&&chance(.45)){p.jailed=Math.max(0,p.jailed-1);}else p.reputation++;}
 
-  function checkVictory(){if(state.settings.length==='endless')return;const cfg={short:{min:12,target:62},normal:{min:22,target:74},long:{min:35,target:82}}[state.settings.length]||{min:22,target:74};if(state.round<cfg.min)return;const active=state.players.filter(p=>!p.eliminated);if(active.length===1){state.gameOver=true;state.winnerId=active[0].id;return;}const leader=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];if(powerIndex(leader)>=cfg.target&&controlledDistricts(leader)>=2){state.gameOver=true;state.winnerId=leader.id;}}
+  let checkVictory; // Implemented by the rules module before init.
   function showGameOver(){const w=state.players.find(p=>p.id===state.winnerId);if(!w)return;if($('#gameDialog').open&&$('#dialogContent').dataset.gameover)return;$('#dialogContent').dataset.gameover='1';openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Partie beendet</p><h2>${esc(w.family)} dominiert die Stadt</h2></div></div><p>${esc(w.name)} erreicht ${pct(powerIndex(w))} Macht und kontrolliert ${controlledDistricts(w)} Viertel.</p><div class="finance-grid">${metricCards([['Nettovermögen',fmt(netWorth(w)),'positive'],['Betriebe',w.businesses.length,''],['Reputation',w.reputation,'']])}</div><div class="dialog-footer"><button class="btn btn-secondary" data-menu>Hauptmenü</button><button class="btn btn-primary" data-new>Neue Partie</button></div></div>`);$('[data-menu]').onclick=()=>{closeDialog();showScreen('menuScreen');};$('[data-new]').onclick=()=>{closeDialog();showScreen('setupScreen');};}
 
   function showHandoff(){const p=currentPlayer();document.body.classList.add('handoff-mode');openDialog(`<div class="dialog-wrap handoff-card"><p class="eyebrow">Lokaler Mehrspieler</p><h2>Gerät an ${esc(p.name)} geben</h2><p>Die Daten des vorherigen Spielers werden im Hintergrund verdeckt. ${esc(p.name)} von ${esc(p.family)} übernimmt jetzt.</p><button class="btn btn-primary btn-xl full" data-take-turn>Zug übernehmen</button></div>`);$('[data-take-turn]').onclick=()=>{document.body.classList.remove('handoff-mode');closeDialog();renderAll();};}
@@ -841,22 +836,11 @@
     else if(totalLiquid(p)<=0&&p.debt>50000){p.eliminated=true;recordChronicle(`${p.family} ist zahlungsunfähig und scheidet aus.`);}
   };
 
-  checkVictory=function(){
-    if(!state||state.gameOver)return;
-    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
-    if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
-    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
-    if(state.settings.length==='endless')return;
-    const cfg={short:{min:12,target:52,districts:2},normal:{min:22,target:62,districts:3},long:{min:35,target:72,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
-    if(state.round<cfg.min)return;
-    if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){state.gameOver=true;state.winnerId=active[0].id;state.endReason='Alle Rivalen sind ausgeschieden.';return;}
-    const leader=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
-    if(leader&&powerIndex(leader)>=cfg.target&&controlledDistricts(leader)>=cfg.districts){state.gameOver=true;state.winnerId=leader.id;state.endReason=`Dominanzziel erreicht: ${cfg.target}% Macht und ${cfg.districts} Viertel.`;}
-  };
+
   showGameOver=function(){
     if(!state?.gameOver)return;const w=state.players.find(p=>p.id===state.winnerId),human=w?.type==='human';
     if($('#gameDialog').open&&$('#dialogContent').dataset.gameover)return;$('#dialogContent').dataset.gameover='1';
-    if(!w){openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Partie beendet</p><h2>Kein Syndikat überlebt</h2></div></div><p>${esc(state.endReason||'Die Stadt bleibt ohne Sieger.')}</p><div class="dialog-footer"><button class="btn btn-secondary" data-menu>Hauptmenü</button><button class="btn btn-primary" data-new>Neue Partie</button></div></div>`);}
+    if(!w){openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">Partie beendet</p><h2>Partie ohne Sieger</h2></div></div><p>${esc(state.endReason||'Die Stadt bleibt ohne Sieger.')}</p><div class="dialog-footer"><button class="btn btn-secondary" data-menu>Hauptmenü</button><button class="btn btn-primary" data-new>Neue Partie</button></div></div>`);}
     else{openDialog(`<div class="dialog-wrap"><div class="dialog-head"><div><p class="eyebrow">${human?'Sieg':'Partie beendet'}</p><h2>${esc(w.family)} ${human?'dominiert die Stadt':'setzt sich durch'}</h2></div></div><p>${esc(state.endReason||'Dominanzziel erreicht.')}</p><div class="finance-grid">${metricCards([['Macht',pct(powerIndex(w)),'positive'],['Nettovermögen',fmt(netWorth(w)),'positive'],['Betriebe',w.businesses.length,''],['Viertel',controlledDistricts(w),''],['Reputation',w.reputation,'']])}</div><div class="dialog-footer"><button class="btn btn-secondary" data-menu>Hauptmenü</button><button class="btn btn-primary" data-new>Neue Partie</button></div></div>`);}
     $('[data-menu]').onclick=()=>{closeDialog();showScreen('menuScreen');};$('[data-new]').onclick=()=>{closeDialog();showScreen('setupScreen');};
   };
@@ -1184,23 +1168,7 @@
     claim32(p);p.lastAction='Syndikat strategisch geführt';
   };
 
-  const victoryV3=checkVictory;
-  checkVictory=function(){
-    if(!state||state.gameOver)return;
-    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
-    if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
-    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
-    if(state.settings.length==='endless')return;
-    const cfg={short:{min:12,target:52,districts:2},normal:{min:22,target:62,districts:3},long:{min:35,target:72,districts:4}}[state.settings.length]||{min:22,target:72,districts:3};
-    if(state.round<cfg.min)return;
-    if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){
-      const survivor=active[0];
-      if(powerIndex(survivor)>=38&&controlledDistricts(survivor)>=1){state.gameOver=true;state.winnerId=survivor.id;state.endReason='Alle Rivalen sind ausgeschieden und das verbleibende Syndikat besitzt eine gefestigte Stadtbasis.';}
-      return;
-    }
-    const leader=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];
-    if(leader&&powerIndex(leader)>=cfg.target&&controlledDistricts(leader)>=cfg.districts){state.gameOver=true;state.winnerId=leader.id;state.endReason=`Dominanzziel erreicht: ${cfg.target}% Macht und ${cfg.districts} Viertel.`;}
-  };
+
 })();
 /* SYNDIKAT_REVISION_3_2_END */
 
@@ -1242,9 +1210,9 @@
   }
   checkVictory=function(){
     if(!state||state.gameOver)return;
-    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>p.type==='human');
+    const active=state.players.filter(p=>!p.eliminated),activeHumans=active.filter(p=>(p.type==='human'||p.type==='remote'));
     if(active.length===0){state.gameOver=true;state.winnerId=null;state.endReason='Alle Familien sind ausgeschieden.';return;}
-    if((state.initialHumanCount||state.players.filter(p=>p.type==='human').length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
+    if((state.initialHumanCount||state.players.filter(p=>(p.type==='human'||p.type==='remote')).length)>0&&activeHumans.length===0){const w=[...active].sort((a,b)=>powerIndex(b)-powerIndex(a))[0];state.gameOver=true;state.winnerId=w?.id||null;state.endReason='Die letzte menschliche Familie ist ausgeschieden.';return;}
     if(state.settings.length==='endless')return;
     const cfg=victoryCfg311();if(state.round<cfg.min)return;
     if(active.length===1&&(state.initialPlayerCount||state.players.length)>1){const s=active[0];if(powerIndex(s)>=38&&controlledDistricts(s)>=1){state.gameOver=true;state.winnerId=s.id;state.endReason='Alle Rivalen sind ausgeschieden und das verbleibende Syndikat besitzt eine gefestigte Stadtbasis.';}return;}
@@ -1763,6 +1731,7 @@
 
   function v42Unlocked(){return v42GetJSON(ACH_KEY,{})}
   function v42CheckAchievements(p){
+    if(!p||p.type!=='human')return;
     const all=v42Unlocked();let changed=false;
     for(const a of ACHIEVEMENTS){if(!all[a.id]&&a.test(p)){all[a.id]={date:Date.now(),family:p.family};changed=true;toast(`Erfolg freigeschaltet: ${a.name}`);}}
     if(changed)v42SetJSON(ACH_KEY,all);
@@ -1818,7 +1787,7 @@
   }
   function v42RenderGuide(){
     let box=$('#guideCoach');
-    if(!box){box=document.createElement('div');box.id='guideCoach';box.className='guide-coach hidden';document.body.appendChild(box);}
+    if(!box){box=document.createElement('div');box.id='guideCoach';box.className='guide-coach hidden';($('#gameScreen .content-area')||document.body).prepend(box);}
     const p=currentPlayer?.();if(!p||!state){box.classList.add('hidden');return;}
     const txt=v42GuideText(p);if(!txt){box.classList.add('hidden');return;}
     box.innerHTML=`<strong>Geführter Einstieg</strong><span>${esc(txt)}</span><button aria-label="Tutorial schließen">×</button>`;box.classList.remove('hidden');box.querySelector('button').onclick=()=>{p.guide.done=true;saveGame();box.classList.add('hidden');};
@@ -2482,7 +2451,7 @@
     },
     {
       chapter:5,kicker:'Kapitel V',title:'Kellers Akte',speaker:'Kommissar Ernst Keller',portrait:ASSETS.keller,image:ASSETS.raid,
-      desc:'Halte Heat bei höchstens 45 und die Beweislage bei höchstens 40. Ein Anwalt oder Polizeikontakt hilft.',
+      desc:'Halte Heat bei höchstens 45 und die Beweislage bei höchstens 40. Beschäftige außerdem einen Anwalt oder unterhalte einen Kontakt zu einem Polizisten oder Inspektor.',
       narrative:[
         'Kommissar Ernst Keller klebt Fotos an eine Wand, zieht rote Linien zwischen Namen und Konten und lässt deinen Familiennamen genau in der Mitte stehen.',
         'Du kannst die Akte nicht verschwinden lassen. Aber du kannst dafür sorgen, dass aus Vermutungen keine Anklage wird. Dafür brauchst du Disziplin – oder Kontakte.'
@@ -2536,12 +2505,12 @@
     },
     {
       chapter:10,kicker:'Kapitel X',title:'Drei Familien am Tisch',speaker:'Sofia Moretti',portrait:ASSETS.sofia,image:ASSETS.sofia,
-      desc:'Erreiche mindestens 20 Ruf und halte einen aktiven Pakt oder ein Bündnis mit einer anderen Familie.',
+      desc:'Erreiche mindestens 20 Ruf und halte einen aktiven Pakt oder ein Bündnis mit einer anderen Familie. Gibt es keine andere aktive Familie mehr, genügt die Kontrolle über zwei Viertel.',
       narrative:[
         'Im Obergeschoss eines Restaurants stehen drei Teller auf dem Tisch und vier bewaffnete Männer vor der Tür. Sofia hat die Sitzordnung festgelegt. Niemand sitzt mit dem Rücken zum Fenster.',
         'Jetzt geht es nicht mehr darum, ob du zur Stadt gehörst. Es geht darum, ob die anderen Familien akzeptieren, dass wichtige Entscheidungen ohne dich nicht mehr möglich sind.'
       ],
-      done:p=>(p.reputation||0)>=20&&state.players.some(x=>x.id!==p.id&&!x.eliminated&&(pactActive(p,x)||allianceActive(p,x))),reward:140000,rep:9
+      done:p=>{const rivals=state.players.filter(x=>x.id!==p.id&&!x.eliminated);return (p.reputation||0)>=20&&(rivals.length?rivals.some(x=>pactActive(p,x)||allianceActive(p,x)):controlledDistricts(p)>=2);},reward:140000,rep:9
     },
     {
       chapter:11,kicker:'Kapitel XI',title:'Die Stadt gehört uns',speaker:'Don Vittorio Leone',portrait:ASSETS.vittorio,image:ASSETS.city,
@@ -2585,6 +2554,11 @@
     if(!storyDone(ch,p))return toast('Kapitelziel noch nicht erfüllt.');
     if(p.story.claimed.includes(ch.chapter))return;
     if(ch.choices?.length&&!choiceId)return;
+    const selected=choiceId?(ch.choices||[]).find(c=>c.id===choiceId):null;
+    if(choiceId&&!selected)return;
+    const cost=typeof selected?.cost==='function'?selected.cost(p):(selected?.cost||0);
+    if(cost>p.clean+p.dirty)return toast(`Diese Entscheidung kostet ${fmt(cost)} verfügbares Kapital.`);
+    if(cost>0)spend(p,cost,false);
     const choice=choiceId?storyChoiceApply(p,ch,choiceId):null;
     if(ch.onClaim)ch.onClaim(p);
     p.story.claimed.push(ch.chapter);
@@ -2690,7 +2664,7 @@
     grid.innerHTML=`<div class="city-map-scroll"><div class="city-art-map"><img src="${ASSETS.city}" alt="Nächtliche Stadtkarte von Syndikat">
       <svg class="city-hotspots" viewBox="0 0 1672 941" aria-label="Anklickbare Stadtviertel">${DISTRICTS.map(d=>`<polygon tabindex="0" role="button" aria-label="${esc(d.name)}" class="city-hotspot ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" points="${HOTSPOTS[d.id]}" style="--district-accent:${d.accent}"></polygon>`).join('')}</svg>
       ${DISTRICTS.map(d=>{const v=DISTRICT_VISUALS[d.id],share=Math.round(districtShare(p,d.id)),owner=districtOwner(d.id);return `<button class="city-map-tag ${selectedDistrict===d.id?'selected':''}" data-map-district="${d.id}" style="left:${v.tag[0]}%;top:${v.tag[1]}%;--district-accent:${d.accent}"><strong>${esc(d.name)}</strong><span>${share}% · ${esc(owner.player?owner.player.family:'Neutral')}</span></button>`;}).join('')}
-    </div></div>`;
+    </div></div><p class="city-map-hint">Karte seitlich verschieben · Viertel antippen</p>`;
     $$('[data-map-district]',grid).forEach(el=>{
       const open=()=>{selectedDistrict=el.dataset.mapDistrict;renderCity();};
       el.onclick=open;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
@@ -2773,7 +2747,7 @@
     let bar=$('#cityOverlayBar');if(!bar){grid.insertAdjacentHTML('beforebegin',`<div id="cityOverlayBar" class="map-mode-bar">${[['normal','Übersicht'],['ownership','Besitz'],['police','Polizei'],['income','Einkommen'],['rivals','Rivalen']].map(([id,n])=>`<button class="map-mode ${mapMode===id?'active':''}" data-map-mode="${id}">${n}</button>`).join('')}</div>`);bar=$('#cityOverlayBar');$$('[data-map-mode]',bar).forEach(b=>b.onclick=()=>{mapMode=b.dataset.mapMode;renderCity();});}else $$('[data-map-mode]',bar).forEach(b=>b.classList.toggle('active',b.dataset.mapMode===mapMode));
     $$('.city-map-tag',map).forEach(tag=>{const d=DISTRICTS.find(x=>x.id===tag.dataset.mapDistrict),span=tag.querySelector('span');if(d&&span)span.textContent=overlayText(p,d);});
     map.querySelectorAll('.map-marker').forEach(x=>x.remove());map.insertAdjacentHTML('beforeend',mapMarkers(p));
-    const d=DISTRICTS.find(x=>x.id===selectedDistrict),detail=$('#districtDetail');if(d&&detail&&!detail.querySelector('.district-visual'))detail.insertAdjacentHTML('afterbegin',`<div class="district-visual"><img src="${DISTRICT_ART[d.id]}" alt=""><div><strong>${esc(d.name)}</strong><span>${esc(d.desc)}</span></div></div>`);
+    const d=DISTRICTS.find(x=>x.id===selectedDistrict),detail=$('#districtDetail');if(d&&detail&&!detail.querySelector('.district-visual'))detail.insertAdjacentHTML('afterbegin',`<div class="district-visual"><img src="${DISTRICT_ART[d.id]}" alt=""><div><strong>${esc(d.name)}</strong></div></div>`);
   }
   const oldCity=renderCity;renderCity=function(){oldCity();decorateMap();decorateEvent();};
 
@@ -2892,12 +2866,12 @@
   function addStory(){
     const story=window.SyndikatVisualStory?.story;if(!story||story.some(x=>x.chapter===13))return;const V=window.SyndikatVisualStory.assets;
     story.push(
-      {chapter:13,kicker:'Kapitel XIII',title:'Alte Schulden',speaker:'Sofia Moretti',portrait:V.sofia,image:RIVAL_INFO.Moretti.art,desc:'Beweise, dass frühere Entscheidungen Konsequenzen haben.',narrative:['Sofia erinnert sich genau daran, wie du ihr erstes Angebot behandelt hast. Ein alter Handschlag kann heute eine Tür öffnen – eine kalte Schulter kann dieselbe Tür verriegeln.','In der Unterwelt ist Erinnerung eine zweite Währung. Heute wird abgerechnet.'],done:p=>p.reputation>=28,reward:190000,rep:8,choices:[{id:'honor',label:'Alte Zusagen ehren',text:'Frühere Kooperation kann jetzt zu einem langfristigen Vorteil werden.',apply:p=>{const m=state.players.find(x=>x.family==='Moretti');if(p.story.flags.moretti==='pact'&&m){adjustRelation(p,m,18);p.jointVentures[m.id]=state.round+8;m.jointVentures[p.id]=state.round+8;}else{spend(p,30000);p.reputation+=3;}p.story.flags.oldDebt='honor';}},{id:'exploit',label:'Den eigenen Vorteil wählen',text:'Mehr kurzfristiges Kapital, aber Moretti wird sich daran erinnern.',apply:p=>{p.dirty+=45000;const m=state.players.find(x=>x.family==='Moretti');if(m)adjustRelation(p,m,-28);p.story.flags.oldDebt='exploit';}}]},
+      {chapter:13,kicker:'Kapitel XIII',title:'Alte Schulden',speaker:'Sofia Moretti',portrait:V.sofia,image:RIVAL_INFO.Moretti.art,desc:'Beweise, dass frühere Entscheidungen Konsequenzen haben.',narrative:['Sofia erinnert sich genau daran, wie du ihr erstes Angebot behandelt hast. Ein alter Handschlag kann heute eine Tür öffnen – eine kalte Schulter kann dieselbe Tür verriegeln.','In der Unterwelt ist Erinnerung eine zweite Währung. Heute wird abgerechnet.'],done:p=>p.reputation>=28,reward:190000,rep:8,choices:[{id:'honor',cost:p=>p.story.flags.moretti==='pact'&&state.players.some(x=>x.family==='Moretti')?0:30000,label:'Alte Zusagen ehren',text:'Frühere Kooperation kann jetzt zu einem langfristigen Vorteil werden.',apply:p=>{const m=state.players.find(x=>x.family==='Moretti');if(p.story.flags.moretti==='pact'&&m){adjustRelation(p,m,18);p.jointVentures[m.id]=state.round+8;m.jointVentures[p.id]=state.round+8;}else{p.reputation+=3;}p.story.flags.oldDebt='honor';}},{id:'exploit',label:'Den eigenen Vorteil wählen',text:'Mehr kurzfristiges Kapital, aber Moretti wird sich daran erinnern.',apply:p=>{p.dirty+=45000;const m=state.players.find(x=>x.family==='Moretti');if(m)adjustRelation(p,m,-28);p.story.flags.oldDebt='exploit';}}]},
       {chapter:14,kicker:'Kapitel XIV',title:'Kellers letzter Zug',speaker:'Kommissar Ernst Keller',portrait:V.keller,image:V.court,desc:'Überstehe Kellers persönlichste Ermittlung.',narrative:['Keller legt eine neue Akte an. Diesmal geht es um Muster, alte Zeugen und Entscheidungen, die du längst vergessen glaubtest.','Ob du früher Anwälte oder Kontakte genutzt hast, beeinflusst jetzt, welche Türen Keller noch offenstehen.'],done:p=>(p.investigation?.evidence||0)<=38&&p.heat<=48,reward:210000,rep:9,choices:[{id:'legalfinal',label:'Den Rechtsweg erzwingen',text:'Besonders wirksam, wenn du Keller früher juristisch bekämpft hast.',apply:p=>{const bonus=p.story.flags.keller==='legal'?10:5;if(p.investigation)p.investigation.evidence=clamp(p.investigation.evidence-bonus,0,100);p.story.flags.kellerFinal='legal';}},{id:'expose',label:'Öffentlichen Druck erzeugen',text:'Senkt Heat und stärkt deinen Ruf als schwer angreifbarer Gegner.',apply:p=>{p.heat=clamp(p.heat-12,0,100);p.reputation=clamp(p.reputation+4,0,100);p.story.flags.kellerFinal='expose';}}]},
       {chapter:15,kicker:'Kapitel XV',title:'Macht oder Bilanz',speaker:'Marco Bellini',portrait:V.marco,image:BUSINESS_ART.holding,desc:'Entscheide, welche Art von Syndikat du führst.',narrative:['Marco legt zwei Mappen auf den Tisch. In der einen: Einfluss und Präsenz. In der anderen: Beteiligungen, Grundstücke und Verträge.','Beides führt zu Macht. Aber nicht zur gleichen Art von Macht.'],done:p=>netWorth(p)>=6500000||(p.stats?.operationsSuccess||0)>=6,reward:240000,rep:10,choices:[{id:'business',label:'Die Bilanz gewinnt',text:'Wirtschaftliche Erträge steigen dauerhaft leicht.',apply:p=>{p.story.flags.route='business';p.permanentIncomeBonus=(p.permanentIncomeBonus||0)+.04;}},{id:'influence',label:'Der Einfluss gewinnt',text:'Ruf und Beziehungen werden wichtiger.',apply:p=>{p.story.flags.route='influence';p.reputation+=5;}}]},
       {chapter:16,kicker:'Kapitel XVI',title:'Riss in der Familie',speaker:'Marco Bellini',portrait:V.marco,image:A+'event-betrayal.svg',desc:'Halte deine Organisation zusammen.',narrative:['Je größer die Familie, desto mehr Menschen glauben, sie hätten Anspruch auf den Tisch am Fenster. Ein Gerücht über deinen Unterboss reicht, um alte Loyalitäten zu prüfen.','Du musst entscheiden, ob Vertrauen verdient oder erkauft wird.'],done:p=>activeStaff(p).length>=7&&(!p.underbossId||p.staffRoster.find(s=>s.id===p.underbossId)?.loyalty>=55),reward:260000,rep:10,choices:[{id:'trust',label:'Vertrauen zeigen',text:'Der Unterboss gewinnt Loyalität.',apply:p=>{const u=p.staffRoster.find(s=>s.id===p.underbossId);if(u)u.loyalty=clamp(u.loyalty+14,0,100);p.story.flags.family='trust';}},{id:'restructure',label:'Organisation neu ordnen',text:'Die schwächste Loyalität wird entfernt, die verbleibende Struktur stabiler.',apply:p=>{const s=[...activeStaff(p)].sort((a,b)=>a.loyalty-b.loyalty)[0];if(s){p.staffRoster=p.staffRoster.filter(x=>x.id!==s.id);syncStaffCounts(p);}p.story.flags.family='restructure';}}]},
-      {chapter:17,kicker:'Kapitel XVII',title:'Die Stadtverwaltung',speaker:'Alessandro Costa',portrait:RIVAL_INFO.Costa.art,image:A+'event-corruption.svg',desc:'Erreiche politischen Einfluss oder beweise, dass du ohne ihn auskommst.',narrative:['Costa lädt dich in ein Büro mit Tageslicht. Das ist seine Art von Machtdemonstration.','Er behauptet, eine Stadt werde nicht auf der Straße regiert, sondern in Sitzungszimmern, in denen niemand seinen echten Preis nennt.'],done:p=>corruptionCount(p)>=3||p.clean>=2500000,reward:290000,rep:11,choices:[{id:'network',label:'Einflussnetzwerk ausbauen',text:'Kontakte werden stärker, aber öffentliche Kontrolle nimmt zu.',apply:p=>{p.story.flags.politics='network';if(p.investigation)p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+8,0,100);p.politicalShield=6;}},{id:'independent',label:'Unabhängig bleiben',text:'Kostet Kapital, bringt aber Reputation.',apply:p=>{spend(p,80000);p.reputation+=7;p.story.flags.politics='independent';}}]},
-      {chapter:18,kicker:'Kapitel XVIII',title:'Die Stadt steht still',speaker:'Sofia Moretti',portrait:V.sofia,image:A+'event-gangwar.svg',desc:'Beende eine schwere Rivalitätsphase durch Stärke oder Verhandlung.',narrative:['Mehrere Familien ziehen gleichzeitig Grenzen neu. Lieferanten warten ab, Geschäftsleute schließen früher, alte Verträge werden plötzlich wichtig.','Du kannst die Lage weiter eskalieren oder zeigen, dass die Stadt auch durch Absprachen kontrolliert werden kann.'],done:p=>(p.stats?.operationsSuccess||0)>=7||state.players.some(x=>x.id!==p.id&&relation(p,x)>=35),reward:330000,rep:12,choices:[{id:'pressure',label:'Härte zeigen',text:'Mehr Ruf, schlechtere Rivalenbeziehungen.',apply:p=>{state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,-8));p.reputation+=6;p.story.flags.cityCrisis='pressure';}},{id:'settle',label:'Einigung suchen',text:'40.000 $ für eine stadtweite Deeskalation.',apply:p=>{spend(p,40000);state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,8));p.heat=clamp(p.heat-10,0,100);p.story.flags.cityCrisis='settle';}}]},
+      {chapter:17,kicker:'Kapitel XVII',title:'Die Stadtverwaltung',speaker:'Alessandro Costa',portrait:RIVAL_INFO.Costa.art,image:A+'event-corruption.svg',desc:'Erreiche politischen Einfluss oder beweise, dass du ohne ihn auskommst.',narrative:['Costa lädt dich in ein Büro mit Tageslicht. Das ist seine Art von Machtdemonstration.','Er behauptet, eine Stadt werde nicht auf der Straße regiert, sondern in Sitzungszimmern, in denen niemand seinen echten Preis nennt.'],done:p=>corruptionCount(p)>=3||p.clean>=2500000,reward:290000,rep:11,choices:[{id:'network',label:'Einflussnetzwerk ausbauen',text:'Kontakte werden stärker, aber öffentliche Kontrolle nimmt zu.',apply:p=>{p.story.flags.politics='network';if(p.investigation)p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+8,0,100);p.politicalShield=6;}},{id:'independent',cost:80000,label:'Unabhängig bleiben',text:'Kostet 80.000 $, bringt aber Reputation.',apply:p=>{p.reputation+=7;p.story.flags.politics='independent';}}]},
+      {chapter:18,kicker:'Kapitel XVIII',title:'Die Stadt steht still',speaker:'Sofia Moretti',portrait:V.sofia,image:A+'event-gangwar.svg',desc:'Beende eine schwere Rivalitätsphase durch Stärke oder Verhandlung.',narrative:['Mehrere Familien ziehen gleichzeitig Grenzen neu. Lieferanten warten ab, Geschäftsleute schließen früher, alte Verträge werden plötzlich wichtig.','Du kannst die Lage weiter eskalieren oder zeigen, dass die Stadt auch durch Absprachen kontrolliert werden kann.'],done:p=>(p.stats?.operationsSuccess||0)>=7||state.players.some(x=>x.id!==p.id&&relation(p,x)>=35),reward:330000,rep:12,choices:[{id:'pressure',label:'Härte zeigen',text:'Mehr Ruf, schlechtere Rivalenbeziehungen.',apply:p=>{state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,-8));p.reputation+=6;p.story.flags.cityCrisis='pressure';}},{id:'settle',cost:40000,label:'Einigung suchen',text:'40.000 $ für eine stadtweite Deeskalation.',apply:p=>{state.players.filter(x=>x.id!==p.id).forEach(x=>adjustRelation(p,x,8));p.heat=clamp(p.heat-10,0,100);p.story.flags.cityCrisis='settle';}}]},
       {chapter:19,kicker:'Kapitel XIX',title:'Das Erbe',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Bereite deine Organisation auf eine Zukunft ohne dich vor.',narrative:['Vittorio spricht zum ersten Mal nicht über den nächsten Monat, sondern über die nächsten zehn Jahre. Ein Imperium, das an einer Person hängt, ist kein Imperium.','Crews, Unterboss und Betriebe müssen auch dann funktionieren, wenn du nicht mehr jede Entscheidung selbst triffst.'],done:p=>!!p.underbossId&&(p.crews||[]).length>=2&&activeStaff(p).length>=8,reward:380000,rep:13,choices:[{id:'family',label:'Familienmodell',text:'Loyalität aller Mitarbeiter steigt.',apply:p=>{activeStaff(p).forEach(s=>s.loyalty=clamp(s.loyalty+7,0,100));p.story.flags.legacy='family';}},{id:'corporate',label:'Konzernmodell',text:'Betriebe werden effizienter.',apply:p=>{p.permanentIncomeBonus=(p.permanentIncomeBonus||0)+.035;p.story.flags.legacy='corporate';}}]},
       {chapter:20,kicker:'Epilog',title:'Welche Stadt bleibt?',speaker:'Don Vittorio Leone',portrait:V.vittorio,image:V.city,desc:'Erreiche endgültige Dominanz und bestimme, welches Syndikat du hinterlässt.',narrative:['Die Stadt ist ruhig – nicht friedlich. Das ist ein Unterschied, den du besser kennst als jeder andere.','Alles, was du früher entschieden hast, liegt jetzt unter diesem Moment: Moretti, Keller, Marco, Politik und Geld.'],done:p=>storyVictoryTarget(p),reward:500000,rep:18,choices:[{id:'empire',label:'Das legale Imperium',text:'Dein Syndikat tritt als Konzern in die Zukunft.',apply:p=>{p.story.flags.ending='empire';p.clean+=150000;}},{id:'shadow',label:'Der unsichtbare Staat',text:'Kontakte und Abhängigkeiten bleiben deine wichtigste Währung.',apply:p=>{p.story.flags.ending='shadow';p.politicalShield=(p.politicalShield||0)+10;}},{id:'crown',label:'Krone aus Neon',text:'Die Stadt soll deinen Namen nie vergessen.',apply:p=>{p.story.flags.ending='crown';p.reputation=clamp(p.reputation+10,0,100);}}]}
     );
@@ -2905,7 +2879,7 @@
   addStory();
 
   const oldGameOver=showGameOver;
-  showGameOver=function(){oldGameOver();const p=state?.players.find(x=>x.id===state.winnerId),root=$('#dialogContent');if(!p||!root||root.querySelector('.ending-card'))return;const e=p.story?.flags?.ending||(p.finalCrisis?.choice==='legit'?'empire':p.finalCrisis?.choice==='politics'?'shadow':p.finalCrisis?.choice==='war'?'crown':'family');const endings={empire:['Das legale Imperium',BUSINESS_ART.holding,'Deine Macht trägt Anzüge, besitzt Gebäude und unterschreibt Verträge.'],shadow:['Der unsichtbare Staat',A+'event-corruption.svg','Niemand kann genau sagen, wo dein Einfluss beginnt. Genau deshalb reicht er so weit.'],crown:['Krone aus Neon',A+'start-user.webp','Die Stadt erinnert sich an deinen Namen und deine Macht.'],family:['Die Familie bleibt',A+'staff-bodyguard.svg','Deine Organisation hat gelernt, ohne einzelne Helden zu bestehen.']};const x=endings[e]||endings.family;root.insertAdjacentHTML('beforeend',`<div class="ending-card"><img src="${x[1]}" alt=""><div><small>Dein Ende</small><h3>${x[0]}</h3><p>${x[2]}</p></div></div>`);};
+  showGameOver=function(){oldGameOver();const p=state?.players.find(x=>x.id===state.winnerId),root=$('#dialogContent');if(!p||!root||root.querySelector('.ending-card'))return;const e=p.story?.flags?.ending||(p.finalCrisis?.choice==='legit'?'empire':p.finalCrisis?.choice==='politics'?'shadow':p.finalCrisis?.choice==='war'?'crown':'family');const endings={empire:['Das legale Imperium',BUSINESS_ART.holding,'Deine Macht trägt Anzüge, besitzt Gebäude und unterschreibt Verträge.'],shadow:['Der unsichtbare Staat',A+'event-corruption.svg','Niemand kann genau sagen, wo dein Einfluss beginnt. Genau deshalb reicht er so weit.'],crown:['Krone aus Neon',A+'start-user.webp','Die Stadt erinnert sich an deinen Namen und deine Macht.'],family:['Die Familie bleibt',A+'staff-bodyguard.svg','Deine Organisation hat gelernt, ohne einzelne Helden zu bestehen.']};const x=endings[e]||endings.family;root.insertAdjacentHTML('beforeend',`<div class="ending-card"><img src="${x[1]}" alt=""><div><small>${p.type==='human'?'Dein Ende':`Das Ende der Familie ${esc(p.family)}`}</small><h3>${x[0]}</h3><p>${p.type==='human'?x[2]:`Die Familie ${esc(p.family)} bestimmt die Zukunft der Stadt.`}</p></div></div>`);};
 
   const oldInit=initPlayer;initPlayer=function(p){oldInit(p);ensureDepth(p);};
   const oldMigrate=migrateState;migrateState=function(data){data=oldMigrate(data);(data.players||[]).forEach(ensureDepth);return data;};
@@ -2938,6 +2912,7 @@
   function putImg(host,src,cls){if(!host||!src)return null;cls=cls||'vx-thumb';let img=host.querySelector('img.'+cls);if(!img){img=document.createElement('img');img.className=cls;img.alt='';host.insertBefore(img,host.firstChild);}if(img.getAttribute('src')!==src)img.src=src;return img;}
   function current(){try{return typeof currentPlayer==='function'?currentPlayer():null}catch(_){return null}}
   function decorate(){
+    document.querySelectorAll('#crimeGrid .crime-thumb').forEach(img=>img.remove());
     const p=current();
     if(p){const ev=p.deepEvent||(typeof state!=='undefined'&&state&&state.cityEvent);const eventImg=document.querySelector('.deep-event-card img');if(ev&&eventImg&&EVENTS[ev.id])eventImg.src=EVENTS[ev.id];}
     document.querySelectorAll('#crimeGrid .crime-card').forEach(function(card,i){const prisonBtn=card.querySelector('[data-prison-final]');if(prisonBtn){putImg(card,PRISON[prisonBtn.dataset.prisonFinal],'vx-thumb');return;}const c=(typeof CRIMES!=='undefined'&&CRIMES[i])?CRIMES[i]:null;if(c&&CRIME_ART[c.id])putImg(card,CRIME_ART[c.id],'vx-thumb');});
@@ -2970,6 +2945,7 @@
 (function SYNDIKAT_V45_CLOUD_UI(){
   const ONLINE_KEY='syndikat_online_session_v1';
   const CLOUD_SAVE_KEY='syndikat_cloud_save_session_v1';
+  let onlineSubmitting=false;
   let onlineSession=null,onlineRevision=0,onlinePoll=null,onlineRoster=[],onlineStopWatch=null,onlineTransport='Fallback';
 
   function v45LoadSession(){try{onlineSession=JSON.parse(localStorage.getItem(ONLINE_KEY)||'null')}catch{onlineSession=null}return onlineSession}
@@ -2992,7 +2968,7 @@
     showScreen('gameScreen');currentView='city';saveGame();renderAll();
   }
   async function v45RefreshOnline(silent=false){
-    const c=v45Cloud();if(!c?.enabled||!onlineSession)return;
+    const c=v45Cloud();if(!c?.enabled||!onlineSession||onlineSubmitting)return;
     try{
       const game=await c.getGame(onlineSession.code,onlineSession.token);
       if(!game)return;
@@ -3015,7 +2991,7 @@
     onlinePoll=setInterval(async()=>{
       try{
         const game=await v45Cloud().getGame(onlineSession.code,onlineSession.token);
-        if(game&&Number(game.revision)>onlineRevision){onlineRevision=Number(game.revision);if(game.game_state)v45ApplyCloudState(game.game_state);}
+        if(!onlineSubmitting&&game&&Number(game.revision)>onlineRevision){onlineRevision=Number(game.revision);if(game.game_state)v45ApplyCloudState(game.game_state);}
       }catch{}
     },30000);
   }
@@ -3054,8 +3030,15 @@
       onlineRevision=Number(row.revision);v45ApplyCloudState(row.game_state);closeDialog();v45StartPolling();await c.signalGame?.(onlineSession,onlineRevision,'state');toast('Online-Partie gestartet.');
     }catch(e){toast('Cloud: '+e.message);}
   }
+  function disconnectOnlineSession(){
+    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}
+    v45Cloud()?.stopRealtime?.();v45StoreSession(null);onlineRoster=[];onlineRevision=0;
+    if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}
+  }
+  const createLocalGame=createGame;
+  createGame=function(...args){disconnectOnlineSession();return createLocalGame.apply(this,args);};
   async function v45LeaveOnline(){
-    if(onlineStopWatch){try{onlineStopWatch()}catch{}onlineStopWatch=null;}v45Cloud()?.stopRealtime?.();v45StoreSession(null);onlineRoster=[];onlineRevision=0;if(onlinePoll){clearInterval(onlinePoll);onlinePoll=null;}toast('Online-Verbindung getrennt.');closeDialog();
+    disconnectOnlineSession();toast('Online-Verbindung getrennt.');closeDialog();
   }
   async function v45CloudSaveNew(){
     const c=v45Cloud();if(!c?.enabled||!state)return toast('Keine Partie für Cloud-Speicherung.');
@@ -3138,28 +3121,38 @@
   }
 
   const v45EndTurn=endHumanTurn;
-  endHumanTurn=function(){
+  endHumanTurn=async function(){
     if(!onlineSession||!v45Cloud()?.enabled)return v45EndTurn();
+    if(onlineSubmitting)return;
     const p=currentPlayer();if(!p||p.onlineParticipantId!==onlineSession.participantId)return toast('Du bist in dieser Online-Partie gerade nicht am Zug.');
-    v45EndTurn();
-    (async()=>{
-      try{
-        if(!onlineRoster.length)onlineRoster=await v45Cloud().getPlayers(onlineSession.code,onlineSession.token);
-        const next=currentPlayer(),nextPid=next?.onlineParticipantId||null;
-        const patch={game_state:v45CanonicalState(),status:state.gameOver?'finished':'playing',active_participant_id:nextPid,winner_participant_id:state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null};
-        const row=await v45Cloud().submitTurn(onlineSession,onlineRevision,patch.game_state,nextPid,patch.status,patch.winner_participant_id);onlineRevision=Number(row.revision);await v45Cloud().signalGame?.(onlineSession,onlineRevision,'state');
-      }catch(e){toast('Online-Synchronisation fehlgeschlagen: '+e.message);}
-    })();
+    const before=JSON.parse(JSON.stringify(state));
+    onlineSubmitting=true;
+    try{
+      v45EndTurn();renderAll();
+      const next=currentPlayer(),nextPid=next?.onlineParticipantId||null;
+      const row=await v45Cloud().submitTurn(onlineSession,onlineRevision,v45CanonicalState(),nextPid,state.gameOver?'finished':'playing',state.gameOver?(state.players.find(x=>x.id===state.winnerId)?.onlineParticipantId||null):null);
+      onlineRevision=Number(row.revision);
+      onlineSubmitting=false;v45ApplyCloudState(row.game_state);
+      if(state.gameOver)showGameOver();
+      // Realtime is advisory. A failed broadcast must not roll back an accepted turn.
+      try{await v45Cloud().signalGame?.(onlineSession,onlineRevision,'state')}catch{}
+    }catch(e){
+      onlineSubmitting=false;state=before;saveGame();closeDialog();renderAll();
+      await v45RefreshOnline(true);
+      toast('Zug nicht übertragen. Bestätigter Spielstand wiederhergestellt: '+e.message);
+    }finally{onlineSubmitting=false;renderAll();}
   };
 
   const v45Render=renderAll;
   renderAll=function(){
+    // Release only controls locked by online waiting; renderers reapply gameplay restrictions.
+    $$('[data-online-locked]').forEach(x=>{x.disabled=false;x.removeAttribute('data-online-locked');});
     v45Render();
     if(onlineSession&&v45Cloud()?.enabled){
       const p=currentPlayer(),mine=p?.onlineParticipantId===onlineSession.participantId||p?.type==='ai';
-      if(p?.type==='remote'||!mine){
-        const b=$('#statusBanner');b.className='status-banner';b.textContent=`Online: ${p?.name||p?.family||'Mitspieler'} ist am Zug. Die Ansicht aktualisiert sich automatisch.`;
-        $$('#gameScreen .content-area button').forEach(x=>x.disabled=true);
+      if(onlineSubmitting||p?.type==='remote'||!mine){
+        const b=$('#statusBanner');b.className='status-banner';b.textContent=onlineSubmitting?'Zug wird übertragen …':`Online: ${p?.name||p?.family||'Mitspieler'} ist am Zug. Die Ansicht aktualisiert sich automatisch.`;
+        $$('#gameScreen .content-area button, #endTurnBtn, #endTurnDesktop').forEach(x=>{if(!x.disabled){x.setAttribute('data-online-locked','');x.disabled=true;}});
       }
     }
   };
@@ -3243,19 +3236,6 @@
   let q=false;
   const schedule=()=>{if(q)return;q=true;queueMicrotask(async()=>{q=false;await decorateCloudDialog()})};
   if(typeof MutationObserver!=='undefined'&&document.body)new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});
-
-  const baseEnd=endHumanTurn;
-  endHumanTurn=function(...args){
-    const s=getSession();
-    const r=baseEnd.apply(this,args);
-    if(s&&cloud()?.enabled)setTimeout(async()=>{
-      try{
-        const game=await cloud().getGame(s.code,s.token);
-        if(game?.status==='playing'&&game.active_participant_id&&game.active_participant_id!==s.participantId)await cloud().notifyActiveTurn(s);
-      }catch{}
-    },1400);
-    return r;
-  };
 
   window.SyndikatAccountPush={decorate:decorateCloudDialog,togglePush};
 })();
@@ -3400,7 +3380,7 @@
       intro:()=>`Ein Reporter verbindet mehrere Vorfälle mit deiner Familie. Eine falsche Reaktion kann Ermittlungen beschleunigen.`,
       options:[
         {id:'lawyer',name:'Anwälte vorschicken',desc:'Sauber, teuer und kontrolliert.',cost:9000,apply:p=>{p.clean=Math.max(0,p.clean-9000);if(p.investigation)p.investigation.evidence=clamp(p.investigation.evidence-9,0,100);p.reputation=clamp(p.reputation+2,0,100);}},
-        {id:'bribe',name:'Redaktion schmieren',desc:'Billiger, aber ein weiteres Korruptionsrisiko.',cost:6000,apply:p=>{p.dirty=Math.max(0,p.dirty-6000);if(p.investigation){p.investigation.evidence=clamp(p.investigation.evidence-6,0,100);p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+12,0,100);}p.heat=clamp(p.heat+2,0,100);}},
+        {id:'bribe',name:'Redaktion schmieren',desc:'Billiger, aber ein weiteres Korruptionsrisiko.',cost:6000,currency:'dirty',apply:p=>{p.dirty=Math.max(0,p.dirty-6000);if(p.investigation){p.investigation.evidence=clamp(p.investigation.evidence-6,0,100);p.investigation.corruptionExposure=clamp(p.investigation.corruptionExposure+12,0,100);}p.heat=clamp(p.heat+2,0,100);}},
         {id:'ignore',name:'Ignorieren',desc:'Kein Geld ausgeben, dafür steigt die öffentliche Aufmerksamkeit.',cost:0,apply:p=>{p.heat=clamp(p.heat+8,0,100);if(p.investigation)p.investigation.evidence=clamp(p.investigation.evidence+5,0,100);}}
       ]
     },
@@ -3443,15 +3423,15 @@
     if(d.type==='press'){option=p.profile==='corrupt'?spec.options[1]:p.profile==='economic'?spec.options[0]:spec.options[2];}
     if(d.type==='labor'){option=p.profile==='aggressive'?spec.options[2]:p.profile==='economic'?spec.options[1]:spec.options[0];}
     const district=d.data?.district?DISTRICTS.find(x=>x.id===d.data.district):null;
-    const pool=option.cost?Math.max(p.clean,p.dirty):Infinity;if(pool<option.cost)option=spec.options.find(x=>x.cost===0)||spec.options[0];
+    const pool=option.cost?p[option.currency||'clean']:Infinity;if(pool<option.cost)option=spec.options.find(x=>x.cost===0)||spec.options[0];
     option.apply(p,district);p.stats.decisions++;log(`${p.family}: Entscheidung „${option.name}“.`);
   }
   function v46OpenDecision(id=null){
     const p=currentPlayer();v46Ensure(p);const dec=id?p.pendingDecisions.find(x=>x.id===id):p.pendingDecisions[0];if(!dec)return toast('Keine Entscheidung offen.');
     const spec=DECISIONS[dec.type];if(!spec)return;
     const d=dec.data?.district?DISTRICTS.find(x=>x.id===dec.data.district):null;
-    openDialog(`<div class="dialog-wrap decision-dialog"><div class="dialog-head"><div><p class="eyebrow">Entscheidung · Runde ${dec.round}</p><h2>${esc(spec.title)}</h2></div><button class="icon-btn" data-close>✕</button></div><p>${esc(spec.intro(d))}</p><div class="dialog-list">${spec.options.map(o=>{const enough=o.cost===0||p.clean>=o.cost||p.dirty>=o.cost;return `<div class="dialog-option"><div><strong>${esc(o.name)}</strong><p>${esc(o.desc)}${o.cost?` · Kosten ${fmt(o.cost)}`:''}</p></div><button class="btn btn-primary" data-decision="${o.id}" ${enough?'':'disabled'}>Wählen</button></div>`}).join('')}</div></div>`);
-    $$('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
+    openDialog(`<div class="dialog-wrap decision-dialog"><div class="dialog-head"><div><p class="eyebrow">Entscheidung · Runde ${dec.round}</p><h2>${esc(spec.title)}</h2></div><button class="icon-btn" data-close>✕</button></div><p>${esc(spec.intro(d))}</p><div class="dialog-list">${spec.options.map(o=>{const enough=o.cost===0||p[o.currency||'clean']>=o.cost;return `<div class="dialog-option"><div><strong>${esc(o.name)}</strong><p>${esc(o.desc)}${o.cost?` · Kosten ${fmt(o.cost)}`:''}</p></div><button class="btn btn-primary" data-decision="${o.id}" ${enough?'':'disabled'}>Wählen</button></div>`}).join('')}</div></div>`);
+    $$('[data-decision]').forEach(btn=>btn.onclick=()=>{const o=spec.options.find(x=>x.id===btn.dataset.decision);if(!o)return;if(p[o.currency||'clean']<o.cost)return toast('Nicht genügend '+(o.currency==='dirty'?'schmutziges':'sauberes')+' Geld.');o.apply(p,d);p.pendingDecisions=p.pendingDecisions.filter(x=>x.id!==dec.id);p.stats.decisions++;log(`${p.family}: Entscheidung „${o.name}“.`);closeDialog();saveGame();renderAll();toast('Entscheidung umgesetzt.');});
   }
 
   function v46AiTrade(p){
@@ -4191,7 +4171,7 @@
     finalBaseGameOver();
     const winner=state?.players?.find(x=>x.id===state.winnerId);
     const root=$('#dialogContent');
-    if(!state?.gameOver||winner?.type!=='human'||!root||root.querySelector('[data-freeplay]'))return;
+    if(!state?.gameOver||state.online||winner?.type!=='human'||!root||root.querySelector('[data-freeplay]'))return;
     root.insertAdjacentHTML('beforeend',`<div class="dialog-footer post-victory-actions"><button class="btn btn-secondary" data-freeplay>Nach dem Sieg weiterspielen</button></div>`);
     $('[data-freeplay]')?.addEventListener('click',()=>{
       state.gameOver=false;state.winnerId=null;state.endReason='';
