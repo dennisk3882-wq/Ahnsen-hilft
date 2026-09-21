@@ -9,4 +9,4 @@ class Handler(SimpleHTTPRequestHandler):
         if path.endswith('/index.html') or Path(path) == Path.cwd():
             return str(Path.cwd() / 'index-source.html')
         return path
-ThreadingHTTPServer(('127.0.0.1', 4173), Handler).serve_forever()
+ThreadingHTTPServer(('127.0.0.1', int(os.environ.get('SYNDIKAT_TEST_PORT', '4173'))), Handler).serve_forever()
