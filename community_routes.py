@@ -131,6 +131,8 @@ def _public_report_points() -> list[dict]:
     gps_pattern = re.compile(r"GPS-Position:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)")
     points = []
     for item in suche_meldungen()[:300]:
+        if not getattr(item, "public_visible", False):
+            continue
         description = str(getattr(item, "beschreibung", "") or "")
         match = gps_pattern.search(description)
         if not match:
@@ -152,7 +154,7 @@ def _public_report_points() -> list[dict]:
             "lon": lon,
             "art": category,
             "category": category,
-            "ort": location[:100] or get_platform_snapshot()["municipality_name"],
+            "ort": get_platform_snapshot()["municipality_name"],
             "status": str(getattr(item, "status", "Offen") or "Offen")[:40],
             "date": created.isoformat() if created else "",
             "date_label": created.strftime("%d.%m.%Y") if created else "",
@@ -362,6 +364,13 @@ async def public_translate(request: Request):
         texts = [texts]
     if not isinstance(texts, list):
         raise HTTPException(status_code=400, detail="texts muss eine Liste sein")
+    from public_translation import valid_capability
+    from operations import consume_rate_limit
+    capabilities = payload.get("capabilities", {})
+    if len(texts) > 24 or not isinstance(capabilities, dict) or any(not isinstance(value, str) or not valid_capability(value, capabilities.get(value)) for value in texts):
+        raise HTTPException(status_code=403, detail="Nur freigegebene öffentliche Seitentexte dürfen übersetzt werden.")
+    if not consume_rate_limit("public-translation", request.client.host if request.client else "unknown", 120, 3600):
+        raise HTTPException(status_code=429, detail="Bitte später erneut versuchen.")
     target = _clean(payload.get("target"), 10)
     source = _clean(payload.get("source"), 10) or "auto"
     try:
@@ -738,13 +747,8 @@ async def admin_platform_save(request: Request):
     admin = _admin(request)
     form = await request.form()
     payload = normalize_platform_payload(dict(form))
-    if content_approval_available(admin["username"]):
-        revision = save_content_revision("plattform", "standard", "Prüfung", payload.get("platform_name") or "Plattform-Konfiguration", payload, admin["username"])
-        audit_event(admin["username"], "Plattform-Konfiguration zur Prüfung eingereicht", "content_revision", str(revision.id), revision.title)
-        message = "Änderungen wurden als Version gespeichert und warten auf Freigabe durch ein zweites berechtigtes Konto."
-    else:
-        config = apply_platform_payload(payload)
-        revision = save_content_revision("plattform", "standard", "Freigegeben", config.platform_name, payload, admin["username"])
-        audit_event(admin["username"], "Plattform-Konfiguration geändert (Einzelbetrieb)", "municipality_config", str(config.id), config.platform_name)
-        message = "White-Label-Konfiguration gespeichert. Für ein Vier-Augen-Verfahren wird ein zweites Inhaltskonto benötigt."
+    from admin_content import submit_content
+    revision = submit_content("plattform", "standard", payload.get("platform_name") or "Plattform", payload, admin["username"])
+    audit_event(admin["username"], "Plattform-Konfiguration gespeichert", "content_revision", str(revision.id), revision.state)
+    message = "Änderungen warten auf zweite Freigabe." if revision.state == "Prüfung" else "Plattform-Konfiguration gespeichert (Einzelbetrieb)."
     return RedirectResponse(url="/intern/plattform?hinweis=" + quote(message), status_code=303)

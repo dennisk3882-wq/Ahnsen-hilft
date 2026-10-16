@@ -14,7 +14,7 @@ from intern_ui import admin_page as _page
 from community_models import CitizenMessage, CitizenPreference, Idea, IdeaComment, IdeaSupport, NeighborPost
 from database import SessionLocal
 from dgh_models import DGHTermin
-from governance import ROLES, begin_admin_totp, case_history, confirm_admin_totp, create_restore_revision, disable_admin_totp, get_admin, list_admins, review_content_revision, save_admin, save_content_revision, set_admin_active, update_case
+from governance import ROLES, begin_admin_totp, case_history, confirm_admin_totp, create_restore_revision, disable_admin_totp, get_admin, get_content_revision, list_admins, review_content_revision, save_admin, save_content_revision, set_admin_active, update_case
 from admin_content import apply_content_payload, content_approval_available
 from admin_access import REQUIRED_2FA_ROLES, ROLE_PERMISSIONS, requires_two_factor
 from governance_models import ContentRevision
@@ -42,7 +42,7 @@ async def backup_center(request: Request, hinweis: str = ""):
     status = scheduled_backup_status()
     automatic = (f"Aktiv · {status['count']} Datei(en) · zuletzt {escape(status['latest'] or 'noch nicht erstellt')} · Aufbewahrung {status['retention_days']} Tage" if status["configured"] else "Noch nicht vollständig konfiguriert: BACKUP_DIRECTORY und BACKUP_ENCRYPTION_KEY müssen im Render-Dienst gesetzt werden.")
     trigger = '<form method="post" action="/intern/sicherung/automatisch-starten"><button class="admin-button" type="submit">Automatische Sicherung jetzt testen</button></form>' if status["configured"] else ''
-    body = f"""<section><span class="eyebrow">Betrieb & Notfallvorsorge</span><h1>Datensicherung</h1><p>Vollständige, verschlüsselte und prüfbare Sicherung der Datenbank und dauerhaft gespeicherter Bilder.</p></section>{notice}<section class="admin-grid"><article class="admin-section"><h2>Verschlüsselte Sicherung herunterladen</h2><p>Vergib ein Kennwort mit mindestens 12 Zeichen. Es wird nicht gespeichert und wird für eine Wiederherstellung benötigt.</p><form class="admin-form" method="post" action="/intern/sicherung/download"><label>Sicherungskennwort<input type="password" name="passphrase" minlength="12" autocomplete="new-password" required></label><button class="admin-button" type="submit">Verschlüsselte Sicherung erstellen</button></form></article><article class="admin-section"><h2>Sicherung prüfen</h2><p>Entschlüsselt die Datei nur im Arbeitsspeicher und kontrolliert Format, Prüfsumme und Datensatzanzahl, ohne Daten zu verändern.</p><form class="admin-form" method="post" action="/intern/sicherung/pruefen" enctype="multipart/form-data"><label>Sicherungsdatei<input type="file" name="datei" accept=".ahnsenbak,application/octet-stream,application/json,.json" required></label><label>Kennwort<input type="password" name="passphrase" autocomplete="current-password"></label><button class="admin-button" type="submit">Sicherung prüfen</button></form></article></section><section class="admin-section"><h2>Automatische tägliche Sicherung</h2><p>{escape(automatic)}</p><p>Das Verzeichnis muss außerhalb des flüchtigen Webservice-Dateisystems liegen. Der Systemcheck warnt, wenn keine aktuelle Sicherung gefunden wird.</p>{trigger}</section><section class="admin-section"><h2>Wiederherstellung</h2><p>Eine Wiederherstellung bleibt bewusst ein kontrollierter, transaktionaler Servervorgang. Das Restore-Skript validiert zuerst Datei, Prüfsumme und Schema, sortiert Tabellen nach Abhängigkeiten und verändert ohne den Bestätigungscode <code>RESTORE-AHNSEN</code> keine Daten.</p></section>"""
+    body = f"""<section><span class="eyebrow">Betrieb & Notfallvorsorge</span><h1>Datensicherung</h1><p>Vollständige, verschlüsselte und prüfbare Sicherung der Datenbank und dauerhaft gespeicherter Bilder.</p></section>{notice}<section class="admin-grid"><article class="admin-section"><h2>Verschlüsselte Sicherung herunterladen</h2><p>Vergib ein Kennwort mit mindestens 12 Zeichen. Es wird nicht gespeichert und wird für eine Wiederherstellung benötigt.</p><form class="admin-form" method="post" action="/intern/sicherung/download"><label>Sicherungskennwort<input type="password" name="passphrase" minlength="12" autocomplete="new-password" required></label><button class="admin-button" type="submit">Verschlüsselte Sicherung erstellen</button></form></article><article class="admin-section"><h2>Sicherung prüfen</h2><p>Entschlüsselt die Datei nur im Arbeitsspeicher und kontrolliert Format, Prüfsumme und Datensatzanzahl, ohne Daten zu verändern.</p><form class="admin-form" method="post" action="/intern/sicherung/pruefen" enctype="multipart/form-data"><label>Sicherungsdatei<input type="file" name="datei" accept=".ahnsenbak,application/octet-stream,application/json,.json" required></label><label>Kennwort<input type="password" name="passphrase" autocomplete="current-password"></label><button class="admin-button" type="submit">Sicherung prüfen</button></form></article></section><section class="admin-section"><h2>Automatische tägliche Sicherung</h2><p>Externe Kopie: {"verifiziert" if status.get("offsite_verified") else "eingerichtet, noch nicht verifiziert" if status.get("offsite_configured") else "noch nicht eingerichtet"}.</p><p>{escape(automatic)}</p><p>Das Verzeichnis muss außerhalb des flüchtigen Webservice-Dateisystems liegen. Der Systemcheck warnt, wenn keine aktuelle Sicherung gefunden wird.</p>{trigger}</section><section class="admin-section"><h2>Wiederherstellung</h2><p>Eine Wiederherstellung bleibt bewusst ein kontrollierter, transaktionaler Servervorgang. Das Restore-Skript validiert zuerst Datei, Prüfsumme und Schema, sortiert Tabellen nach Abhängigkeiten und verändert ohne den Bestätigungscode <code>RESTORE-AHNSEN</code> keine Daten.</p></section>"""
     return _page("Datensicherung", "sicherung", body)
 
 
@@ -227,12 +227,12 @@ async def admin_user_totp(request: Request, username: str):
 async def own_totp_setup(request: Request):
     admin = _admin(request)
     account = get_admin(admin["username"])
-    if not account or not requires_two_factor(account.role):
+    if not account:
         return RedirectResponse("/intern/cockpit", status_code=303)
     if account.totp_enabled:
         return RedirectResponse("/intern/cockpit", status_code=303)
     secret = begin_admin_totp(account.username)
-    body = f"""<section><span class='eyebrow'>Verpflichtende Kontosicherheit</span><h1>2FA jetzt einrichten</h1><p>Dieses Konto besitzt erweiterte Rechte. Hinterlege den Schlüssel in einer kostenlosen Authenticator-App. Der Schlüssel wird nur in deiner eigenen Sitzung angezeigt.</p></section><section class='admin-section'><p style='padding:18px;background:#eef5eb;border-radius:12px;font:700 20px monospace;overflow-wrap:anywhere'>{escape(secret)}</p><ol><li>Authenticator-App öffnen.</li><li>Konto manuell hinzufügen.</li><li>Den Schlüssel eintragen und den sechsstelligen Code bestätigen.</li></ol><form class='admin-form' method='post' action='/intern/2fa/bestaetigen'><label>Sechsstelliger Code<input name='code' inputmode='numeric' autocomplete='one-time-code' pattern='[0-9]{{6}}' required autofocus></label><button class='admin-button'>2FA aktivieren</button></form><p><a href='/logout'>Abmelden</a></p></section>"""
+    body = f"""<section><span class='eyebrow'>Kontosicherheit</span><h1>2FA jetzt einrichten</h1><p>Hinterlege den Schlüssel in einer kostenlosen Authenticator-App. Der Schlüssel wird nur in deiner eigenen Sitzung angezeigt.</p></section><section class='admin-section'><p style='padding:18px;background:#eef5eb;border-radius:12px;font:700 20px monospace;overflow-wrap:anywhere'>{escape(secret)}</p><ol><li>Authenticator-App öffnen.</li><li>Konto manuell hinzufügen.</li><li>Den Schlüssel eintragen und den sechsstelligen Code bestätigen.</li></ol><form class='admin-form' method='post' action='/intern/2fa/bestaetigen'><label>Sechsstelliger Code<input name='code' inputmode='numeric' autocomplete='one-time-code' pattern='[0-9]{{6}}' required autofocus></label><button class='admin-button'>2FA aktivieren</button></form><form method='post' action='/logout'><button class='admin-button' type='submit'>Abmelden</button></form></section>"""
     return _page("2FA einrichten", "benutzer", body)
 
 
@@ -266,6 +266,10 @@ async def content_versions(request: Request, hinweis: str = ""):
     previous_payloads = {}
     card_items = []
     for item in reversed(items):
+        from admin_access import can_access
+        from admin_content import content_permission
+        if not can_access(admin["role"], content_permission(item.area)):
+            continue
         try: payload = json.loads(item.payload_json or "{}")
         except Exception: payload = {}
         prior = previous_payloads.get((item.area, item.object_id), {})
@@ -277,7 +281,7 @@ async def content_versions(request: Request, hinweis: str = ""):
         actions = []
         if item.state == "Prüfung" and item.actor != admin["username"]:
             actions.append(f"<form method='post' action='/intern/inhalte/versionen/{item.id}/entscheiden'><button class='admin-button' name='decision' value='approve'>Prüfen und freigeben</button><button class='admin-button secondary' name='decision' value='reject'>Ablehnen</button></form>")
-        if item.state == "Freigegeben" and item.area in {"gemeindeseite", "plattform"}:
+        if item.state == "Freigegeben" and item.area in {"gemeindeseite", "plattform", "veranstaltungen"}:
             actions.append(f"<form method='post' action='/intern/inhalte/versionen/{item.id}/wiederherstellen' onsubmit=\"return confirm('Diese frühere Version wirklich zur Wiederherstellung vormerken?')\"><button class='admin-button secondary'>Version wiederherstellen</button></form>")
         review = f" · geprüft von {escape(item.reviewed_by)}" if item.reviewed_by else ""
         detail = "".join(changes) or "<li>Erste gespeicherte Version oder keine Feldänderung.</li>"
@@ -285,34 +289,26 @@ async def content_versions(request: Request, hinweis: str = ""):
     cards = "".join(reversed(card_items))
     mode = "Vier-Augen-Freigabe aktiv" if content_approval_available(admin["username"]) else "Einzelbetrieb: Veröffentlichungen werden direkt freigegeben, bis ein zweites berechtigtes Konto vorhanden ist."
     notice = f'<div class="admin-row" role="status">{escape(hinweis)}</div>' if hinweis else ''
-    body=f"""<section><span class="eyebrow">Redaktion</span><h1>Inhaltsversionen</h1><p>Änderungen werden verglichen, geprüft und kontrolliert wiederhergestellt. <strong>{escape(mode)}</strong></p></section>{notice}<section class="admin-section"><div class="admin-list">{cards or '<div class="admin-row">Noch keine Versionen gespeichert.</div>'}</div></section><section class="admin-section"><h2>Redaktionellen Entwurf anlegen</h2><form class="admin-form" method="post"><div class="admin-grid"><label>Bereich<select name="area"><option value="gemeindeseite">Gemeindeseite</option><option value="plattform">Plattform</option></select></label><label>Kennung<input name="object_id" value="standard" required maxlength="120"></label><label>Titel<input name="title" required maxlength="200"></label><label>Status<select name="state"><option>Entwurf</option><option>Prüfung</option></select></label></div><label>Inhalt als JSON-Objekt<textarea name="content" maxlength="20000" placeholder='{{"schluessel":"Wert"}}'></textarea></label><button class="admin-button" type="submit">Version speichern</button></form></section>"""
+    body=f"""<section><span class="eyebrow">Redaktion</span><h1>Inhaltsversionen</h1><p>Änderungen werden verglichen, geprüft und kontrolliert wiederhergestellt. <strong>{escape(mode)}</strong></p></section>{notice}<section class="admin-section"><div class="admin-list">{cards or '<div class="admin-row">Noch keine Versionen gespeichert.</div>'}</div></section><section class="admin-section"><h2>Inhalte bearbeiten</h2><p>Entwürfe entstehen über die passenden Bearbeitungsseiten. Dort stehen die vollständigen Eingabefelder und Bildprüfungen zur Verfügung.</p><a href="/intern/gemeindeseite">Gemeindeseite</a> · <a href="/intern/veranstaltungen">Veranstaltungen</a></section>"""
     return _page("Inhaltsversionen", "versionen", body)
 
 
 @router.post("/intern/inhalte/versionen")
 async def content_version_save(request: Request):
-    admin = _admin(request); form = await request.form()
-    area = str(form.get("area") or "")
-    if area not in {"gemeindeseite", "plattform"}:
-        return RedirectResponse("/intern/inhalte/versionen?hinweis=" + quote("Unbekannter Inhaltsbereich."), status_code=303)
-    try:
-        payload = json.loads(str(form.get("content") or "{}"))
-        if not isinstance(payload, dict): raise ValueError
-    except Exception:
-        return RedirectResponse("/intern/inhalte/versionen?hinweis=" + quote("Inhalt muss ein gültiges JSON-Objekt sein."), status_code=303)
-    state = "Prüfung" if str(form.get("state") or "") == "Prüfung" else "Entwurf"
-    revision=save_content_revision(area,str(form.get("object_id") or ""),state,str(form.get("title") or ""),payload,admin["username"])
-    audit_event(admin["username"], "Inhaltsversion gespeichert", "content_revision", str(getattr(revision, "id", "")), str(form.get("title") or ""))
-    return RedirectResponse("/intern/inhalte/versionen",status_code=303)
+    _admin(request)
+    return RedirectResponse("/intern/inhalte/versionen?hinweis=" + quote("Bitte die Bearbeitungsseite des Inhalts verwenden."), status_code=303)
 
 
 @router.post("/intern/inhalte/versionen/{revision_id}/entscheiden")
-async def content_version_decide(request: Request, revision_id: int):
+async def content_version_decide(request: Request, revision_id: int, background_tasks: BackgroundTasks):
     admin = _admin(request); form = await request.form()
     approve = str(form.get("decision") or "") == "approve"
     try:
         item = review_content_revision(revision_id, admin["username"], approve=approve)
         audit_event(admin["username"], "Inhaltsversion freigegeben" if approve else "Inhaltsversion abgelehnt", "content_revision", str(item.id), item.title)
+        if approve and item.area == "veranstaltungen":
+            from push_service import send_category_notification
+            background_tasks.add_task(send_category_notification, "push_veranstaltungen", "Veranstaltung aktualisiert", item.title, "/veranstaltungen", "event-revision-" + str(item.id))
         message = "Version wurde veröffentlicht." if approve else "Version wurde abgelehnt und archiviert."
     except ValueError as error:
         message = str(error)
@@ -323,18 +319,14 @@ async def content_version_decide(request: Request, revision_id: int):
 async def content_version_restore(request: Request, revision_id: int):
     admin = _admin(request)
     try:
-        item = create_restore_revision(revision_id, admin["username"])
-        if not content_approval_available(admin["username"]):
-            payload = json.loads(item.payload_json or "{}")
-            apply_content_payload(item.area, payload)
-            db = SessionLocal()
-            try:
-                stored = db.query(ContentRevision).filter(ContentRevision.id == item.id).first()
-                stored.state = "Freigegeben"; stored.reviewed_by = admin["username"]; stored.reviewed_at = datetime.utcnow(); stored.applied_at = datetime.utcnow(); db.commit()
-            finally: db.close()
-            message = "Version wurde im Einzelbetrieb wiederhergestellt."
-        else:
-            message = "Wiederherstellung wartet auf Freigabe durch ein zweites Konto."
+        from admin_content import submit_content, content_permission
+        from admin_access import can_access
+        source = get_content_revision(revision_id)
+        if not source or source.state != "Freigegeben" or not can_access(admin["role"], content_permission(source.area), method="POST"):
+            raise ValueError("Keine wiederherstellbare Version oder keine Berechtigung.")
+        payload = json.loads(source.payload_json or "{}")
+        item = submit_content(source.area, source.object_id, "Wiederherstellung: " + source.title, payload, admin["username"])
+        message = "Wiederherstellung wartet auf zweite Freigabe." if item.state == "Prüfung" else "Version im Einzelbetrieb wiederhergestellt."
         audit_event(admin["username"], "Wiederherstellung angefordert", "content_revision", str(item.id), f"Quelle {revision_id}")
     except ValueError as error:
         message = str(error)
@@ -343,20 +335,31 @@ async def content_version_restore(request: Request, revision_id: int):
 
 @router.get("/profil/datenexport")
 async def citizen_export(request: Request):
-    user=_require_user(request); db=SessionLocal()
-    try:
-        payload={"profil":{"email":user.email,"name":user.name,"telefon":user.telefon,"erstellt_am":user.erstellt_am.isoformat()},"maengel":[{"ticket":x.ticket,"status":x.status,"art":x.art,"ort":x.ort,"beschreibung":x.beschreibung,"erstellt_am":x.erstellt_am.isoformat()} for x in db.query(Meldung).filter(Meldung.pwa_user_id==user.id).all()],"dgh":[{"id":x.id,"status":x.status,"datum":x.datum,"anlass":x.anlass} for x in db.query(DGHTermin).filter(DGHTermin.pwa_user_id==user.id).all()],"ideen":[{"id":x.id,"title":x.title,"status":x.status} for x in db.query(Idea).filter(Idea.user_id==user.id).all()],"nachbarschaft":[{"id":x.id,"title":x.title,"status":x.status} for x in db.query(NeighborPost).filter(NeighborPost.user_id==user.id).all()]}
-    finally: db.close()
-    return JSONResponse(payload,headers={"Content-Disposition":'attachment; filename="ahnsen-hilft-datenexport.json"'})
+    from citizen_privacy import export_account
+    user = _require_user(request)
+    return JSONResponse(export_account(user.id), headers={"Content-Disposition": 'attachment; filename="ahnsen-hilft-datenexport.json"', "Cache-Control": "private, no-store"})
 
 
 @router.post("/profil/konto-loeschen")
 async def citizen_delete(request: Request):
     user=_require_user(request); form=await request.form()
     if str(form.get("confirmation") or "").strip().upper() != "LÖSCHEN": return RedirectResponse("/profil?fehler="+quote("Bitte LÖSCHEN zur Bestätigung eingeben."),status_code=303)
-    db=SessionLocal()
-    try:
-        db.query(PushSubscription).filter(PushSubscription.user_id==user.id).delete(); db.query(PushDelivery).filter(PushDelivery.user_id==user.id).delete(); db.query(CitizenMessage).filter(CitizenMessage.user_id==user.id).delete(); db.query(CitizenPreference).filter(CitizenPreference.user_id==user.id).delete(); db.query(IdeaSupport).filter(IdeaSupport.user_id==user.id).delete(); db.query(IdeaComment).filter(IdeaComment.user_id==user.id).delete(); db.query(NeighborReport).filter(NeighborReport.reporter_user_id==user.id).delete();
-        current=db.query(PWAUser).filter(PWAUser.id==user.id).first(); current.email=f"deleted-{user.id}@invalid.local"; current.name="Gelöschtes Konto"; current.telefon=""; current.password_hash="deleted"; current.aktiv=False; db.commit()
-    finally: db.close()
-    response=RedirectResponse("/",status_code=303); response.delete_cookie("ahnsen_user_session"); return response
+    from citizen_privacy import erase_account
+    erase_account(user.id)
+    response=RedirectResponse("/",status_code=303); response.delete_cookie("ahnsen_user_session"); response.headers["Clear-Site-Data"] = '"cache", "storage"'; return response
+
+
+@router.post("/intern/meldung/{ticket}/kartenfreigabe")
+async def case_map_approval(request: Request, ticket: str):
+    admin = _admin(request)
+    form = await request.form()
+    with SessionLocal() as db:
+        item = db.query(Meldung).filter(Meldung.ticket == ticket).with_for_update().first()
+        if not item:
+            raise HTTPException(status_code=404)
+        item.public_visible = form.get("public_visible") == "ja"
+        item.public_reviewed_by = admin["username"]
+        item.public_reviewed_at = datetime.utcnow()
+        db.commit()
+    audit_event(admin["username"], "Kartenfreigabe geändert", "meldung", ticket, "freigegeben" if form.get("public_visible") == "ja" else "verborgen")
+    return RedirectResponse("/intern/meldung/" + quote(ticket), status_code=303)

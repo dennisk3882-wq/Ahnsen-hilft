@@ -1,6 +1,8 @@
 (() => {
   const SUPPORTED_LANGUAGES = new Set(['de', 'en', 'pl', 'uk', 'tr']);
-  const CACHE_VERSION = 'i18n-v4';
+  const CACHE_VERSION = 'i18n-v5-public';
+  // Old versions could persist personal text. This is a disposable cache.
+  try { Object.keys(localStorage).filter(key => /^i18n-v[1-4]:/.test(key)).forEach(key => localStorage.removeItem(key)); } catch (_) {}
   const CACHE_LIMIT = 900;
   const REQUEST_TIMEOUT = 12000;
   const phrasebook = {en: new Map(), pl: new Map(), uk: new Map(), tr: new Map()};
@@ -252,7 +254,9 @@
     });
     applyEntries(entries, translated);
 
-    const missing = unique.filter(value => !translated.has(value));
+    let capabilities = {};
+    try { capabilities = JSON.parse(document.getElementById('public-translation-capabilities')?.textContent || '{}'); } catch (_) {}
+    const missing = unique.filter(value => !translated.has(value) && capabilities[value]);
     if (!missing.length) return false;
     let degraded = false;
     for (let offset = 0; offset < missing.length; offset += 24) {
@@ -264,7 +268,7 @@
         const response = await fetch('/api/uebersetzen', {
           method: 'POST', credentials: 'same-origin', signal: state.abortController.signal,
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({texts: batch, source: 'de', target: language})
+          body: JSON.stringify({texts: batch, source: 'de', target: language, capabilities: Object.fromEntries(batch.map(value => [value, capabilities[value]]))})
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();

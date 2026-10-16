@@ -238,4 +238,4 @@ async def redesigned_event_detail(request: Request, event_id: int, hinweis: str 
     back_href = "/aktuelles-termine?ansicht=archiv" if past else "/aktuelles-termine"
     back_label = "Zurück zum Archiv" if past else "Zurück zu Aktuelles & Termine"
     body = f'''{DETAIL_CSS}<section class="ed"><a class="ed-back" href="{back_href}">← {back_label}</a>{hero}{lower}</section>{lightbox}'''
-    return page(title, body, active="calendar", body_class="current-events-detail")
+    return page(title, body, active="calendar", body_class="current-events-detail", public_translation=True)

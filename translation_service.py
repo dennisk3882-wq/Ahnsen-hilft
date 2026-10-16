@@ -316,7 +316,7 @@ def _apply_mymemory_fallback(
     target: str,
     errors: list[str],
 ) -> tuple[list[int], bool]:
-    if not pending or os.getenv("MYMEMORY_ENABLED", "1").strip().casefold() in {"0", "false", "no", "nein", "off", "aus"}:
+    if not pending or os.getenv("MYMEMORY_ENABLED", "0").strip().casefold() in {"0", "false", "no", "nein", "off", "aus"}:
         return pending, False
 
     failed: list[int] = []
@@ -453,7 +453,7 @@ def provider_status() -> dict:
             states.append({"provider": _provider_label(url), "url": url, "status": "error", "detail": f"{type(error).__name__}: {str(error)[:180]}"})
 
     mymemory_state = {"provider": "api.mymemory.translated.net", "url": _mymemory_url(), "status": "configured"}
-    if os.getenv("MYMEMORY_ENABLED", "1").strip().casefold() in {"0", "false", "no", "nein", "off", "aus"}:
+    if os.getenv("MYMEMORY_ENABLED", "0").strip().casefold() in {"0", "false", "no", "nein", "off", "aus"}:
         mymemory_state["status"] = "disabled"
     states.append(mymemory_state)
 

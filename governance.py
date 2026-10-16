@@ -239,6 +239,8 @@ def update_case(ticket: str, values: dict, actor: str = "Verwaltung") -> Meldung
         item = db.query(Meldung).filter(Meldung.ticket == ticket).first()
         if not item:
             return None
+        changed = False
+        now = datetime.utcnow()
         tracked = ("status", "assigned_to", "responsibility", "priority", "due_at", "public_note")
         for field in tracked:
             if field not in values:
@@ -250,9 +252,16 @@ def update_case(ticket: str, values: dict, actor: str = "Verwaltung") -> Meldung
                 except ValueError: new = None
             if str(old or "") == str(new or ""):
                 continue
+            changed = True
+            if field == "status":
+                item.closed_at = now if new == "Erledigt" else None
+            if field == "public_note" and new and item.first_response_at is None:
+                item.first_response_at = now
             setattr(item, field, new)
             db.add(CaseHistory(ticket=ticket, actor=actor[:120], action=field, old_value=str(old or ""), new_value=str(new or ""), public_note=str(values.get("public_note") or "")[:2000]))
-        item.updated_at = datetime.utcnow(); db.commit(); db.refresh(item); return item
+        if changed:
+            item.updated_at = now
+        db.commit(); db.refresh(item); return item
     finally:
         db.close()
 
@@ -268,6 +277,8 @@ def case_history(ticket: str) -> list[CaseHistory]:
 def save_content_revision(area: str, object_id: str, state: str, title: str, payload: dict, actor: str) -> ContentRevision:
     db = SessionLocal()
     try:
+        from db_coordination import transaction_lock
+        transaction_lock(db, "content-workflow")
         latest = db.query(ContentRevision).filter(ContentRevision.area == area, ContentRevision.object_id == object_id).order_by(ContentRevision.version.desc()).first()
         now = datetime.utcnow()
         selected_state = state if state in {"Entwurf", "Prüfung", "Freigegeben", "Archiviert"} else "Entwurf"
@@ -288,6 +299,9 @@ def get_content_revision(revision_id: int) -> ContentRevision | None:
 def review_content_revision(revision_id: int, reviewer: str, *, approve: bool) -> ContentRevision:
     db = SessionLocal()
     try:
+        from db_coordination import transaction_lock
+        from admin_content import content_permission
+        transaction_lock(db, "content-workflow")
         item = db.query(ContentRevision).filter(ContentRevision.id == int(revision_id)).with_for_update().first()
         if not item:
             raise ValueError("Inhaltsversion wurde nicht gefunden.")
@@ -295,10 +309,20 @@ def review_content_revision(revision_id: int, reviewer: str, *, approve: bool) -
             raise ValueError("Nur Versionen im Status Prüfung können entschieden werden.")
         if str(item.actor).casefold() == str(reviewer).casefold():
             raise ValueError("Erstellung und Freigabe müssen durch zwei unterschiedliche Konten erfolgen.")
+        account = db.query(AdminUser).filter(AdminUser.username == reviewer, AdminUser.active.is_(True)).first()
+        if not account or not has_permission(account.role, content_permission(item.area), method="POST"):
+            raise ValueError("Keine Freigabeberechtigung für diesen Bereich.")
+        newer_publication = db.query(ContentRevision).filter(ContentRevision.area == item.area, ContentRevision.object_id == item.object_id, ContentRevision.state == "Freigegeben", ContentRevision.applied_at > item.created_at).first()
+        if approve and newer_publication:
+            raise ValueError("Seit diesem Entwurf wurde eine neuere Fassung veröffentlicht. Bitte den Inhalt erneut prüfen und einreichen.")
         payload = json.loads(item.payload_json or "{}")
         if approve:
             from admin_content import apply_content_payload
-            apply_content_payload(item.area, payload)
+            event_id = apply_content_payload(item.area, payload, db=db)
+            if item.area == "veranstaltungen" and event_id:
+                payload["id"] = event_id
+                item.object_id = str(event_id)
+                item.payload_json = json.dumps(payload, ensure_ascii=False)
             item.state = "Freigegeben"
             item.applied_at = datetime.utcnow()
         else:

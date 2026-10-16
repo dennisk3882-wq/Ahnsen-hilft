@@ -64,6 +64,7 @@ from pwa_crud import (
 )
 from push_service import public_key, push_configured, send_category_notification, send_user_notification
 from pwa_ui import (
+    page,
     admin_login_page,
     events_page,
     home_page,
@@ -144,7 +145,7 @@ app = FastAPI(
 
 @app.middleware("http")
 async def browser_security(request: Request, call_next):
-    set_current_admin(None)
+    set_current_admin(legacy._session_context(request))
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = str(request.headers.get("origin") or "")
         fetch_site = str(request.headers.get("sec-fetch-site") or "").casefold()
@@ -156,11 +157,14 @@ async def browser_security(request: Request, call_next):
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    from privacy_policy import browser_headers
+    response.headers.update(browser_headers(request.url.path))
     return response
 
 
 @app.on_event("startup")
 def startup() -> None:
+    import job_control  # register persistent scheduling state before migration
     init_db()
     init_veranstaltungen_db()
     init_dgh_db()
@@ -260,7 +264,7 @@ def _current_user(request: Request):
     if not secrets.compare_digest(signature, _user_signature(user_id, timestamp, session_version)):
         return None
     user = get_user_by_id(user_id)
-    if not user or int(user.session_version or 1) != session_version:
+    if not user or (user.email_verification_required and not user.email_verified_at) or int(user.session_version or 1) != session_version:
         return None
     return user
 
@@ -334,6 +338,31 @@ async def public_warnings():
     return warning_page(get_active_warnings(limit=30), get_warning_stats())
 
 
+def _verification_notice(user):
+    from email_verification import send_verification
+    try:
+        send_verification(user)
+        message = "Bitte bestätige zuerst deine E-Mail-Adresse. Der Link ist 24 Stunden gültig. Für einen neuen Link melde dich erneut mit deinem Passwort an."
+    except Exception:
+        message = "Dein Konto wartet auf E-Mail-Bestätigung. Die E-Mail konnte gerade nicht gesendet werden. Bitte versuche die Anmeldung später erneut."
+        record_system_event("email_verification", "error", "Bestätigungs-E-Mail konnte nicht gesendet werden.")
+    return account_page("login", message=message)
+
+
+@app.get("/email-bestaetigen")
+async def verify_email_page():
+    return page("E-Mail bestätigen", """<section class="content-card"><h1>E-Mail-Adresse bestätigen</h1><p>Bestätige deine Adresse, um dein Konto zu nutzen.</p><form method="post"><input type="hidden" name="token" id="verification-token"><button class="primary-button" type="submit">E-Mail bestätigen</button></form><script>document.getElementById('verification-token').value=location.hash.slice(1);history.replaceState(null,'',location.pathname);</script></section>""", active="more")
+
+
+@app.post("/email-bestaetigen")
+async def verify_email_submit(request: Request):
+    _rate_limit(AUTH_RATE_LIMIT, request, 10)
+    from email_verification import confirm_token
+    form = await request.form()
+    success = confirm_token(str(form.get("token") or ""))
+    return account_page("login", message="E-Mail bestätigt. Du kannst dich jetzt anmelden." if success else "Der Link ist ungültig oder abgelaufen. Melde dich erneut an, um einen neuen Link anzufordern.")
+
+
 @app.get("/registrieren")
 async def register_page(request: Request, next: str = "/profil"):
     if _current_user(request):
@@ -368,10 +397,12 @@ async def register_submit(request: Request):
         return account_page("register", "Bitte bestätige die Datenschutzhinweise.", values, next_url)
 
     try:
-        user = create_user(values["email"], password, values["name"], values["telefon"])
+        user = create_user(values["email"], password, values["name"], values["telefon"], verification_required=os.getenv("EMAIL_VERIFICATION_REQUIRED", "false").lower() == "true")
     except ValueError as error:
         return account_page("register", str(error), values, next_url)
 
+    if user.email_verification_required and not user.email_verified_at:
+        return _verification_notice(user)
     response = RedirectResponse(url=next_url, status_code=303)
     _set_user_cookie(response, request, user.id)
     return response
@@ -394,6 +425,8 @@ async def user_login_submit(request: Request):
     user = get_user_by_email(email)
     if not user or not verify_password(password, user.password_hash):
         return account_page("login", "E-Mail-Adresse oder Passwort ist nicht korrekt.", {"email": email}, next_url)
+    if user.email_verification_required and not user.email_verified_at:
+        return _verification_notice(user)
     response = RedirectResponse(url=next_url, status_code=303)
     _set_user_cookie(response, request, user.id)
     return response
@@ -1195,16 +1228,14 @@ async def manifest():
 async def service_worker():
     cfg = get_platform_snapshot()
     default_payload = json.dumps({"title": cfg["platform_name"], "body": "Es gibt eine neue Information.", "url": "/profil", "tag": "citizen-platform"}, ensure_ascii=False)
-    core_assets = ['/', '/mangel-melden', '/dgh-mieten', '/mehr', '/suche', '/ideen', '/nachbarschaft', '/politik-rat', '/karte', '/pwa.css?v=1', '/pwa-extra.css?v=1', '/community.css?v=5', '/warning.css?v=1', '/accessibility.css?v=3', '/header-controls.css?v=1', '/accessibility.js?v=2', '/pwa.js?v=1', '/community.js?v=5', '/pwa/icon-192.png']
-    hero = str(cfg.get("hero_image_url") or "")
-    if hero.startswith("/"):
-        core_assets.append(hero)
+    from privacy_policy import PUBLIC_ASSET_PATHS
+    core_assets = sorted(PUBLIC_ASSET_PATHS)
     core_json = json.dumps(list(dict.fromkeys(core_assets)), ensure_ascii=False)
     script = f"""
-const CACHE = 'citizen-platform-pwa-v5-i18n-public-only-v7';
+const CACHE = 'citizen-platform-pwa-v8-static-only';
 const CORE = {core_json};
 const PRIVATE_PREFIXES = ['/intern', '/verwaltung', '/profil', '/nachrichten', '/api', '/anmelden', '/registrieren', '/passwort'];
-const isPublicCacheable = url => !PRIVATE_PREFIXES.some(prefix => url.pathname === prefix || url.pathname.startsWith(prefix + '/'));
+const isPublicCacheable = url => CORE.includes(url.pathname) && !PRIVATE_PREFIXES.some(prefix => url.pathname === prefix || url.pathname.startsWith(prefix + '/'));
 self.addEventListener('install', event => {{ event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); }});
 self.addEventListener('activate', event => {{ event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); }});
 self.addEventListener('fetch', event => {{
@@ -1220,7 +1251,7 @@ self.addEventListener('fetch', event => {{
     const cacheControl = response.headers.get('cache-control') || '';
     if (response.ok && !cacheControl.includes('no-store') && response.type === 'basic') caches.open(CACHE).then(cache => cache.put(event.request, copy));
     return response;
-  }}).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
+  }}).catch(() => caches.match(event.request).then(cached => cached || new Response('Du bist offline. Persönliche Seiten sind nur mit Internetverbindung verfügbar.', {{status: 503, headers: {{'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store'}}}}))));
 }});
 self.addEventListener('push', event => {{
   let data = {default_payload};

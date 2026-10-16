@@ -4,6 +4,7 @@ from sqlalchemy import inspect
 
 from database import Base, SessionLocal, engine
 from dgh_models import DGHTermin
+from db_coordination import transaction_lock
 
 
 def init_dgh_db():
@@ -44,7 +45,7 @@ def init_dgh_db():
 
 def parse_datum(datum_text):
     try:
-        return datetime.strptime(datum_text, "%d.%m.%Y").date()
+        return datetime.strptime(str(datum_text), "%Y-%m-%d" if "-" in str(datum_text) else "%d.%m.%Y").date()
     except Exception:
         return None
 
@@ -75,8 +76,13 @@ def save_dgh_termin(
     email="",
     pwa_user_id=None,
 ):
+    parsed = parse_datum(datum)
+    if parsed is None:
+        raise ValueError("Bitte ein gültiges Datum angeben.")
+    datum = parsed.strftime("%d.%m.%Y")
     db = SessionLocal()
     try:
+        transaction_lock(db, "dgh-bookings")
         if status == "Bestätigt" and _hat_bestaetigten_konflikt(db, datum):
             raise ValueError("Für diesen Tag ist bereits ein Termin bestätigt.")
 
@@ -166,8 +172,13 @@ def get_dgh_termine_fuer_benutzer(user_id):
 
 
 def update_dgh_termin(termin_id, datum, uhrzeit, anlass, name, telefon, kommentar):
+    parsed = parse_datum(datum)
+    if parsed is None:
+        raise ValueError("Bitte ein gültiges Datum angeben.")
+    datum = parsed.strftime("%d.%m.%Y")
     db = SessionLocal()
     try:
+        transaction_lock(db, "dgh-bookings")
         termin = db.query(DGHTermin).filter(DGHTermin.id == termin_id).first()
         if termin:
             if termin.status == "Bestätigt" and _hat_bestaetigten_konflikt(
@@ -191,8 +202,11 @@ def update_dgh_termin(termin_id, datum, uhrzeit, anlass, name, telefon, kommenta
 def set_dgh_termin_aktiv(termin_id, aktiv):
     db = SessionLocal()
     try:
+        transaction_lock(db, "dgh-bookings")
         termin = db.query(DGHTermin).filter(DGHTermin.id == termin_id).first()
         if termin:
+            if aktiv == "Ja" and termin.status == "Bestätigt" and _hat_bestaetigten_konflikt(db, termin.datum, ausgenommen_id=termin_id):
+                raise ValueError("Für diesen Tag ist bereits ein Termin bestätigt.")
             termin.aktiv = aktiv
             termin.aktualisiert_am = datetime.utcnow()
             db.commit()
@@ -205,6 +219,7 @@ def set_dgh_termin_aktiv(termin_id, aktiv):
 def set_dgh_status(termin_id, status):
     db = SessionLocal()
     try:
+        transaction_lock(db, "dgh-bookings")
         termin = db.query(DGHTermin).filter(DGHTermin.id == termin_id).first()
         alter_status = termin.status if termin else None
         if termin:
@@ -224,6 +239,7 @@ def set_dgh_status(termin_id, status):
 def delete_dgh_termin(termin_id):
     db = SessionLocal()
     try:
+        transaction_lock(db, "dgh-bookings")
         termin = db.query(DGHTermin).filter(DGHTermin.id == termin_id).first()
         if termin:
             db.delete(termin)

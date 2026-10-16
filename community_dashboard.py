@@ -19,6 +19,17 @@ def _page(title: str, active: str, body: str) -> HTMLResponse:
 
 def cockpit_page(stats: dict) -> HTMLResponse:
     role = current_admin().get("role", "read_only")
+    stats = dict(stats)
+    visibility = {
+        "cases": ("reports", "reports_overdue", "reports_urgent", "reports_unassigned"),
+        "dgh": ("dgh_total", "dgh_pending"), "events": ("events", "events_without_image"),
+        "moderation": ("neighbor_pending", "ideas", "ideas_month"), "messages": ("messages_unread",),
+        "warnings": ("active_warnings", "warning_source_errors"), "push": ("push_devices",),
+        "system": ("system_errors",), "admin": ("users",),
+    }
+    for permission, keys in visibility.items():
+        if not can_access(role, permission):
+            for key in keys: stats.pop(key, None)
     reports = stats.get("reports", {})
     cards = [
         (stats.get("users", 0), "aktive Bürgerkonten"),
@@ -35,6 +46,8 @@ def cockpit_page(stats: dict) -> HTMLResponse:
         (stats.get("push_devices", 0), "registrierte Push-Geräte"),
         (stats.get("system_errors", 0), "Systemfehler in 24 Stunden"),
     ]
+    card_permissions = ("admin", "cases", "cases", "moderation", "moderation", "messages", "events", "dgh", "cases", "dgh", "warnings", "push", "system")
+    cards = [card for card, permission in zip(cards, card_permissions) if can_access(role, permission)]
     metrics = "".join(f'<article class="admin-card metric"><strong>{int(value)}</strong><span>{escape(label)}</span></article>' for value, label in cards)
     tasks = []
     if reports.get("offen", 0): tasks.append(f'{reports.get("offen",0)} offene Mängel prüfen')
@@ -166,8 +179,8 @@ def reports_page(reports, search: str = "", message: str = "") -> HTMLResponse:
             metrics = [
                 (payload.get("reports_created", 0), "Neue Mängel", "reports_created"),
                 (payload.get("reports_closed", 0), "Erledigte Mängel", "reports_closed"),
-                (f'{payload.get("reports_average_days", 0)} T.', "Ø Bearbeitungszeit", "reports_average_days"),
-                (f'{payload.get("reports_first_response_hours", 0)} Std.', "Ø erste Reaktion", "reports_first_response_hours"),
+                (f'{(payload.get("reports_average_days") if payload.get("reports_average_days") is not None else "–")} T.', "Ø Bearbeitungszeit", "reports_average_days"),
+                (f'{(payload.get("reports_first_response_hours") if payload.get("reports_first_response_hours") is not None else "–")} Std.', "Ø erste öffentliche Rückmeldung", "reports_first_response_hours"),
                 (payload.get("dgh_requests", 0), "DGH-Anfragen", "dgh_requests"),
                 (f'{payload.get("dgh_occupancy_rate", 0)} %', "DGH-Auslastung", "dgh_occupancy_rate"),
                 (payload.get("new_users", 0), "Neue Bürgerkonten", "new_users"),
@@ -177,7 +190,7 @@ def reports_page(reports, search: str = "", message: str = "") -> HTMLResponse:
                 (payload.get("current_overdue", 0), "Aktuell überfällig", ""),
                 (payload.get("current_unassigned", 0), "Ohne Zuständigkeit", ""),
             ]
-            metric_html = "".join(f'<div class="admin-card metric"><strong>{escape(str(value or 0))}</strong><span>{escape(label)}</span>{(f"<small>{float(comparison.get(key,0)):+g} zum Vormonat</small>" if key and key in comparison else "")}</div>' for value, label, key in metrics)
+            metric_html = "".join(f'<div class="admin-card metric"><strong>{escape(str(value or 0))}</strong><span>{escape(label)}</span>{(f"<small>{float(comparison.get(key,0)):+g} zum Vormonat</small>" if key and comparison.get(key) is not None else "")}</div>' for value, label, key in metrics)
             pretty = json.dumps(payload, ensure_ascii=False, indent=2)
         except Exception:
             metric_html = ""
@@ -197,8 +210,8 @@ def report_print_page(report) -> HTMLResponse:
         ("Neue Mängel im Monat", payload.get("reports_created", 0)),
         ("Erledigte Mängel im Monat", payload.get("reports_closed", 0)),
         ("Erledigt im Verhältnis zu neuen Meldungen", f'{payload.get("reports_completion_rate", 0)} %'),
-        ("Ø Bearbeitungszeit", f'{payload.get("reports_average_days", 0)} Tage'),
-        ("Ø erste Reaktion", f'{payload.get("reports_first_response_hours", 0)} Stunden'),
+        ("Ø Bearbeitungszeit", f'{(payload.get("reports_average_days") if payload.get("reports_average_days") is not None else "–")} Tage'),
+        ("Ø erste öffentliche Rückmeldung", f'{(payload.get("reports_first_response_hours") if payload.get("reports_first_response_hours") is not None else "–")} Stunden'),
         ("DGH-Anfragen", payload.get("dgh_requests", 0)),
         ("DGH belegte Tage", payload.get("dgh_occupancy_days", 0)),
         ("DGH-Auslastung", f'{payload.get("dgh_occupancy_rate", 0)} %'),

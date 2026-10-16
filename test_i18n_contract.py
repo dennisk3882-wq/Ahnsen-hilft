@@ -45,10 +45,10 @@ class TranslationContractTests(unittest.TestCase):
     def test_pwa_uses_the_new_translation_assets(self):
         page = (ROOT / "pwa_ui.py").read_text(encoding="utf-8")
         worker = (ROOT / "pwa_core.py").read_text(encoding="utf-8")
-        self.assertIn('/community.js?v=5', page)
+        self.assertIn('/community.js?v=6', page)
         self.assertIn('/community.css?v=5', page)
-        self.assertIn('/community.js?v=5', worker)
-        self.assertIn("citizen-platform-pwa-v5-i18n", worker)
+        self.assertIn('PUBLIC_ASSET_PATHS', worker)
+        self.assertIn("citizen-platform-pwa-v8-static-only", worker)
 
     def test_language_control_keeps_a_fixed_visible_code_on_mobile(self):
         page = (ROOT / "pwa_ui.py").read_text(encoding="utf-8")

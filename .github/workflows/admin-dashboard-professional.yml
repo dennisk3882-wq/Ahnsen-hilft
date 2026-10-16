@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt httpx
       - name: Compile changed administration modules
         run: |
           python -m py_compile \
@@ -31,4 +31,6 @@ jobs:
           DASHBOARD_SESSION_SECRET: dashboard-test-secret
           PWA_SESSION_SECRET: pwa-test-secret-with-enough-entropy
           WARNING_BACKGROUND_ENABLED: "false"
-        run: python -m unittest discover -v
+        run: |
+          python -m unittest discover -v
+          python scripts/check_hardening_routes.py

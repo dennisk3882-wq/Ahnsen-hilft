@@ -10,7 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from sqlalchemy import MetaData, Table, text
+from sqlalchemy import MetaData, Date, DateTime, inspect, text
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -32,6 +32,58 @@ def decode(value):
     return value
 
 
+def restore_payload(payload, target_engine):
+    """Refuse incomplete/schema-incompatible snapshots before deleting anything."""
+    if not validate_backup(payload)["valid"]:
+        raise ValueError("Ungültige Sicherung.")
+    metadata = MetaData()
+    with target_engine.begin() as connection:
+        metadata.reflect(bind=connection)
+        expected = set(metadata.tables) - {"rate_limit_events"}
+        supplied = set(payload["tables"])
+        if expected != supplied:
+            raise ValueError("Schema passt nicht: fehlende oder unbekannte Tabellen. Zuerst in eine Datenbank mit passendem Schemastand wiederherstellen.")
+        ordered = [table for table in metadata.sorted_tables if table.name in expected]
+        decoded = {}
+        for table in ordered:
+            columns = set(table.columns.keys())
+            decoded[table.name] = []
+            for row in payload["tables"][table.name]:
+                if set(row) != columns:
+                    raise ValueError(f"Spalten stimmen nicht überein: {table.name}")
+                result = {key: decode(value) for key, value in row.items()}
+                # Legacy SQLite backups used untyped SELECT text and therefore
+                # contain ISO timestamp strings rather than typed markers.
+                for column in table.columns:
+                    value = result[column.name]
+                    if isinstance(value, str) and isinstance(column.type, DateTime):
+                        result[column.name] = datetime.fromisoformat(value)
+                    elif isinstance(value, str) and isinstance(column.type, Date):
+                        result[column.name] = date.fromisoformat(value)
+                decoded[table.name].append(result)
+        quote = connection.dialect.identifier_preparer.quote
+        if target_engine.dialect.name == "postgresql":
+            # Include every table explicitly; CASCADE must not erase data outside
+            # the validated snapshot. RESTART is transactional, unlike setval.
+            names = ", ".join(quote(table.name) for table in metadata.sorted_tables)
+            connection.exec_driver_sql(f"TRUNCATE TABLE {names} RESTART IDENTITY")
+        else:
+            for table in reversed(metadata.sorted_tables):
+                connection.execute(table.delete())
+        for table in ordered:
+            if decoded[table.name]:
+                connection.execute(table.insert(), decoded[table.name])
+        if target_engine.dialect.name == "postgresql":
+            for table in ordered:
+                for column in table.primary_key.columns:
+                    sequence = connection.execute(text("SELECT pg_get_serial_sequence(:table, :column)"),
+                                                  {"table": quote(table.name), "column": column.name}).scalar()
+                    if sequence:
+                        parts = connection.execute(text("SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.oid=CAST(:sequence AS regclass)"), {"sequence": sequence}).one()
+                        next_id = connection.exec_driver_sql(f"SELECT COALESCE(MAX({quote(column.name)}), 0) + 1 FROM {quote(table.name)}").scalar()
+                        connection.exec_driver_sql(f"ALTER SEQUENCE {quote(parts[0])}.{quote(parts[1])} RESTART WITH {int(next_id)}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate or restore an Ahnsen hilft JSON backup.")
     parser.add_argument("backup", type=Path)
@@ -51,24 +103,7 @@ def main() -> int:
         print("Validation only. Pass --confirm RESTORE-AHNSEN for an intentional restore.")
         return 0
 
-    tables_payload = payload["tables"]
-    metadata = MetaData()
-    tables = {name: Table(name, metadata, autoload_with=engine) for name in tables_payload}
-    # The reflected metadata contains the real production foreign-key graph;
-    # inserting parents first and deleting children first keeps the restore
-    # deterministic for both PostgreSQL and local SQLite drills.
-    names = [table.name for table in metadata.sorted_tables]
-    with engine.begin() as connection:
-        if engine.dialect.name == "postgresql":
-            quoted = ", ".join(f'"{name}"' for name in names)
-            connection.execute(text(f"TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE"))
-        else:
-            for name in reversed(names):
-                connection.execute(tables[name].delete())
-        for name in names:
-            rows = [{key: decode(value) for key, value in row.items()} for row in tables_payload[name]]
-            if rows:
-                connection.execute(tables[name].insert(), rows)
+    restore_payload(payload, engine)
     print("Restore completed transactionally.")
     return 0
 

@@ -82,20 +82,14 @@ def run() -> int:
     try:
         now = datetime.now(BERLIN)
 
-        # The cron now runs every 30 minutes for the 06:30 waste option. Keep
-        # official warning polling and smart-digest dispatch on the top-of-hour
-        # run only so their cadence does not accidentally double.
-        if now.minute < 10:
-            warning_result = poll_warning_sources(send_push=True)
-            print(
-                f"Amtliche Warnquellen geprüft: {warning_result.get('new', 0)} neu, "
-                f"{warning_result.get('pushed_devices', 0)} Push-Zustellung(en)."
-            )
-            digest_delivered = dispatch_due_digests(send_user_notification)
-            if digest_delivered:
-                print(
-                    f"Smart-Push-Zusammenfassung an {digest_delivered} Konten versendet."
-                )
+        # The scheduler supplies the cadence; digest delivery is independent
+        # of the worker's start minute and of failures in warning sources.
+        digest_delivered = dispatch_due_digests(send_user_notification)
+        from job_control import run_due
+        try:
+            run_due("warning_poll", 1800, lambda: poll_warning_sources(send_push=True))
+        except Exception as error:
+            _record("error", "Warnquellen-Prüfung fehlgeschlagen: " + type(error).__name__)
 
         if not push_configured():
             message = "VAPID-Schlüssel fehlen; Push-Job beendet."

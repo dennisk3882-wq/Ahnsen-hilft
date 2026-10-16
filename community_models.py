@@ -155,3 +155,10 @@ class NotificationQueue(Base):
     dedupe_key = Column(String(220), default="", index=True, nullable=False)
     erstellt_am = Column(DateTime, default=datetime.utcnow, nullable=False)
     zugestellt_am = Column(DateTime, nullable=True)
+
+
+class AuditHead(Base):
+    __tablename__ = "platform_audit_head"
+    id = Column(Integer, primary_key=True)
+    entry_hash = Column(String(64), nullable=False)
+    entry_id = Column(Integer, nullable=False)
