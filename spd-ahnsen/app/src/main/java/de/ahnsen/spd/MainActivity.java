@@ -723,6 +723,7 @@ public class MainActivity extends Activity {
     return f;
   }
   void sendDirect(){
+    if(section.equals("edit"))syncPlace();
     if(sending){toast("Ein E-Mail-Versand läuft bereits");return;}
     String recipient=prefs.getString("email_to","").trim(), sender=prefs.getString("gmail_sender","").trim();
     if(recipient.isEmpty()||sender.isEmpty()||!SecurePasswordStore.configured(prefs)){
