@@ -1,7 +1,7 @@
-name: SPD Ahnsen Native APK v1.6
+name: SPD Ahnsen 2.0 Android APK
 on:
   push:
-    branches: [spd-ahnsen-v1-6-archive-readonly]
+    branches: [spd-ahnsen-v2-0-pro]
   workflow_dispatch:
 jobs:
   build:
@@ -18,17 +18,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Check SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME/build-tools"
-          ls "$ANDROID_HOME/platforms"
-      - name: Build installable APK
+      - name: Compile native Android APK
         run: gradle --no-daemon --stacktrace assembleDebug
-      - name: Name APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk SPD_Ahnsen_v1.6.apk
+      - name: Collect signing utilities
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk SPD_Ahnsen_v2.0_debug.apk
+          FIND_JAR=$(find "$ANDROID_HOME/build-tools" -name apksigner.jar | sort -V | tail -1)
+          test -n "$FIND_JAR"
+          cp "$FIND_JAR" apksigner.jar
       - uses: actions/upload-artifact@v4
         with:
-          name: SPD_Ahnsen_APK_v1_6
-          path: spd-ahnsen/SPD_Ahnsen_v1.6.apk
-          retention-days: 30
+          name: SPD_Ahnsen_2_0_Build
+          path: |
+            spd-ahnsen/SPD_Ahnsen_v2.0_debug.apk
+            spd-ahnsen/apksigner.jar
+          retention-days: 14
