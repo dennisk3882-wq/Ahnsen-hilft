@@ -20,17 +20,25 @@ import java.time.format.DateTimeFormatter;
 
 public class MainActivity extends Activity {
   final String[] names={"Matthias Hinse","Ole Grimmig","Dennis Koch","Thorben Hartmann","Frank Struckmeier"};
-  final int RED=Color.rgb(190,20,30), DARK=Color.rgb(35,42,53), MUTED=Color.rgb(94,101,114);
-  LinearLayout root, page; EditText place; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
+  final int RED=Color.rgb(198,23,41), DARK=Color.rgb(29,39,56), MUTED=Color.rgb(99,113,132);
+  LinearLayout root, page; EditText place, agendaField, notesField, decisionsField; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
   CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false, suppressDraft=false, sending=false, archiveReadOnly=false;
   android.content.SharedPreferences prefs;
+  DataVault vault;
+  ExtraScreens extras;
+  ExportCoordinator exportCoordinator;
+  SecurityGate securityGate;
   static final String DEFAULT_EMAIL_SUBJECT="SPD Ahnsen – Anwesenheitsliste zur {sitzungsart} vom {datum}";
   static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\n\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\n\nBeginn: {beginn} Uhr\nEnde: {ende} Uhr\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von 5\n\nMit freundlichen Grüßen\nSPD-Fraktion Ahnsen";
 
   @Override public void onCreate(Bundle b) {
     super.onCreate(b);getWindow().setStatusBarColor(RED);getWindow().setNavigationBarColor(Color.rgb(40,40,40));
-    prefs=getSharedPreferences("spd_ahnsen_native_v1",MODE_PRIVATE);
-    showHome();
+    prefs=getSharedPreferences("spd_ahnsen_v2",MODE_PRIVATE);
+    vault=new DataVault(this);
+    exportCoordinator=new ExportCoordinator(this);
+    extras=new ExtraScreens(this);
+    securityGate=new SecurityGate(this);
+    securityGate.startup();
   }
   int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+.5f);}
   GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -40,16 +48,59 @@ public class MainActivity extends Activity {
   void title(String t){TextView v=text(t,27,DARK,true);page.addView(v);gap(page,8);}
   void label(String t){TextView v=text(t,13,MUTED,true);page.addView(v);gap(page,5);}
   void addButton(String caption,Runnable action,boolean primary){
-    TextView b=text(caption,16,primary?Color.WHITE:RED,true);b.setGravity(Gravity.CENTER);
-    b.setPadding(dp(12),dp(16),dp(12),dp(16));b.setBackground(bg(primary?RED:Color.rgb(251,235,236),13));
+    TextView b=text(caption,15,primary?Color.WHITE:RED,true);
+    b.setGravity(Gravity.CENTER);b.setMinHeight(dp(51));
+    b.setPadding(dp(14),dp(15),dp(14),dp(15));
+    b.setBackground(bg(primary?RED:Color.rgb(253,236,239),14));
+    b.setElevation(dp(1.3f));
     page.addView(b,new LinearLayout.LayoutParams(-1,-2));b.setOnClickListener(v->action.run());gap(page,10);
   }
-  void init(String s){
-    section=s;root=column();root.setBackgroundColor(Color.rgb(249,250,252));
-    setContentView(root);
-    TextView head=text("SPD  Ahnsen",21,Color.WHITE,true);head.setPadding(dp(21),dp(20),dp(18),dp(20));head.setBackgroundColor(RED);root.addView(head);
-    ScrollView scroll=new ScrollView(this);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-    page=column();page.setPadding(dp(19),dp(23),dp(19),dp(35));scroll.addView(page);
+  void init(String screen){
+    section=screen;root=column();root.setBackgroundColor(Color.rgb(246,248,252));setContentView(root);
+    LinearLayout bar=column();
+    bar.setPadding(dp(22),dp(14),dp(19),dp(17));
+    android.graphics.drawable.GradientDrawable gradient=new android.graphics.drawable.GradientDrawable(
+      android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+      new int[]{Color.rgb(143,14,30),RED,Color.rgb(223,50,65)});
+    bar.setBackground(gradient);
+    TextView upper=text("SPD  ·  GEMEINDE AHNSEN",11,Color.rgb(255,218,224),true);
+    upper.setLetterSpacing(.12f);bar.addView(upper);
+    gap(bar,5);
+    bar.addView(text("Fraktionsverwaltung",23,Color.WHITE,true));
+    root.addView(bar,new LinearLayout.LayoutParams(-1,-2));
+    ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
+    root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+    page=column();page.setPadding(dp(18),dp(20),dp(18),dp(30));scroll.addView(page);
+    if(!screen.equals("locked"))bottomNavigation();
+  }
+  void bottomNavigation(){
+    LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER);
+    nav.setPadding(dp(2),dp(8),dp(2),dp(8));nav.setBackgroundColor(Color.WHITE);
+    String[] choices={"START","SITZUNGEN","TERMINE","BESCHLÜSSE","MEHR"};
+    Runnable[] actions={this::showHome,this::archive,()->extras.agenda(),()->extras.decisions(),this::showMore};
+    for(int i=0;i<choices.length;i++){
+      final int j=i;TextView item=text(choices[i],10,
+        (i==0&&section.equals("home"))?RED:MUTED,true);
+      item.setGravity(Gravity.CENTER);item.setPadding(dp(2),dp(9),dp(2),dp(9));
+      nav.addView(item,new LinearLayout.LayoutParams(0,-2,1));
+      item.setOnClickListener(v->actions[j].run());
+    }
+    root.addView(nav,new LinearLayout.LayoutParams(-1,-2));
+  }
+  void showMore(){
+    suppressDraft=true;init("more");title("Weitere Bereiche");
+    page.addView(text("Organisation, Auswertungen und sichere Datenverwaltung",14,MUTED,false));
+    gap(page,21);
+    addButton("Mitglieder verwalten",()->extras.people(),true);
+    addButton("Teilnahme und Statistik",()->extras.statistics(),false);
+    addButton("E-Mail & PDF-Vorlagen",this::showSettings,false);
+    addButton("Sicherheit und Datensicherung",this::showDataSettings,false);
+  }
+  void infoPanel(String titleText,String detail){
+    LinearLayout card=column();card.setPadding(dp(17),dp(16),dp(17),dp(16));
+    card.setBackground(bg(Color.WHITE,15));card.setElevation(dp(1.4f));
+    card.addView(text(titleText,17,DARK,true));gap(card,5);
+    card.addView(text(detail,13,MUTED,false));page.addView(card);gap(page,13);
   }
   JSONObject newSession(String type) {
     JSONObject s=new JSONObject();try {
