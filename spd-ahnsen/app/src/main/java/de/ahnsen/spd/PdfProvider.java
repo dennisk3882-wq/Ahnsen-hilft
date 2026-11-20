@@ -13,6 +13,7 @@ public class PdfProvider extends ContentProvider {
     String name=u.getLastPathSegment();
     if(name==null||!name.matches("[A-Za-z0-9_.-]+")||!name.endsWith(".pdf")||name.contains(".."))throw new FileNotFoundException();
     File f=new File(new File(getContext().getCacheDir(),"pdfs"),name);
+    if(!f.isFile())f=new File(new File(getContext().getFilesDir(),"sealed"),name);
     if(!f.isFile())throw new FileNotFoundException();return f;
   }
   public String getType(Uri u){return "application/pdf";}
