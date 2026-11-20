@@ -272,81 +272,177 @@ public class MainActivity extends Activity {
     }else {session=newSession(type);suppressDraft=false;draft();edit();}
   }
   void archive() {
-    suppressDraft=true;
-    archiveReadOnly=false;
-    init("archive");addButton("‹ Zurück",this::showHome,false);title("Gespeicherte Sitzungen");
-    page.addView(text("Abgeschlossene Sitzungen sind schreibgeschützt. Du kannst sie ansehen und als PDF öffnen, aber nicht mehr bearbeiten.",14,MUTED,false));
-    gap(page,16);
-    JSONArray a=readArchive();if(a.length()==0){page.addView(text("Noch keine Sitzungen gespeichert.",15,MUTED,false));return;}
-    for(int i=a.length()-1;i>=0;i--){JSONObject item=a.optJSONObject(i);if(item==null)continue;
-      final String id=item.optString("id");String type=item.optString("type").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung";
-      String sentLabel=item.optString("sentAt","").isEmpty()?"":" · ✓ Direkt versendet";
-      addButton("Ansehen: "+type+"\n"+showDate(item.optString("date"))+" · "+item.optString("place")+sentLabel,()->showArchivedSession(id),false);
+    suppressDraft=true;archiveReadOnly=false;init("archive");
+    title("Sitzungsarchiv");
+    page.addView(text("Endgültige Originale · unveränderbare PDFs",14,MUTED,false));gap(page,17);
+    label("Suche nach Sitzung, Ort oder Datum");
+    EditText find=settingsInput("",false);find.setHint("Sitzung suchen ...");
+    LinearLayout selectors=new LinearLayout(this);selectors.setGravity(Gravity.CENTER_VERTICAL);
+    Spinner type=new Spinner(this);
+    ArrayAdapter<String> types=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,
+      new String[]{"Alle Arten","Fraktionssitzung","Gemeinsame Sitzung"});type.setAdapter(types);
+    selectors.addView(type,new LinearLayout.LayoutParams(0,dp(49),1));
+    Spinner year=new Spinner(this);
+    LinkedHashSet<String> years=new LinkedHashSet<>();years.add("Alle Jahre");
+    JSONArray all=vault.meetings();
+    for(int i=0;i<all.length();i++){JSONObject m=all.optJSONObject(i);
+      if(m!=null&&m.optString("date").length()>=4)years.add(m.optString("date").substring(0,4));}
+    ArrayAdapter<String> yearOptions=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new ArrayList<>(years));
+    year.setAdapter(yearOptions);selectors.addView(year,new LinearLayout.LayoutParams(0,dp(49),1));
+    page.addView(selectors);gap(page,12);
+    LinearLayout results=column();page.addView(results);
+    Runnable update=()->renderArchive(results,find.getText().toString(),type.getSelectedItemPosition(),year.getSelectedItem().toString());
+    find.addTextChangedListener(new android.text.TextWatcher(){
+      public void beforeTextChanged(CharSequence s,int st,int count,int after){}
+      public void onTextChanged(CharSequence s,int st,int before,int count){update.run();}
+      public void afterTextChanged(android.text.Editable e){}
+    });
+    android.widget.AdapterView.OnItemSelectedListener listener=new android.widget.AdapterView.OnItemSelectedListener(){
+      public void onNothingSelected(android.widget.AdapterView<?> p){}
+      public void onItemSelected(android.widget.AdapterView<?> p,View v,int pos,long id){update.run();}
+    };
+    type.setOnItemSelectedListener(listener);year.setOnItemSelectedListener(listener);update.run();
+  }
+  void renderArchive(LinearLayout target,String filter,int type,String year){
+    target.removeAllViews();int hits=0;
+    String q=filter.toLowerCase(Locale.GERMANY).trim();
+    JSONArray list=vault.meetings();
+    for(int i=0;i<list.length();i++){
+      JSONObject item=list.optJSONObject(i);if(item==null)continue;
+      String kind=item.optString("type","normal");
+      if(type==1&&kind.equals("joint")||type==2&&!kind.equals("joint"))continue;
+      if(!year.equals("Alle Jahre")&&!item.optString("date").startsWith(year))continue;
+      String title=kind.equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung";
+      String hay=(title+" "+item.optString("place")+" "+item.optString("date")
+        +" "+showDate(item.optString("date"))).toLowerCase(Locale.GERMANY);
+      if(!q.isEmpty()&&!hay.contains(q))continue;hits++;
+      final String id=item.optString("id");
+      String state=vault.deliveryState(id);
+      String mail=state.equals("accepted")?" · VERSENDET":state.equals("failed")?" · VERSANDFEHLER":"";
+      LinearLayout card=column();card.setPadding(dp(16),dp(15),dp(16),dp(15));
+      card.setBackground(bg(Color.WHITE,15));card.setElevation(dp(1));
+      card.addView(text(title,16,DARK,true));gap(card,5);
+      card.addView(text(showDate(item.optString("date"))+" · "+item.optString("place")+mail,13,MUTED,false));
+      target.addView(card);gap(target,10);card.setOnClickListener(v->showArchivedSession(id));
     }
+    if(hits==0)target.addView(text("Keine Sitzungen für diese Auswahl gefunden.",15,MUTED,false));
   }
   void showArchivedSession(String id){
-    JSONObject stored=findSession(id);
-    if(stored==null){toast("Diese Sitzung wurde im Archiv nicht gefunden.");archive();return;}
-    session=stored;
-    archiveReadOnly=true;
-    suppressDraft=true;
-    init("archiveDetail");
-    addButton("‹ Zum Sitzungsarchiv",this::archive,false);
-    title("Gespeicherte Sitzung");
-    TextView notice=text("ABGESCHLOSSEN  ·  NUR LESEN",13,RED,true);
-    notice.setPadding(dp(12),dp(12),dp(12),dp(12));
-    notice.setBackground(bg(Color.rgb(251,235,236),12));
-    page.addView(notice);
-    gap(page,18);
-    page.addView(text(val("type","normal").equals("joint")?
-      "Gemeinsame Fraktionssitzung":"Fraktionssitzung",20,DARK,true));
-    gap(page,14);
-    page.addView(text("Datum: "+showDate(val("date","")),16,DARK,false));gap(page,5);
-    page.addView(text("Sitzungsort: "+val("place","Ahnsen DGH"),16,DARK,false));gap(page,5);
-    page.addView(text("Beginn: "+val("start","")+" Uhr",16,DARK,false));gap(page,5);
-    page.addView(text("Ende: "+val("end","")+" Uhr",16,DARK,false));gap(page,12);
-    page.addView(text("Anwesende SPD-Mitglieder: "+attendanceCount()+" von 5",15,DARK,true));gap(page,18);
-    JSONArray present=session.optJSONArray("present");
-    JSONArray sigs=session.optJSONArray("signatures");
-    for(int i=0;i<names.length;i++){
+    JSONObject stored=vault.meeting(id);
+    if(stored==null){toast("Sitzung wurde nicht gefunden.");archive();return;}
+    session=stored;archiveReadOnly=true;suppressDraft=true;init("archiveDetail");
+    addButton("‹ Archiv",this::archive,false);title("Sitzungsakte");
+    TextView chip=text("ABGESCHLOSSEN  ·  ORIGINAL",12,RED,true);
+    chip.setPadding(dp(13),dp(12),dp(13),dp(12));chip.setBackground(bg(Color.rgb(253,236,239),12));
+    page.addView(chip);gap(page,18);
+    page.addView(text(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung",20,DARK,true));gap(page,14);
+    page.addView(text("Datum   "+showDate(val("date","")),15,DARK,false));gap(page,5);
+    page.addView(text("Ort   "+val("place","Ahnsen DGH"),15,DARK,false));gap(page,5);
+    page.addView(text("Beginn   "+val("start","")+" Uhr     Ende   "+val("end","")+" Uhr",15,DARK,false));gap(page,12);
+    if(!val("revisionOf","").isEmpty())
+      page.addView(text("Korrekturfassung zu: "+val("revisionOf",""),12,RED,true));
+    infoPanel("Anwesenheit",attendanceCount()+" von "+sessionNames().length+" Mitgliedern");
+    JSONArray present=session.optJSONArray("present"),sigs=session.optJSONArray("signatures");
+    String[] labels=sessionNames();
+    for(int i=0;i<labels.length;i++){
       if(present==null||!present.optBoolean(i,false))continue;
-      LinearLayout card=column();
-      card.setPadding(dp(14),dp(13),dp(14),dp(13));
-      card.setBackground(bg(Color.WHITE,13));
-      TextView name=text(names[i],16,DARK,true);card.addView(name);
-      String encoded=sigs==null?"":sigs.optString(i,"");
-      if(encoded.isEmpty()){
-        gap(card,8);card.addView(text("Keine Unterschrift hinterlegt",13,MUTED,false));
-      }else{
-        try{
-          byte[] bytes=Base64.decode(encoded,Base64.DEFAULT);
-          Bitmap signature=BitmapFactory.decodeByteArray(bytes,0,bytes.length);
-          if(signature!=null){
-            gap(card,8);
-            ImageView image=new ImageView(this);
-            image.setImageBitmap(signature);
-            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            image.setAdjustViewBounds(true);
-            image.setBackground(bg(Color.rgb(250,250,250),8));
-            card.addView(image,new LinearLayout.LayoutParams(-1,dp(95)));
-          }
-        }catch(Exception e){card.addView(text("Unterschrift vorhanden (Vorschau nicht verfügbar)",12,MUTED,false));}
-      }
-      page.addView(card);gap(page,10);
+      LinearLayout card=column();card.setPadding(dp(15),dp(13),dp(15),dp(13));card.setBackground(bg(Color.WHITE,13));
+      card.addView(text(labels[i],15,DARK,true));String encoded=sigs==null?"":sigs.optString(i,"");
+      if(encoded.isEmpty()){gap(card,6);card.addView(text("Unterschrift fehlt",12,MUTED,false));}
+      else try{
+        Bitmap bitmap=BitmapFactory.decodeByteArray(Base64.decode(encoded,Base64.DEFAULT),0,Base64.decode(encoded,Base64.DEFAULT).length);
+        if(bitmap!=null){ImageView image=new ImageView(this);image.setImageBitmap(bitmap);
+          image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+          card.addView(image,new LinearLayout.LayoutParams(-1,dp(81)));}
+      }catch(Exception e){card.addView(text("Unterschrift gespeichert",12,MUTED,false));}
+      page.addView(card);gap(page,9);
     }
-    gap(page,16);
-    addButton("Anwesenheitsliste als PDF öffnen",this::openPdf,true);
-    page.addView(text("Die ursprünglichen Angaben und Unterschriften können hier nicht verändert werden.",13,MUTED,false));
+    if(!val("agenda","").trim().isEmpty())infoPanel("Tagesordnung",val("agenda",""));
+    if(!val("notes","").trim().isEmpty())infoPanel("Sitzungsnotizen",val("notes",""));
+    if(!val("decisions","").trim().isEmpty())infoPanel("Beschlüsse",val("decisions",""));
+    gap(page,12);
+    addButton("Original-PDF öffnen",this::openPdf,true);
+    addButton("Original-PDF in Gmail versenden",this::sharePdf,false);
+    addButton("Original-PDF direkt senden",this::confirmResend,false);
+    addButton("Korrekturfassung erstellen",this::createCorrection,false);
+    JSONArray logs=vault.logs(id);
+    if(logs.length()>0){gap(page,12);page.addView(text("VERSANDPROTOKOLL",12,RED,true));gap(page,12);}
+    for(int i=0;i<logs.length();i++){
+      JSONObject log=logs.optJSONObject(i);if(log==null)continue;
+      String status=log.optString("state"),time=log.optString("time");
+      String label=status.equals("accepted")?"Vom Server angenommen":status.equals("failed")?"Fehlgeschlagen":"Versand gestartet";
+      page.addView(text(label+" · "+time.replace('T',' '),13,DARK,true));gap(page,3);
+      page.addView(text("Empfänger: "+log.optString("recipient"),12,MUTED,false));gap(page,9);
+    }
+    gap(page,12);
+    page.addView(text("Originaldaten und Unterschriften sind schreibgeschützt. Korrekturen werden als eigene Fassung archiviert.",12,MUTED,false));
   }
-  JSONArray readArchive(){try{return new JSONArray(prefs.getString("archive","[]"));}catch(Exception e){return new JSONArray();}}
-  JSONObject findSession(String id){JSONArray a=readArchive();for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null&&x.optString("id").equals(id))return x;}return null;}
-  void saveSession(){if(session==null)return;
-    suppressDraft=true;
-    JSONArray a=readArchive();JSONArray out=new JSONArray();boolean found=false;
-    for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null){if(x.optString("id").equals(val("id",""))){out.put(session);found=true;}else out.put(x);}}
-    if(!found)out.put(session);
-    prefs.edit().putString("archive",out.toString()).remove("draft").apply();
-    toast("Sitzung gespeichert");
+  void createCorrection(){
+    if(!archiveReadOnly||session==null)return;
+    final String previous=session.optString("id");
+    new AlertDialog.Builder(this).setTitle("Korrekturfassung erstellen?")
+      .setMessage("Es wird ein neuer bearbeitbarer Entwurf mit denselben Angaben erstellt. Das Original und dessen PDF bleiben erhalten.")
+      .setNegativeButton("Abbrechen",null).setPositiveButton("Erstellen",(d,w)->{
+        try{
+          JSONObject copy=new JSONObject(session.toString());
+          copy.put("id",java.util.UUID.randomUUID().toString());
+          copy.put("revisionOf",previous);copy.put("sealed",false);
+          copy.remove("sealedAt");copy.remove("pdfHash");copy.remove("sentAt");copy.remove("sentTo");
+          session=copy;archiveReadOnly=false;suppressDraft=false;
+          draft();edit();
+        }catch(Exception e){toast("Korrekturfassung konnte nicht erstellt werden");}
+      }).show();
+  }
+  void confirmResend(){
+    if(!archiveReadOnly){sendDirect();return;}
+    String id=val("id","");
+    new AlertDialog.Builder(this).setTitle("Original-PDF erneut senden?")
+      .setMessage("Die Sitzung bleibt unverändert. Ein neuer Versandversuch wird protokolliert."+
+        (vault.deliveryAccepted(id)?" Für diese Sitzung wurde bereits eine erfolgreiche Übergabe an Gmail bestätigt.":""))
+      .setNegativeButton("Abbrechen",null).setPositiveButton("Jetzt senden",(d,w)->sendDirect()).show();
+  }
+  JSONArray readArchive(){return vault.meetings();}
+  JSONObject findSession(String id){return vault.meeting(id);}
+  void saveSession(){
+    if(session==null)return;
+    if(session.optBoolean("sealed",false))return;
+    String id=session.optString("id","");
+    if(vault.hasFinal(id)){toast("Diese Sitzung ist bereits abgeschlossen");return;}
+    File temporary=null;
+    try{
+      temporary=makePdf();
+      vault.installPdf(id,temporary);
+      session.put("pdfHash",DataVault.sha256(vault.sealedFile(id)));
+      session.put("sealed",true);session.put("sealedAt",java.time.ZonedDateTime.now().toString());
+      if(!vault.insertFinal(session))throw new Exception("Sitzungsakte existiert bereits");
+      prefs.edit().remove("draft").apply();suppressDraft=true;
+      toast("Sitzung unveränderbar abgeschlossen");
+    }catch(Exception e){
+      try{session.put("sealed",false);}catch(Exception ignored){}
+      toast("Abschluss fehlgeschlagen: "+e.getMessage());
+    }
+  }
+  void confirmFinalize(Runnable after){
+    if(session==null)return;
+    if(session.optBoolean("sealed",false)){after.run();return;}
+    if(section.equals("edit"))syncPlace();
+    JSONArray present=session.optJSONArray("present"),sigs=session.optJSONArray("signatures");
+    int missing=0;
+    for(int i=0;present!=null&&i<present.length();i++)
+      if(present.optBoolean(i,false)&&(sigs==null||sigs.optString(i,"").isEmpty()))missing++;
+    final int signaturesMissing=missing;
+    String body="Sitzung: "+(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung")+
+      "\nDatum: "+showDate(val("date",""))+"\nOrt: "+val("place","")+
+      "\nZeit: "+val("start","")+"–"+val("end","")+" Uhr"+
+      "\nAnwesende: "+attendanceCount()+" von "+sessionNames().length+
+      (signaturesMissing>0?"\n\nACHTUNG: "+signaturesMissing+" Unterschrift(en) fehlen.":"")+
+      "\n\nNach dem Abschluss kann die Sitzung nicht mehr verändert werden.";
+    new AlertDialog.Builder(this).setTitle("Verbindlich abschließen?")
+      .setMessage(body).setNegativeButton("Weiter bearbeiten",null)
+      .setPositiveButton("Abschließen",(d,w)->{
+        saveSession();
+        if(session!=null&&session.optBoolean("sealed",false))after.run();
+      }).show();
   }
   void edit(){
     if(archiveReadOnly){showArchivedSession(val("id",""));return;}
