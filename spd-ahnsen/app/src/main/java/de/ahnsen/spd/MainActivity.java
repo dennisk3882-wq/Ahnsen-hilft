@@ -801,6 +801,7 @@ public class MainActivity extends Activity {
     }
   }
   @Override public void onBackPressed(){
+    if(section.equals("locked")){finish();return;}
     if(section.equals("archiveDetail"))archive();
     else if(section.equals("preview"))edit();
     else if(section.equals("edit")){syncPlace();showHome();}
