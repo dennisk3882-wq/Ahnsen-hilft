@@ -104,12 +104,34 @@ public class MainActivity extends Activity {
   }
   JSONObject newSession(String type) {
     JSONObject s=new JSONObject();try {
-      s.put("id",String.valueOf(System.currentTimeMillis()));s.put("type",type);
+      s.put("id",java.util.UUID.randomUUID().toString());s.put("type",type);
       s.put("date",LocalDate.now().toString());s.put("place","Ahnsen DGH");
       s.put("start","17:00");s.put("end","19:00");
-      JSONArray a=new JSONArray();for(int i=0;i<5;i++)a.put(false);s.put("present",a);
-      JSONArray sig=new JSONArray();for(int i=0;i<5;i++)sig.put("");s.put("signatures",sig);
+      s.put("agenda","");s.put("notes","");s.put("decisions","");s.put("sealed",false);
+      JSONArray active=vault.members(false),ids=new JSONArray(),names=new JSONArray();
+      JSONArray attendance=new JSONArray(),signatures=new JSONArray();
+      for(int i=0;i<active.length();i++){
+        JSONObject member=active.optJSONObject(i);if(member==null)continue;
+        ids.put(member.optString("id"));names.put(member.optString("name"));
+        attendance.put(false);signatures.put("");
+      }
+      s.put("memberIds",ids);s.put("memberNames",names);
+      s.put("present",attendance);s.put("signatures",signatures);
     }catch(Exception e){}return s;
+  }
+  String[] sessionNames(){
+    JSONArray arr=session==null?null:session.optJSONArray("memberNames");
+    if(arr==null)return names.clone();
+    String[] out=new String[arr.length()];
+    for(int i=0;i<arr.length();i++)out[i]=arr.optString(i,"Mitglied");
+    return out;
+  }
+  String[] sessionMemberIds(){
+    JSONArray arr=session==null?null:session.optJSONArray("memberIds");
+    String[] memberNames=sessionNames();
+    String[] out=new String[memberNames.length];
+    for(int i=0;i<out.length;i++)out[i]=arr==null?memberNames[i]:arr.optString(i,memberNames[i]);
+    return out;
   }
   String val(String k,String def){return session==null?def:session.optString(k,def);}
   void set(String key,Object v){if(archiveReadOnly)return;try{session.put(key,v);}catch(Exception e){}if(!loading)draft();}
@@ -117,26 +139,46 @@ public class MainActivity extends Activity {
   void clearDraft(){prefs.edit().remove("draft").apply();}
   void showHome() {
     archiveReadOnly=false;suppressDraft=true;
-    init("home");gap(page,8);title("Sitzungen");page.addView(text("Anwesenheit, Unterschriften und PDF-Listen für den Gemeinderat Ahnsen.",15,MUTED,false));gap(page,28);
-    addButton("Fraktionssitzung",()->startNew("normal"),true);
-    addButton("Gemeinsame Fraktionssitzung",()->startNew("joint"),true);
-    if(prefs.contains("draft"))addButton("Entwurf weiterbearbeiten",()->{try{session=new JSONObject(prefs.getString("draft","{}"));suppressDraft=false;edit();}catch(Exception e){toast("Entwurf konnte nicht geladen werden");}},false);
-    addButton("Gespeicherte Sitzungen",this::archive,false);
-    addButton("⚙  Einstellungen",this::showSettings,false);
-    page.addView(text("Die Sitzungsdaten bleiben lokal. Beim direkten E-Mail-Versand wird die fertige PDF verschlüsselt an den Gmail-Mailserver übergeben.",12,MUTED,false));
+    init("home");gap(page,4);
+    title("Guten Tag!");
+    page.addView(text("Deine digitale SPD-Fraktionsverwaltung",15,MUTED,false));
+    gap(page,19);
+    JSONArray completed=vault.meetings();
+    String latest=prefs.getString("backup_last","");
+    infoPanel("Sitzungsübersicht",completed.length()+" abgeschlossen  ·  "
+      +vault.items("appointments").length()+" Termine geplant");
+    page.addView(text("NEUE SITZUNG",12,RED,true));gap(page,9);
+    addButton("＋ Fraktionssitzung",()->startNew("normal"),true);
+    addButton("＋ Gemeinsame Fraktionssitzung",()->startNew("joint"),false);
+    if(prefs.contains("draft")){
+      gap(page,7);
+      addButton("✎ Offenen Entwurf weiterbearbeiten",()->{
+        try{session=new JSONObject(prefs.getString("draft","{}"));suppressDraft=false;edit();}
+        catch(Exception e){toast("Entwurf konnte nicht geladen werden");}
+      },true);
+    }
+    gap(page,15);
+    page.addView(text("ORGANISATION",12,RED,true));gap(page,9);
+    addButton("Archiv und Anwesenheitslisten",this::archive,false);
+    addButton("Termine und Tagesordnung",()->extras.agenda(),false);
+    addButton("Beschlussregister",()->extras.decisions(),false);
+    addButton("Mitglieder und Statistik",()->extras.statistics(),false);
+    gap(page,10);
+    page.addView(text("Daten werden lokal gespeichert. Backup: "+(latest.isEmpty()?"Noch keines erstellt":latest.replace('T',' ')),12,MUTED,false));
   }
   String meetingTitle(){
     return val("type","normal").equals("joint")?"gemeinsamen Fraktionssitzung":"Fraktionssitzung";
   }
   int attendanceCount(){
     int count=0;JSONArray a=session==null?null:session.optJSONArray("present");
-    if(a!=null)for(int i=0;i<5;i++)if(a.optBoolean(i,false))count++;
+    if(a!=null)for(int i=0;i<a.length();i++)if(a.optBoolean(i,false))count++;
     return count;
   }
   String renderMailTemplate(String pattern){
     return pattern.replace("{sitzungsart}",meetingTitle()).replace("{datum}",showDate(val("date","")))
       .replace("{ort}",val("place","Ahnsen DGH")).replace("{beginn}",val("start",""))
-      .replace("{ende}",val("end","")).replace("{anzahl}",String.valueOf(attendanceCount()));
+      .replace("{ende}",val("end","")).replace("{anzahl}",String.valueOf(attendanceCount()))
+      .replace("{gesamt}",String.valueOf(sessionNames().length));
   }
   EditText settingsInput(String value, boolean multi){
     EditText field=new EditText(this);field.setText(value);field.setTextSize(16);field.setTextColor(DARK);
