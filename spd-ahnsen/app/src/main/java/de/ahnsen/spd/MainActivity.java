@@ -24,8 +24,8 @@ public class MainActivity extends Activity {
   LinearLayout root, page; EditText place; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
   CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false, suppressDraft=false;
   android.content.SharedPreferences prefs;
-  static final String DEFAULT_EMAIL_SUBJECT="SPD Ahnsen – Anwesenheitsliste {sitzungsart} vom {datum}";
-  static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\\n\\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\\n\\nBeginn: {beginn} Uhr\\nEnde: {ende} Uhr\\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von 5\\n\\nMit freundlichen Grüßen\\nSPD-Fraktion Ahnsen";
+  static final String DEFAULT_EMAIL_SUBJECT="SPD Ahnsen – Anwesenheitsliste zur {sitzungsart} vom {datum}";
+  static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\n\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\n\nBeginn: {beginn} Uhr\nEnde: {ende} Uhr\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von 5\n\nMit freundlichen Grüßen\nSPD-Fraktion Ahnsen";
 
   @Override public void onCreate(Bundle b) {
     super.onCreate(b);getWindow().setStatusBarColor(RED);getWindow().setNavigationBarColor(Color.rgb(40,40,40));
