@@ -554,37 +554,127 @@ public class MainActivity extends Activity {
     addButton("Abschließen & direkt versenden",this::sendDirect,false);
   }
   File makePdf() throws Exception {
-    PdfDocument pdf=new PdfDocument();PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,1).create();PdfDocument.Page page=pdf.startPage(info);Canvas c=page.getCanvas();
-    Paint p=new Paint(3);p.setColor(Color.WHITE);c.drawColor(Color.WHITE);
-    p.setColor(RED);c.drawRect(0,0,595,16,p);
-    draw(c,"SPD-FRAKTION  |  GEMEINDERAT AHNSEN",45,56,15,RED,true);
-    draw(c,"ANWESENHEITSLISTE",45,117,26,DARK,true);
-    draw(c,val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung",45,147,16,MUTED,false);
-    p.setColor(Color.rgb(246,247,248));c.drawRoundRect(45,177,550,266,8,8,p);
-    draw(c,"Datum",59,200,10,MUTED,true);draw(c,showDate(val("date","")),59,222,13,DARK,true);
-    draw(c,"Sitzungsort",230,200,10,MUTED,true);draw(c,val("place","Ahnsen DGH"),230,222,13,DARK,true);
-    draw(c,"Beginn",59,246,10,MUTED,true);draw(c,val("start",""),110,246,12,DARK,false);
-    draw(c,"Ende",240,246,10,MUTED,true);draw(c,val("end",""),285,246,12,DARK,false);
-    p.setColor(RED);c.drawRoundRect(45,290,550,330,5,5,p);
-    draw(c,"Nr.",57,317,11,Color.WHITE,true);draw(c,"Vor- und Nachname",100,317,11,Color.WHITE,true);draw(c,"Unterschrift",340,317,11,Color.WHITE,true);
-    JSONArray a=session.optJSONArray("present"),sg=session.optJSONArray("signatures");int count=0;
-    for(int i=0;i<5;i++)if(a!=null&&a.optBoolean(i)){
-      int y=330+count*70;p.setColor(count%2==0?Color.rgb(250,250,251):Color.WHITE);c.drawRect(45,y,550,y+70,p);
-      p.setColor(Color.rgb(223,226,230));p.setStrokeWidth(0.7f);c.drawLine(45,y+70,550,y+70,p);
-      draw(c,String.valueOf(++count),58,y+40,12,DARK,false);draw(c,names[i],100,y+40,13,DARK,true);
-      String encoded=sg==null?"":sg.optString(i,"");if(!encoded.isEmpty())try{
-        byte[] data=Base64.decode(encoded,Base64.DEFAULT);Bitmap bmp=BitmapFactory.decodeByteArray(data,0,data.length);
-        if(bmp!=null){Rect src=new Rect(0,0,bmp.getWidth(),bmp.getHeight());Rect dst=new Rect(341,y+4,531,y+64);p.setColor(Color.WHITE);c.drawBitmap(bmp,src,dst,p);bmp.recycle();}
-      }catch(Exception e){}
+    PdfDocument document=new PdfDocument();
+    Paint paint=new Paint(3);
+    String[] labels=sessionNames();
+    JSONArray present=session.optJSONArray("present"),signatures=session.optJSONArray("signatures");
+    ArrayList<Integer> attendees=new ArrayList<>();
+    if(present!=null)for(int i=0;i<labels.length;i++)if(present.optBoolean(i,false))attendees.add(i);
+    int perPage=7;
+    int totalPages=Math.max(1,(attendees.size()+perPage-1)/perPage);
+    String category=val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung";
+    String header=prefs.getString("pdf_header","SPD-FRAKTION  |  GEMEINDERAT AHNSEN");
+    String footer=prefs.getString("pdf_footer","SPD-FRAKTION  ·  GEMEINDE AHNSEN");
+    for(int number=0;number<totalPages;number++){
+      PdfDocument.Page page=document.startPage(new PdfDocument.PageInfo.Builder(595,842,number+1).create());
+      Canvas canvas=page.getCanvas();canvas.drawColor(Color.WHITE);
+      paint.setColor(RED);canvas.drawRect(0,0,595,16,paint);
+      drawFit(canvas,header,44,56,14,RED,true,505);
+      draw(canvas,"ANWESENHEITSLISTE",44,116,25,DARK,true);
+      draw(canvas,category,44,145,16,MUTED,false);
+      paint.setColor(Color.rgb(246,247,250));canvas.drawRoundRect(44,166,551,263,9,9,paint);
+      draw(canvas,"Datum",57,188,10,MUTED,true);
+      draw(canvas,showDate(val("date","")),57,211,13,DARK,true);
+      draw(canvas,"Sitzungsort",218,188,10,MUTED,true);
+      drawFit(canvas,val("place","Ahnsen DGH"),218,211,13,DARK,true,315);
+      draw(canvas,"Beginn",57,244,10,MUTED,true);
+      draw(canvas,val("start","")+" Uhr",112,244,12,DARK,false);
+      draw(canvas,"Ende",242,244,10,MUTED,true);
+      draw(canvas,val("end","")+" Uhr",284,244,12,DARK,false);
+      paint.setColor(RED);canvas.drawRoundRect(44,285,551,327,5,5,paint);
+      draw(canvas,"Nr.",56,311,11,Color.WHITE,true);
+      draw(canvas,"Vor- und Nachname",97,311,11,Color.WHITE,true);
+      draw(canvas,"Unterschrift",345,311,11,Color.WHITE,true);
+      int first=number*perPage,last=Math.min(attendees.size(),first+perPage);
+      for(int n=first;n<last;n++){
+        int idx=attendees.get(n),row=n-first,y=327+row*56;
+        paint.setColor(row%2==0?Color.rgb(250,251,253):Color.WHITE);
+        canvas.drawRect(44,y,551,y+56,paint);
+        paint.setColor(Color.rgb(226,229,235));paint.setStrokeWidth(.8f);
+        canvas.drawLine(44,y+56,551,y+56,paint);
+        draw(canvas,String.valueOf(n+1),56,y+34,12,DARK,false);
+        drawFit(canvas,labels[idx],97,y+34,12,DARK,true,230);
+        String encoded=signatures==null?"":signatures.optString(idx,"");
+        if(encoded.isEmpty())draw(canvas,"Unterschrift offen",345,y+33,10,MUTED,false);
+        else try{
+          byte[] bytes=Base64.decode(encoded,Base64.DEFAULT);
+          Bitmap bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+          if(bitmap!=null){
+            paint.setColor(Color.WHITE);
+            canvas.drawBitmap(bitmap,new Rect(0,0,bitmap.getWidth(),bitmap.getHeight()),
+              new Rect(345,y+5,532,y+51),paint);
+            bitmap.recycle();
+          }
+        }catch(Exception ignored){}
+      }
+      draw(canvas,"Anwesende SPD-Mitglieder: "+attendees.size()+" von "+labels.length,44,755,12,DARK,true);
+      paint.setColor(Color.rgb(227,231,236));canvas.drawLine(44,773,551,773,paint);
+      drawFit(canvas,footer,44,792,10,MUTED,true,470);
+      draw(canvas,"Seite "+(number+1),497,810,9,MUTED,false);
+      document.finishPage(page);
     }
-    draw(c,"Anwesende SPD-Fraktionsmitglieder: "+count+" von 5",45,730,12,DARK,true);
-    p.setColor(Color.rgb(226,229,232));c.drawLine(45,765,550,765,p);
-    draw(c,"SPD-FRAKTION  ·  GEMEINDE AHNSEN",45,786,10,MUTED,true);
-    draw(c,"Dokumentation der Teilnahme an der Fraktionssitzung",45,806,9,MUTED,false);
-    pdf.finishPage(page);
-    File dir=new File(getCacheDir(),"pdfs");if(!dir.exists())dir.mkdirs();
-    File output=new File(dir,"SPD_Ahnsen_"+val("type","normal")+"_"+val("date",LocalDate.now().toString())+".pdf");
-    try(FileOutputStream stream=new FileOutputStream(output)){pdf.writeTo(stream);}pdf.close();return output;
+    String[] sectionTitles={"TAGESORDNUNG","SITZUNGSNOTIZEN","BESCHLÜSSE"};
+    String[] content={val("agenda",""),val("notes",""),val("decisions","")};
+    ArrayList<String> lines=new ArrayList<>();
+    for(int i=0;i<content.length;i++){
+      if(content[i].trim().isEmpty())continue;
+      lines.add("## "+sectionTitles[i]);
+      lines.addAll(wrapPdfLines(content[i],82));
+      lines.add("");
+    }
+    if(!lines.isEmpty()){
+      final int maxLines=34;
+      int pages=(lines.size()+maxLines-1)/maxLines;
+      for(int part=0;part<pages;part++){
+        PdfDocument.Page page=document.startPage(new PdfDocument.PageInfo.Builder(595,842,totalPages+part+1).create());
+        Canvas c=page.getCanvas();c.drawColor(Color.WHITE);
+        paint.setColor(RED);c.drawRect(0,0,595,16,paint);
+        drawFit(c,header,44,52,14,RED,true,505);
+        draw(c,"SITZUNGSDOKUMENTATION",44,101,23,DARK,true);
+        draw(c,category+"  ·  "+showDate(val("date","")),44,127,13,MUTED,false);
+        int from=part*maxLines,to=Math.min(lines.size(),from+maxLines);
+        int y=173;
+        for(int i=from;i<to;i++){
+          String line=lines.get(i);
+          if(line.startsWith("## ")){draw(c,line.substring(3),44,y,14,RED,true);y+=22;}
+          else if(line.isEmpty()){y+=8;}
+          else{drawFit(c,line,44,y,12,DARK,false,505);y+=17;}
+        }
+        paint.setColor(Color.rgb(225,228,232));c.drawLine(44,773,551,773,paint);
+        drawFit(c,footer,44,795,10,MUTED,true,470);
+        draw(c,"Seite "+(totalPages+part+1),497,810,9,MUTED,false);
+        document.finishPage(page);
+      }
+    }
+    File folder=new File(getCacheDir(),"pdfs");if(!folder.exists())folder.mkdirs();
+    File output=new File(folder,"SPD_Ahnsen_"+val("type","normal")+"_"+val("date",LocalDate.now().toString())+"_"+val("id","").replaceAll("[^a-zA-Z0-9_-]","")+".pdf");
+    try(FileOutputStream stream=new FileOutputStream(output)){document.writeTo(stream);}
+    document.close();return output;
+  }
+  ArrayList<String> wrapPdfLines(String input,int maxChars){
+    ArrayList<String> result=new ArrayList<>();
+    for(String paragraph:input.replace("\r","").split("\n",-1)){
+      StringBuilder current=new StringBuilder();
+      for(String word:paragraph.trim().split("\\s+")){
+        if(word.isEmpty())continue;
+        while(word.length()>maxChars){
+          if(current.length()>0){result.add(current.toString());current.setLength(0);}
+          result.add(word.substring(0,maxChars));word=word.substring(maxChars);
+        }
+        if(current.length()>0&&current.length()+1+word.length()>maxChars){result.add(current.toString());current.setLength(0);}
+        if(current.length()>0)current.append(" ");
+        current.append(word);
+      }
+      result.add(current.toString());
+    }
+    return result;
+  }
+  void drawFit(Canvas c,String value,int x,int y,int size,int color,boolean bold,float width){
+    Paint p=new Paint(3);p.setColor(color);p.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));p.setTextSize(size);
+    while(p.measureText(value)>width&&p.getTextSize()>8)p.setTextSize(p.getTextSize()-.5f);
+    String out=value;
+    while(p.measureText(out)>width&&out.length()>1)out=out.substring(0,out.length()-1);
+    c.drawText(out,x,y,p);
   }
   void draw(Canvas c,String s,int x,int y,int size,int color,boolean bold){Paint p=new Paint(3);p.setColor(color);p.setTextSize(size);p.setTypeface(bold?Typeface.create("sans-serif",Typeface.BOLD):Typeface.create("sans-serif",Typeface.NORMAL));c.drawText(s,x,y,p);}
   Uri uri(File file){return new Uri.Builder().scheme("content").authority("de.ahnsen.spd.v16.pdf").appendPath(file.getName()).build();}
