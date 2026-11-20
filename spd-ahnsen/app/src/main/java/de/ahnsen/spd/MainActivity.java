@@ -22,7 +22,7 @@ public class MainActivity extends Activity {
   final String[] names={"Matthias Hinse","Ole Grimmig","Dennis Koch","Thorben Hartmann","Frank Struckmeier"};
   final int RED=Color.rgb(190,20,30), DARK=Color.rgb(35,42,53), MUTED=Color.rgb(94,101,114);
   LinearLayout root, page; EditText place; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
-  CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false, suppressDraft=false, sending=false;
+  CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false, suppressDraft=false, sending=false, archiveReadOnly=false;
   android.content.SharedPreferences prefs;
   static final String DEFAULT_EMAIL_SUBJECT="SPD Ahnsen – Anwesenheitsliste zur {sitzungsart} vom {datum}";
   static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\n\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\n\nBeginn: {beginn} Uhr\nEnde: {ende} Uhr\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von 5\n\nMit freundlichen Grüßen\nSPD-Fraktion Ahnsen";
@@ -61,11 +61,11 @@ public class MainActivity extends Activity {
     }catch(Exception e){}return s;
   }
   String val(String k,String def){return session==null?def:session.optString(k,def);}
-  void set(String key,Object v){try{session.put(key,v);}catch(Exception e){}if(!loading)draft();}
-  void draft(){if(session!=null&&!suppressDraft)prefs.edit().putString("draft",session.toString()).apply();}
+  void set(String key,Object v){if(archiveReadOnly)return;try{session.put(key,v);}catch(Exception e){}if(!loading)draft();}
+  void draft(){if(session!=null&&!suppressDraft&&!archiveReadOnly)prefs.edit().putString("draft",session.toString()).apply();}
   void clearDraft(){prefs.edit().remove("draft").apply();}
   void showHome() {
-    suppressDraft=true;
+    archiveReadOnly=false;suppressDraft=true;
     init("home");gap(page,8);title("Sitzungen");page.addView(text("Anwesenheit, Unterschriften und PDF-Listen für den Gemeinderat Ahnsen.",15,MUTED,false));gap(page,28);
     addButton("Fraktionssitzung",()->startNew("normal"),true);
     addButton("Gemeinsame Fraktionssitzung",()->startNew("joint"),true);
@@ -180,15 +180,70 @@ public class MainActivity extends Activity {
   }
   void archive() {
     suppressDraft=true;
+    archiveReadOnly=false;
     init("archive");addButton("‹ Zurück",this::showHome,false);title("Gespeicherte Sitzungen");
+    page.addView(text("Abgeschlossene Sitzungen sind schreibgeschützt. Du kannst sie ansehen und als PDF öffnen, aber nicht mehr bearbeiten.",14,MUTED,false));
+    gap(page,16);
     JSONArray a=readArchive();if(a.length()==0){page.addView(text("Noch keine Sitzungen gespeichert.",15,MUTED,false));return;}
     for(int i=a.length()-1;i>=0;i--){JSONObject item=a.optJSONObject(i);if(item==null)continue;
       final String id=item.optString("id");String type=item.optString("type").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung";
       String sentLabel=item.optString("sentAt","").isEmpty()?"":" · ✓ Direkt versendet";
-      addButton(type+"\n"+showDate(item.optString("date"))+" · "+item.optString("place")+sentLabel,()->{
-        session=findSession(id);if(session!=null){suppressDraft=false;draft();edit();}
-      },false);
+      addButton("Ansehen: "+type+"\n"+showDate(item.optString("date"))+" · "+item.optString("place")+sentLabel,()->showArchivedSession(id),false);
     }
+  }
+  void showArchivedSession(String id){
+    JSONObject stored=findSession(id);
+    if(stored==null){toast("Diese Sitzung wurde im Archiv nicht gefunden.");archive();return;}
+    session=stored;
+    archiveReadOnly=true;
+    suppressDraft=true;
+    init("archiveDetail");
+    addButton("‹ Zum Sitzungsarchiv",this::archive,false);
+    title("Gespeicherte Sitzung");
+    TextView notice=text("ABGESCHLOSSEN  ·  NUR LESEN",13,RED,true);
+    notice.setPadding(dp(12),dp(12),dp(12),dp(12));
+    notice.setBackground(bg(Color.rgb(251,235,236),12));
+    page.addView(notice);
+    gap(page,18);
+    page.addView(text(val("type","normal").equals("joint")?
+      "Gemeinsame Fraktionssitzung":"Fraktionssitzung",20,DARK,true));
+    gap(page,14);
+    page.addView(text("Datum: "+showDate(val("date","")),16,DARK,false));gap(page,5);
+    page.addView(text("Sitzungsort: "+val("place","Ahnsen DGH"),16,DARK,false));gap(page,5);
+    page.addView(text("Beginn: "+val("start","")+" Uhr",16,DARK,false));gap(page,5);
+    page.addView(text("Ende: "+val("end","")+" Uhr",16,DARK,false));gap(page,12);
+    page.addView(text("Anwesende SPD-Mitglieder: "+attendanceCount()+" von 5",15,DARK,true));gap(page,18);
+    JSONArray present=session.optJSONArray("present");
+    JSONArray sigs=session.optJSONArray("signatures");
+    for(int i=0;i<names.length;i++){
+      if(present==null||!present.optBoolean(i,false))continue;
+      LinearLayout card=column();
+      card.setPadding(dp(14),dp(13),dp(14),dp(13));
+      card.setBackground(bg(Color.WHITE,13));
+      TextView name=text(names[i],16,DARK,true);card.addView(name);
+      String encoded=sigs==null?"":sigs.optString(i,"");
+      if(encoded.isEmpty()){
+        gap(card,8);card.addView(text("Keine Unterschrift hinterlegt",13,MUTED,false));
+      }else{
+        try{
+          byte[] bytes=Base64.decode(encoded,Base64.DEFAULT);
+          Bitmap signature=BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+          if(signature!=null){
+            gap(card,8);
+            ImageView image=new ImageView(this);
+            image.setImageBitmap(signature);
+            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            image.setAdjustViewBounds(true);
+            image.setBackground(bg(Color.rgb(250,250,250),8));
+            card.addView(image,new LinearLayout.LayoutParams(-1,dp(95)));
+          }
+        }catch(Exception e){card.addView(text("Unterschrift vorhanden (Vorschau nicht verfügbar)",12,MUTED,false));}
+      }
+      page.addView(card);gap(page,10);
+    }
+    gap(page,16);
+    addButton("Anwesenheitsliste als PDF öffnen",this::openPdf,true);
+    page.addView(text("Die ursprünglichen Angaben und Unterschriften können hier nicht verändert werden.",13,MUTED,false));
   }
   JSONArray readArchive(){try{return new JSONArray(prefs.getString("archive","[]"));}catch(Exception e){return new JSONArray();}}
   JSONObject findSession(String id){JSONArray a=readArchive();for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null&&x.optString("id").equals(id))return x;}return null;}
@@ -201,6 +256,7 @@ public class MainActivity extends Activity {
     toast("Sitzung gespeichert");
   }
   void edit(){
+    if(archiveReadOnly){showArchivedSession(val("id",""));return;}
     suppressDraft=false;
     init("edit");loading=true;
     addButton("‹ Sitzungen",this::showHome,false);
@@ -272,6 +328,7 @@ public class MainActivity extends Activity {
   }
   static String showDate(String iso){try{return LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("dd.MM.yyyy",Locale.GERMANY));}catch(Exception e){return iso;}}
   void preview(){
+    if(archiveReadOnly){showArchivedSession(val("id",""));return;}
     init("preview");addButton("‹ Weiter bearbeiten",this::edit,false);title("Anwesenheitsliste");
     page.addView(text(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung",19,RED,true));gap(page,15);
     page.addView(text("Datum: "+showDate(val("date","")),16,DARK,false));
@@ -392,5 +449,10 @@ public class MainActivity extends Activity {
     try{startActivity(gmail);}catch(Exception e){startActivity(Intent.createChooser(intent,"PDF per E-Mail versenden"));}
   }catch(Exception e){toast("PDF-Versand nicht möglich: "+e.getMessage());}}
   void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
-  @Override public void onBackPressed(){if(section.equals("preview"))edit();else if(section.equals("edit")){syncPlace();showHome();}else showHome();}
+  @Override public void onBackPressed(){
+    if(section.equals("archiveDetail"))archive();
+    else if(section.equals("preview"))edit();
+    else if(section.equals("edit")){syncPlace();showHome();}
+    else showHome();
+  }
 }
