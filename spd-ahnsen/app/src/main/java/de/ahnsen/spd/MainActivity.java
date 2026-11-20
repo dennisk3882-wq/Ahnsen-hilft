@@ -28,6 +28,7 @@ public class MainActivity extends Activity {
   ExtraScreens extras;
   ExportCoordinator exportCoordinator;
   SecurityGate securityGate;
+  long lastBackgroundTime=0;
   static final String DEFAULT_EMAIL_SUBJECT="SPD Ahnsen – Anwesenheitsliste zur {sitzungsart} vom {datum}";
   static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\n\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\n\nBeginn: {beginn} Uhr\nEnde: {ende} Uhr\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von {gesamt}\n\nMit freundlichen Grüßen\nSPD-Fraktion Ahnsen";
 
@@ -793,6 +794,18 @@ public class MainActivity extends Activity {
     }catch(Exception e){toast("PDF-Versand nicht möglich: "+e.getMessage());}
   }
   void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
+  @Override protected void onStop(){
+    super.onStop();
+    if(securityGate!=null&&!section.equals("locked"))lastBackgroundTime=android.os.SystemClock.elapsedRealtime();
+  }
+  @Override protected void onStart(){
+    super.onStart();
+    if(securityGate!=null&&securityGate.enabled()&&lastBackgroundTime>0&&
+       android.os.SystemClock.elapsedRealtime()-lastBackgroundTime>60000&&
+       !section.equals("locked")){
+      lastBackgroundTime=0;securityGate.startup();
+    }
+  }
   @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
     super.onActivityResult(requestCode,resultCode,data);
     if(requestCode==SecurityGate.REQUEST_UNLOCK){securityGate.onResult(resultCode);return;}
