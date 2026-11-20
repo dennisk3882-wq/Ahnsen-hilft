@@ -10,6 +10,7 @@ import android.widget.*;
 final class SecurityGate {
   static final int REQUEST_UNLOCK=7912;
   private final MainActivity a;
+  private boolean authenticating=false;
   SecurityGate(MainActivity host){a=host;}
   boolean available(){
     KeyguardManager manager=(KeyguardManager)a.getSystemService(Context.KEYGUARD_SERVICE);
@@ -35,15 +36,42 @@ final class SecurityGate {
     requestUnlock();
   }
   void requestUnlock(){
+    if(authenticating)return;
     KeyguardManager manager=(KeyguardManager)a.getSystemService(Context.KEYGUARD_SERVICE);
     if(manager==null||!manager.isDeviceSecure()){
       a.toast("Gerätesperre nicht eingerichtet");return;
     }
+    if(Build.VERSION.SDK_INT>=30){
+      try{
+        android.hardware.biometrics.BiometricPrompt prompt=
+          new android.hardware.biometrics.BiometricPrompt.Builder(a)
+          .setTitle("SPD Ahnsen entsperren")
+          .setSubtitle("Mit Fingerabdruck, Gesicht oder Geräte-PIN bestätigen")
+          .setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG
+            |android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+          .build();
+        authenticating=true;
+        prompt.authenticate(new android.os.CancellationSignal(),a.getMainExecutor(),
+          new android.hardware.biometrics.BiometricPrompt.AuthenticationCallback(){
+            @Override public void onAuthenticationSucceeded(
+              android.hardware.biometrics.BiometricPrompt.AuthenticationResult result){
+              authenticating=false;a.showHome();
+            }
+            @Override public void onAuthenticationError(int code,CharSequence message){
+              authenticating=false;startupWithoutPopup();
+            }
+          });
+        return;
+      }catch(Exception ignored){authenticating=false;}
+    }
     Intent intent=manager.createConfirmDeviceCredentialIntent("SPD Ahnsen entsperren","Geschützte Fraktionsunterlagen öffnen");
     if(intent==null){a.toast("System konnte die Entsperrung nicht starten");return;}
-    a.startActivityForResult(intent,REQUEST_UNLOCK);
+    authenticating=true;
+    try{a.startActivityForResult(intent,REQUEST_UNLOCK);}
+    catch(Exception e){authenticating=false;startupWithoutPopup();}
   }
   void onResult(int result){
+    authenticating=false;
     if(result==Activity.RESULT_OK)a.showHome();
     else startupWithoutPopup();
   }
