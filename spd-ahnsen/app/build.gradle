@@ -3,7 +3,7 @@ android {
   namespace 'de.ahnsen.spd'
   compileSdk 35
   defaultConfig {
-    applicationId 'de.ahnsen.spd'
+    applicationId 'de.ahnsen.spd.pro'
     minSdk 26
     targetSdk 34
     versionCode 200
