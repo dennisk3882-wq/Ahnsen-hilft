@@ -1,0 +1,18 @@
+name: SPD Ahnsen APK build
+on:
+  push:
+    branches: [build-spd-ahnsen-apk-v1-2]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check runner
+        run: |
+          java -version
+          ls $ANDROID_HOME/build-tools || true
+          echo builder-ready > builder.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spd-ahnsen-builder-test
+          path: builder.txt
