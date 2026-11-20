@@ -22,7 +22,7 @@ public class MainActivity extends Activity {
   final String[] names={"Matthias Hinse","Ole Grimmig","Dennis Koch","Thorben Hartmann","Frank Struckmeier"};
   final int RED=Color.rgb(190,20,30), DARK=Color.rgb(35,42,53), MUTED=Color.rgb(94,101,114);
   LinearLayout root, page; EditText place; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
-  CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false;
+  CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false, suppressDraft=false;
   android.content.SharedPreferences prefs;
 
   @Override public void onCreate(Bundle b) {
@@ -60,13 +60,14 @@ public class MainActivity extends Activity {
   }
   String val(String k,String def){return session==null?def:session.optString(k,def);}
   void set(String key,Object v){try{session.put(key,v);}catch(Exception e){}if(!loading)draft();}
-  void draft(){if(session!=null)prefs.edit().putString("draft",session.toString()).apply();}
+  void draft(){if(session!=null&&!suppressDraft)prefs.edit().putString("draft",session.toString()).apply();}
   void clearDraft(){prefs.edit().remove("draft").apply();}
   void showHome() {
+    suppressDraft=true;
     init("home");gap(page,8);title("Sitzungen");page.addView(text("Anwesenheit, Unterschriften und PDF-Listen für den Gemeinderat Ahnsen.",15,MUTED,false));gap(page,28);
     addButton("Fraktionssitzung",()->startNew("normal"),true);
     addButton("Gemeinsame Fraktionssitzung",()->startNew("joint"),true);
-    if(prefs.contains("draft"))addButton("Entwurf weiterbearbeiten",()->{try{session=new JSONObject(prefs.getString("draft","{}"));edit();}catch(Exception e){toast("Entwurf konnte nicht geladen werden");}},false);
+    if(prefs.contains("draft"))addButton("Entwurf weiterbearbeiten",()->{try{session=new JSONObject(prefs.getString("draft","{}"));suppressDraft=false;edit();}catch(Exception e){toast("Entwurf konnte nicht geladen werden");}},false);
     addButton("Gespeicherte Sitzungen",this::archive,false);
     page.addView(text("Private Daten bleiben lokal in dieser Android-App. Nur beim Teilen einer PDF werden die enthaltenen Daten an die ausgewählte E-Mail-App übergeben.",12,MUTED,false));
   }
@@ -74,22 +75,24 @@ public class MainActivity extends Activity {
     if(prefs.contains("draft")){
       new AlertDialog.Builder(this).setTitle("Ungespeicherter Entwurf")
        .setMessage("Neues Formular beginnen und bisherigen Entwurf verwerfen?")
-       .setNegativeButton("Abbrechen",null).setPositiveButton("Neu beginnen",(d,w)->{session=newSession(type);draft();edit();}).show();
-    }else {session=newSession(type);draft();edit();}
+       .setNegativeButton("Abbrechen",null).setPositiveButton("Neu beginnen",(d,w)->{session=newSession(type);suppressDraft=false;draft();edit();}).show();
+    }else {session=newSession(type);suppressDraft=false;draft();edit();}
   }
   void archive() {
+    suppressDraft=true;
     init("archive");addButton("‹ Zurück",this::showHome,false);title("Gespeicherte Sitzungen");
     JSONArray a=readArchive();if(a.length()==0){page.addView(text("Noch keine Sitzungen gespeichert.",15,MUTED,false));return;}
     for(int i=a.length()-1;i>=0;i--){JSONObject item=a.optJSONObject(i);if(item==null)continue;
       final String id=item.optString("id");String type=item.optString("type").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung";
       addButton(type+"\n"+showDate(item.optString("date"))+" · "+item.optString("place"),()->{
-        session=findSession(id);if(session!=null){draft();edit();}
+        session=findSession(id);if(session!=null){suppressDraft=false;draft();edit();}
       },false);
     }
   }
   JSONArray readArchive(){try{return new JSONArray(prefs.getString("archive","[]"));}catch(Exception e){return new JSONArray();}}
   JSONObject findSession(String id){JSONArray a=readArchive();for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null&&x.optString("id").equals(id))return x;}return null;}
   void saveSession(){if(session==null)return;
+    suppressDraft=true;
     JSONArray a=readArchive();JSONArray out=new JSONArray();boolean found=false;
     for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null){if(x.optString("id").equals(val("id",""))){out.put(session);found=true;}else out.put(x);}}
     if(!found)out.put(session);
@@ -97,6 +100,7 @@ public class MainActivity extends Activity {
     toast("Sitzung gespeichert");
   }
   void edit(){
+    suppressDraft=false;
     init("edit");loading=true;
     addButton("‹ Sitzungen",this::showHome,false);
     title(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung");
@@ -123,8 +127,8 @@ public class MainActivity extends Activity {
     }
     gap(page,18);
     addButton("Liste ansehen / PDF",()->{syncPlace();preview();},true);
-    addButton("Sitzung speichern",()->{syncPlace();saveSession();},false);
-    addButton("Speichern & per E-Mail versenden",()->{syncPlace();saveSession();sharePdf();},true);
+    addButton("Sitzung speichern",()->{syncPlace();saveSession();showHome();},false);
+    addButton("Speichern & per E-Mail versenden",()->{syncPlace();saveSession();showHome();sharePdf();},true);
     page.addView(text("Die E-Mail öffnet sich in Gmail mit PDF-Anhang. Du prüfst den Empfänger und sendest selbst.",12,MUTED,false));
     loading=false;
   }
@@ -174,7 +178,7 @@ public class MainActivity extends Activity {
     JSONArray a=session.optJSONArray("present"),sg=session.optJSONArray("signatures");
     for(int i=0;i<5;i++)if(a!=null&&a.optBoolean(i)) {page.addView(text("✓ "+names[i]+"   "+(sg!=null&&!sg.optString(i,"").isEmpty()?"(unterschrieben)":"(Unterschrift offen)"),15,DARK,false));gap(page,8);}
     gap(page,22);addButton("PDF erstellen / Öffnen",this::openPdf,true);
-    addButton("Speichern & per E-Mail versenden",()->{saveSession();sharePdf();},false);
+    addButton("Speichern & per E-Mail versenden",()->{saveSession();showHome();sharePdf();},false);
   }
   File makePdf() throws Exception {
     PdfDocument pdf=new PdfDocument();PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,1).create();PdfDocument.Page page=pdf.startPage(info);Canvas c=page.getCanvas();
@@ -210,7 +214,7 @@ public class MainActivity extends Activity {
     try(FileOutputStream stream=new FileOutputStream(output)){pdf.writeTo(stream);}pdf.close();return output;
   }
   void draw(Canvas c,String s,int x,int y,int size,int color,boolean bold){Paint p=new Paint(3);p.setColor(color);p.setTextSize(size);p.setTypeface(bold?Typeface.create("sans-serif",Typeface.BOLD):Typeface.create("sans-serif",Typeface.NORMAL));c.drawText(s,x,y,p);}
-  Uri uri(File file){return new Uri.Builder().scheme("content").authority("de.ahnsen.spd.pdf").appendPath(file.getName()).build();}
+  Uri uri(File file){return new Uri.Builder().scheme("content").authority("de.ahnsen.spd.v14.pdf").appendPath(file.getName()).build();}
   void openPdf(){try{File f=makePdf();Uri u=uri(f);Intent intent=new Intent(Intent.ACTION_VIEW);intent.setDataAndType(u,"application/pdf");intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);intent.setClipData(ClipData.newRawUri("Anwesenheitsliste",u));startActivity(Intent.createChooser(intent,"PDF öffnen"));}catch(Exception e){toast("PDF konnte nicht geöffnet werden: "+e.getMessage());}}
   void sharePdf(){try{
     File f=makePdf();Uri u=uri(f);
