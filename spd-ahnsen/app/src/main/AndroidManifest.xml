@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="SPD Ahnsen" android:icon="@drawable/spd_logo" android:roundIcon="@drawable/spd_logo" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false">
-<provider android:name=".PdfProvider" android:authorities="de.ahnsen.spd.pdf" android:exported="false" android:grantUriPermissions="true" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="SPD Ahnsen 1.4" android:icon="@drawable/spd_logo" android:roundIcon="@drawable/spd_logo" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false">
+<provider android:name=".PdfProvider" android:authorities="de.ahnsen.spd.v14.pdf" android:exported="false" android:grantUriPermissions="true" />
 <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
 </application></manifest>
