@@ -534,16 +534,24 @@ public class MainActivity extends Activity {
   static String showDate(String iso){try{return LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("dd.MM.yyyy",Locale.GERMANY));}catch(Exception e){return iso;}}
   void preview(){
     if(archiveReadOnly){showArchivedSession(val("id",""));return;}
-    init("preview");addButton("‹ Weiter bearbeiten",this::edit,false);title("Anwesenheitsliste");
-    page.addView(text(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung",19,RED,true));gap(page,15);
-    page.addView(text("Datum: "+showDate(val("date","")),16,DARK,false));
-    page.addView(text("Ort: "+val("place","Ahnsen DGH"),16,DARK,false));
-    page.addView(text("Beginn: "+val("start","")+"     Ende: "+val("end",""),16,DARK,false));gap(page,12);
-    JSONArray a=session.optJSONArray("present"),sg=session.optJSONArray("signatures");
-    for(int i=0;i<5;i++)if(a!=null&&a.optBoolean(i)) {page.addView(text("✓ "+names[i]+"   "+(sg!=null&&!sg.optString(i,"").isEmpty()?"(unterschrieben)":"(Unterschrift offen)"),15,DARK,false));gap(page,8);}
-    gap(page,22);addButton("PDF erstellen / Öffnen",this::openPdf,true);
-    addButton("Speichern & sofort per E-Mail senden",this::sendDirect,true);
-    addButton("Speichern & in Gmail öffnen",()->{saveSession();showHome();sharePdf();},false);
+    init("preview");
+    addButton("‹ Weiter bearbeiten",this::edit,false);
+    title("Abschlussvorschau");
+    infoPanel(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung",
+      showDate(val("date",""))+" · "+val("place","Ahnsen DGH")+" · "+val("start","")+"–"+val("end","")+" Uhr");
+    page.addView(text("ANWESENHEIT",12,RED,true));gap(page,12);
+    JSONArray present=session.optJSONArray("present"),sigs=session.optJSONArray("signatures");
+    String[] labels=sessionNames();
+    for(int i=0;i<labels.length;i++)if(present!=null&&present.optBoolean(i,false)){
+      page.addView(text("✓ "+labels[i]+(sigs!=null&&!sigs.optString(i,"").isEmpty()?"  · unterschrieben":"  · Unterschrift fehlt"),15,DARK,false));gap(page,9);
+    }
+    if(!val("agenda","").isEmpty())infoPanel("Tagesordnung",val("agenda",""));
+    if(!val("notes","").isEmpty())infoPanel("Notizen",val("notes",""));
+    if(!val("decisions","").isEmpty())infoPanel("Beschlüsse",val("decisions",""));
+    gap(page,17);
+    addButton("PDF als Vorschau öffnen",this::openPdf,false);
+    addButton("Verbindlich abschließen",()->confirmFinalize(this::showHome),true);
+    addButton("Abschließen & direkt versenden",this::sendDirect,false);
   }
   File makePdf() throws Exception {
     PdfDocument pdf=new PdfDocument();PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,1).create();PdfDocument.Page page=pdf.startPage(info);Canvas c=page.getCanvas();
@@ -581,78 +589,86 @@ public class MainActivity extends Activity {
   void draw(Canvas c,String s,int x,int y,int size,int color,boolean bold){Paint p=new Paint(3);p.setColor(color);p.setTextSize(size);p.setTypeface(bold?Typeface.create("sans-serif",Typeface.BOLD):Typeface.create("sans-serif",Typeface.NORMAL));c.drawText(s,x,y,p);}
   Uri uri(File file){return new Uri.Builder().scheme("content").authority("de.ahnsen.spd.v16.pdf").appendPath(file.getName()).build();}
   void openPdf(){try{File f=makePdf();Uri u=uri(f);Intent intent=new Intent(Intent.ACTION_VIEW);intent.setDataAndType(u,"application/pdf");intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);intent.setClipData(ClipData.newRawUri("Anwesenheitsliste",u));startActivity(Intent.createChooser(intent,"PDF öffnen"));}catch(Exception e){toast("PDF konnte nicht geöffnet werden: "+e.getMessage());}}
+  File finalPdf() throws Exception {
+    File f;
+    if(session!=null&&session.optBoolean("sealed",false)){
+      f=vault.sealedFile(val("id",""));
+      if(!f.isFile())throw new Exception("Original-PDF fehlt. Bitte ein Backup wiederherstellen.");
+      String expected=val("pdfHash","");
+      if(expected.isEmpty()||!expected.equalsIgnoreCase(DataVault.sha256(f)))
+        throw new Exception("Die Prüfsumme der Archiv-PDF stimmt nicht. Versand gesperrt.");
+    }else f=makePdf();
+    return f;
+  }
   void sendDirect(){
-    if(sending){toast("Ein E-Mail-Versand läuft bereits.");return;}
-    String recipient=prefs.getString("email_to","").trim();
-    String sender=prefs.getString("gmail_sender","").trim();
+    if(sending){toast("Ein E-Mail-Versand läuft bereits");return;}
+    String recipient=prefs.getString("email_to","").trim(), sender=prefs.getString("gmail_sender","").trim();
     if(recipient.isEmpty()||sender.isEmpty()||!SecurePasswordStore.configured(prefs)){
-      new AlertDialog.Builder(this).setTitle("Direktversand noch nicht eingerichtet")
-        .setMessage("Bitte trage unter Einstellungen den Empfänger, deine Gmail-Absenderadresse und ein Google-App-Passwort ein. Die bisherige Gmail-Funktion bleibt verfügbar.")
-        .setNegativeButton("Abbrechen",null).setPositiveButton("Einstellungen öffnen",(d,w)->showSettings()).show();
+      new AlertDialog.Builder(this).setTitle("Direktversand einrichten")
+        .setMessage("Lege unter Einstellungen Empfänger, Gmail-Absender und ein Google-App-Passwort fest.")
+        .setNegativeButton("Abbrechen",null).setPositiveButton("Einstellungen",(d,w)->showSettings()).show();
       return;
     }
     if(!android.util.Patterns.EMAIL_ADDRESS.matcher(recipient).matches()||
        !android.util.Patterns.EMAIL_ADDRESS.matcher(sender).matches()){
-      new AlertDialog.Builder(this).setTitle("Ungültige E-Mail-Adresse")
-        .setMessage("Bitte die Absender- und Empfängeradresse in den Einstellungen prüfen.")
-        .setPositiveButton("Einstellungen", (d,w)->showSettings()).setNegativeButton("Abbrechen",null).show();
+      toast("Ungültige E-Mail-Adresse in den Einstellungen");return;
+    }
+    if(session==null)return;
+    if(!session.optBoolean("sealed",false)){
+      confirmFinalize(this::sendDirect);
       return;
     }
     final String password;
-    try {password=SecurePasswordStore.load(prefs);if(password==null||password.isEmpty())throw new Exception("Missing credential");}
-    catch(Exception e){
-      new AlertDialog.Builder(this).setTitle("App-Passwort nicht verfügbar")
-        .setMessage("Das verschlüsselte App-Passwort konnte nicht gelesen werden. Bitte hinterlege es in den Einstellungen erneut.")
-        .setPositiveButton("Einstellungen", (d,w)->showSettings()).show();return;
-    }
-    if(section.equals("edit"))syncPlace();
+    try{password=SecurePasswordStore.load(prefs);if(password==null||password.isEmpty())throw new Exception("No app password");}
+    catch(Exception e){toast("App-Passwort nicht verfügbar – bitte unter Einstellungen neu hinterlegen");return;}
     final File pdf;
-    final String emailSubject=renderMailTemplate(prefs.getString("email_subject",DEFAULT_EMAIL_SUBJECT));
-    final String emailBody=renderMailTemplate(prefs.getString("email_body",DEFAULT_EMAIL_BODY));
-    try{pdf=makePdf();}
-    catch(Exception e){toast("PDF konnte nicht erstellt werden – keine E-Mail versendet.");return;}
-    saveSession();showHome();
+    try{pdf=finalPdf();}catch(Exception e){toast(e.getMessage());return;}
+    final String sid=val("id",""),sub=renderMailTemplate(prefs.getString("email_subject",DEFAULT_EMAIL_SUBJECT));
+    final String body=renderMailTemplate(prefs.getString("email_body",DEFAULT_EMAIL_BODY));
+    vault.log(sid,"started",recipient,"Direktversand gestartet");
     sending=true;
-    final ProgressDialog progress=new ProgressDialog(this);
-    progress.setTitle("E-Mail wird gesendet");
-    progress.setMessage("Verschlüsselte Verbindung zum Gmail-Mailserver...");
-    progress.setIndeterminate(true);progress.setCancelable(false);progress.show();
+    final ProgressDialog dialog=new ProgressDialog(this);dialog.setCancelable(false);dialog.setIndeterminate(true);
+    dialog.setTitle("PDF wird versendet");dialog.setMessage("Verbindung zum Gmail-Server wird aufgebaut ...");dialog.show();
     new Thread(()->{
       try{
-        GmailSmtpSender.send(sender,password,recipient,emailSubject,emailBody,pdf);
+        GmailSmtpSender.send(sender,password,recipient,sub,body,pdf);
+        vault.log(sid,"accepted",recipient,"Gmail-SMTP hat die Nachricht angenommen");
         runOnUiThread(()->{
-          sending=false;progress.dismiss();
-          try{session.put("sentAt",java.time.ZonedDateTime.now().toString());session.put("sentTo",recipient);}catch(Exception ignored){}
-          saveSession();showHome();
-          new AlertDialog.Builder(this).setTitle("E-Mail erfolgreich übergeben")
-            .setMessage("Gmail hat die Nachricht mit PDF-Anhang an "+recipient+" zur Zustellung angenommen. Der tatsächliche Eingang beim Empfänger kann nicht garantiert werden.")
+          sending=false;dialog.dismiss();archiveReadOnly=false;showHome();
+          new AlertDialog.Builder(this).setTitle("Versand bestätigt")
+            .setMessage("Der Gmail-Server hat die Nachricht an "+recipient+" angenommen. Die Sitzung bleibt unverändert; der Empfang durch den Adressaten ist damit nicht garantiert.")
             .setPositiveButton("OK",null).show();
         });
-      }catch(Exception ex){
-        final boolean authFailure=ex instanceof javax.mail.AuthenticationFailedException;
+      }catch(Exception error){
+        vault.log(sid,"failed",recipient,error.getClass().getSimpleName());
+        final boolean badPassword=error instanceof javax.mail.AuthenticationFailedException;
         runOnUiThread(()->{
-          sending=false;progress.dismiss();
-          new AlertDialog.Builder(this).setTitle("Direktversand nicht bestätigt")
-            .setMessage((authFailure?"Gmail hat die Anmeldung abgelehnt. Bitte Gmail-Adresse und Google-App-Passwort prüfen.":"Der Versand konnte nicht bestätigt werden. Bitte Internetverbindung und Gmail-Einstellungen prüfen. Vor einem erneuten Versuch den Postausgang kontrollieren, um doppelte Nachrichten zu vermeiden.")
-              +"\\n\\nDie Sitzung wurde trotzdem im Archiv gespeichert.")
-            .setNegativeButton("Schließen",null)
-            .setPositiveButton("Manuell mit Gmail", (d,w)->sharePdf()).show();
+          sending=false;dialog.dismiss();archiveReadOnly=false;showHome();
+          new AlertDialog.Builder(this).setTitle("Versand nicht bestätigt")
+            .setMessage((badPassword?"Gmail hat die Anmeldung abgelehnt. Bitte das App-Passwort prüfen.":"Verbindung oder Versand fehlgeschlagen. Prüfe vor einem erneuten Versuch den Gmail-Postausgang, um Duplikate zu vermeiden.")+
+              "\n\nDie unveränderbare Sitzung ist im Archiv gesichert.")
+            .setNegativeButton("Schließen",null).setPositiveButton("Gmail manuell öffnen",(dd,w)->sharePdf()).show();
         });
       }
-    },"spd-gmail-sender").start();
+    },"spd-ahnsen-direct-mail").start();
   }
-  void sharePdf(){try{
-    File f=makePdf();Uri u=uri(f);
-    Intent intent=new Intent(Intent.ACTION_SEND);intent.setType("application/pdf");
-    String to=prefs.getString("email_to","").trim();
-    if(!to.isEmpty())intent.putExtra(Intent.EXTRA_EMAIL,new String[]{to});
-    intent.putExtra(Intent.EXTRA_SUBJECT,renderMailTemplate(prefs.getString("email_subject",DEFAULT_EMAIL_SUBJECT)));
-    intent.putExtra(Intent.EXTRA_TEXT,renderMailTemplate(prefs.getString("email_body",DEFAULT_EMAIL_BODY)));
-    intent.putExtra(Intent.EXTRA_STREAM,u);intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-    intent.setClipData(ClipData.newRawUri("Anwesenheitsliste",u));
-    Intent gmail=new Intent(intent);gmail.setPackage("com.google.android.gm");
-    try{startActivity(gmail);}catch(Exception e){startActivity(Intent.createChooser(intent,"PDF per E-Mail versenden"));}
-  }catch(Exception e){toast("PDF-Versand nicht möglich: "+e.getMessage());}}
+  void sharePdf(){
+    if(session==null)return;
+    if(!session.optBoolean("sealed",false)){confirmFinalize(this::sharePdf);return;}
+    try{
+      File f=finalPdf();Uri u=uri(f);
+      Intent intent=new Intent(Intent.ACTION_SEND);intent.setType("application/pdf");
+      String to=prefs.getString("email_to","").trim();
+      if(!to.isEmpty())intent.putExtra(Intent.EXTRA_EMAIL,new String[]{to});
+      intent.putExtra(Intent.EXTRA_SUBJECT,renderMailTemplate(prefs.getString("email_subject",DEFAULT_EMAIL_SUBJECT)));
+      intent.putExtra(Intent.EXTRA_TEXT,renderMailTemplate(prefs.getString("email_body",DEFAULT_EMAIL_BODY)));
+      intent.putExtra(Intent.EXTRA_STREAM,u);intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      intent.setClipData(ClipData.newRawUri("SPD-Anwesenheitsliste",u));
+      Intent gmail=new Intent(intent);gmail.setPackage("com.google.android.gm");
+      vault.log(val("id",""),"manual",to,"Gmail geöffnet (tatsächlicher Versand unbestätigt)");
+      try{startActivity(gmail);}catch(Exception e){startActivity(Intent.createChooser(intent,"PDF per E-Mail versenden"));}
+    }catch(Exception e){toast("PDF-Versand nicht möglich: "+e.getMessage());}
+  }
   void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
   @Override public void onBackPressed(){
     if(section.equals("archiveDetail"))archive();
