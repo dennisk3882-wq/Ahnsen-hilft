@@ -3,11 +3,11 @@ android {
   namespace 'de.ahnsen.spd'
   compileSdk 35
   defaultConfig {
-    applicationId 'de.ahnsen.spd.v16'
+    applicationId 'de.ahnsen.spd'
     minSdk 26
     targetSdk 34
-    versionCode 6
-    versionName '1.6.0'
+    versionCode 200
+    versionName '2.0.0'
   }
   packaging {
     resources {
