@@ -24,6 +24,8 @@ public class MainActivity extends Activity {
   LinearLayout root, page; EditText place; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
   CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false, suppressDraft=false;
   android.content.SharedPreferences prefs;
+  static final String DEFAULT_EMAIL_SUBJECT="SPD Ahnsen – Anwesenheitsliste {sitzungsart} vom {datum}";
+  static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\\n\\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\\n\\nBeginn: {beginn} Uhr\\nEnde: {ende} Uhr\\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von 5\\n\\nMit freundlichen Grüßen\\nSPD-Fraktion Ahnsen";
 
   @Override public void onCreate(Bundle b) {
     super.onCreate(b);getWindow().setStatusBarColor(RED);getWindow().setNavigationBarColor(Color.rgb(40,40,40));
@@ -69,7 +71,67 @@ public class MainActivity extends Activity {
     addButton("Gemeinsame Fraktionssitzung",()->startNew("joint"),true);
     if(prefs.contains("draft"))addButton("Entwurf weiterbearbeiten",()->{try{session=new JSONObject(prefs.getString("draft","{}"));suppressDraft=false;edit();}catch(Exception e){toast("Entwurf konnte nicht geladen werden");}},false);
     addButton("Gespeicherte Sitzungen",this::archive,false);
+    addButton("⚙  Einstellungen",this::showSettings,false);
     page.addView(text("Private Daten bleiben lokal in dieser Android-App. Nur beim Teilen einer PDF werden die enthaltenen Daten an die ausgewählte E-Mail-App übergeben.",12,MUTED,false));
+  }
+  String meetingTitle(){
+    return val("type","normal").equals("joint")?"gemeinsamen Fraktionssitzung":"Fraktionssitzung";
+  }
+  int attendanceCount(){
+    int count=0;JSONArray a=session==null?null:session.optJSONArray("present");
+    if(a!=null)for(int i=0;i<5;i++)if(a.optBoolean(i,false))count++;
+    return count;
+  }
+  String renderMailTemplate(String pattern){
+    return pattern.replace("{sitzungsart}",meetingTitle()).replace("{datum}",showDate(val("date","")))
+      .replace("{ort}",val("place","Ahnsen DGH")).replace("{beginn}",val("start",""))
+      .replace("{ende}",val("end","")).replace("{anzahl}",String.valueOf(attendanceCount()));
+  }
+  EditText settingsInput(String value, boolean multi){
+    EditText field=new EditText(this);field.setText(value);field.setTextSize(16);field.setTextColor(DARK);
+    field.setBackground(bg(Color.WHITE,10));field.setPadding(dp(12),dp(13),dp(12),dp(13));
+    if(multi){field.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+      field.setGravity(Gravity.TOP|Gravity.START);field.setMinLines(9);}
+    else {field.setSingleLine(true);}
+    page.addView(field,new LinearLayout.LayoutParams(-1,-2));gap(page,14);return field;
+  }
+  void showSettings(){
+    suppressDraft=true;init("settings");
+    addButton("‹ Zurück zu Sitzungen",this::showHome,false);title("Einstellungen");
+    page.addView(text("Hier legst du einmalig fest, an welche Adresse die Anwesenheitsliste geschickt werden soll und wie die vorbereitete E-Mail aussieht.",14,MUTED,false));
+    gap(page,22);
+    label("Empfängeradresse");
+    EditText recipient=settingsInput(prefs.getString("email_to",""),false);
+    recipient.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+    recipient.setHint("name@beispiel.de");
+    label("Standard-Betreff");
+    EditText subject=settingsInput(prefs.getString("email_subject",DEFAULT_EMAIL_SUBJECT),false);
+    label("Standard-Nachricht");
+    EditText body=settingsInput(prefs.getString("email_body",DEFAULT_EMAIL_BODY),true);
+    page.addView(text("Automatische Platzhalter: {sitzungsart}, {datum}, {ort}, {beginn}, {ende} und {anzahl}. Sie werden beim Versand mit den Sitzungsdaten ersetzt.",13,MUTED,false));
+    gap(page,18);
+    addButton("Einstellungen speichern",()->{
+      String address=recipient.getText().toString().trim();
+      if(!address.isEmpty()&&!android.util.Patterns.EMAIL_ADDRESS.matcher(address).matches()){
+        recipient.setError("Bitte eine gültige E-Mail-Adresse eintragen");
+        recipient.requestFocus();return;
+      }
+      String sub=subject.getText().toString().trim();
+      String msg=body.getText().toString();
+      if(sub.isEmpty()){subject.setError("Bitte einen Betreff eingeben");return;}
+      if(msg.trim().isEmpty()){body.setError("Bitte einen Nachrichtentext eingeben");return;}
+      prefs.edit().putString("email_to",address).putString("email_subject",sub)
+        .putString("email_body",msg).apply();
+      toast("E-Mail-Einstellungen gespeichert");showHome();
+    },true);
+    addButton("Standardtext wiederherstellen",()->new AlertDialog.Builder(this)
+      .setTitle("Standardtext wiederherstellen?")
+      .setMessage("Betreff und Nachricht werden zurückgesetzt. Die Empfängeradresse bleibt erhalten.")
+      .setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Wiederherstellen",(d,w)->{
+        subject.setText(DEFAULT_EMAIL_SUBJECT);body.setText(DEFAULT_EMAIL_BODY);
+      }).show(),false);
+    page.addView(text("Beim Versenden öffnet sich Gmail mit Empfänger, Betreff, Text und PDF-Anhang. Die Nachricht wird erst verschickt, wenn du in Gmail auf „Senden“ tippst.",12,MUTED,false));
   }
   void startNew(String type){
     if(prefs.contains("draft")){
@@ -129,7 +191,7 @@ public class MainActivity extends Activity {
     addButton("Liste ansehen / PDF",()->{syncPlace();preview();},true);
     addButton("Sitzung speichern",()->{syncPlace();saveSession();showHome();},false);
     addButton("Speichern & per E-Mail versenden",()->{syncPlace();saveSession();showHome();sharePdf();},true);
-    page.addView(text("Die E-Mail öffnet sich in Gmail mit PDF-Anhang. Du prüfst den Empfänger und sendest selbst.",12,MUTED,false));
+    page.addView(text("Gmail öffnet sich mit PDF, voreingestelltem Empfänger und Standardtext. Du sendest selbst.",12,MUTED,false));
     loading=false;
   }
   void syncPlace(){if(place!=null)set("place",place.getText().toString().trim().isEmpty()?"Ahnsen DGH":place.getText().toString().trim());}
@@ -218,8 +280,11 @@ public class MainActivity extends Activity {
   void openPdf(){try{File f=makePdf();Uri u=uri(f);Intent intent=new Intent(Intent.ACTION_VIEW);intent.setDataAndType(u,"application/pdf");intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);intent.setClipData(ClipData.newRawUri("Anwesenheitsliste",u));startActivity(Intent.createChooser(intent,"PDF öffnen"));}catch(Exception e){toast("PDF konnte nicht geöffnet werden: "+e.getMessage());}}
   void sharePdf(){try{
     File f=makePdf();Uri u=uri(f);
-    Intent intent=new Intent(Intent.ACTION_SEND);intent.setType("application/pdf");intent.putExtra(Intent.EXTRA_SUBJECT,"SPD Ahnsen – Anwesenheitsliste "+showDate(val("date","")));
-    intent.putExtra(Intent.EXTRA_TEXT,"Anbei die Anwesenheitsliste der "+(val("type","normal").equals("joint")?"gemeinsamen Fraktionssitzung":"Fraktionssitzung")+" vom "+showDate(val("date",""))+".");
+    Intent intent=new Intent(Intent.ACTION_SEND);intent.setType("application/pdf");
+    String to=prefs.getString("email_to","").trim();
+    if(!to.isEmpty())intent.putExtra(Intent.EXTRA_EMAIL,new String[]{to});
+    intent.putExtra(Intent.EXTRA_SUBJECT,renderMailTemplate(prefs.getString("email_subject",DEFAULT_EMAIL_SUBJECT)));
+    intent.putExtra(Intent.EXTRA_TEXT,renderMailTemplate(prefs.getString("email_body",DEFAULT_EMAIL_BODY)));
     intent.putExtra(Intent.EXTRA_STREAM,u);intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     intent.setClipData(ClipData.newRawUri("Anwesenheitsliste",u));
     Intent gmail=new Intent(intent);gmail.setPackage("com.google.android.gm");
