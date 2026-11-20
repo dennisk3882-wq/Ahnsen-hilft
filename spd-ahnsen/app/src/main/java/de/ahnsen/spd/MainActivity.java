@@ -448,6 +448,7 @@ public class MainActivity extends Activity {
     if(archiveReadOnly){showArchivedSession(val("id",""));return;}
     suppressDraft=false;
     init("edit");loading=true;
+    agendaField=null;notesField=null;decisionsField=null;
     addButton("‹ Sitzungen",this::showHome,false);
     title(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung");
     page.addView(text("Anwesenheitsliste der SPD-Fraktion",14,MUTED,false));gap(page,20);
@@ -460,10 +461,11 @@ public class MainActivity extends Activity {
     page.addView(text("Anwesenheit und Unterschriften",19,DARK,true));gap(page,5);
     page.addView(text("Mitglied auswählen und danach auf „Unterschreiben“ tippen.",13,MUTED,false));gap(page,12);
     JSONArray pres=session.optJSONArray("present"),sigs=session.optJSONArray("signatures");
-    for(int i=0;i<5;i++){final int j=i;
+    String[] members=sessionNames();memberInfo=new TextView[members.length];presentChecks=new CheckBox[members.length];
+    for(int i=0;i<members.length;i++){final int j=i;
       LinearLayout card=column();card.setPadding(dp(14),dp(14),dp(14),dp(14));card.setBackground(bg(Color.WHITE,13));
       LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);card.addView(row);
-      CheckBox cb=new CheckBox(this);cb.setText(names[i]);cb.setTextSize(16);cb.setTextColor(DARK);cb.setChecked(pres!=null&&pres.optBoolean(i,false));row.addView(cb,new LinearLayout.LayoutParams(0,-2,1));presentChecks[i]=cb;
+      CheckBox cb=new CheckBox(this);cb.setText(members[i]);cb.setTextSize(16);cb.setTextColor(DARK);cb.setChecked(pres!=null&&pres.optBoolean(i,false));row.addView(cb,new LinearLayout.LayoutParams(0,-2,1));presentChecks[i]=cb;
       TextView status=text(sigs!=null&&!sigs.optString(i,"").isEmpty()?"✓":"",14,RED,true);row.addView(status);memberInfo[i]=status;
       TextView btn=text("Unterschreiben / ändern",14,RED,true);btn.setPadding(dp(6),dp(10),dp(6),dp(4));
       card.addView(btn);btn.setVisibility(cb.isChecked()?View.VISIBLE:View.GONE);
@@ -472,14 +474,28 @@ public class MainActivity extends Activity {
       page.addView(card);gap(page,9);
     }
     gap(page,18);
-    addButton("Liste ansehen / PDF",()->{syncPlace();preview();},true);
-    addButton("Sitzung speichern",()->{syncPlace();saveSession();showHome();},false);
-    addButton("Speichern & sofort per E-Mail senden",this::sendDirect,true);
-    addButton("Speichern & in Gmail öffnen",()->{syncPlace();saveSession();showHome();sharePdf();},false);
-    page.addView(text("Direktversand: Die PDF wird sofort nach dem Tippen gesendet. Der manuelle Gmail-Versand bleibt als Alternative erhalten.",12,MUTED,false));
+    page.addView(text("TAGESORDNUNG UND PROTOKOLL",12,RED,true));gap(page,10);
+    label("Tagesordnung");
+    agendaField=settingsInput(val("agenda",""),true);
+    label("Sitzungsnotizen");
+    notesField=settingsInput(val("notes",""),true);
+    label("Beschlüsse / Abstimmungsergebnisse");
+    decisionsField=settingsInput(val("decisions",""),true);
+    gap(page,15);
+    addButton("Liste ansehen / Vorschau",()->{syncPlace();preview();},false);
+    addButton("Sitzung prüfen und abschließen",()->confirmFinalize(this::showHome),true);
+    addButton("Abschließen & sofort per E-Mail senden",this::sendDirect,true);
+    addButton("Abschließen & in Gmail öffnen",this::sharePdf,false);
+    page.addView(text("Nach dem Abschluss werden PDF, Namen, Zeiten und Unterschriften schreibgeschützt gespeichert. Änderungen sind dann nur noch als neue Korrekturfassung möglich.",12,MUTED,false));
     loading=false;
   }
-  void syncPlace(){if(place!=null)set("place",place.getText().toString().trim().isEmpty()?"Ahnsen DGH":place.getText().toString().trim());}
+  void syncPlace(){
+    if(archiveReadOnly)return;
+    if(place!=null)set("place",place.getText().toString().trim().isEmpty()?"Ahnsen DGH":place.getText().toString().trim());
+    if(agendaField!=null)set("agenda",agendaField.getText().toString());
+    if(notesField!=null)set("notes",notesField.getText().toString());
+    if(decisionsField!=null)set("decisions",decisionsField.getText().toString());
+  }
   TextView fieldText(String v){TextView t=text(v+"   ▾",17,DARK,false);t.setPadding(dp(13),dp(15),dp(13),dp(15));t.setBackground(bg(Color.WHITE,10));page.addView(t);return t;}
   void pickTime(String key,TextView target){String v=val(key,"17:00");int h=17,m=0;try{String[] p=v.split(":");h=Integer.parseInt(p[0]);m=Integer.parseInt(p[1]);}catch(Exception e){}
     new TimePickerDialog(this,(tp,hour,minute)->{String s=String.format(Locale.GERMANY,"%02d:%02d",hour,minute);set(key,s);target.setText(s+"   ▾");},h,m,true).show();}
@@ -487,7 +503,7 @@ public class MainActivity extends Activity {
     LinearLayout wrap=column();wrap.setPadding(dp(12),dp(12),dp(12),dp(5));
     SignView pad=new SignView(this);wrap.addView(pad,new LinearLayout.LayoutParams(-1,dp(230)));
     TextView desc=text("Mit dem Finger im Feld unterschreiben.",13,MUTED,false);wrap.addView(desc);
-    AlertDialog dialog=new AlertDialog.Builder(this).setTitle(names[i]).setView(wrap)
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle(sessionNames()[i]).setView(wrap)
        .setNegativeButton("Abbrechen",null).setNeutralButton("Löschen",null)
        .setPositiveButton("Unterschrift übernehmen",null).create();
     dialog.setOnShowListener(v->{
