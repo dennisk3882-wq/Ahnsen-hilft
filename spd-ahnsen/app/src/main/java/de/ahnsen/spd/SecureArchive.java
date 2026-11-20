@@ -38,6 +38,7 @@ final class SecureArchive {
         JSONObject item=rows.optJSONObject(i);if(item==null)continue;
         String id=item.optString("id");
         File pdf=db.sealedFile(id);
+        if(includeData&&!pdf.isFile())throw new IOException("Original-PDF fehlt: "+id);
         if(pdf.isFile()){
           try(InputStream in=new FileInputStream(pdf)){
             ZipEntry entry=new ZipEntry("pdf/"+pdf.getName());zip.putNextEntry(entry);
