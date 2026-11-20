@@ -1,7 +1,7 @@
-name: SPD Ahnsen Native APK
+name: SPD Ahnsen Native APK v1.4
 on:
   push:
-    branches: [build-spd-ahnsen-apk-v1-2]
+    branches: [fix-spd-ahnsen-v1-4]
   workflow_dispatch:
 jobs:
   build:
@@ -26,9 +26,9 @@ jobs:
       - name: Build installable APK
         run: gradle --no-daemon --stacktrace assembleDebug
       - name: Name APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk SPD_Ahnsen_v1.3.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk SPD_Ahnsen_v1.4.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: SPD_Ahnsen_APK
-          path: spd-ahnsen/SPD_Ahnsen_v1.3.apk
+          name: SPD_Ahnsen_APK_v1_4
+          path: spd-ahnsen/SPD_Ahnsen_v1.4.apk
           retention-days: 30
