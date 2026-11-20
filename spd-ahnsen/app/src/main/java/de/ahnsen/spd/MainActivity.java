@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
   ExportCoordinator exportCoordinator;
   SecurityGate securityGate;
   static final String DEFAULT_EMAIL_SUBJECT="SPD Ahnsen – Anwesenheitsliste zur {sitzungsart} vom {datum}";
-  static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\n\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\n\nBeginn: {beginn} Uhr\nEnde: {ende} Uhr\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von 5\n\nMit freundlichen Grüßen\nSPD-Fraktion Ahnsen";
+  static final String DEFAULT_EMAIL_BODY="Hallo zusammen,\n\nanbei übersende ich die Anwesenheitsliste der {sitzungsart} vom {datum} aus dem {ort}.\n\nBeginn: {beginn} Uhr\nEnde: {ende} Uhr\nAnwesende SPD-Fraktionsmitglieder: {anzahl} von {gesamt}\n\nMit freundlichen Grüßen\nSPD-Fraktion Ahnsen";
 
   @Override public void onCreate(Bundle b) {
     super.onCreate(b);getWindow().setStatusBarColor(RED);getWindow().setNavigationBarColor(Color.rgb(40,40,40));
@@ -215,7 +215,13 @@ public class MainActivity extends Activity {
     EditText subject=settingsInput(prefs.getString("email_subject",DEFAULT_EMAIL_SUBJECT),false);
     label("Standard-Nachricht");
     EditText body=settingsInput(prefs.getString("email_body",DEFAULT_EMAIL_BODY),true);
-    page.addView(text("Automatische Platzhalter: {sitzungsart}, {datum}, {ort}, {beginn}, {ende} und {anzahl}. Sie werden beim Versand mit den Sitzungsdaten ersetzt.",13,MUTED,false));
+    page.addView(text("Platzhalter: {sitzungsart}, {datum}, {ort}, {beginn}, {ende}, {anzahl}, {gesamt}.",13,MUTED,false));
+    gap(page,19);
+    page.addView(text("PDF-BRIEFKOPF UND VORLAGE",12,RED,true));gap(page,12);
+    label("PDF-Briefkopf");
+    EditText pdfHeader=settingsInput(prefs.getString("pdf_header","SPD-FRAKTION  |  GEMEINDERAT AHNSEN"),false);
+    label("PDF-Fußzeile");
+    EditText pdfFooter=settingsInput(prefs.getString("pdf_footer","SPD-FRAKTION  ·  GEMEINDE AHNSEN"),false);
     gap(page,18);
     addButton("Einstellungen speichern",()->{
       String address=recipient.getText().toString().trim();
@@ -246,7 +252,9 @@ public class MainActivity extends Activity {
         return;
       }
       prefs.edit().putString("email_to",address).putString("gmail_sender",from)
-        .putString("email_subject",sub).putString("email_body",msg).apply();
+        .putString("email_subject",sub).putString("email_body",msg)
+        .putString("pdf_header",pdfHeader.getText().toString().trim())
+        .putString("pdf_footer",pdfFooter.getText().toString().trim()).apply();
       toast("E-Mail-Einstellungen gespeichert");showHome();
     },true);
     addButton("Standardtext wiederherstellen",()->new AlertDialog.Builder(this)
@@ -263,6 +271,30 @@ public class MainActivity extends Activity {
       .setPositiveButton("Löschen",(d,w)->{SecurePasswordStore.delete(prefs);appSecret.setText("");
         appSecret.setHint("16 Zeichen von Google eingeben");toast("App-Passwort lokal gelöscht");}).show(),false);
     page.addView(text("Direktversand: Die E-Mail wird nach Antippen des Buttons sofort über den Gmail-SMTP-Server versendet. Alternativ kannst du wie bisher Gmail zum manuellen Senden öffnen.",12,MUTED,false));
+  }
+  void showDataSettings(){
+    suppressDraft=true;init("dataSettings");
+    addButton("‹ Weitere Bereiche",this::showMore,false);title("Datensicherung");
+    infoPanel("Schutz für Fraktionsunterlagen","Verschlüsselte Sicherungen, Wiederherstellung und Sperre beim App-Start.");
+    CheckBox lock=new CheckBox(this);lock.setText("Android-Gerätesperre beim App-Start verwenden");
+    lock.setTextSize(15);lock.setTextColor(DARK);lock.setChecked(securityGate.enabled());
+    page.addView(lock);gap(page,12);
+    lock.setOnCheckedChangeListener((b,checked)->{
+      securityGate.setEnabled(checked);
+      b.setChecked(securityGate.enabled());
+    });
+    page.addView(text("Die Systemabfrage nutzt deine Geräte-PIN bzw. verfügbare biometrische Entsperrung. Die App kennt diese Daten nicht.",13,MUTED,false));gap(page,25);
+    page.addView(text("VERSCHLÜSSELTE DATENSICHERUNG",12,RED,true));gap(page,10);
+    addButton("Backup erstellen (.spda)",()->exportCoordinator.backup(),true);
+    addButton("Backup wiederherstellen",()->exportCoordinator.restore(),false);
+    page.addView(text("Enthält Mitglieder, Sitzungen, Unterschriften, Original-PDFs, Termine, Beschlüsse und Vorlagen. Ein Backup ist mit einem eigenen Passwort geschützt. Gmail-App-Passwörter werden nicht exportiert.",13,MUTED,false));
+    gap(page,23);
+    page.addView(text("AUSWERTUNGEN UND DOKUMENTE",12,RED,true));gap(page,10);
+    addButton("Alle PDF-Dokumente als ZIP exportieren",()->exportCoordinator.exportPdfZip(),false);
+    addButton("Anwesenheitsstatistik als CSV exportieren",()->exportCoordinator.exportCsv(),false);
+    String last=prefs.getString("backup_last","");
+    gap(page,10);
+    page.addView(text("Letztes Backup: "+(last.isEmpty()?"Noch nicht durchgeführt":last.replace('T',' ')),12,MUTED,false));
   }
   void startNew(String type){
     if(prefs.contains("draft")){
@@ -678,7 +710,7 @@ public class MainActivity extends Activity {
   }
   void draw(Canvas c,String s,int x,int y,int size,int color,boolean bold){Paint p=new Paint(3);p.setColor(color);p.setTextSize(size);p.setTypeface(bold?Typeface.create("sans-serif",Typeface.BOLD):Typeface.create("sans-serif",Typeface.NORMAL));c.drawText(s,x,y,p);}
   Uri uri(File file){return new Uri.Builder().scheme("content").authority("de.ahnsen.spd.v16.pdf").appendPath(file.getName()).build();}
-  void openPdf(){try{File f=makePdf();Uri u=uri(f);Intent intent=new Intent(Intent.ACTION_VIEW);intent.setDataAndType(u,"application/pdf");intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);intent.setClipData(ClipData.newRawUri("Anwesenheitsliste",u));startActivity(Intent.createChooser(intent,"PDF öffnen"));}catch(Exception e){toast("PDF konnte nicht geöffnet werden: "+e.getMessage());}}
+  void openPdf(){try{File f=finalPdf();Uri u=uri(f);Intent intent=new Intent(Intent.ACTION_VIEW);intent.setDataAndType(u,"application/pdf");intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);intent.setClipData(ClipData.newRawUri("Anwesenheitsliste",u));startActivity(Intent.createChooser(intent,"PDF öffnen"));}catch(Exception e){toast("PDF konnte nicht geöffnet werden: "+e.getMessage());}}
   File finalPdf() throws Exception {
     File f;
     if(session!=null&&session.optBoolean("sealed",false)){
@@ -760,6 +792,14 @@ public class MainActivity extends Activity {
     }catch(Exception e){toast("PDF-Versand nicht möglich: "+e.getMessage());}
   }
   void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
+  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+    super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode==SecurityGate.REQUEST_UNLOCK){securityGate.onResult(resultCode);return;}
+    if(requestCode==ExportCoordinator.BACKUP_SAVE||requestCode==ExportCoordinator.ZIP_SAVE||
+       requestCode==ExportCoordinator.CSV_SAVE||requestCode==ExportCoordinator.BACKUP_LOAD){
+      exportCoordinator.onResult(requestCode,resultCode,data);return;
+    }
+  }
   @Override public void onBackPressed(){
     if(section.equals("archiveDetail"))archive();
     else if(section.equals("preview"))edit();
