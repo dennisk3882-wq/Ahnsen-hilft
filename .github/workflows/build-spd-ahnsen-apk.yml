@@ -1,7 +1,7 @@
-name: SPD Ahnsen 2.2 Release APK
+name: SPD Ahnsen 2.3 Release APK
 on:
   push:
-    branches: [spd-ahnsen-v2-2-attendance]
+    branches: [spd-ahnsen-v2-3-delete-archive]
   workflow_dispatch:
 jobs:
   build:
@@ -22,7 +22,7 @@ jobs:
         run: gradle --no-daemon --stacktrace assembleRelease
       - name: Collect offline signing utilities
         run: |
-          cp app/build/outputs/apk/release/app-release-unsigned.apk SPD_Ahnsen_v2.2_release_unsigned.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk SPD_Ahnsen_v2.3_release_unsigned.apk
           FIND_JAR=$(find "$ANDROID_HOME/build-tools" -name apksigner.jar | sort -V | tail -1)
           FIND_ALIGN=$(find "$ANDROID_HOME/build-tools" -name zipalign -type f | sort -V | tail -1)
           test -f "$FIND_JAR"
@@ -31,9 +31,9 @@ jobs:
           cp "$FIND_ALIGN" zipalign
       - uses: actions/upload-artifact@v4
         with:
-          name: SPD_Ahnsen_2_2_Release_Paket
+          name: SPD_Ahnsen_2_3_Release_Paket
           path: |
-            spd-ahnsen/SPD_Ahnsen_v2.2_release_unsigned.apk
+            spd-ahnsen/SPD_Ahnsen_v2.3_release_unsigned.apk
             spd-ahnsen/apksigner.jar
             spd-ahnsen/zipalign
           retention-days: 14
