@@ -42,6 +42,38 @@ final class DataVault extends SQLiteOpenHelper {
       }
     }catch(Exception e){}return result;
   }
+  /**
+   * Explicit permanent archive deletion. Other finalized meetings remain immutable.
+   * Stage the PDF before the database transaction, restoring it if the transaction fails.
+   */
+  boolean deleteArchivedMeeting(String id) throws IOException {
+    if(id==null||!id.matches("[a-zA-Z0-9_-]{1,128}"))
+      throw new IOException("Ungültige Sitzungskennung");
+    SQLiteDatabase db=getWritableDatabase();
+    if(!hasFinal(id))return false;
+    File original=sealedFile(id);
+    File staging=new File(original.getParentFile(),original.getName()+".pending-delete");
+    if(staging.exists()&&!staging.delete())
+      throw new IOException("Eine frühere Löschdatei konnte nicht entfernt werden");
+    boolean moved=original.isFile();
+    if(moved&&!original.renameTo(staging))
+      throw new IOException("Die Original-PDF konnte nicht zum Löschen vorbereitet werden");
+    boolean committed=false,transactionStarted=false;
+    try{
+      db.beginTransaction();transactionStarted=true;
+      int removed=db.delete("sessions","id=?",new String[]{id});
+      if(removed!=1)throw new IOException("Sitzung konnte nicht aus der Datenbank gelöscht werden");
+      db.delete("mail_log","session_id=?",new String[]{id});
+      db.setTransactionSuccessful();committed=true;
+    }finally{
+      if(transactionStarted)db.endTransaction();
+      if(!committed&&moved&&staging.exists())staging.renameTo(original);
+    }
+    if(moved&&staging.exists()&&!staging.delete())
+      throw new IOException("Sitzung gelöscht, aber die PDF-Restdatei konnte nicht entfernt werden");
+    return true;
+  }
+
   boolean hasFinal(String id){
     try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM sessions WHERE id=?",new String[]{id})){return c.moveToFirst();}
   }
