@@ -409,6 +409,40 @@ public class MainActivity extends Activity {
     }
     gap(page,12);
     page.addView(text("Originaldaten und Unterschriften sind schreibgeschützt. Korrekturen werden als eigene Fassung archiviert.",12,MUTED,false));
+    gap(page,23);
+    page.addView(text("SITZUNG ENTFERNEN",12,RED,true));gap(page,8);
+    addButton("Sitzung endgültig löschen",()->confirmDeleteArchivedSession(id),false);
+  }
+  void confirmDeleteArchivedSession(String id){
+    if(sending){
+      toast("Während eines E-Mail-Versands kann keine Sitzung gelöscht werden");
+      return;
+    }
+    JSONObject candidate=vault.meeting(id);
+    if(candidate==null){toast("Sitzung wurde bereits entfernt");archive();return;}
+    String kind=candidate.optString("type","normal").equals("joint")?
+      "Gemeinsame Fraktionssitzung":"Fraktionssitzung";
+    String date=showDate(candidate.optString("date",""));
+    new AlertDialog.Builder(this)
+      .setTitle("Sitzung endgültig löschen?")
+      .setMessage(kind+" vom "+date+
+        "\\n\\nDiese Sitzung, ihre Unterschriften, die Original-PDF und das zugehörige Versandprotokoll werden auf diesem Gerät gelöscht."+
+        "\\n\\nDies kann nicht rückgängig gemacht werden. Bereits verschickte E-Mails und vorhandene Backups bleiben bestehen.")
+      .setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Endgültig löschen",(dialog,choice)->{
+        try{
+          if(!vault.deleteArchivedMeeting(id)){
+            toast("Diese Sitzung ist nicht mehr im Archiv vorhanden");
+          }else{
+            if(session!=null&&id.equals(session.optString("id")))session=null;
+            toast("Sitzung und zugehörige Dateien gelöscht");
+          }
+          archive();
+        }catch(Exception ex){
+          new AlertDialog.Builder(this).setTitle("Löschvorgang nicht vollständig")
+            .setMessage(ex.getMessage()).setPositiveButton("OK",(d,w)->archive()).show();
+        }
+      }).show();
   }
   void createCorrection(){
     if(!archiveReadOnly||session==null)return;
