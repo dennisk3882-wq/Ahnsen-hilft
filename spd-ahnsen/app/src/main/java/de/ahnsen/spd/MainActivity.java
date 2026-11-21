@@ -135,14 +135,14 @@ public class MainActivity extends Activity {
     return out;
   }
   String val(String k,String def){return session==null?def:session.optString(k,def);}
-  void set(String key,Object v){if(archiveReadOnly)return;try{session.put(key,v);}catch(Exception e){}if(!loading)draft();}
+  void set(String key,Object v){if(session==null||archiveReadOnly||session.optBoolean("sealed",false))return;try{session.put(key,v);}catch(Exception e){}if(!loading)draft();}
   void draft(){if(session!=null&&!suppressDraft&&!archiveReadOnly)prefs.edit().putString("draft",session.toString()).apply();}
   void clearDraft(){prefs.edit().remove("draft").apply();}
   void showHome() {
     archiveReadOnly=false;suppressDraft=true;
     init("home");gap(page,4);
     title("Guten Tag!");
-    page.addView(text("Deine digitale SPD-Fraktionsverwaltung",15,MUTED,false));
+    page.addView(text("Deine digitale SPD-Fraktionsverwaltung · Version 2.2",15,MUTED,false));
     gap(page,19);
     JSONArray completed=vault.meetings();
     String latest=prefs.getString("backup_last","");
@@ -506,12 +506,21 @@ public class MainActivity extends Activity {
       page.addView(card);gap(page,9);
     }
     gap(page,18);
-    addButton("Liste ansehen / Vorschau",()->{syncPlace();preview();},false);
     addButton("Sitzung prüfen und abschließen",()->confirmFinalize(this::showHome),true);
     addButton("Abschließen & sofort per E-Mail senden",this::sendDirect,true);
-    addButton("Abschließen & in Gmail öffnen",this::sharePdf,false);
+    addButton("Abbrechen",this::cancelMeeting,false);
     page.addView(text("Nach dem Abschluss werden PDF, Namen, Zeiten und Unterschriften schreibgeschützt gespeichert. Änderungen sind dann nur noch als neue Korrekturfassung möglich.",12,MUTED,false));
     loading=false;
+  }
+  void cancelMeeting(){
+    if(session==null||session.optBoolean("sealed",false)){showHome();return;}
+    new AlertDialog.Builder(this).setTitle("Sitzung abbrechen?")
+      .setMessage("Möchtest du den offenen Entwurf mit allen erfassten Unterschriften verwerfen? Abgeschlossene Sitzungen bleiben unverändert.")
+      .setNegativeButton("Weiter bearbeiten",null)
+      .setNeutralButton("Entwurf behalten",(d,w)->{syncPlace();showHome();})
+      .setPositiveButton("Entwurf verwerfen",(d,w)->{
+        suppressDraft=true;clearDraft();showHome();session=null;
+      }).show();
   }
   void syncPlace(){
     if(archiveReadOnly)return;
