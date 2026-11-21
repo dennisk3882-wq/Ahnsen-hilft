@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter;
 public class MainActivity extends Activity {
   final String[] names={"Matthias Hinse","Ole Grimmig","Dennis Koch","Thorben Hartmann","Frank Struckmeier"};
   final int RED=Color.rgb(198,23,41), DARK=Color.rgb(29,39,56), MUTED=Color.rgb(99,113,132);
-  LinearLayout root, page; EditText place, agendaField, notesField, decisionsField; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
+  LinearLayout root, page; EditText place; TextView dateText, startText, endText; TextView[] memberInfo=new TextView[5];
   CheckBox[] presentChecks=new CheckBox[5]; JSONObject session; String section="home"; boolean loading=false, suppressDraft=false, sending=false, archiveReadOnly=false;
   android.content.SharedPreferences prefs;
   DataVault vault;
@@ -108,7 +108,7 @@ public class MainActivity extends Activity {
       s.put("id",java.util.UUID.randomUUID().toString());s.put("type",type);
       s.put("date",LocalDate.now().toString());s.put("place","Ahnsen DGH");
       s.put("start","17:00");s.put("end","19:00");
-      s.put("agenda","");s.put("notes","");s.put("decisions","");s.put("sealed",false);
+      s.put("sealed",false);
       JSONArray active=vault.members(false),ids=new JSONArray(),names=new JSONArray();
       JSONArray attendance=new JSONArray(),signatures=new JSONArray();
       for(int i=0;i<active.length();i++){
@@ -161,7 +161,7 @@ public class MainActivity extends Activity {
     gap(page,15);
     page.addView(text("ORGANISATION",12,RED,true));gap(page,9);
     addButton("Archiv und Anwesenheitslisten",this::archive,false);
-    addButton("Termine und Tagesordnung",()->extras.agenda(),false);
+    addButton("Termine",()->extras.agenda(),false);
     addButton("Beschlussregister",()->extras.decisions(),false);
     addButton("Mitglieder und Statistik",()->extras.statistics(),false);
     gap(page,10);
@@ -481,7 +481,6 @@ public class MainActivity extends Activity {
     if(archiveReadOnly){showArchivedSession(val("id",""));return;}
     suppressDraft=false;
     init("edit");loading=true;
-    agendaField=null;notesField=null;decisionsField=null;
     addButton("‹ Sitzungen",this::showHome,false);
     title(val("type","normal").equals("joint")?"Gemeinsame Fraktionssitzung":"Fraktionssitzung");
     page.addView(text("Anwesenheitsliste der SPD-Fraktion",14,MUTED,false));gap(page,20);
@@ -507,14 +506,6 @@ public class MainActivity extends Activity {
       page.addView(card);gap(page,9);
     }
     gap(page,18);
-    page.addView(text("TAGESORDNUNG UND PROTOKOLL",12,RED,true));gap(page,10);
-    label("Tagesordnung");
-    agendaField=settingsInput(val("agenda",""),true);
-    label("Sitzungsnotizen");
-    notesField=settingsInput(val("notes",""),true);
-    label("Beschlüsse / Abstimmungsergebnisse");
-    decisionsField=settingsInput(val("decisions",""),true);
-    gap(page,15);
     addButton("Liste ansehen / Vorschau",()->{syncPlace();preview();},false);
     addButton("Sitzung prüfen und abschließen",()->confirmFinalize(this::showHome),true);
     addButton("Abschließen & sofort per E-Mail senden",this::sendDirect,true);
@@ -525,9 +516,6 @@ public class MainActivity extends Activity {
   void syncPlace(){
     if(archiveReadOnly)return;
     if(place!=null)set("place",place.getText().toString().trim().isEmpty()?"Ahnsen DGH":place.getText().toString().trim());
-    if(agendaField!=null)set("agenda",agendaField.getText().toString());
-    if(notesField!=null)set("notes",notesField.getText().toString());
-    if(decisionsField!=null)set("decisions",decisionsField.getText().toString());
   }
   TextView fieldText(String v){TextView t=text(v+"   ▾",17,DARK,false);t.setPadding(dp(13),dp(15),dp(13),dp(15));t.setBackground(bg(Color.WHITE,10));page.addView(t);return t;}
   void pickTime(String key,TextView target){String v=val(key,"17:00");int h=17,m=0;try{String[] p=v.split(":");h=Integer.parseInt(p[0]);m=Integer.parseInt(p[1]);}catch(Exception e){}
@@ -578,9 +566,6 @@ public class MainActivity extends Activity {
     for(int i=0;i<labels.length;i++)if(present!=null&&present.optBoolean(i,false)){
       page.addView(text("✓ "+labels[i]+(sigs!=null&&!sigs.optString(i,"").isEmpty()?"  · unterschrieben":"  · Unterschrift fehlt"),15,DARK,false));gap(page,9);
     }
-    if(!val("agenda","").isEmpty())infoPanel("Tagesordnung",val("agenda",""));
-    if(!val("notes","").isEmpty())infoPanel("Notizen",val("notes",""));
-    if(!val("decisions","").isEmpty())infoPanel("Beschlüsse",val("decisions",""));
     gap(page,17);
     addButton("PDF als Vorschau öffnen",this::openPdf,false);
     addButton("Verbindlich abschließen",()->confirmFinalize(this::showHome),true);
@@ -646,61 +631,10 @@ public class MainActivity extends Activity {
       draw(canvas,"Seite "+(number+1),497,810,9,MUTED,false);
       document.finishPage(page);
     }
-    String[] sectionTitles={"TAGESORDNUNG","SITZUNGSNOTIZEN","BESCHLÜSSE"};
-    String[] content={val("agenda",""),val("notes",""),val("decisions","")};
-    ArrayList<String> lines=new ArrayList<>();
-    for(int i=0;i<content.length;i++){
-      if(content[i].trim().isEmpty())continue;
-      lines.add("## "+sectionTitles[i]);
-      lines.addAll(wrapPdfLines(content[i],82));
-      lines.add("");
-    }
-    if(!lines.isEmpty()){
-      final int maxLines=34;
-      int pages=(lines.size()+maxLines-1)/maxLines;
-      for(int part=0;part<pages;part++){
-        PdfDocument.Page page=document.startPage(new PdfDocument.PageInfo.Builder(595,842,totalPages+part+1).create());
-        Canvas c=page.getCanvas();c.drawColor(Color.WHITE);
-        paint.setColor(RED);c.drawRect(0,0,595,16,paint);
-        drawFit(c,header,44,52,14,RED,true,505);
-        draw(c,"SITZUNGSDOKUMENTATION",44,101,23,DARK,true);
-        draw(c,category+"  ·  "+showDate(val("date","")),44,127,13,MUTED,false);
-        int from=part*maxLines,to=Math.min(lines.size(),from+maxLines);
-        int y=173;
-        for(int i=from;i<to;i++){
-          String line=lines.get(i);
-          if(line.startsWith("## ")){draw(c,line.substring(3),44,y,14,RED,true);y+=22;}
-          else if(line.isEmpty()){y+=8;}
-          else{drawFit(c,line,44,y,12,DARK,false,505);y+=17;}
-        }
-        paint.setColor(Color.rgb(225,228,232));c.drawLine(44,773,551,773,paint);
-        drawFit(c,footer,44,795,10,MUTED,true,470);
-        draw(c,"Seite "+(totalPages+part+1),497,810,9,MUTED,false);
-        document.finishPage(page);
-      }
-    }
     File folder=new File(getCacheDir(),"pdfs");if(!folder.exists())folder.mkdirs();
     File output=new File(folder,"SPD_Ahnsen_"+val("type","normal")+"_"+val("date",LocalDate.now().toString())+"_"+val("id","").replaceAll("[^a-zA-Z0-9_-]","")+".pdf");
     try(FileOutputStream stream=new FileOutputStream(output)){document.writeTo(stream);}
     document.close();return output;
-  }
-  ArrayList<String> wrapPdfLines(String input,int maxChars){
-    ArrayList<String> result=new ArrayList<>();
-    for(String paragraph:input.replace("\r","").split("\n",-1)){
-      StringBuilder current=new StringBuilder();
-      for(String word:paragraph.trim().split("\\s+")){
-        if(word.isEmpty())continue;
-        while(word.length()>maxChars){
-          if(current.length()>0){result.add(current.toString());current.setLength(0);}
-          result.add(word.substring(0,maxChars));word=word.substring(maxChars);
-        }
-        if(current.length()>0&&current.length()+1+word.length()>maxChars){result.add(current.toString());current.setLength(0);}
-        if(current.length()>0)current.append(" ");
-        current.append(word);
-      }
-      result.add(current.toString());
-    }
-    return result;
   }
   void drawFit(Canvas c,String value,int x,int y,int size,int color,boolean bold,float width){
     Paint p=new Paint(3);p.setColor(color);p.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));p.setTextSize(size);
