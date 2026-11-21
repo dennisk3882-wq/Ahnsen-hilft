@@ -426,8 +426,8 @@ public class MainActivity extends Activity {
     new AlertDialog.Builder(this)
       .setTitle("Sitzung endgültig löschen?")
       .setMessage(kind+" vom "+date+
-        "\\n\\nDiese Sitzung, ihre Unterschriften, die Original-PDF und das zugehörige Versandprotokoll werden auf diesem Gerät gelöscht."+
-        "\\n\\nDies kann nicht rückgängig gemacht werden. Bereits verschickte E-Mails und vorhandene Backups bleiben bestehen.")
+        "\n\nDiese Sitzung, ihre Unterschriften, die Original-PDF und das zugehörige Versandprotokoll werden auf diesem Gerät gelöscht."+
+        "\n\nDies kann nicht rückgängig gemacht werden. Bereits verschickte E-Mails und vorhandene Backups bleiben bestehen.")
       .setNegativeButton("Abbrechen",null)
       .setPositiveButton("Endgültig löschen",(dialog,choice)->{
         try{
